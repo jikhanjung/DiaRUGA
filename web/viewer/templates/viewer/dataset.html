@@ -1,0 +1,41 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block title %}{{ label }} — 규조류 뷰어{% endblock %}
+{% block subtitle %}{{ label }}{% endblock %}
+{% block nav %}<a href="{% url 'detections' slug %}">검출 목록</a>{% endblock %}
+
+{% block content %}
+<div class="crumb"><a href="/">데이터셋</a> / {{ label }}</div>
+<h2>{{ label }}</h2>
+<p class="dim mono" style="font-size:12px">
+  {{ json_name }} · thresh {{ corr_thresh }} ·
+  사진 {{ n_images }} → 그룹 {{ n_groups }} · 평균 {{ mean_size }}장 ·
+  싱글턴 {{ singletons }} · 최대 {{ max_size }}장
+</p>
+
+{% if singletons > 10 %}
+<div class="note">
+  싱글턴이 {{ singletons }}개다 ({{ n_groups }}개 그룹 중). 초점 시리즈를 덜 찍었거나
+  상관 임계값 {{ corr_thresh }} 가 이 폴더에 맞지 않는 것일 수 있다 — 두 경우는 구분되지 않았다.
+</div>
+{% endif %}
+
+<div class="grid">
+{% for g in groups %}
+  <a class="tile" href="{% url 'group' slug g.id %}">
+    {% if g.cover_rel %}
+      <img loading="lazy" src="{% thumb g.cover_rel 300 %}" alt="group {{ g.id }}">
+    {% endif %}
+    <div class="meta">
+      <div class="t">g{{ g.id }} · {{ g.n }}장</div>
+      <div class="dim mono">{{ g.sharpest }}</div>
+      <div style="margin-top:5px; display:flex; gap:5px; flex-wrap:wrap">
+        {% if g.n == 1 %}<span class="badge warn">싱글턴</span>{% endif %}
+        {% if g.has_stack %}<span class="badge on">합성됨</span>{% endif %}
+        {% if g.n_detected %}<span class="badge on">{{ g.n_detected }}개 검출</span>{% endif %}
+      </div>
+    </div>
+  </a>
+{% endfor %}
+</div>
+{% endblock %}

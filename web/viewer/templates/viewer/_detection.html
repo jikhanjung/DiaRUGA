@@ -1,0 +1,577 @@
+{% load viewer_extras %}
+{# det: 검출 payload, base: 검출을 돌린 이미지 rel, uid: DOM 충돌 방지용 #}
+<h3 style="margin:22px 0 8px; font-size:15px">
+  {{ title }} <span class="dim" style="font-weight:400">·
+  후보 {{ det.n_candidates }}개{% if det.counts %} (봉상 {{ det.counts.rod }}, 원형 {{ det.counts.round }}{% if det.counts.manual %}, 수동 {{ det.counts.manual }}{% endif %}){% endif %} ·
+  원시 {{ det.n_raw_masks }}{% if det.n_sized %} → 크기통과 {{ det.n_sized }}{% endif %} ·
+  {{ det.um_per_pixel|floatformat:4 }} µm/px</span>
+</h3>
+
+{% if base %}
+<div class="detview" id="dv-{{ uid }}"
+     data-w="{{ det.size.0 }}" data-h="{{ det.size.1 }}" data-stem="{{ det.stem }}">
+  <div class="canvas" id="canvas-{{ uid }}">
+    <img src="{% thumb base 1600 %}" alt="{{ title }}" draggable="false">
+  </div>
+  <div class="band" id="band-{{ uid }}"></div>
+  <div class="zoomtag" id="zoom-{{ uid }}">100%</div>
+</div>
+
+<div class="detbar">
+  <span id="selinfo-{{ uid }}" class="dim">선택 없음</span>
+  <button type="button" data-act="all">전체 선택</button>
+  <button type="button" data-act="none">해제</button>
+  <button type="button" data-act="reset">배율 초기화</button>
+  <button type="button" data-act="ghosts">삭제분 숨기기</button>
+  <button type="button" data-act="undo">↶ 실행취소</button>
+  <button type="button" data-act="clear">교정 전체 초기화</button>
+  <span id="savestate-{{ uid }}" class="hint"></span>
+</div>
+<p class="dim" style="font-size:11.5px;margin:2px 2px 0">
+  휠 = 확대 · 우클릭 드래그 = 이동 · 클릭 = 선택 · Shift+클릭 = 추가/해제 ·
+  드래그 = 범위 선택 · <b>선택 위에서 우클릭 = 오검출 삭제</b> ·
+  <b>빈 곳 클릭 = 그 자리의 탈락 후보 펼쳐 보기</b>
+</p>
+
+<script type="application/json" id="cand-{{ uid }}">{{ det.candidates|json_dumps }}</script>
+<script type="application/json" id="rej-{{ uid }}">{{ det.rejected|json_dumps }}</script>
+<script type="application/json" id="gone-{{ uid }}">{{ det.removed_candidates|json_dumps }}</script>
+
+<script>
+(function () {
+  var uid = "{{ uid }}";
+  var view = document.getElementById('dv-' + uid);
+  var canvas = document.getElementById('canvas-' + uid);
+  var band = document.getElementById('band-' + uid);
+  var info = document.getElementById('selinfo-' + uid);
+  var zoomTag = document.getElementById('zoom-' + uid);
+  var saveState = document.getElementById('savestate-' + uid);
+  if (!view || !canvas) return;
+
+  var cands = JSON.parse(document.getElementById('cand-' + uid).textContent || '[]');
+  var rejects = JSON.parse(document.getElementById('rej-' + uid).textContent || '[]');
+  var W = parseFloat(view.dataset.w), H = parseFloat(view.dataset.h);
+  var stem = view.dataset.stem;
+  if (!W || !H) return;
+
+  var imgSrc = canvas.querySelector('img').getAttribute('src');
+  function keyOf(c) { var b = c.bbox_xywh; return b.map(function (v) { return Math.round(v); }).join('_'); }
+
+  // 서버에 저장된 교정 상태를 그대로 이어받는다.
+  var goneList = JSON.parse(document.getElementById('gone-' + uid).textContent || '[]');
+  var removed = new Set(goneList.map(keyOf));   // 오검출로 지운 것
+  var accepted = new Set(cands.filter(function (c) { return c.manual; }).map(keyOf));
+  // 지운 것도 목록에 합쳐 둔다 — 흔적으로 그려 되살릴 수 있어야 한다.
+  cands = cands.concat(goneList);
+  var sel = new Set();
+  var els = [];
+
+  // --- 툴팁 (문서 전체에 하나만) -------------------------------------------
+  var tip = document.querySelector('.dettip');
+  if (!tip) { tip = document.createElement('div'); tip.className = 'dettip'; document.body.appendChild(tip); }
+
+  function num(v, d) { return (v === undefined || v === null) ? '—' : (d ? (+v).toFixed(d) : v); }
+  function clsName(c) { return c.cls === 'rod' ? '봉상' : (c.cls === 'round' ? '원형' : '미분류'); }
+  function tipHtml(c) {
+    return '<b>#' + c.id + ' · ' + clsName(c) + (c.manual ? ' · 수동복구' : '') + '</b>' +
+      (c.reject ? '<div class="dim">탈락사유: ' + c.reject + '</div>' : '') +
+      '<table>' +
+      '<tr><td>장축 / 단축</td><td>' + num(c.major_um, 1) + ' / ' + num(c.minor_um, 1) + ' µm</td></tr>' +
+      '<tr><td>면적</td><td>' + num(c.area_um2, 1) + ' µm²</td></tr>' +
+      '<tr><td>신장비</td><td>' + num(c.elongation, 2) + '</td></tr>' +
+      '<tr><td>타원 IoU</td><td>' + num(c.ellipse_iou, 3) + '</td></tr>' +
+      '<tr><td>볼록성</td><td>' + num(c.solidity, 3) + '</td></tr>' +
+      '<tr><td>매끈함</td><td>' + num(c.convexity, 3) + '</td></tr>' +
+      '<tr><td>텍스처</td><td>' + num(c.texture, 0) + '</td></tr>' +
+      '</table>';
+  }
+  function placeTip(e) {
+    var pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    var x = e.clientX + pad, y = e.clientY + pad;
+    if (x + w > window.innerWidth - 6) x = e.clientX - w - pad;
+    if (y + h > window.innerHeight - 6) y = e.clientY - h - pad;
+    tip.style.left = Math.max(4, x) + 'px';
+    tip.style.top = Math.max(4, y) + 'px';
+  }
+
+  // --- 확대 / 이동 ---------------------------------------------------------
+  var k = 1, tx = 0, ty = 0;
+  function applyTransform() {
+    canvas.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + k + ')';
+    zoomTag.textContent = Math.round(k * 100) + '%';
+    zoomTag.style.opacity = k === 1 ? 0 : 1;
+  }
+  function clampPan() {
+    // 이미지가 화면 밖으로 완전히 빠져나가지 않게 한다.
+    var vw = view.clientWidth, vh = view.clientHeight;
+    var min = Math.min(vw, vh) * 0.2;
+    tx = Math.min(vw - min, Math.max(min - vw * k, tx));
+    ty = Math.min(vh - min, Math.max(min - vh * k, ty));
+  }
+  view.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var r = view.getBoundingClientRect();
+    var px = e.clientX - r.left, py = e.clientY - r.top;
+    var nk = Math.min(12, Math.max(1, k * (e.deltaY < 0 ? 1.18 : 1 / 1.18)));
+    if (nk === k) return;
+    // 커서 아래 지점이 그대로 있도록 평행이동을 보정한다.
+    tx = px - (px - tx) * nk / k;
+    ty = py - (py - ty) * nk / k;
+    k = nk;
+    if (k === 1) { tx = 0; ty = 0; } else { clampPan(); }
+    applyTransform();
+  }, { passive: false });
+
+  // --- 좌표 변환 -----------------------------------------------------------
+  // 화면 좌표 -> 이미지 픽셀 좌표. 확대/이동이 걸려 있어도 맞는다.
+  function toImage(e) {
+    var r = view.getBoundingClientRect();
+    var fx = ((e.clientX - r.left) - tx) / (k * r.width);
+    var fy = ((e.clientY - r.top) - ty) / (k * r.height);
+    return { x: fx * W, y: fy * H, fx: fx, fy: fy };
+  }
+
+  // --- 박스 렌더 -----------------------------------------------------------
+  function boxStyle(el, b) {
+    el.style.left = (100 * b[0] / W) + '%';
+    el.style.top = (100 * b[1] / H) + '%';
+    el.style.width = (100 * b[2] / W) + '%';
+    el.style.height = (100 * b[3] / H) + '%';
+  }
+  var showGone = true;
+
+  function build() {
+    els.forEach(function (el) { el.remove(); });
+    els = [];
+    cands.forEach(function (c, i) {
+      var gone = removed.has(keyOf(c));
+      if (gone && !showGone) return;
+      var el = document.createElement('div');
+      el.className = 'box' + (gone ? ' gone'
+        : (c.cls ? ' ' + c.cls : '') + (c.manual ? ' manual' : ''));
+      boxStyle(el, c.bbox_xywh);
+      el.dataset.i = i;
+      el.dataset.gone = gone ? '1' : '';
+      // 확대해도 테두리 두께가 그대로 보이게 역보정
+      el.style.borderWidth = Math.max(1, 2 / k) + 'px';
+      canvas.appendChild(el);
+      els.push(el);
+      el.addEventListener('mouseenter', function (ev) {
+        el.classList.add('hot');
+        tip.innerHTML = tipHtml(c) +
+          (gone ? '<div class="dim">오검출로 지움 — 클릭하면 되살린다</div>' : '');
+        tip.style.display = 'block'; placeTip(ev);
+      });
+      el.addEventListener('mousemove', placeTip);
+      el.addEventListener('mouseleave', function () {
+        el.classList.remove('hot'); tip.style.display = 'none';
+      });
+    });
+    redraw();
+  }
+
+  // --- 교정 이력 (Ctrl+Z) ---------------------------------------------------
+  var history = [];
+
+  function restore(keys) {
+    keys.forEach(function (key) {
+      if (!removed.has(key)) return;
+      removed.delete(key);
+      // 수동으로 되살렸다가 지운 것이면 복구 목록에도 도로 넣는다.
+      var c = cands.find(function (x) { return keyOf(x) === key; });
+      if (c && c.manual) accepted.add(key);
+    });
+  }
+
+  function undo() {
+    var last = history.pop();
+    if (!last) { saveState.textContent = '되돌릴 교정이 없다'; return; }
+    if (last.type === 'remove') {
+      restore(last.keys);
+    } else if (last.type === 'restore') {
+      last.keys.forEach(function (key) {
+        removed.add(key);
+        accepted.delete(key);
+      });
+    } else if (last.type === 'accept') {
+      accepted.delete(last.key);
+      var idx = cands.findIndex(function (x) { return keyOf(x) === last.key; });
+      if (idx >= 0) { rejects.push(cands[idx]); cands.splice(idx, 1); }
+      sel.clear();
+    }
+    build();
+    save();
+  }
+
+  function visible() { return cands.filter(function (c) { return !removed.has(keyOf(c)); }); }
+
+  function redraw() {
+    els.forEach(function (el) {
+      el.classList.toggle('sel', sel.has(+el.dataset.i));
+      el.style.borderWidth = Math.max(1, (sel.has(+el.dataset.i) ? 3 : 2) / k) + 'px';
+    });
+    var picked = Array.from(sel).map(function (i) { return cands[i]; })
+      .filter(function (c) { return c && !removed.has(keyOf(c)); });
+    if (!picked.length) {
+      info.textContent = '선택 없음'; info.className = 'dim';
+    } else {
+      var sizes = picked.map(function (c) { return +c.major_um || 0; }).sort(function (a, b) { return a - b; });
+      info.className = '';
+      info.innerHTML = '<b>' + picked.length + '개 선택</b> · 장축 중앙 ' +
+        sizes[Math.floor(sizes.length / 2)].toFixed(1) + ' µm (' +
+        sizes[0].toFixed(1) + '~' + sizes[sizes.length - 1].toFixed(1) + ')';
+    }
+    var n = removed.size, m = accepted.size;
+    saveState.textContent = (n || m)
+      ? '교정: 삭제 ' + n + ' · 복구 ' + m + (history.length ? ' · Ctrl+Z 로 취소' : '')
+      : '';
+  }
+
+  // --- 저장 ----------------------------------------------------------------
+  var saveTimer = null;
+  function save() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      fetch('/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stem: stem,
+          removed: Array.from(removed),
+          accepted: Array.from(accepted)
+        })
+      }).then(function (r) {
+        saveState.textContent = r.ok
+          ? '저장됨 — 삭제 ' + removed.size + ' · 복구 ' + accepted.size
+          : '저장 실패';
+      }).catch(function () { saveState.textContent = '저장 실패 (오프라인?)'; });
+    }, 400);
+  }
+
+  // --- 탈락 후보 펼쳐 보기 (누락 복구) --------------------------------------
+  var spread = null;
+  function closeSpread() { if (spread) { spread.remove(); spread = null; } }
+
+  function openSpread(e, pt) {
+    closeSpread();
+    // 클릭 지점을 품고 있는 탈락 후보들. 없으면 조용히 넘어간다.
+    var hits = rejectsAt(pt);
+    if (!hits.length) return false;
+    hits.sort(function (a, b) { return a.area_px - b.area_px; });
+    hits = hits.slice(0, 12);
+
+    spread = document.createElement('div');
+    spread.className = 'spread';
+    spread.innerHTML = '<div class="shead">이 자리의 탈락 후보 ' + hits.length +
+      '개 — 맞는 것을 고르면 검출로 인정된다</div>';
+    var grid = document.createElement('div');
+    grid.className = 'sgrid';
+    spread.appendChild(grid);
+
+    hits.forEach(function (c) {
+      var b = c.bbox_xywh;
+      var cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'scell';
+      var crop = document.createElement('span');
+      crop.className = 'scrop';
+      // 배경 트릭으로 서버 크롭 없이 해당 영역만 보여준다 (% 라서 해상도 무관).
+      crop.style.backgroundImage = 'url("' + imgSrc + '")';
+      crop.style.backgroundSize = (100 * W / Math.max(b[2], 1)) + '% ' + (100 * H / Math.max(b[3], 1)) + '%';
+      crop.style.backgroundPosition =
+        (100 * b[0] / Math.max(W - b[2], 1)) + '% ' + (100 * b[1] / Math.max(H - b[3], 1)) + '%';
+      cell.appendChild(crop);
+      var cap = document.createElement('span');
+      cap.className = 'scap';
+      cap.innerHTML = num(c.major_um, 1) + '×' + num(c.minor_um, 1) + ' µm<br>' +
+        '<span class="dim">' + (c.reject || '') + ' · 텍스처 ' + num(c.texture, 0) + '</span>';
+      cell.appendChild(cap);
+      cell.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        accepted.add(keyOf(c));
+        var copy = Object.assign({}, c, { manual: true, id: cands.length });
+        cands.push(copy);
+        rejects = rejects.filter(function (r) { return keyOf(r) !== keyOf(c); });
+        history.push({ type: 'accept', key: keyOf(c) });
+        closeSpread();
+        build();
+        save();
+      });
+      grid.appendChild(cell);
+    });
+
+    document.body.appendChild(spread);
+    var w = spread.offsetWidth, h = spread.offsetHeight;
+    var x = Math.min(window.innerWidth - w - 8, Math.max(8, e.clientX - w / 2));
+    var y = e.clientY + 16;
+    if (y + h > window.innerHeight - 8) y = Math.max(8, e.clientY - h - 16);
+    spread.style.left = x + 'px';
+    spread.style.top = y + 'px';
+    return true;
+  }
+
+  document.addEventListener('mousedown', function (e) {
+    if (spread && !spread.contains(e.target)) closeSpread();
+  });
+
+  // --- 우클릭 컨텍스트 메뉴 -------------------------------------------------
+  var menu = null;
+  function closeMenu() { if (menu) { menu.remove(); menu = null; } }
+
+  function removeKeys(idxs) {
+    var keys = [];
+    idxs.forEach(function (i) {
+      var c = cands[i];
+      if (!c || removed.has(keyOf(c))) return;
+      var key = keyOf(c);
+      removed.add(key);
+      keys.push(key);
+      // 되살렸던 것을 다시 지워도 개체는 cands 에 남긴다 — 흔적으로 보이고
+      // 다시 되살릴 수 있어야 한다. 복구 목록에서만 뺀다.
+      accepted.delete(key);
+    });
+    if (!keys.length) return;
+    history.push({ type: 'remove', keys: keys });
+    sel.clear();
+    build();
+    save();
+  }
+
+  function openMenu(e, d) {
+    closeMenu();
+    closeSpread();
+    tip.style.display = 'none';
+
+    // 우클릭한 박스가 선택 안에 있으면 선택 전체가 대상, 아니면 그 박스 하나.
+    var targets = [];
+    if (d.target !== null) {
+      targets = sel.has(d.target) ? Array.from(sel) : [d.target];
+    } else if (sel.size) {
+      targets = Array.from(sel);
+    }
+    var live = targets.filter(function (i) { return cands[i] && !removed.has(keyOf(cands[i])); });
+    var dead = targets.filter(function (i) { return cands[i] && removed.has(keyOf(cands[i])); });
+
+    var items = [];
+    if (live.length) {
+      items.push({ label: '오검출로 삭제 (' + live.length + ')', danger: true,
+                   run: function () { removeKeys(live); } });
+    }
+    if (dead.length) {
+      items.push({ label: '되살리기 (' + dead.length + ')', run: function () {
+        var keys = dead.map(function (i) { return keyOf(cands[i]); });
+        restore(keys);
+        history.push({ type: 'restore', keys: keys });
+        build(); save();
+      } });
+    }
+    if (d.target === null) {
+      var pt = { x: d.x, y: d.y };
+      var near = rejectsAt(pt).length;
+      items.push({ label: '이 자리의 탈락 후보 보기' + (near ? ' (' + near + ')' : ''),
+                   disabled: !near,
+                   run: function () { openSpread(e, pt); } });
+    }
+    if (sel.size) items.push({ label: '선택 해제', run: function () { sel.clear(); redraw(); } });
+    if (history.length) items.push({ label: '↶ 실행취소', run: undo });
+    if (!items.length) return;
+
+    menu = document.createElement('div');
+    menu.className = 'ctxmenu';
+    items.forEach(function (it) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = it.label;
+      if (it.danger) b.className = 'danger';
+      if (it.disabled) { b.disabled = true; }
+      else b.addEventListener('click', function (ev) {
+        ev.stopPropagation(); closeMenu(); it.run();
+      });
+      menu.appendChild(b);
+    });
+    document.body.appendChild(menu);
+    var w = menu.offsetWidth, h = menu.offsetHeight;
+    menu.style.left = Math.min(window.innerWidth - w - 6, e.clientX + 2) + 'px';
+    menu.style.top = Math.min(window.innerHeight - h - 6, e.clientY + 2) + 'px';
+  }
+
+  function rejectsAt(pt) {
+    return rejects.filter(function (c) {
+      var b = c.bbox_xywh;
+      return !accepted.has(keyOf(c)) &&
+        pt.x >= b[0] - 4 && pt.x <= b[0] + b[2] + 4 &&
+        pt.y >= b[1] - 4 && pt.y <= b[1] + b[3] + 4;
+    });
+  }
+
+  document.addEventListener('mousedown', function (e) {
+    if (menu && !menu.contains(e.target)) closeMenu();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeMenu(); closeSpread(); }
+  });
+
+  // --- 마우스: 선택 / 범위선택 / 이동 / 삭제 -------------------------------
+  var down = null, mode = null;
+
+  view.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  view.addEventListener('mousedown', function (e) {
+    var pt = toImage(e);
+    down = {
+      sx: e.clientX, sy: e.clientY, fx: pt.fx, fy: pt.fy, x: pt.x, y: pt.y,
+      shift: e.shiftKey, btn: e.button,
+      target: e.target.classList.contains('box') ? +e.target.dataset.i : null,
+      tx0: tx, ty0: ty
+    };
+    mode = null;
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', function (e) {
+    if (!down) return;
+    var dx = e.clientX - down.sx, dy = e.clientY - down.sy;
+    if (!mode && Math.abs(dx) + Math.abs(dy) > 4) {
+      mode = (down.btn === 2) ? 'pan' : 'band';
+      tip.style.display = 'none';
+      if (mode === 'band') band.style.display = 'block';
+    }
+    if (mode === 'pan') {
+      tx = down.tx0 + dx; ty = down.ty0 + dy;
+      clampPan(); applyTransform();
+    } else if (mode === 'band') {
+      var r = view.getBoundingClientRect();
+      var x0 = down.sx - r.left, y0 = down.sy - r.top;
+      var x1 = e.clientX - r.left, y1 = e.clientY - r.top;
+      band.style.left = Math.min(x0, x1) + 'px';
+      band.style.top = Math.min(y0, y1) + 'px';
+      band.style.width = Math.abs(x1 - x0) + 'px';
+      band.style.height = Math.abs(y1 - y0) + 'px';
+    }
+  });
+
+  window.addEventListener('mouseup', function (e) {
+    if (!down) return;
+    var d = down; down = null;
+    var m = mode; mode = null;
+    band.style.display = 'none';
+
+    if (m === 'pan') return;
+
+    if (m === 'band') {
+      var p = toImage(e);
+      var x0 = Math.min(d.x, p.x), x1 = Math.max(d.x, p.x);
+      var y0 = Math.min(d.y, p.y), y1 = Math.max(d.y, p.y);
+      if (!d.shift) sel.clear();
+      cands.forEach(function (c, i) {
+        if (removed.has(keyOf(c))) return;
+        var b = c.bbox_xywh;
+        if (b[0] < x1 && b[0] + b[2] > x0 && b[1] < y1 && b[1] + b[3] > y0) sel.add(i);
+      });
+      redraw();
+      return;
+    }
+
+    // 움직임 없는 우클릭 -> 컨텍스트 메뉴 (드래그였다면 위에서 pan 으로 끝났다)
+    if (d.btn === 2) { openMenu(e, d); return; }
+
+    if (d.btn !== 0) return;
+
+    if (d.target !== null) {
+      var c = cands[d.target];
+      // 지운 것(유령)을 클릭하면 되살린다.
+      if (c && removed.has(keyOf(c))) {
+        restore([keyOf(c)]);
+        history.push({ type: 'restore', keys: [keyOf(c)] });
+        build();
+        save();
+        return;
+      }
+      if (d.shift) { sel.has(d.target) ? sel.delete(d.target) : sel.add(d.target); }
+      else { sel.clear(); sel.add(d.target); }
+      redraw();
+      return;
+    }
+
+    // 빈 곳 클릭 -> 그 자리의 탈락 후보를 펼쳐 보여준다
+    if (!d.shift) sel.clear();
+    redraw();
+    openSpread(e, { x: d.x, y: d.y });
+  });
+
+  // --- 버튼 ----------------------------------------------------------------
+  info.parentElement.addEventListener('click', function (e) {
+    var act = e.target.dataset && e.target.dataset.act;
+    if (!act) return;
+    if (act === 'all') { visible().forEach(function (c) { sel.add(cands.indexOf(c)); }); redraw(); }
+    else if (act === 'none') { sel.clear(); redraw(); }
+    else if (act === 'reset') { k = 1; tx = 0; ty = 0; applyTransform(); build(); }
+    else if (act === 'undo') { undo(); }
+    else if (act === 'ghosts') {
+      showGone = !showGone;
+      e.target.textContent = showGone ? '삭제분 숨기기' : '삭제분 보기';
+      build();
+    }
+    else if (act === 'clear') {
+      if (!removed.size && !accepted.size) { saveState.textContent = '교정 기록이 없다'; return; }
+      if (!confirm('이 이미지의 교정 기록(삭제 ' + removed.size +
+                   ', 복구 ' + accepted.size + ')을 모두 지운다.')) return;
+      removed.clear(); accepted.clear(); sel.clear(); history.length = 0;
+      save();
+      // 되살린 개체를 목록에서 빼려면 서버 상태를 다시 받아야 한다.
+      setTimeout(function () { location.reload(); }, 500);
+    }
+  });
+
+  // Ctrl+Z / Cmd+Z — 입력란에 포커스가 있을 때는 가로채지 않는다.
+  document.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+    var t = document.activeElement;
+    if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    e.preventDefault();
+    undo();
+  });
+
+  applyTransform();
+  build();
+})();
+</script>
+{% endif %}
+
+<div class="scroll">
+<table>
+  <thead><tr>
+    <th>#</th><th>형태</th><th>중심 xy</th>
+    <th>장축 µm</th><th>단축 µm</th><th>신장비</th>
+    <th>타원 IoU</th><th>볼록성</th><th>매끈함</th><th>텍스처</th>
+  </tr></thead>
+  <tbody>
+  {% for c in det.candidates %}
+    <tr>
+      <td>{{ c.id }}</td>
+      <td>{% if c.cls == "rod" %}<span class="badge rod">봉상</span>
+          {% elif c.cls == "round" %}<span class="badge on">원형</span>
+          {% else %}<span class="dim">—</span>{% endif %}{% if c.manual %} <span class="badge warn">수동</span>{% endif %}</td>
+      <td class="mono dim">{{ c.center_xy.0 }}, {{ c.center_xy.1 }}</td>
+      <td>{{ c.major_um|default:c.long_side_um }}</td>
+      <td>{{ c.minor_um|default:c.short_side_um }}</td>
+      <td>{{ c.elongation|default:c.aspect_ratio }}</td>
+      <td>{{ c.ellipse_iou|default:"—" }}</td>
+      <td>{{ c.solidity|default:"—" }}</td>
+      <td>{{ c.convexity|default:"—" }}</td>
+      <td>{{ c.texture|default:"—" }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if det.thresholds %}
+<p class="dim mono" style="font-size:11px; margin-top:6px">
+  문턱 — 크기 {{ det.thresholds.min_um }}~{{ det.thresholds.max_um }} µm ·
+  텍스처 ≥{{ det.thresholds.texture_min }} ·
+  원형 신장비&lt;{{ det.thresholds.round_max_elong }} IoU≥{{ det.thresholds.round_min_iou }} ·
+  봉상 신장비 {{ det.thresholds.rod_min_elong }}~{{ det.thresholds.rod_max_elong }} IoU≥{{ det.thresholds.rod_min_iou }}
+  · 조정은 <code>refilter.py</code> (재추론 불필요)
+</p>
+{% endif %}

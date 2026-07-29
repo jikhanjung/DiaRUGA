@@ -1,0 +1,159 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block title %}{{ label }} g{{ id }} — 규조류 뷰어{% endblock %}
+{% block subtitle %}{{ label }} · g{{ id }}{% endblock %}
+{% block nav %}
+  {% if prev_id is not None %}<a href="{% url 'group' slug prev_id %}">← g{{ prev_id }}</a>{% endif %}
+  {% if next_id is not None %}<a href="{% url 'group' slug next_id %}">g{{ next_id }} →</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="crumb"><a href="/">데이터셋</a> / <a href="{% url 'dataset' slug %}">{{ label }}</a> / g{{ id }}</div>
+<h2>그룹 {{ id }} <span class="dim" style="font-weight:400">· {{ n }}장 · {{ span_sec }}초에 걸쳐 촬영</span></h2>
+<p class="dim mono" style="font-size:12px">tag {{ tag }} · 최선 프레임 {{ sharpest }}</p>
+
+{% if stack and stack.detection %}
+  {% include "viewer/_detection.html" with det=stack.detection base=stack.focused_rel uid="stack" title="검출 결과 (합성본)" %}
+{% elif frames %}
+  {% for f in frames %}{% if f.detection %}
+    {% include "viewer/_detection.html" with det=f.detection base=f.rel uid=forloop.counter title=f.name %}
+  {% endif %}{% endfor %}
+{% endif %}
+
+{% if stack and not stack.detection %}
+  <div class="note">
+    합성본은 있으나 아직 검출을 돌리지 않았다:
+    <code class="mono">python segment_diatoms.py {{ stack.focused_rel }} -o out</code>
+  </div>
+{% endif %}
+
+<h3 style="margin:26px 0 4px; font-size:15px">이미지</h3>
+<div class="gallery">
+  <figure class="stage">
+    <img id="stage-img" src="" alt="">
+    <figcaption>
+      <span id="stage-title"></span>
+      <span class="dim" id="stage-note"></span>
+      <a id="stage-full" class="stage-full" href="" target="_blank" rel="noopener">원본 크기</a>
+    </figcaption>
+  </figure>
+
+  <div class="strip" id="strip">
+    {% if stack %}
+      <button class="shot" data-view="{% thumb stack.focused_rel 1400 %}" data-full="{% full stack.focused_rel %}"
+              data-title="합성본" data-note="그룹 전체에서 초점 맞은 영역만 모았다">
+        <img loading="lazy" src="{% thumb stack.focused_rel 220 %}" alt="합성본">
+        <span class="cap">합성본</span>
+      </button>
+      {% if stack.depth_rel %}
+      <button class="shot" data-view="{% thumb stack.depth_rel 1400 %}" data-full="{% full stack.depth_rel %}"
+              data-title="깊이 맵" data-note="Z 좌표가 없어 상대값이다 — 정량적 높이가 아니다">
+        <img loading="lazy" src="{% thumb stack.depth_rel 220 %}" alt="깊이 맵">
+        <span class="cap">깊이 맵</span>
+      </button>
+      {% endif %}
+      {% comment %}
+        검출 오버레이는 스트립에 넣지 않는다 — refilter.py 로 문턱을 바꾸면
+        JPG 는 그대로 남아 낡는다. 위쪽 대화형 레이어가 JSON 에서 직접 그린다.
+      {% endcomment %}
+    {% endif %}
+
+    {% for f in frames %}{% if f.exists %}
+      <button class="shot {% if f.is_sharpest %}best{% endif %}"
+              data-view="{% thumb f.rel 1400 %}" data-full="{% full f.rel %}"
+              data-title="{{ f.name }}"
+              data-note="선명도 {{ f.sharpness }}{% if f.is_sharpest %} · 그룹 내 최선{% endif %}">
+        <img loading="lazy" src="{% thumb f.rel 220 %}" alt="{{ f.name }}">
+        <span class="cap">{{ f.name|cut:"Snap-" }}{% if f.is_sharpest %} ★{% endif %}</span>
+        <span class="bar"><i style="width:{{ f.sharp_pct }}%"></i></span>
+      </button>
+    {% endif %}{% endfor %}
+  </div>
+  <p class="dim" style="font-size:12px;margin:8px 2px 0">← → 키로도 넘길 수 있다.</p>
+</div>
+
+{% if not stack %}
+  <div class="note">
+    이 그룹은 아직 합성하지 않았다:
+    <code class="mono">python focus_stack.py {{ slug|groups_json }} -o stacked/ --only {{ id }}</code>
+  </div>
+{% endif %}
+
+<style>
+  .gallery { margin: 18px 0 6px; }
+  .stage {
+    margin: 0; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; overflow: hidden;
+  }
+  .stage img {
+    width: 100%; max-height: 72vh; object-fit: contain;
+    display: block; background: #000;
+  }
+  .stage figcaption {
+    padding: 9px 14px; font-size: 13px; display: flex; gap: 12px;
+    align-items: baseline; flex-wrap: wrap; border-top: 1px solid var(--line);
+  }
+  .stage figcaption #stage-title { font-weight: 600; }
+  .stage-full { margin-left: auto; font-size: 12px; }
+
+  .strip {
+    display: flex; gap: 8px; overflow-x: auto; padding: 10px 2px 4px;
+    scrollbar-width: thin;
+  }
+  .shot {
+    flex: 0 0 auto; width: 132px; padding: 0; cursor: pointer;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; overflow: hidden; color: inherit;
+    font: inherit; text-align: left;
+  }
+  .shot:hover { border-color: var(--accent); }
+  .shot.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .shot.best .cap { color: var(--good); }
+  .shot img { width: 100%; aspect-ratio: 2752/2208; object-fit: cover; display: block; background: #000; }
+  .shot .cap { display: block; padding: 5px 7px 2px; font-size: 11px; }
+  .shot .bar { display: block; height: 3px; background: var(--line); margin: 3px 7px 7px; border-radius: 2px; }
+  .shot .bar i { display: block; height: 100%; background: var(--accent); }
+  .shot.best .bar i { background: var(--good); }
+</style>
+
+<script>
+(function () {
+  var strip = document.getElementById('strip');
+  var shots = Array.prototype.slice.call(strip.querySelectorAll('.shot'));
+  if (!shots.length) return;
+
+  var img = document.getElementById('stage-img');
+  var title = document.getElementById('stage-title');
+  var note = document.getElementById('stage-note');
+  var full = document.getElementById('stage-full');
+  var current = 0;
+
+  function show(i) {
+    if (i < 0 || i >= shots.length) return;
+    var s = shots[current];
+    if (s) s.classList.remove('on');
+    current = i;
+    s = shots[current];
+    s.classList.add('on');
+    img.src = s.dataset.view;
+    img.alt = s.dataset.title;
+    title.textContent = s.dataset.title;
+    note.textContent = s.dataset.note || '';
+    full.href = s.dataset.full;
+    // 선택된 것이 잘려 보이지 않게 스트립을 따라 움직인다.
+    s.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  shots.forEach(function (s, i) {
+    s.addEventListener('click', function () { show(i); });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') { show(current + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { show(current - 1); e.preventDefault(); }
+  });
+
+  show(0);
+})();
+</script>
+{% endblock %}

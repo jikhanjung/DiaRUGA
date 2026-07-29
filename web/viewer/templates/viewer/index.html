@@ -1,0 +1,28 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block content %}
+<h2>데이터셋</h2>
+<p class="dim">groups_*.json 을 읽어 표시한다. 스크립트를 다시 돌리면 새로고침만으로 반영된다.</p>
+
+{% if not datasets %}
+  <div class="note">groups_*.json 을 찾지 못했다. <code class="mono">group_focus_series.py</code> 를 먼저 실행해야 한다.</div>
+{% endif %}
+
+<div class="cards">
+{% for d in datasets %}
+  <div class="card">
+    <h3><a href="{% url 'dataset' d.slug %}">{{ d.label }}</a></h3>
+    <div class="dim mono" style="font-size:12px">{{ d.json_name }} · thresh {{ d.corr_thresh }}</div>
+    {% if d.missing_dir %}
+      <div class="note" style="margin:10px 0 0">이미지 디렉토리를 찾을 수 없다: <code class="mono">{{ d.image_dir }}</code></div>
+    {% endif %}
+    <div class="stat-row">
+      <div class="stat"><b>{{ d.n_images }}</b><span>사진</span></div>
+      <div class="stat"><b>{{ d.n_groups }}</b><span>그룹</span></div>
+      <div class="stat"><b>{{ d.mean_size }}</b><span>평균 장수</span></div>
+      <div class="stat"><b>{{ d.singletons }}</b><span>싱글턴</span></div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

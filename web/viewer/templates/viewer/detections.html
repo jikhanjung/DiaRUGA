@@ -1,0 +1,46 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block title %}{{ label }} 검출 — 규조류 뷰어{% endblock %}
+{% block subtitle %}{{ label }} · 검출 목록{% endblock %}
+
+{% block content %}
+<div class="crumb"><a href="/">데이터셋</a> / <a href="{% url 'dataset' slug %}">{{ label }}</a> / 검출</div>
+<h2>검출 후보</h2>
+
+{% if not rows %}
+  <div class="note">
+    아직 검출 결과가 없다. <code class="mono">segment_diatoms.py</code> 를 돌리고
+    산출물을 <code class="mono">out/</code> 에 두면 여기 모인다.
+  </div>
+{% else %}
+  <div class="stat-row" style="margin-bottom:16px">
+    <div class="stat"><b>{{ summary.n }}</b><span>후보</span></div>
+    <div class="stat"><b>{{ summary.min }}</b><span>최소 µm</span></div>
+    <div class="stat"><b>{{ summary.median }}</b><span>중앙값 µm</span></div>
+    <div class="stat"><b>{{ summary.mean }}</b><span>평균 µm</span></div>
+    <div class="stat"><b>{{ summary.max }}</b><span>최대 µm</span></div>
+  </div>
+
+  <div class="scroll">
+  <table>
+    <thead><tr>
+      <th>그룹</th><th>출처</th><th>긴 축 µm</th><th>짧은 축 µm</th>
+      <th>면적 µm²</th><th>종횡비</th><th>채움율</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a href="{% url 'group' slug r.group_id %}">g{{ r.group_id }}</a></td>
+        <td class="mono dim">{{ r.stem }}</td>
+        <td>{{ r.long_side_um }}</td>
+        <td>{{ r.short_side_um }}</td>
+        <td>{{ r.area_um2 }}</td>
+        <td>{{ r.aspect_ratio }}</td>
+        <td>{{ r.fill_ratio }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+{% endif %}
+{% endblock %}
