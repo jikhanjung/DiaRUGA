@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+
+# 파생 산출물 — 스크립트로 언제든 재생성 가능하고 용량이 크다
+out/
+out_hi/
+stacked/
+*.npy
+
+.venv/
