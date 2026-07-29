@@ -14,3 +14,6 @@ stacked/
 
 # 뷰어가 만드는 썸네일 캐시 — 원본에서 언제든 다시 생성된다
 web/.thumbcache/
+
+# devlog 는 .md 로만 둔다. docx 변환은 docs/ 의 보고서에만 한다.
+devlog/*.docx
