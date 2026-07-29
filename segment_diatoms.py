@@ -91,6 +91,11 @@ def shape_metrics(seg):
     (cx, cy), (d1, d2), ang = cv2.fitEllipse(c)
     major, minor = max(d1, d2), min(d1, d2)
 
+    # 외곽선을 단순화해 저장한다. 마스크 전체(RLE)를 넣으면 JSON 이 수십 배로
+    # 불어나는데, 뷰어는 윤곽만 있으면 SVG 로 그릴 수 있다.
+    # epsilon 을 둘레에 비례시켜 크기와 무관하게 같은 정도로 단순화한다.
+    poly = cv2.approxPolyDP(c, 0.004 * peri, True).reshape(-1, 2)
+
     # 적합 타원과의 IoU — 봉상(길쭉한 타원)과 원형(이심률 0)을 한 지표로 묶는다.
     # OpenCV 5 는 RotatedRect 축약형을 안 받아서 인자를 풀어 쓴다.
     canvas = np.zeros(m.shape, dtype=np.uint8)
@@ -107,6 +112,8 @@ def shape_metrics(seg):
         "solidity": round(float(area / max(hull_area, 1e-9)), 3),
         "elongation": round(float(major / max(minor, 1e-6)), 2),
         "ellipse_iou": round(float(inter / max(union, 1)), 3),
+        # [x0,y0,x1,y1,...] 평탄 배열 — 좌표쌍 리스트보다 JSON 이 작다.
+        "polygon": [int(v) for v in poly.ravel()],
         "_major_px": float(major),
         "_minor_px": float(minor),
     }
