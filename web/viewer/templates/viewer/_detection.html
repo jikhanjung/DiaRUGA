@@ -1,23 +1,52 @@
 {% load viewer_extras %}
-{# det: 검출 payload, base: 검출을 돌린 이미지 rel, uid: DOM 충돌 방지용 #}
-<h3 style="margin:22px 0 8px; font-size:15px">
-  {{ title }} <span class="dim" style="font-weight:400">·
-  후보 {{ det.n_candidates }}개{% if det.counts %} (봉상 {{ det.counts.rod }}, 원형 {{ det.counts.round }}{% if det.counts.manual %}, 수동 {{ det.counts.manual }}{% endif %}){% endif %} ·
-  원시 {{ det.n_raw_masks }}{% if det.n_sized %} → 크기통과 {{ det.n_sized }}{% endif %} ·
-  {{ det.um_per_pixel|floatformat:4 }} µm/px</span>
-</h3>
+{# det: 검출 payload, base: 검출을 돌린 이미지 rel, uid: DOM 충돌 방지용
+   stack·frames 는 바깥 컨텍스트에서 그대로 받아 캐러셀에 쓴다. #}
+<div class="dettabs" id="tabs-{{ uid }}">
+  <button type="button" class="on" data-pane="view">{{ title }}</button>
+  <button type="button" data-pane="list">개체 목록 <span class="dim">{{ det.n_candidates }}</span></button>
+  <span class="tabmeta">
+    후보 {{ det.n_candidates }}개{% if det.counts %} (봉상 {{ det.counts.rod }}, 원형 {{ det.counts.round }}{% if det.counts.manual %}, 수동 {{ det.counts.manual }}{% endif %}){% endif %} ·
+    원시 {{ det.n_raw_masks }}{% if det.n_sized %} → 크기통과 {{ det.n_sized }}{% endif %} ·
+    {{ det.um_per_pixel|floatformat:4 }} µm/px{% if det.um_per_pixel_source %}<span class="dim"> ({{ det.um_per_pixel_source }})</span>{% endif %}
+  </span>
+</div>
 
 {% if base %}
+<section data-pane="view" id="pane-view-{{ uid }}">
 <div class="detview" id="dv-{{ uid }}"
      data-w="{{ det.size.0 }}" data-h="{{ det.size.1 }}" data-stem="{{ det.stem }}">
   <div class="canvas" id="canvas-{{ uid }}">
-    <img src="{% thumb base 1600 %}" alt="{{ title }}" draggable="false">
+    <img id="img-{{ uid }}" src="{% thumb base 1600 %}" alt="{{ title }}" draggable="false">
     <svg class="masks" id="masks-{{ uid }}"
          viewBox="0 0 {{ det.size.0 }} {{ det.size.1 }}" preserveAspectRatio="none"></svg>
   </div>
   <div class="band" id="band-{{ uid }}"></div>
   <div class="zoomtag" id="zoom-{{ uid }}">100%</div>
+
+  {# 레이어 토글 — 사진을 가리지 않고 원본을 확인할 수 있어야 한다 #}
+  <div class="layers" id="layers-{{ uid }}">
+    <label><input type="checkbox" data-layer="box" checked> bbox</label>
+    <label><input type="checkbox" data-layer="mask" checked> mask</label>
+  </div>
+
+  {# 스케일바 — canvas 가 아니라 detview 안에 둔다. 확대/이동 변환을 받지 않아
+     항상 같은 자리에 보이고, 길이만 배율에 맞춰 다시 계산한다. #}
+  <div class="scalebar" id="sb-{{ uid }}"><i></i><span></span></div>
 </div>
+
+<div class="shotcap" id="shotcap-{{ uid }}">
+  <b id="shot-title-{{ uid }}"></b>
+  <span class="dim" id="shot-note-{{ uid }}"></span>
+  <a id="shot-full-{{ uid }}" href="" target="_blank" rel="noopener">원본 크기</a>
+</div>
+
+<div class="strip" id="strip-{{ uid }}">
+  {% include "viewer/_shots.html" %}
+</div>
+<p class="dim" style="font-size:11.5px;margin:6px 2px 0">
+  캐러셀에 커서를 올리면 그 사진을 크게 보고, 클릭하면 아예 바꾼다.
+  bbox·mask 는 그대로 얹혀 있어 <b>합성본이 아닌 원본에서도 검출이 맞는지 확인할 수 있다</b>.
+</p>
 
 <div class="detbar">
   <span id="selinfo-{{ uid }}" class="dim">선택 없음</span>
@@ -34,10 +63,12 @@
   드래그 = 범위 선택 · <b>선택 위에서 우클릭 = 오검출 삭제</b> ·
   <b>빈 곳 클릭 = 그 자리의 탈락 후보 펼쳐 보기</b>
 </p>
+</section>
 
 <script type="application/json" id="cand-{{ uid }}">{{ det.candidates|json_dumps }}</script>
 <script type="application/json" id="rej-{{ uid }}">{{ det.rejected|json_dumps }}</script>
 <script type="application/json" id="gone-{{ uid }}">{{ det.removed_candidates|json_dumps }}</script>
+<script type="application/json" id="umpp-{{ uid }}">{{ det.um_per_pixel|json_dumps }}</script>
 
 <script>
 (function () {
@@ -56,7 +87,9 @@
   var stem = view.dataset.stem;
   if (!W || !H) return;
 
-  var imgSrc = canvas.querySelector('img').getAttribute('src');
+  var imgEl = document.getElementById('img-' + uid);
+  // 지금 확정된(클릭으로 고른) 이미지. 미리보기 중에도 이 값은 바뀌지 않는다.
+  var committedSrc = imgEl.getAttribute('src');
   function keyOf(c) { var b = c.bbox_xywh; return b.map(function (v) { return Math.round(v); }).join('_'); }
 
   // 서버에 저장된 교정 상태를 그대로 이어받는다.
@@ -96,12 +129,42 @@
     tip.style.top = Math.max(4, y) + 'px';
   }
 
+  // --- 스케일바 ------------------------------------------------------------
+  // 확대해도 "화면에서 이만큼이 몇 µm 인가" 는 계속 달라지므로 매번 다시 잰다.
+  var umPerImgPx = JSON.parse(document.getElementById('umpp-' + uid).textContent || '0');
+  var sb = document.getElementById('sb-' + uid);
+  var sbBar = sb.querySelector('i'), sbLabel = sb.querySelector('span');
+
+  function niceLength(v) {
+    // 1·2·5 계열로 떨어뜨린다 — 눈금이 읽기 좋은 값이어야 한다.
+    var e = Math.pow(10, Math.floor(Math.log(v) / Math.LN10));
+    var m = v / e;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * e;
+  }
+  function fmtUm(v) {
+    return (v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : String(Math.round(v))) + ' µm';
+  }
+  function updateScaleBar() {
+    // 배율을 모르면 눈금을 그리지 않는다 — 틀린 스케일바는 없느니만 못하다.
+    if (!umPerImgPx) { sb.style.display = 'none'; return; }
+    // 레이아웃 전이면 폭이 0 이라 잴 수 없다. 이미지 load 때 다시 부른다.
+    if (!view.clientWidth) return;
+    // 화면에 그려진 이미지의 폭(CSS px). canvas 가 view 폭을 꽉 채우고 k 배 확대된다.
+    var shownW = view.clientWidth * k;
+    var umPerScreenPx = umPerImgPx * W / shownW;
+    var target = Math.max(70, Math.min(170, view.clientWidth * 0.16));
+    var nice = niceLength(umPerScreenPx * target);
+    sbBar.style.width = Math.round(nice / umPerScreenPx) + 'px';
+    sbLabel.textContent = fmtUm(nice);
+  }
+
   // --- 확대 / 이동 ---------------------------------------------------------
   var k = 1, tx = 0, ty = 0;
   function applyTransform() {
     canvas.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + k + ')';
     zoomTag.textContent = Math.round(k * 100) + '%';
     zoomTag.style.opacity = k === 1 ? 0 : 1;
+    updateScaleBar();
   }
   function clampPan() {
     // 이미지가 화면 밖으로 완전히 빠져나가지 않게 한다.
@@ -123,6 +186,115 @@
     if (k === 1) { tx = 0; ty = 0; } else { clampPan(); }
     applyTransform();
   }, { passive: false });
+
+  window.addEventListener('resize', updateScaleBar);
+  // 스크립트가 도는 시점에는 아직 폭이 잡히지 않았을 수 있다.
+  imgEl.addEventListener('load', updateScaleBar);
+  setTimeout(updateScaleBar, 0);
+
+  // --- 레이어 토글 (bbox / mask) -------------------------------------------
+  // 끄더라도 요소는 남긴다 — 클릭 판정은 bbox 가 하므로 지우면 선택이 죽는다.
+  var layers = document.getElementById('layers-' + uid);
+  var LS_KEY = 'diatom.layers';
+
+  function applyLayers() {
+    layers.querySelectorAll('input[data-layer]').forEach(function (cb) {
+      view.classList.toggle('hide-' + cb.dataset.layer, !cb.checked);
+    });
+  }
+  (function initLayers() {
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (err) { saved = {}; }
+    layers.querySelectorAll('input[data-layer]').forEach(function (cb) {
+      if (saved[cb.dataset.layer] === false) cb.checked = false;
+      cb.addEventListener('change', function () {
+        applyLayers();
+        var now = {};
+        layers.querySelectorAll('input[data-layer]').forEach(function (c) {
+          now[c.dataset.layer] = c.checked;
+        });
+        try { localStorage.setItem(LS_KEY, JSON.stringify(now)); } catch (err) { /* 사파리 사생활 모드 */ }
+      });
+    });
+    applyLayers();
+  })();
+  // 체크박스를 만지는 동안 캔버스가 확대/선택으로 반응하지 않게 한다.
+  ['wheel', 'mousedown', 'contextmenu'].forEach(function (ev) {
+    layers.addEventListener(ev, function (e) { e.stopPropagation(); });
+  });
+
+  // --- 캐러셀 (합성본 · 깊이 맵 · 각 원본 프레임) ---------------------------
+  // 이미지만 갈아 끼운다. 배율·이동·선택·교정 상태는 그대로 유지된다.
+  var strip = document.getElementById('strip-' + uid);
+  var shots = strip ? Array.prototype.slice.call(strip.querySelectorAll('.shot')) : [];
+  var capTitle = document.getElementById('shot-title-' + uid);
+  var capNote = document.getElementById('shot-note-' + uid);
+  var capFull = document.getElementById('shot-full-' + uid);
+  var current = Math.max(0, shots.findIndex(function (s) { return s.dataset.current === '1'; }));
+  var hoverSeq = 0;
+  var loaded = {};
+
+  function preload(src, done) {
+    if (loaded[src]) { done(); return; }
+    var im = new Image();
+    im.onload = im.onerror = function () { loaded[src] = 1; done(); };
+    im.src = src;
+  }
+
+  function paint(s) {
+    imgEl.src = s.dataset.view;
+    imgEl.alt = s.dataset.title;
+    capTitle.textContent = s.dataset.title;
+    // 합성본에 맞춰 검출했으므로 원본 프레임에서는 마스크가 조금 어긋난다.
+    // ECC 정렬로 프레임을 서로 맞춘 뒤 합성했기 때문이다.
+    capNote.textContent = (s.dataset.note || '') +
+      (s.dataset.raw === '1' && s.dataset.current !== '1'
+        ? ' · 정렬 보정 전 원본이라 마스크가 조금 어긋날 수 있다' : '');
+    capFull.href = s.dataset.full;
+  }
+
+  function preview(i) {
+    var s = shots[i];
+    if (!s) return;
+    var seq = ++hoverSeq;
+    preload(s.dataset.view, function () {
+      if (seq === hoverSeq) paint(s);   // 그 사이 다른 데로 옮겨갔으면 버린다
+    });
+  }
+  function unpreview() {
+    hoverSeq++;
+    if (shots[current]) paint(shots[current]);
+  }
+  function commit(i, scroll) {
+    if (i < 0 || i >= shots.length) return;
+    if (shots[current]) shots[current].classList.remove('on');
+    current = i;
+    var s = shots[current];
+    s.classList.add('on');
+    hoverSeq++;
+    paint(s);
+    committedSrc = s.dataset.view;
+    if (scroll) {
+      var r = s.getBoundingClientRect(), sr = strip.getBoundingClientRect();
+      if (r.left < sr.left) strip.scrollLeft += r.left - sr.left - 8;
+      else if (r.right > sr.right) strip.scrollLeft += r.right - sr.right + 8;
+    }
+  }
+
+  shots.forEach(function (s, i) {
+    s.addEventListener('mouseenter', function () { preview(i); });
+    s.addEventListener('click', function () { commit(i, true); });
+  });
+  if (strip) strip.addEventListener('mouseleave', unpreview);
+
+  if (shots.length) {
+    shots.forEach(function (s) { s.classList.remove('on'); });
+    shots[current].classList.add('on');
+    paint(shots[current]);
+    committedSrc = shots[current].dataset.view;
+    // 초기 표시는 서버가 넣어 둔 src 그대로 두고 캡션만 맞춘다.
+    imgEl.src = committedSrc;
+  }
 
   // --- 좌표 변환 -----------------------------------------------------------
   // 화면 좌표 -> 이미지 픽셀 좌표. 확대/이동이 걸려 있어도 맞는다.
@@ -300,7 +472,8 @@
       var crop = document.createElement('span');
       crop.className = 'scrop';
       // 배경 트릭으로 서버 크롭 없이 해당 영역만 보여준다 (% 라서 해상도 무관).
-      crop.style.backgroundImage = 'url("' + imgSrc + '")';
+      // 지금 보고 있는 사진에서 잘라 온다 — 원본 프레임을 보는 중이면 그쪽이다.
+      crop.style.backgroundImage = 'url("' + committedSrc + '")';
       crop.style.backgroundSize = (100 * W / Math.max(b[2], 1)) + '% ' + (100 * H / Math.max(b[3], 1)) + '%';
       crop.style.backgroundPosition =
         (100 * b[0] / Math.max(W - b[2], 1)) + '% ' + (100 * b[1] / Math.max(H - b[3], 1)) + '%';
@@ -556,12 +729,31 @@
     undo();
   });
 
+  // --- 탭 ------------------------------------------------------------------
+  var tabs = document.getElementById('tabs-' + uid);
+  tabs.addEventListener('click', function (e) {
+    var name = e.target.dataset && e.target.dataset.pane;
+    if (!name) return;
+    tabs.querySelectorAll('button[data-pane]').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.pane === name);
+    });
+    // id 로 짚는다 — 형제 선택자를 쓰면 한 페이지에 패널이 둘 이상일 때
+    // 뒤따르는 다른 패널의 섹션까지 같이 여닫힌다.
+    ['view', 'list'].forEach(function (n) {
+      var s = document.getElementById('pane-' + n + '-' + uid);
+      if (s) s.hidden = (n !== name);
+    });
+    // 숨겨져 있는 동안은 clientWidth 가 0 이라 스케일바를 못 잰다.
+    if (name === 'view') updateScaleBar();
+  });
+
   applyTransform();
   build();
 })();
 </script>
 {% endif %}
 
+<section data-pane="list" id="pane-list-{{ uid }}" hidden>
 <div class="scroll">
 <table>
   <thead><tr>
@@ -599,3 +791,4 @@
   · 조정은 <code>refilter.py</code> (재추론 불필요)
 </p>
 {% endif %}
+</section>

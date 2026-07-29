@@ -80,6 +80,20 @@
   th { color: var(--dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
   .scroll { overflow-x: auto; }
 
+  /* --- 탭 (검출 화면 / 개체 목록) --- */
+  .dettabs {
+    display: flex; gap: 2px; align-items: center; flex-wrap: wrap;
+    margin: 24px 0 12px; border-bottom: 1px solid var(--line);
+  }
+  .dettabs button {
+    font: inherit; font-size: 13.5px; padding: 7px 15px; cursor: pointer;
+    background: transparent; color: var(--dim); border: 0;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .dettabs button:hover { color: var(--fg); }
+  .dettabs button.on { color: var(--fg); font-weight: 600; border-bottom-color: var(--accent); }
+  .dettabs .tabmeta { margin-left: auto; font-size: 12px; color: var(--dim); padding-bottom: 6px; }
+
   /* --- 대화형 검출 레이어 --- */
   .detview {
     position: relative; display: block; line-height: 0;
@@ -99,11 +113,66 @@
   .detview svg.masks polygon.manual { fill: rgba(255,180,70,.42); }
   .detview svg.masks polygon.none   { fill: rgba(255,60,60,.30); }
   .detview svg.masks polygon.sel    { fill: rgba(255,210,63,.55); }
+  /* 우상단은 레이어 토글이 쓰므로 배율 표시는 왼쪽으로 뺀다 */
   .detview .zoomtag {
-    position: absolute; right: 8px; top: 8px; z-index: 3;
-    background: rgba(0,0,0,.6); color: #fff; font-size: 11px;
+    position: absolute; left: 8px; top: 8px; z-index: 3;
+    background: rgba(0,0,0,.6); color: #fff; font-size: 11px; line-height: 1.5;
     padding: 2px 7px; border-radius: 5px; opacity: 0; transition: opacity .15s;
   }
+
+  /* --- 레이어 토글 (사진 우상단) ---
+     끄더라도 .box 요소는 남긴다 — 클릭 판정을 bbox 가 하므로 지우면 선택이 죽는다.
+     테두리만 투명하게 만들고, 선택·hover 표시는 남겨 조작감을 유지한다. */
+  .detview .layers {
+    position: absolute; right: 8px; top: 8px; z-index: 5;
+    display: flex; gap: 11px; padding: 5px 10px; border-radius: 7px;
+    background: rgba(0,0,0,.62); line-height: 1.2; cursor: default;
+  }
+  .detview .layers label {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11.5px; color: #fff; cursor: pointer;
+  }
+  .detview .layers input { margin: 0; cursor: pointer; accent-color: #5ac8fa; }
+
+  /* --- 스케일바 (사진 우하단) ---
+     canvas 가 아니라 detview 의 자식이라 확대/이동 변환을 받지 않는다.
+     그래서 어디로 끌고 가든 늘 같은 자리에 보이고, 길이만 배율에 맞춰 바뀐다. */
+  .detview .scalebar {
+    position: absolute; right: 10px; bottom: 10px; z-index: 5;
+    padding: 6px 9px 5px; border-radius: 6px; background: rgba(0,0,0,.62);
+    color: #fff; pointer-events: none; text-align: center;
+  }
+  .detview .scalebar i {
+    display: block; height: 4px; background: #fff; border-radius: 1px;
+    min-width: 20px; margin: 0 auto 4px;
+  }
+  .detview .scalebar span {
+    display: block; font-size: 11px; line-height: 1.1;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .2px;
+  }
+
+  /* --- 사진 캐러셀 --- */
+  .shotcap {
+    display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
+    padding: 9px 2px 0; font-size: 13px; line-height: 1.5;
+  }
+  .shotcap a { margin-left: auto; font-size: 12px; }
+  .strip {
+    display: flex; gap: 8px; overflow-x: auto; padding: 9px 2px 4px;
+    scrollbar-width: thin;
+  }
+  .strip .shot {
+    flex: 0 0 auto; width: 128px; padding: 0; cursor: pointer;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; overflow: hidden; color: inherit;
+    font: inherit; text-align: left; line-height: 1.4;
+  }
+  .strip .shot:hover { border-color: var(--accent); }
+  .strip .shot.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .strip .shot.best .cap { color: var(--good); }
+  .strip .shot img { width: 100%; aspect-ratio: 2752/2208; object-fit: cover; display: block; background: #000; }
+  .strip .shot .cap { display: block; padding: 5px 7px 2px; font-size: 11px; }
+  .strip .shot .bar { height: 3px; margin: 3px 7px 7px; }
   .detview .box.manual { border-style: dashed; border-color: #ffb454; }
   /* 오검출로 지운 것 — 흔적만 남겨 클릭 한 번으로 되살릴 수 있게 한다.
      채우면 아래 이미지가 가려져 지운 게 맞는지 확인할 수 없으므로 테두리만 그린다. */
@@ -165,6 +234,18 @@
     position: absolute; border: 1px dashed #ffd23f;
     background: rgba(255,210,63,.12); pointer-events: none; display: none;
   }
+
+  /* 레이어 끄기 — .box.rod/.gone/.manual 뒤에 와야 색을 덮는다.
+     선택과 hover 표시는 남긴다: 안 보이는 것을 조작하고 있으면 헷갈린다. */
+  .detview.hide-box .box,
+  .detview.hide-box .box.rod,
+  .detview.hide-box .box.round,
+  .detview.hide-box .box.manual,
+  .detview.hide-box .box.gone { border-color: transparent; background: none; }
+  .detview.hide-box .box.gone::after { display: none; }
+  .detview.hide-box .box.hot { border-color: rgba(255,255,255,.8); }
+  .detview.hide-box .box.sel { border-color: #ffd23f; background: rgba(255,210,63,.18); }
+  .detview.hide-mask svg.masks { display: none; }
   .dettip {
     position: fixed; z-index: 50; pointer-events: none; display: none;
     background: var(--panel); color: var(--fg);

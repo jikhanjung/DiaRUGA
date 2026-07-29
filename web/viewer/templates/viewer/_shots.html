@@ -1,0 +1,38 @@
+{% load viewer_extras %}
+{# 그룹에 속한 모든 사진 — 합성본 · 깊이 맵 · 각 프레임.
+   base 와 같은 것이 처음 선택된 상태가 된다 (= 검출을 돌린 그 이미지). #}
+{% if stack %}
+  <button type="button" class="shot{% if stack.focused_rel == base %} on{% endif %}"
+          data-view="{% thumb stack.focused_rel 1600 %}"
+          data-full="{% full stack.focused_rel %}"
+          data-title="합성본"
+          data-note="그룹 전체에서 초점 맞은 영역만 모았다"
+          {% if stack.focused_rel == base %}data-current="1"{% endif %}>
+    <img loading="lazy" src="{% thumb stack.focused_rel 220 %}" alt="합성본">
+    <span class="cap">합성본</span>
+  </button>
+  {% if stack.depth_rel %}
+  <button type="button" class="shot"
+          data-view="{% thumb stack.depth_rel 1600 %}"
+          data-full="{% full stack.depth_rel %}"
+          data-title="깊이 맵"
+          data-note="Z 좌표가 없어 상대값이다 — 정량적 높이가 아니다">
+    <img loading="lazy" src="{% thumb stack.depth_rel 220 %}" alt="깊이 맵">
+    <span class="cap">깊이 맵</span>
+  </button>
+  {% endif %}
+{% endif %}
+
+{% for f in frames %}{% if f.exists %}
+  <button type="button" class="shot{% if f.is_sharpest %} best{% endif %}{% if f.rel == base %} on{% endif %}"
+          data-view="{% thumb f.rel 1600 %}"
+          data-full="{% full f.rel %}"
+          data-title="{{ f.name }}"
+          data-note="선명도 {{ f.sharpness }}{% if f.is_sharpest %} · 그룹 내 최선{% endif %}"
+          data-raw="1"
+          {% if f.rel == base %}data-current="1"{% endif %}>
+    <img loading="lazy" src="{% thumb f.rel 220 %}" alt="{{ f.name }}">
+    <span class="cap">{{ f.name|cut:"Snap-" }}{% if f.is_sharpest %} ★{% endif %}</span>
+    <span class="bar"><i style="width:{{ f.sharp_pct }}%"></i></span>
+  </button>
+{% endif %}{% endfor %}

@@ -12,27 +12,16 @@ XML에 스테이지 XY/Z 좌표가 기록돼 있지 않으므로 이미지 내�
     python group_focus_series.py "/mnt/d/260729/RS23-GC03 71cm" -o groups.json
 """
 import argparse
-import datetime as dt
 import json
-import re
 from pathlib import Path
 
 import cv2
 import numpy as np
 
+# XML 을 찾는 규칙은 zen_meta 한 곳에만 둔다
+from zen_meta import read_timestamp
+
 THUMB_W = 256
-
-
-def read_timestamp(jpg: Path):
-    xml = jpg.with_name(jpg.name + "_metadata.xml")
-    if not xml.exists():
-        return None
-    # 전체 파싱은 낭비 — 앞부분만 읽어 정규식으로 뽑는다 (파일당 140KB)
-    txt = xml.read_text(encoding="utf-8-sig", errors="ignore")
-    m = re.search(r"<AcquisitionDateAndTime>(.*?)</AcquisitionDateAndTime>", txt)
-    if not m:
-        return None
-    return dt.datetime.fromisoformat(m.group(1).replace("Z", "+00:00"))
 
 
 def fingerprint(jpg: Path, blur_sigma: float):

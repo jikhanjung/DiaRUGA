@@ -20,9 +20,11 @@ import numpy as np
 import torch
 from PIL import Image
 
-# 40x/0.95 + 1.6x optovar + 0.63x adapter, Axiocam 506 (4.54 µm pixel)
-# XML의 Scaling/Items/Distance = 1.1259920634920635E-07 m
-UM_PER_PIXEL = 0.11259920634920635
+from zen_meta import DEFAULT_UM_PER_PIXEL, ScaleLog, scaling_for
+
+# µm/픽셀은 사진마다 딸려 오는 XML(Scaling/Items/Distance)에서 읽는다.
+# 상수로 박아 두면 촬영 조건이 바뀌었을 때 조용히 전부 틀리기 때문이다.
+# DEFAULT_UM_PER_PIXEL 은 XML 이 없을 때만 쓰는 최후의 값이다 — zen_meta.py 참조.
 
 # 규조각 조흔(striae)·areolae 의 주기 범위. 보통 10 µm 당 8~20 개다.
 # 픽셀이 아니라 µm 로 정의해야 --scale 을 바꿔도 같은 구조를 본다.
@@ -162,7 +164,7 @@ def texture_score(gray, seg, bbox, um_per_px):
     return float(vals.max() / med)
 
 
-def masks_to_records(masks, um_per_px=UM_PER_PIXEL, gray=None):
+def masks_to_records(masks, um_per_px=DEFAULT_UM_PER_PIXEL, gray=None):
     """SAM 마스크 dict 리스트를 정리된 후보 레코드로."""
     records = []
     for i, m in enumerate(masks):
@@ -308,7 +310,17 @@ def draw_overlay(img: Image.Image, records, out_path: Path):
     vis.save(out_path, quality=88)
 
 
-def process(img_path: Path, gen, args, out_dir: Path):
+def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
+    # 계측의 기준이 되는 픽셀 크기. 사진 옆의 XML 이 원칙이고, 합성본은
+    # focus_stack.py 가 남긴 사이드카에서 온다. --um-per-pixel 이 있으면 그것이
+    # 우선한다 (메타데이터가 틀렸다고 판단한 사람의 지시이므로).
+    if args.um_per_pixel:
+        scaling = {"um_per_pixel": args.um_per_pixel, "source": "cli", "path": None}
+    else:
+        scaling = scaling_for(img_path)
+    if scale_log is not None:
+        scale_log.add(img_path.name, scaling["um_per_pixel"])
+
     img = Image.open(img_path).convert("RGB")
     if args.scale != 1.0:
         img = img.resize((int(img.width * args.scale), int(img.height * args.scale)),
@@ -323,7 +335,8 @@ def process(img_path: Path, gen, args, out_dir: Path):
             with torch.autocast("cuda", dtype=dtype):
                 masks = gen.generate(arr)
 
-    um_per_px = UM_PER_PIXEL / args.scale
+    # --scale 로 리사이즈했으면 픽셀이 그만큼 커진 셈이다
+    um_per_px = scaling["um_per_pixel"] / args.scale
     gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
     recs = masks_to_records(masks, um_per_px, gray=gray)
     sized = filter_records(recs, args.min_um, args.max_um,
@@ -363,6 +376,9 @@ def process(img_path: Path, gen, args, out_dir: Path):
         "size": [img.width, img.height],
         "scale": args.scale,
         "um_per_pixel": um_per_px,
+        # 계측값을 나중에 의심할 때 어디서 온 배율인지 알 수 있게 남긴다
+        "um_per_pixel_native": scaling["um_per_pixel"],
+        "um_per_pixel_source": scaling["source"],
         "n_raw_masks": len(recs),
         "n_sized": len(sized),
         "n_candidates": len(kept),
@@ -400,6 +416,8 @@ def main():
     ap.add_argument("--backend", default="sam2", choices=["sam2", "sam3"])
     ap.add_argument("--scale", type=float, default=0.5,
                     help="처리 전 리사이즈 배율 (VRAM 절약)")
+    ap.add_argument("--um-per-pixel", type=float, default=None,
+                    help="픽셀 크기를 직접 지정 (기본: 사진 옆 XML 에서 읽는다)")
     # 도판(Plate 1~9) 스케일바 10 µm 기준 실측이 대략 13~95 µm 였다.
     ap.add_argument("--min-um", type=float, default=10.0)
     ap.add_argument("--max-um", type=float, default=150.0)
@@ -440,10 +458,15 @@ def main():
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    if args.um_per_pixel:
+        print(f"픽셀 크기를 {args.um_per_pixel} µm/px 로 지정 — XML 을 읽지 않는다",
+              file=sys.stderr)
+
     gen = load_generator(args.backend, device, args)
+    scale_log = ScaleLog()
     for f in files:
         try:
-            process(f, gen, args, out_dir)
+            process(f, gen, args, out_dir, scale_log)
         except torch.cuda.OutOfMemoryError:
             print(f"OOM on {f.name} — --scale 을 낮추세요", file=sys.stderr)
             torch.cuda.empty_cache()

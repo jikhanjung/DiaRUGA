@@ -19,10 +19,13 @@ group_focus_series.py 가 만든 groups.json 을 입력으로 받는다.
 """
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import cv2
 import numpy as np
+
+from zen_meta import ScaleLog, scaling_for, write_scale_sidecar
 
 
 def align_to_reference(ref_gray, img, img_gray, use_ecc=True):
@@ -91,7 +94,30 @@ def build_depth(smaps, best, conf_pct):
     return depth, mask
 
 
-def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag):
+def carry_scaling(paths, scale, out_img, tag, scale_log=None):
+    """합성본에 픽셀 크기를 물려준다.
+
+    합성본에는 ZEN XML 이 따라오지 않으므로, 원본에서 읽은 값을 사이드카로
+    남기지 않으면 검출 단계가 계측 기준을 잃는다.
+    """
+    scalings = [scaling_for(p) for p in paths]
+    native = scalings[0]["um_per_pixel"]
+    if any(abs(s["um_per_pixel"] - native) > native * 1e-3 for s in scalings):
+        print(f"{tag}: 경고 — 그룹 안에서 픽셀 크기가 다르다. "
+              f"첫 장({paths[0].name}) 기준으로 남긴다", file=sys.stderr)
+
+    um = native / scale        # 리사이즈했으면 픽셀이 그만큼 커진다
+    write_scale_sidecar(out_img, um,
+                        source=scalings[0]["source"],
+                        native_um_per_pixel=native,
+                        resize_scale=scale,
+                        stacked_from=[p.name for p in paths])
+    if scale_log is not None:
+        scale_log.add(tag, um)
+    return um
+
+
+def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag, scale_log=None):
     imgs, grays = [], []
     for p in paths:
         im = cv2.imread(str(p), cv2.IMREAD_COLOR)
@@ -142,8 +168,9 @@ def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag):
                                     cv2.COLORMAP_TURBO)
         depth_vis[conf_mask] = colored[conf_mask]
 
-    cv2.imwrite(str(out_dir / f"{tag}_focused.jpg"), fused,
-                [cv2.IMWRITE_JPEG_QUALITY, 92])
+    out_img = out_dir / f"{tag}_focused.jpg"
+    cv2.imwrite(str(out_img), fused, [cv2.IMWRITE_JPEG_QUALITY, 92])
+    um_per_px = carry_scaling(paths, scale, out_img, tag, scale_log)
     cv2.imwrite(str(out_dir / f"{tag}_depth.jpg"), depth_vis,
                 [cv2.IMWRITE_JPEG_QUALITY, 92])
     np.savez_compressed(str(out_dir / f"{tag}_depth.npz"),
@@ -162,7 +189,7 @@ def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag):
           f"local sharpness (object px) best-single {best_single:.2f} -> "
           f"fused {fused_mean:.2f} ({fused_mean / max(best_single, 1e-6):.2f}x)")
     return {"tag": tag, "n": len(paths), "ref": paths[ref_i].stem,
-            "align_failed": n_failed,
+            "align_failed": n_failed, "um_per_pixel": round(um_per_px, 8),
             "object_px_frac": round(float(m.mean()), 4),
             "sharpness_best_single": round(best_single, 3),
             "sharpness_fused": round(fused_mean, 3),
@@ -190,6 +217,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     results = []
+    scale_log = ScaleLog()
     for g in meta["groups"]:
         if args.only is not None and g["id"] not in args.only:
             continue
@@ -198,7 +226,8 @@ def main():
         paths = [root / f"{name}.jpg" for name in g["images"]]
         tag = f"g{g['id']:03d}_{g['images'][0]}-{g['images'][-1].split('-')[-1]}"
         results.append(stack_group(paths, args.scale, not args.no_ecc,
-                                   not args.hard, args.conf_pct, out_dir, tag))
+                                   not args.hard, args.conf_pct, out_dir, tag,
+                                   scale_log))
 
     (out_dir / "stack_report.json").write_text(
         json.dumps(results, indent=2), encoding="utf-8")
