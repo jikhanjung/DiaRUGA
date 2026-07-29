@@ -15,6 +15,7 @@ import os
 import sys
 from pathlib import Path
 
+import cv2
 import numpy as np
 import torch
 from PIL import Image
@@ -22,6 +23,10 @@ from PIL import Image
 # 40x/0.95 + 1.6x optovar + 0.63x adapter, Axiocam 506 (4.54 µm pixel)
 # XML의 Scaling/Items/Distance = 1.1259920634920635E-07 m
 UM_PER_PIXEL = 0.11259920634920635
+
+# 규조각 조흔(striae)·areolae 의 주기 범위. 보통 10 µm 당 8~20 개다.
+# 픽셀이 아니라 µm 로 정의해야 --scale 을 바꿔도 같은 구조를 본다.
+TEXTURE_PERIOD_UM = (0.4, 1.6)
 
 
 def autocast_dtype():
@@ -62,7 +67,95 @@ def load_generator(backend: str, device: str, args):
     raise SystemExit(f"unknown backend: {backend}")
 
 
-def masks_to_records(masks, um_per_px=UM_PER_PIXEL):
+def shape_metrics(seg):
+    """
+    마스크 하나의 형태 지표. 측정 불가면 None.
+
+    원형도(circularity)는 신장비에 지배되므로 '테두리 매끈함' 으로 쓸 수 없다.
+    신장비 6인 봉상은 윤곽이 완벽해도 0.37 이다. 매끈함은 convexity 로 잰다.
+    """
+    # SAM 마스크가 비연속 뷰로 올 때가 있어 cv2 가 거부한다.
+    m = np.ascontiguousarray(seg.astype(np.uint8))
+    cnts, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    if not cnts:
+        return None
+    c = max(cnts, key=cv2.contourArea)
+    area = cv2.contourArea(c)
+    if area < 20 or len(c) < 5:
+        return None
+
+    peri = cv2.arcLength(c, True)
+    hull = cv2.convexHull(c)
+    hull_area = cv2.contourArea(hull)
+
+    (cx, cy), (d1, d2), ang = cv2.fitEllipse(c)
+    major, minor = max(d1, d2), min(d1, d2)
+
+    # 적합 타원과의 IoU — 봉상(길쭉한 타원)과 원형(이심률 0)을 한 지표로 묶는다.
+    # OpenCV 5 는 RotatedRect 축약형을 안 받아서 인자를 풀어 쓴다.
+    canvas = np.zeros(m.shape, dtype=np.uint8)
+    cv2.ellipse(canvas, (int(round(cx)), int(round(cy))),
+                (int(round(d1 / 2)), int(round(d2 / 2))),
+                float(ang), 0.0, 360.0, 1, -1)
+    inter = int(np.logical_and(m, canvas).sum())
+    union = int(np.logical_or(m, canvas).sum())
+
+    return {
+        "circularity": round(float(4 * np.pi * area / max(peri**2, 1e-9)), 3),
+        # 볼록껍질 둘레 / 실제 둘레. 울퉁불퉁하면 분모만 길어진다. 신장비와 무관.
+        "convexity": round(float(cv2.arcLength(hull, True) / max(peri, 1e-9)), 3),
+        "solidity": round(float(area / max(hull_area, 1e-9)), 3),
+        "elongation": round(float(major / max(minor, 1e-6)), 2),
+        "ellipse_iou": round(float(inter / max(union, 1)), 3),
+        "_major_px": float(major),
+        "_minor_px": float(minor),
+    }
+
+
+def texture_score(gray, seg, bbox, um_per_px):
+    """
+    규칙적 주기 구조(조흔·areolae)의 세기. 클수록 규조각답다.
+
+    쇄설물은 주기 구조가 없어 스펙트럼이 평평하다. 실측에서 규조각은
+    1,500~19,000, 구조 없는 티끌은 12~240 으로 세 자릿수가 갈렸다.
+    """
+    x, y, w, h = bbox
+    if w < 16 or h < 16:
+        return 0.0
+    crop = gray[y:y + h, x:x + w].astype(np.float32)
+    m = seg[y:y + h, x:x + w].astype(bool)
+    if m.sum() < 100:
+        return 0.0
+
+    # 배경을 물체 평균으로 채워 윤곽 자체가 만드는 에지 성분을 죽인다.
+    filled = np.where(m, crop, crop[m].mean())
+    filled = filled - filled.mean()
+
+    # 창함수 — 테두리 불연속이 스펙트럼에 십자무늬를 만드는 것을 막는다.
+    spec = np.abs(np.fft.fftshift(
+        np.fft.fft2(filled * np.hanning(h)[:, None] * np.hanning(w)[None, :]))) ** 2
+
+    lo_um, hi_um = TEXTURE_PERIOD_UM
+    min_px, max_px = lo_um / um_per_px, hi_um / um_per_px
+    if max_px < 2.5:            # 리사이즈가 심해 주기가 Nyquist 아래로 내려간 경우
+        return 0.0
+
+    cy, cx = h / 2, w / 2
+    yy, xx = np.mgrid[0:h, 0:w]
+    # 주기 p 픽셀 <-> 반경 r = 1/p (정사각이 아니므로 축별로 정규화)
+    r = np.sqrt(((yy - cy) / h) ** 2 + ((xx - cx) / w) ** 2)
+    band = (r >= 1.0 / max_px) & (r <= 1.0 / min_px)
+    if band.sum() < 20:
+        return 0.0
+
+    vals = spec[band]
+    med = float(np.median(vals))
+    if med <= 0:
+        return 0.0
+    return float(vals.max() / med)
+
+
+def masks_to_records(masks, um_per_px=UM_PER_PIXEL, gray=None):
     """SAM 마스크 dict 리스트를 정리된 후보 레코드로."""
     records = []
     for i, m in enumerate(masks):
@@ -87,7 +180,22 @@ def masks_to_records(masks, um_per_px=UM_PER_PIXEL):
                 "rle": None,  # 필요하면 별도 저장
             }
         )
-        records[-1]["_seg"] = seg
+        rec = records[-1]
+        rec["_seg"] = seg
+
+        # 형태·텍스처 지표를 여기서 전부 계산해 JSON 에 남긴다.
+        # 그래야 문턱을 바꿀 때 SAM2 를 다시 돌리지 않고 refilter.py 로 끝난다.
+        sm = shape_metrics(seg)
+        if sm is None:
+            rec["shape_ok"] = False
+            continue
+        rec["shape_ok"] = True
+        rec["major_um"] = round(sm.pop("_major_px") * um_per_px, 2)
+        rec["minor_um"] = round(sm.pop("_minor_px") * um_per_px, 2)
+        rec.update(sm)
+        rec["texture"] = round(
+            texture_score(gray, seg, (int(x), int(y), int(w), int(h)), um_per_px), 1
+        ) if gray is not None else None
     return records
 
 
@@ -103,15 +211,85 @@ def filter_records(records, min_um, max_um, drop_background_frac=0.5, img_area=N
     return out
 
 
+def classify(r, args):
+    """
+    (분류, 탈락사유). 분류가 None 이면 규조각 후보가 아니다.
+
+    텍스처가 1차 관문("규조각인가"), 형태가 2차("어떤 형태인가").
+    둘 다 필요하다 — 텍스처만 쓰면 쇄설물 조각이, 형태만 쓰면 구조 없는
+    티끌이 들어온다. 실측으로 확인했다.
+    """
+    if not r.get("shape_ok"):
+        return None, "형태측정불가"
+    # 크기는 적합 타원의 장축으로 다시 본다. bbox 긴 변은 비스듬히 누운 물체에서
+    # 실제보다 커지므로, 그것만 보면 4 µm 짜리가 10 µm 관문을 통과한다.
+    major = r.get("major_um")
+    if major is not None and not (args.min_um <= major <= args.max_um):
+        return None, "장축범위밖"
+    if r.get("texture") is not None and r["texture"] < args.texture_min:
+        return None, "텍스처부족"
+
+    e, iou, sol = r["elongation"], r["ellipse_iou"], r["solidity"]
+    if e < args.round_max_elong:
+        if iou >= args.round_min_iou and sol >= args.round_min_solidity:
+            return "round", None
+        return None, "원형기준미달"
+    if args.rod_min_elong <= e <= args.rod_max_elong:
+        if iou >= args.rod_min_iou and sol >= args.rod_min_solidity:
+            return "rod", None
+        return None, "봉상기준미달"
+    return None, "신장비범위밖"
+
+
+def _cover(a, b):
+    """a 의 bbox 가 b 안에 들어간 비율 (a 면적 기준)."""
+    ax, ay, aw, ah = a["bbox_xywh"]
+    bx, by, bw, bh = b["bbox_xywh"]
+    ix = max(0, min(ax + aw, bx + bw) - max(ax, bx))
+    iy = max(0, min(ay + ah, by + bh) - max(ay, by))
+    return ix * iy / max(aw * ah, 1)
+
+
+def dedupe(selected):
+    """
+    중첩 마스크 정리.
+
+    SAM2 AMG 는 격자 포인트마다 다중 스케일 마스크를 내므로 최대 6단계까지
+    중첩된다. NMS 는 IoU 기반이라 이걸 못 잡는다 — 작은 것이 큰 것 안에 들면
+    IoU 는 오히려 작아진다 (실측 중앙값 0.07).
+
+    큰 쪽을 남기면 덩어리가 내부 규조각을 전부 삼키므로, 집합체를 골라 버리고
+    개별 물체를 남긴다.
+    """
+    keep = []
+    for a in selected:
+        kids = [b for b in selected
+                if b is not a and b["area_px"] < a["area_px"] and _cover(b, a) > 0.85]
+        # 자식 2개 이상이 자기 면적의 절반 이상을 설명하면 개별 물체가 아니다.
+        if len(kids) >= 2 and sum(b["area_px"] for b in kids) > 0.5 * a["area_px"]:
+            continue
+        keep.append(a)
+
+    # 거의 같은 마스크는 하나로 — 텍스처가 높은 쪽을 남긴다.
+    keep.sort(key=lambda r: -(r.get("texture") or 0))
+    out = []
+    for r in keep:
+        if not any(_cover(r, k) > 0.8 and _cover(k, r) > 0.8 for k in out):
+            out.append(r)
+    return out
+
+
 def draw_overlay(img: Image.Image, records, out_path: Path):
     from PIL import ImageDraw
 
     vis = img.convert("RGB").copy()
     overlay = np.array(vis)
     rng = np.random.default_rng(0)
+    # 봉상=파랑, 원형=초록, 미분류=무작위색
+    palette = {"rod": (60, 120, 255), "round": (60, 220, 120)}
     for r in records:
         seg = r["_seg"]
-        color = rng.integers(60, 255, size=3)
+        color = np.array(palette.get(r.get("cls"), rng.integers(60, 255, size=3)))
         overlay[seg] = (0.55 * overlay[seg] + 0.45 * color).astype(np.uint8)
     vis = Image.fromarray(overlay)
     d = ImageDraw.Draw(vis)
@@ -139,11 +317,37 @@ def process(img_path: Path, gen, args, out_dir: Path):
                 masks = gen.generate(arr)
 
     um_per_px = UM_PER_PIXEL / args.scale
-    recs = masks_to_records(masks, um_per_px)
-    kept = filter_records(recs, args.min_um, args.max_um, img_area=arr.shape[0] * arr.shape[1])
+    gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
+    recs = masks_to_records(masks, um_per_px, gray=gray)
+    sized = filter_records(recs, args.min_um, args.max_um,
+                           img_area=arr.shape[0] * arr.shape[1])
+
+    if args.no_shape_filter:
+        kept, rejected = sized, []
+        for r in kept:
+            r["cls"] = None
+    else:
+        passed, rejected = [], []
+        for r in sized:
+            cls, why = classify(r, args)
+            if cls:
+                r["cls"] = cls
+                passed.append(r)
+            else:
+                r["reject"] = why
+                rejected.append(r)
+        kept = dedupe(passed)
+        dropped = [r for r in passed if r not in kept]
+        for r in dropped:
+            r["reject"] = "중첩정리"
+        rejected += dropped
+
     kept.sort(key=lambda r: -r["area_px"])
     for i, r in enumerate(kept):
         r["id"] = i
+
+    def clean(rs):
+        return [{k: v for k, v in r.items() if not k.startswith("_")} for r in rs]
 
     stem = img_path.stem
     draw_overlay(img, kept, out_dir / f"{stem}_overlay.jpg")
@@ -153,13 +357,32 @@ def process(img_path: Path, gen, args, out_dir: Path):
         "scale": args.scale,
         "um_per_pixel": um_per_px,
         "n_raw_masks": len(recs),
+        "n_sized": len(sized),
         "n_candidates": len(kept),
-        "candidates": [{k: v for k, v in r.items() if not k.startswith("_")} for r in kept],
+        # 문턱을 바꿔 다시 거를 때 필요한 값들. refilter.py 가 이걸 읽는다.
+        "thresholds": {
+            "min_um": args.min_um, "max_um": args.max_um,
+            "texture_min": args.texture_min,
+            "round_max_elong": args.round_max_elong,
+            "round_min_iou": args.round_min_iou,
+            "round_min_solidity": args.round_min_solidity,
+            "rod_min_elong": args.rod_min_elong, "rod_max_elong": args.rod_max_elong,
+            "rod_min_iou": args.rod_min_iou, "rod_min_solidity": args.rod_min_solidity,
+        },
+        "counts": {
+            "rod": sum(1 for r in kept if r.get("cls") == "rod"),
+            "round": sum(1 for r in kept if r.get("cls") == "round"),
+        },
+        "candidates": clean(kept),
+        # 탈락분도 지표째 남긴다 — 문턱 재조정이 SAM2 재실행 없이 끝난다.
+        "rejected": clean(rejected),
     }
     (out_dir / f"{stem}_candidates.json").write_text(
         json.dumps(payload, indent=2), encoding="utf-8"
     )
-    print(f"{stem}: raw={len(recs)} kept={len(kept)}")
+    c = payload["counts"]
+    print(f"{stem}: raw={len(recs)} 크기통과={len(sized)} "
+          f"최종={len(kept)} (봉상 {c['rod']}, 원형 {c['round']})")
     return payload
 
 
@@ -170,8 +393,9 @@ def main():
     ap.add_argument("--backend", default="sam2", choices=["sam2", "sam3"])
     ap.add_argument("--scale", type=float, default=0.5,
                     help="처리 전 리사이즈 배율 (VRAM 절약)")
-    ap.add_argument("--min-um", type=float, default=5.0)
-    ap.add_argument("--max-um", type=float, default=250.0)
+    # 도판(Plate 1~9) 스케일바 10 µm 기준 실측이 대략 13~95 µm 였다.
+    ap.add_argument("--min-um", type=float, default=10.0)
+    ap.add_argument("--max-um", type=float, default=150.0)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--points-per-side", type=int, default=32)
     ap.add_argument("--points-per-batch", type=int, default=32)
@@ -179,6 +403,23 @@ def main():
                     help="1이면 2x2 타일 추가 스캔 (작은 객체 recall 향상, 느려짐)")
     ap.add_argument("--iou-thresh", type=float, default=0.5)
     ap.add_argument("--stability-thresh", type=float, default=0.75)
+
+    # --- 규조각 판정 문턱 ---------------------------------------------------
+    # 도판(Plate 1~9) 실측에 맞춰 잡았다. 값을 바꿔 다시 거를 때는 SAM2 를
+    # 다시 돌릴 필요 없이 refilter.py 를 쓴다.
+    g = ap.add_argument_group("규조각 판정")
+    g.add_argument("--no-shape-filter", action="store_true",
+                   help="형태·텍스처 판정 없이 크기 필터만 (지표는 그대로 기록)")
+    g.add_argument("--texture-min", type=float, default=1000.0,
+                   help="주기 구조 세기 하한. 규조각 1500~19000, 티끌 12~240")
+    g.add_argument("--round-max-elong", type=float, default=1.4)
+    g.add_argument("--round-min-iou", type=float, default=0.85)
+    g.add_argument("--round-min-solidity", type=float, default=0.92)
+    # Plate 9 는 2:1 수준, Plate 1 의 #16/#17/#24 는 20:1 에 가깝다.
+    g.add_argument("--rod-min-elong", type=float, default=2.0)
+    g.add_argument("--rod-max-elong", type=float, default=20.0)
+    g.add_argument("--rod-min-iou", type=float, default=0.72)
+    g.add_argument("--rod-min-solidity", type=float, default=0.85)
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
