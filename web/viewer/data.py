@@ -40,6 +40,43 @@ def dataset_slug(path: Path) -> str:
     return path.stem.removeprefix("groups_").lower()
 
 
+def group_detection(group: dict) -> dict | None:
+    """
+    그룹 하나에 붙은 검출 결과.
+
+    합성본이 원칙이고, 싱글턴 그룹(n=1)은 합성본이 없어 그 한 장으로 돌린다.
+    run_batch.sh 의 대상 선정 규칙과 같아야 한다.
+    """
+    stack = stack_for(group_tag(group))
+    if stack and stack.get("detection"):
+        return stack["detection"]
+    stem = group.get("sharpest") or group["images"][0]
+    return detection_for(stem)
+
+
+def _detect_stats(groups: list[dict]) -> dict:
+    """검출이 끝난 그룹들의 개수 통계. 안 돌린 그룹은 평균에서 제외한다."""
+    counts, rod, rnd = [], 0, 0
+    for g in groups:
+        det = group_detection(g)
+        if det is None:
+            continue
+        counts.append(det.get("n_candidates", 0))
+        c = det.get("counts") or {}
+        rod += c.get("rod", 0)
+        rnd += c.get("round", 0)
+    if not counts:
+        return {"detected_groups": 0, "n_detected": 0, "mean_detected": None,
+                "n_rod": 0, "n_round": 0}
+    return {
+        "detected_groups": len(counts),
+        "n_detected": sum(counts),
+        "mean_detected": round(sum(counts) / len(counts), 1),
+        "n_rod": rod,
+        "n_round": rnd,
+    }
+
+
 def _stats(groups: list[dict]) -> dict:
     sizes = [g["n"] for g in groups]
     n_img = sum(sizes)
@@ -69,6 +106,7 @@ def datasets() -> list[dict]:
                 "corr_thresh": meta.get("corr_thresh"),
                 "missing_dir": not (Path(settings.DATA_ROOT) / image_dir).is_dir(),
                 **_stats(meta["groups"]),
+                **_detect_stats(meta["groups"]),
             }
         )
     return out
@@ -236,6 +274,7 @@ def dataset_detail(slug: str) -> dict | None:
         tag = group_tag(g)
         cover = image_dir / f"{g.get('sharpest', g['images'][0])}.jpg"
         stack = stack_for(tag)
+        det = group_detection(g)
         groups.append(
             {
                 "id": g["id"],
@@ -245,11 +284,7 @@ def dataset_detail(slug: str) -> dict | None:
                 "sharpest": g.get("sharpest"),
                 "cover_rel": _rel(cover) if cover.exists() else None,
                 "has_stack": stack is not None,
-                # 대표 1장이든 합성본이든 검출 결과가 하나라도 붙어 있으면 표시
-                "n_detected": (
-                    (stack or {}).get("detection", {}) or {}
-                ).get("n_candidates")
-                or (detection_for(g.get("sharpest", "")) or {}).get("n_candidates"),
+                "n_detected": (det or {}).get("n_candidates"),
             }
         )
     return {
@@ -259,6 +294,7 @@ def dataset_detail(slug: str) -> dict | None:
         "corr_thresh": meta.get("corr_thresh"),
         "groups": groups,
         **_stats(meta["groups"]),
+        **_detect_stats(meta["groups"]),
     }
 
 

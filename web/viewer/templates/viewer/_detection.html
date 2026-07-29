@@ -12,6 +12,8 @@
      data-w="{{ det.size.0 }}" data-h="{{ det.size.1 }}" data-stem="{{ det.stem }}">
   <div class="canvas" id="canvas-{{ uid }}">
     <img src="{% thumb base 1600 %}" alt="{{ title }}" draggable="false">
+    <svg class="masks" id="masks-{{ uid }}"
+         viewBox="0 0 {{ det.size.0 }} {{ det.size.1 }}" preserveAspectRatio="none"></svg>
   </div>
   <div class="band" id="band-{{ uid }}"></div>
   <div class="zoomtag" id="zoom-{{ uid }}">100%</div>
@@ -140,9 +142,28 @@
   }
   var showGone = true;
 
+  var svg = document.getElementById('masks-' + uid);
+  var polys = [];
+
+  function addPolygon(c, i) {
+    var p = c.polygon;
+    if (!p || p.length < 6) return null;   // 삼각형도 안 되면 그리지 않는다
+    var el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    var pts = [];
+    for (var j = 0; j < p.length; j += 2) pts.push(p[j] + ',' + p[j + 1]);
+    el.setAttribute('points', pts.join(' '));
+    el.setAttribute('class', c.manual ? 'manual' : (c.cls || 'none'));
+    el.dataset.i = i;
+    svg.appendChild(el);
+    polys.push(el);
+    return el;
+  }
+
   function build() {
     els.forEach(function (el) { el.remove(); });
     els = [];
+    polys.forEach(function (el) { el.remove(); });
+    polys = [];
     cands.forEach(function (c, i) {
       var gone = removed.has(keyOf(c));
       if (gone && !showGone) return;
@@ -152,6 +173,8 @@
       boxStyle(el, c.bbox_xywh);
       el.dataset.i = i;
       el.dataset.gone = gone ? '1' : '';
+      // 지운 것은 마스크를 칠하지 않는다 — 점선 테두리만 남겨 아래 이미지를 본다.
+      if (!gone) addPolygon(c, i);
       // 확대해도 테두리 두께가 그대로 보이게 역보정
       el.style.borderWidth = Math.max(1, 2 / k) + 'px';
       canvas.appendChild(el);
@@ -210,6 +233,7 @@
       el.classList.toggle('sel', sel.has(+el.dataset.i));
       el.style.borderWidth = Math.max(1, (sel.has(+el.dataset.i) ? 3 : 2) / k) + 'px';
     });
+    polys.forEach(function (el) { el.classList.toggle('sel', sel.has(+el.dataset.i)); });
     var picked = Array.from(sel).map(function (i) { return cands[i]; })
       .filter(function (c) { return c && !removed.has(keyOf(c)); });
     if (!picked.length) {

@@ -128,7 +128,7 @@
   var full = document.getElementById('stage-full');
   var current = 0;
 
-  function show(i) {
+  function show(i, scroll) {
     if (i < 0 || i >= shots.length) return;
     var s = shots[current];
     if (s) s.classList.remove('on');
@@ -140,20 +140,25 @@
     title.textContent = s.dataset.title;
     note.textContent = s.dataset.note || '';
     full.href = s.dataset.full;
-    // 선택된 것이 잘려 보이지 않게 스트립을 따라 움직인다.
-    s.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    // 선택된 것이 잘려 보이지 않게 스트립을 가로로만 움직인다.
+    // 최초 표시 때는 하지 않는다 — 페이지가 갤러리까지 끌려 내려간다.
+    if (scroll) {
+      var r = s.getBoundingClientRect(), sr = strip.getBoundingClientRect();
+      if (r.left < sr.left) strip.scrollLeft += r.left - sr.left - 8;
+      else if (r.right > sr.right) strip.scrollLeft += r.right - sr.right + 8;
+    }
   }
 
   shots.forEach(function (s, i) {
-    s.addEventListener('click', function () { show(i); });
+    s.addEventListener('click', function () { show(i, true); });
   });
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowRight') { show(current + 1); e.preventDefault(); }
-    else if (e.key === 'ArrowLeft') { show(current - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { show(current + 1, true); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { show(current - 1, true); e.preventDefault(); }
   });
 
-  show(0);
+  show(0, false);
 })();
 </script>
 {% endblock %}

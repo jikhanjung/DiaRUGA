@@ -22,6 +22,22 @@
       <div class="stat"><b>{{ d.mean_size }}</b><span>평균 장수</span></div>
       <div class="stat"><b>{{ d.singletons }}</b><span>싱글턴</span></div>
     </div>
+
+    <div class="stat-row" style="border-top:1px solid var(--line); padding-top:10px; margin-top:12px">
+      {% if d.mean_detected is not None %}
+        <div class="stat"><b>{{ d.mean_detected }}</b><span>그룹당 검출</span></div>
+        <div class="stat"><b>{{ d.n_detected }}</b><span>검출 합계</span></div>
+        <div class="stat"><b>{{ d.n_rod }}</b><span>봉상</span></div>
+        <div class="stat"><b>{{ d.n_round }}</b><span>원형</span></div>
+      {% else %}
+        <span class="dim" style="font-size:12px">검출 결과 없음</span>
+      {% endif %}
+    </div>
+    {% if d.mean_detected is not None and d.detected_groups < d.n_groups %}
+      <div class="dim" style="font-size:11.5px; margin-top:6px">
+        {{ d.n_groups }}개 중 {{ d.detected_groups }}개 그룹만 검출됨 — 평균은 그 그룹들 기준
+      </div>
+    {% endif %}
   </div>
 {% endfor %}
 </div>
