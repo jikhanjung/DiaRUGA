@@ -29,6 +29,7 @@
         <div class="stat"><b>{{ d.n_detected }}</b><span>검출 합계</span></div>
         <div class="stat"><b>{{ d.n_rod }}</b><span>봉상</span></div>
         <div class="stat"><b>{{ d.n_round }}</b><span>원형</span></div>
+        <div class="stat"><b>{{ d.reviewed_groups }}<span class="dim" style="font-size:13px">/{{ d.n_groups }}</span></b><span>검토 완료</span></div>
       {% else %}
         <span class="dim" style="font-size:12px">검출 결과 없음</span>
       {% endif %}

@@ -1,6 +1,8 @@
 {% load viewer_extras %}
-{# 그룹에 속한 모든 사진 — 합성본 · 깊이 맵 · 각 프레임.
-   base 와 같은 것이 처음 선택된 상태가 된다 (= 검출을 돌린 그 이미지). #}
+{% comment %}
+  그룹에 속한 모든 사진 — 합성본 · 깊이 맵 · 각 프레임.
+  base 와 같은 것이 처음 선택된 상태가 된다 (= 검출을 돌린 그 이미지).
+{% endcomment %}
 {% if stack %}
   <button type="button" class="shot{% if stack.focused_rel == base %} on{% endif %}"
           data-view="{% thumb stack.focused_rel 1600 %}"

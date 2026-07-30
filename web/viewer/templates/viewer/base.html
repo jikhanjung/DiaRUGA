@@ -24,14 +24,18 @@
   }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  /* 사진이 주인공이므로 머리글은 최대한 얇게. 경로·그룹·태그는 제목 옆의
+     빈 자리에 한 줄로 넣는다 — 본문에서 세 줄을 걷어낼 수 있다. */
   header {
-    padding: 14px 22px; border-bottom: 1px solid var(--line);
+    padding: 6px 16px; border-bottom: 1px solid var(--line);
     background: var(--panel); position: sticky; top: 0; z-index: 10;
-    display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap;
+    display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap;
   }
-  header h1 { font-size: 15px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+  header h1 { font-size: 13.5px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+  header .sub { font-size: 13px; color: var(--dim); min-width: 0; }
+  header .sub b { color: var(--fg); font-weight: 650; }
   header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
-  main { padding: 22px; max-width: 1500px; margin: 0 auto; }
+  main { padding: 5px 18px 22px; max-width: 1500px; margin: 0 auto; }
   h2 { font-size: 18px; margin: 0 0 4px; }
   .dim { color: var(--dim); }
   .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
@@ -54,6 +58,21 @@
   }
   .tile:hover { border-color: var(--accent); text-decoration: none; }
   .tile img { width: 100%; aspect-ratio: 2752/2208; object-fit: cover; display: block; background: #000; }
+  /* 표지 + 검출 마스크. 마스크가 있어야 목록에서 "무엇이 잡혔는지" 가 보인다. */
+  .tile .thumbwrap {
+    display: block; position: relative; width: 100%;
+    aspect-ratio: 2752/2208; background: #000;
+  }
+  .tile .thumbwrap img { width: 100%; height: 100%; aspect-ratio: auto; }
+  .tile .thumbwrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .tile .thumbwrap polygon { stroke-width: 0; }
+  .tile .thumbwrap polygon.rod { fill: rgba(70,140,255,.45); }
+  .tile .thumbwrap polygon.round { fill: rgba(60,220,120,.45); }
+  .tile .thumbwrap polygon.manual { fill: rgba(255,180,70,.45); }
+  .tile .thumbwrap polygon.rod_frag { fill: rgba(160,120,255,.45); }
+  .tile .thumbwrap polygon.round_frag { fill: rgba(60,205,205,.45); }
+  .tile .thumbwrap polygon.eucampia { fill: rgba(255,110,190,.5); }
+  .tile .thumbwrap polygon.none { fill: rgba(255,60,60,.34); }
   .tile .meta { padding: 8px 10px; font-size: 12px; }
   .tile .meta .t { font-weight: 600; }
 
@@ -64,6 +83,61 @@
   .badge.on { color: var(--good); border-color: var(--good); }
   .badge.warn { color: var(--warn); border-color: var(--warn); }
   .badge.rod { color: var(--accent); border-color: var(--accent); }
+  .badge.frag { color: #a78bfa; border-color: #a78bfa; }
+  .badge.euc { color: #ff6ebe; border-color: #ff6ebe; }
+
+  /* --- 검출 개체 크롭 갤러리 ---
+     테두리 색이 형태 판정이다 — 봉상/원형/수동복구를 사진과 같은 색으로 쓴다. */
+  .croptools {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    margin: 0 0 10px; font-size: 12.5px;
+  }
+  .chip {
+    padding: 3px 11px; border-radius: 999px; font-size: 12px;
+    border: 1px solid var(--line); color: var(--dim);
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+  .chip.on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .crops { display: grid; gap: 7px; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+  .crop {
+    display: block; color: inherit; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 7px; overflow: hidden;
+  }
+  .crop:hover { border-color: var(--accent); text-decoration: none; }
+  .crop.rod { border-color: rgba(70,140,255,.55); }
+  .crop.round { border-color: rgba(60,220,120,.55); }
+  .crop.rod_frag { border-color: rgba(160,120,255,.6); }
+  .crop.round_frag { border-color: rgba(60,205,205,.6); }
+  .crop.eucampia { border-color: rgba(255,110,190,.7); }
+  .crop.manual { border-color: var(--warn); }
+  /* 칸 높이는 고정, 이미지는 그 안에서 비율대로. 감싼 .cimg 가 이미지를 꼭
+     감싸므로 그 안에 넣은 스케일바의 % 가 곧 이미지 폭이 된다 — object-fit
+     여백에 어긋나지 않는다. */
+  .crop .cbox {
+    display: flex; align-items: center; justify-content: center;
+    height: 190px; background: #000;
+  }
+  .crop .cimg { position: relative; display: inline-block; line-height: 0; }
+  .crop .cimg img { display: block; max-height: 190px; max-width: 100%; }
+  .crop .csb {
+    position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+    font-size: 9.5px; line-height: 1.1; color: #fff; text-align: center;
+    text-shadow: 0 1px 2px #000, 0 0 3px #000; pointer-events: none;
+  }
+  .crop .csb b {
+    display: block; height: 2.5px; background: #fff; border-radius: 1px;
+    margin-bottom: 1.5px; box-shadow: 0 0 2px rgba(0,0,0,.9);
+  }
+  .crop .cap {
+    display: flex; gap: 5px; align-items: center;
+    padding: 3px 6px 4px; font-size: 11px; line-height: 1.3;
+  }
+  .crop .dot {
+    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+    margin-left: auto;
+  }
+  .crop .dot.warn { background: var(--warn); }
+  .crop .dot.good { background: var(--good); }
 
   .frames { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
   .frame { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
@@ -83,8 +157,11 @@
   /* --- 탭 (검출 화면 / 개체 목록) --- */
   .dettabs {
     display: flex; gap: 2px; align-items: center; flex-wrap: wrap;
-    margin: 24px 0 12px; border-bottom: 1px solid var(--line);
+    margin: 0 0 8px; border-bottom: 1px solid var(--line);
   }
+  /* 한 페이지에 패널이 둘 이상일 때(합성본이 없어 프레임마다 검출한 그룹)만
+     위에 간격을 준다. 첫 패널은 사진이 곧바로 나와야 한다. */
+  section ~ .dettabs { margin-top: 22px; }
   .dettabs button {
     font: inherit; font-size: 13.5px; padding: 7px 15px; cursor: pointer;
     background: transparent; color: var(--dim); border: 0;
@@ -93,6 +170,72 @@
   .dettabs button:hover { color: var(--fg); }
   .dettabs button.on { color: var(--fg); font-weight: 600; border-bottom-color: var(--accent); }
   .dettabs .tabmeta { margin-left: auto; font-size: 12px; color: var(--dim); padding-bottom: 6px; }
+
+  /* --- 사진 + 코멘트 목록 --- */
+  .detrow { display: flex; gap: 10px; align-items: flex-start; }
+  .detrow .detview { flex: 1 1 auto; min-width: 0; }
+  /* 위(개체 코멘트)·아래(시야 코멘트) 두 칸이 각각 스크롤된다. 아래 칸은 높이를
+     고정해 두어 개체 코멘트가 길어져도 밀려나지 않는다. */
+  .notes {
+    flex: 0 0 250px; width: 250px; align-self: stretch;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 9px; padding: 9px 10px; line-height: 1.5;
+    max-height: 78vh; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .notes .nhead, .notes .ghead {
+    flex: 0 0 auto;
+    font-size: 12px; font-weight: 650; margin-bottom: 7px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--line);
+  }
+  .notes .ghead { margin-top: 9px; }
+  .notes .nlist { flex: 1 1 auto; min-height: 60px; overflow-y: auto; }
+  /* 그 자리에서 바로 적는다 — 팝업을 열지 않는다. 높이는 고정. */
+  .notes .gnote {
+    flex: 0 0 132px; height: 132px; overflow-y: auto; resize: none;
+    display: block; width: 100%; font: inherit; font-size: 12px;
+    line-height: 1.5; background: var(--bg); color: inherit;
+    border: 1px solid var(--line); border-radius: 7px; padding: 6px 7px;
+  }
+  .notes .gnote:hover { border-color: var(--accent); }
+  .notes .gnote:focus { outline: none; border-color: var(--accent); }
+  .notes .nitem {
+    display: block; width: 100%; text-align: left; font: inherit;
+    background: transparent; color: inherit; cursor: pointer;
+    border: 1px solid transparent; border-radius: 7px;
+    padding: 6px 7px; margin-bottom: 4px; font-size: 12px;
+  }
+  .notes .nitem:hover, .notes .nitem.on {
+    border-color: var(--accent); background: rgba(90,200,250,.09);
+  }
+  .notes .nitem .ntop {
+    display: flex; gap: 6px; align-items: baseline;
+    font-size: 11px; color: var(--dim); margin-bottom: 2px;
+  }
+  .notes .nitem .ntext { white-space: pre-wrap; word-break: break-word; }
+  .notes .nempty { font-size: 12px; color: var(--dim); }
+
+  /* --- 코멘트 편집 --- */
+  .noteedit {
+    position: fixed; z-index: 75; width: 300px; padding: 10px 11px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 9px; box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  }
+  .noteedit .nlabel { font-size: 11.5px; color: var(--dim); margin-bottom: 6px; }
+  .noteedit textarea {
+    width: 100%; min-height: 74px; resize: vertical; font: inherit;
+    font-size: 12.5px; padding: 6px 7px; border-radius: 6px;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+  }
+  .noteedit .nrow { display: flex; gap: 6px; margin-top: 8px; }
+  .noteedit button {
+    font: inherit; font-size: 12px; padding: 4px 11px; cursor: pointer;
+    background: var(--panel); color: inherit;
+    border: 1px solid var(--line); border-radius: 6px;
+  }
+  .noteedit button:hover { border-color: var(--accent); }
+  .noteedit button.danger { color: #ff6b6b; }
+  .noteedit .nhint { margin-left: auto; font-size: 11px; color: var(--dim); align-self: center; }
 
   /* --- 대화형 검출 레이어 --- */
   .detview {
@@ -108,17 +251,68 @@
     pointer-events: none;
   }
   .detview svg.masks polygon { stroke-width: 0; }
+  /* 탈락 후보 — 테두리만 빨간 점선으로 그린다. 채우면 사진이 가려져 정작
+     "이게 규조각인가" 를 판단할 수 없다. 두께·점선 간격은 확대해도 그대로다. */
+  .detview svg.masks polygon.reject {
+    fill: none; stroke: rgba(255,70,70,.92);
+    stroke-width: 1.4px; stroke-dasharray: 5 4;
+    vector-effect: non-scaling-stroke;
+  }
+  .detview.hide-reject svg.masks polygon.reject { display: none; }
   .detview svg.masks polygon.rod    { fill: rgba(70,140,255,.42); }
   .detview svg.masks polygon.round  { fill: rgba(60,220,120,.42); }
   .detview svg.masks polygon.manual { fill: rgba(255,180,70,.42); }
   .detview svg.masks polygon.none   { fill: rgba(255,60,60,.30); }
+  .detview svg.masks polygon.rod_frag   { fill: rgba(160,120,255,.42); }
+  .detview svg.masks polygon.round_frag { fill: rgba(60,205,205,.42); }
+  /* Eucampia — 형태가 아니라 속으로 알아본 것이라 색을 따로 준다 */
+  .detview svg.masks polygon.eucampia   { fill: rgba(255,110,190,.45); }
   .detview svg.masks polygon.sel    { fill: rgba(255,210,63,.55); }
-  /* 우상단은 레이어 토글이 쓰므로 배율 표시는 왼쪽으로 뺀다 */
+  /* 네 귀퉁이가 다 쓰인다: 좌상 교정 도구, 우상 레이어 토글, 우하 스케일바,
+     하단 가운데 검토 완료. 배율 표시는 남은 좌하단으로 뺀다. */
+  /* 배율은 원본 화소 기준이라 확대하지 않은 상태(예: 53%)도 뜻이 있는 값이다.
+     그래서 늘 보인다 — 지금 원본을 다 보고 있는지 알아야 한다. */
   .detview .zoomtag {
-    position: absolute; left: 8px; top: 8px; z-index: 3;
+    position: absolute; left: 8px; bottom: 10px; z-index: 3;
     background: rgba(0,0,0,.6); color: #fff; font-size: 11px; line-height: 1.5;
-    padding: 2px 7px; border-radius: 5px; opacity: 0; transition: opacity .15s;
+    padding: 2px 7px; border-radius: 5px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
   }
+
+  /* --- 교정 도구 (사진 좌상단) ---
+     사진에서 눈을 떼지 않고 조작하려면 버튼이 사진 위에 있어야 한다.
+     캔버스의 확대·선택 판정이 버튼 클릭을 삼키지 않게 JS 에서 전파를 끊는다. */
+  .detview .tools {
+    position: absolute; left: 8px; top: 8px; z-index: 5;
+    display: flex; gap: 5px; flex-wrap: wrap; max-width: calc(100% - 190px);
+    line-height: 1.2; cursor: default;
+  }
+  .detview .tools button {
+    font: inherit; font-size: 11.5px; padding: 4px 9px; cursor: pointer;
+    background: rgba(0,0,0,.62); color: #fff;
+    border: 1px solid rgba(255,255,255,.22); border-radius: 6px;
+  }
+  .detview .tools button:hover { border-color: var(--accent); color: var(--accent); }
+  .detview .tools button.danger:hover { border-color: #ff6b6b; color: #ff8a8a; }
+
+  /* --- 검토 완료 (사진 하단 가운데) --- */
+  .detview .donebar {
+    position: absolute; left: 50%; bottom: 12px; z-index: 5;
+    transform: translateX(-50%); cursor: default;
+  }
+  .detview .donebar button {
+    font: inherit; font-size: 15px; font-weight: 650; padding: 11px 26px;
+    cursor: pointer; border-radius: 10px; letter-spacing: .2px;
+    background: rgba(0,0,0,.7); color: #fff;
+    border: 1px solid rgba(255,255,255,.34);
+    box-shadow: 0 3px 14px rgba(0,0,0,.4);
+  }
+  .detview .donebar button:hover { border-color: var(--accent); color: var(--accent); }
+  /* 완료된 것은 완료됐다고 못 박는다 — 목록의 ✓ 검토 배지와 같은 초록이다. */
+  .detview .donebar button.on {
+    background: rgba(26,110,55,.86); border-color: #7ee787; color: #eaffe9;
+  }
+  .detview .donebar button.on:hover { border-color: #fff; color: #fff; }
 
   /* --- 레이어 토글 (사진 우상단) ---
      끄더라도 .box 요소는 남긴다 — 클릭 판정을 bbox 가 하므로 지우면 선택이 죽는다.
@@ -161,18 +355,41 @@
     display: flex; gap: 8px; overflow-x: auto; padding: 9px 2px 4px;
     scrollbar-width: thin;
   }
+  /* 썸네일 목록 좌우의 이동 버튼. 높이는 썸네일에 맞추고 폭만 좁게 잡는다:
+     align-items:stretch 로 늘리고, .strip 의 위아래 padding 을 margin 으로
+     그대로 흉내내면 썸네일 자체와 정확히 같은 높이가 된다. */
+  .striprow { display: flex; gap: 6px; align-items: stretch; }
+  .striprow .strip { flex: 1 1 auto; min-width: 0; }   /* min-width 가 없으면 안 줄어든다 */
+  .navbtn {
+    flex: 0 0 auto; width: 26px; margin: 9px 0 4px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--panel); color: var(--dim);
+    border: 1px solid var(--line); border-radius: 7px;
+    font: inherit; font-size: 14px; line-height: 1; cursor: pointer;
+  }
+  .navbtn.grp { width: 30px; }
+  .navbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .navbtn:disabled { opacity: .28; cursor: default; }
   .strip .shot {
     flex: 0 0 auto; width: 128px; padding: 0; cursor: pointer;
     background: var(--panel); border: 1px solid var(--line);
     border-radius: 8px; overflow: hidden; color: inherit;
     font: inherit; text-align: left; line-height: 1.4;
+    /* 버튼은 내용을 수직 중앙에 놓는다. 선명도 막대가 없는 합성본·깊이 맵은
+       그래서 사진이 아래로 내려가 다른 썸네일과 어긋난다. 위에서부터 쌓는다. */
+    display: flex; flex-direction: column;
   }
   .strip .shot:hover { border-color: var(--accent); }
   .strip .shot.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
   .strip .shot.best .cap { color: var(--good); }
-  .strip .shot img { width: 100%; aspect-ratio: 2752/2208; object-fit: cover; display: block; background: #000; }
+  /* flex-shrink 를 막아야 한다 — 늘어난 칸에서 사진이 눌리면 배율이 달라 보인다. */
+  .strip .shot img {
+    flex: 0 0 auto; width: 100%; aspect-ratio: 2752/2208;
+    object-fit: cover; display: block; background: #000;
+  }
   .strip .shot .cap { display: block; padding: 5px 7px 2px; font-size: 11px; }
-  .strip .shot .bar { height: 3px; margin: 3px 7px 7px; }
+  /* 막대는 아래에 붙인다 — 막대가 있는 썸네일끼리도 높이가 맞는다. */
+  .strip .shot .bar { height: 3px; margin: auto 7px 7px; }
   .detview .box.manual { border-style: dashed; border-color: #ffb454; }
   /* 오검출로 지운 것 — 흔적만 남겨 클릭 한 번으로 되살릴 수 있게 한다.
      채우면 아래 이미지가 가려져 지운 게 맞는지 확인할 수 없으므로 테두리만 그린다. */
@@ -182,8 +399,10 @@
   }
   .detview .box.gone:hover { opacity: 1; border-color: #ffd23f; }
   .detview .box.gone::after {
-    content: "✕"; position: absolute; right: 1px; top: -1px;
-    font: 10px/1 ui-sans-serif, system-ui; color: rgba(255,255,255,.75);
+    content: "✕"; position: absolute;
+    right: calc(1px * var(--inv, 1)); top: calc(-1px * var(--inv, 1));
+    font: calc(10px * var(--inv, 1))/1 ui-sans-serif, system-ui;
+    color: rgba(255,255,255,.75);
   }
 
   /* 빈 곳 클릭 시 펼쳐지는 탈락 후보 선택기 */
@@ -192,17 +411,33 @@
     border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px;
     box-shadow: 0 10px 34px rgba(0,0,0,.45); max-width: 520px;
   }
-  .spread .shead { font-size: 12px; margin-bottom: 8px; color: var(--dim); }
-  .spread .sgrid { display: flex; gap: 8px; flex-wrap: wrap; max-width: 500px; }
+  .spread .shead { font-size: 12px; margin-bottom: 8px; color: var(--dim); padding-right: 26px; }
+  .spread .sclose {
+    position: absolute; right: 7px; top: 6px; width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font: inherit; font-size: 12px; line-height: 1; cursor: pointer;
+    background: transparent; color: var(--dim);
+    border: 1px solid var(--line); border-radius: 6px; padding: 0;
+  }
+  .spread .sclose:hover { border-color: var(--accent); color: var(--accent); }
+  .spread .sgrid {
+    display: flex; gap: 8px; flex-wrap: wrap; max-width: 720px;
+    align-items: flex-start; max-height: 74vh; overflow-y: auto;
+  }
   .spread .scell {
-    width: 108px; padding: 0; cursor: pointer; font: inherit; color: inherit;
+    padding: 0; cursor: pointer; font: inherit; color: inherit;
     background: transparent; border: 1px solid var(--line); border-radius: 7px;
     overflow: hidden; text-align: center;
+    display: flex; flex-direction: column; align-items: stretch;
   }
   .spread .scell:hover { border-color: var(--accent); }
-  .spread .scrop {
-    display: block; width: 100%; height: 76px; background: #000;
-    background-repeat: no-repeat;
+  /* 칸 크기를 크롭의 종횡비대로 JS 가 정한다 — 늘리지 않는다. */
+  .spread .scrop { display: block; position: relative; background: #000; }
+  .spread .scrop img { width: 100%; height: 100%; display: block; }
+  .spread .scrop svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .spread .scrop polygon {
+    fill: rgba(255,210,63,.30); stroke: rgba(255,235,150,.95);
+    stroke-width: 1.4px; vector-effect: non-scaling-stroke;
   }
   .spread .scap { display: block; padding: 4px 5px 6px; font-size: 10.5px; line-height: 1.35; }
 
@@ -219,15 +454,52 @@
   .ctxmenu button:hover:not(:disabled) { background: var(--line); }
   .ctxmenu button:disabled { opacity: .4; cursor: default; }
   .ctxmenu button.danger { color: #ff6b6b; }
+  .ctxmenu .msep { height: 1px; background: var(--line); margin: 4px 6px; }
+
+  /* 캐러셀 끝에서 → 를 누르면 다음 시야로 넘어갈지 묻는다.
+     "다시 묻지 않기" 를 넣어야 하므로 confirm() 으로는 안 된다. */
+  .askwrap {
+    position: fixed; inset: 0; z-index: 80; display: flex;
+    align-items: center; justify-content: center; background: rgba(0,0,0,.45);
+  }
+  .askbox {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 15px 18px 16px; max-width: 380px; font-size: 13px; line-height: 1.6;
+    box-shadow: 0 14px 40px rgba(0,0,0,.5);
+  }
+  .askbox h3 { margin: 0 0 4px; font-size: 13.5px; }
+  .askbox label {
+    display: flex; gap: 6px; align-items: center;
+    margin-top: 11px; font-size: 12px; color: var(--dim); cursor: pointer;
+  }
+  .askbox .askrow { display: flex; gap: 8px; margin-top: 13px; }
+  .askbox .askrow button {
+    font: inherit; font-size: 12.5px; padding: 5px 12px; cursor: pointer;
+    background: var(--panel); color: inherit;
+    border: 1px solid var(--line); border-radius: 6px;
+  }
+  .askbox .askrow button:hover { border-color: var(--accent); }
+  .askbox .askrow button.go { border-color: var(--accent); color: var(--accent); }
+  /* 두께는 --inv(= 1/배율) 를 곱해 화면에서 늘 같게 보이도록 한다. canvas 가
+     scale(k) 로 확대되므로 곱해 두지 않으면 선까지 k 배로 두꺼워진다.
+     --inv 는 applyTransform() 이 canvas 에 얹는다. */
   .detview .box {
-    position: absolute; border: 2px solid rgba(255,60,60,.85);
-    border-radius: 2px; cursor: pointer;
+    position: absolute; cursor: pointer;
+    border-style: solid; border-color: rgba(255,60,60,.85);
+    border-width: calc(2px * var(--inv, 1));
+    border-radius: calc(2px * var(--inv, 1));
   }
   .detview .box.rod   { border-color: rgba(70,140,255,.9); }
   .detview .box.round { border-color: rgba(60,220,120,.9); }
-  .detview .box.hot   { border-width: 3px; box-shadow: 0 0 0 2px rgba(255,255,255,.55); }
+  .detview .box.rod_frag   { border-color: rgba(160,120,255,.95); }
+  .detview .box.round_frag { border-color: rgba(60,205,205,.95); }
+  .detview .box.eucampia   { border-color: rgba(255,110,190,.95); }
+  /* 사람이 지정한 분류는 실선 대신 굵은 점선 — 자동 판정과 구분된다 */
+  .detview .box.userset { border-style: dashed; }
+  .detview .box.hot   { border-width: calc(3px * var(--inv, 1));
+                        box-shadow: 0 0 0 calc(2px * var(--inv, 1)) rgba(255,255,255,.55); }
   .detview .box.sel {
-    border-color: #ffd23f; border-width: 3px;
+    border-color: #ffd23f; border-width: calc(3px * var(--inv, 1));
     background: rgba(255,210,63,.18);
   }
   .detview .band {
@@ -241,11 +513,14 @@
   .detview.hide-box .box.rod,
   .detview.hide-box .box.round,
   .detview.hide-box .box.manual,
+  .detview.hide-box .box.rod_frag,
+  .detview.hide-box .box.round_frag,
+  .detview.hide-box .box.eucampia,
   .detview.hide-box .box.gone { border-color: transparent; background: none; }
   .detview.hide-box .box.gone::after { display: none; }
   .detview.hide-box .box.hot { border-color: rgba(255,255,255,.8); }
   .detview.hide-box .box.sel { border-color: #ffd23f; background: rgba(255,210,63,.18); }
-  .detview.hide-mask svg.masks { display: none; }
+  .detview.hide-mask svg.masks polygon:not(.reject) { display: none; }
   .dettip {
     position: fixed; z-index: 50; pointer-events: none; display: none;
     background: var(--panel); color: var(--fg);
@@ -283,9 +558,16 @@
 <body>
 <header>
   <h1><a href="/" style="color:inherit">규조류 뷰어</a></h1>
-  <span class="dim">{% block subtitle %}{% endblock %}</span>
+  <span class="sub">{% block subtitle %}{% endblock %}</span>
   <nav>{% block nav %}{% endblock %}</nav>
 </header>
 <main>{% block content %}{% endblock %}</main>
+<script>
+  // 뒤로 가기로 돌아오면 브라우저가 캐시된 화면을 되살린다(bfcache). 교정·검토
+  // 표시와 마스크가 옛것이 되므로 그때는 다시 받는다.
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) location.reload();
+  });
+</script>
 </body>
 </html>

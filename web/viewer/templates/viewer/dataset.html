@@ -2,15 +2,32 @@
 {% load viewer_extras %}
 {% block title %}{{ label }} — 규조류 뷰어{% endblock %}
 {% block subtitle %}{{ label }}{% endblock %}
-{% block nav %}<a href="{% url 'detections' slug %}">검출 목록</a>{% endblock %}
+{% block nav %}
+  <a href="{% url 'crops' slug %}">검출 결과만 보기</a>
+  <a href="{% url 'detections' slug %}">계측 표</a>
+{% endblock %}
 
 {% block content %}
 <div class="crumb"><a href="/">데이터셋</a> / {{ label }}</div>
 <h2>{{ label }}</h2>
-<p class="dim mono" style="font-size:12px">
+<p class="dim mono" style="font-size:12px; margin-bottom:2px">
   {{ json_name }} · thresh {{ corr_thresh }} ·
   사진 {{ n_images }} → 그룹 {{ n_groups }} · 평균 {{ mean_size }}장 ·
-  싱글턴 {{ singletons }} · 최대 {{ max_size }}장
+  싱글턴 {{ singletons }} · 최대 {{ max_size }}장 ·
+  검토 완료 {{ reviewed_groups }}/{{ n_groups }}
+</p>
+{% comment %}
+  검출 결과와 사람 손이 들어간 양을 한 줄로. 재현율·정밀도를 논할 때 근거가
+  되는 숫자들이라 목록 첫 화면에 있어야 한다.
+{% endcomment %}
+<p class="dim mono" style="font-size:12px">
+  검출 {{ n_auto }} → 교정 후 <b style="color:var(--fg)">{{ n_detected }}</b>개
+  {% if class_counts %}({% for d in class_counts %}{{ d.label }} {{ d.n }}{% if not forloop.last %} · {% endif %}{% endfor %}){% endif %}
+  {% if mean_detected %}· 시야당 {{ mean_detected }}{% endif %} ·
+  교정: 삭제 <b style="color:var(--fg)">{{ n_removed }}</b> ·
+  되살림 <b style="color:var(--fg)">{{ n_accepted }}</b> ·
+  분류 지정 {{ n_labeled }} ·
+  코멘트 {{ n_noted }}{% if n_group_notes %} (+시야 {{ n_group_notes }}){% endif %}
 </p>
 
 {% if singletons > 10 %}
@@ -24,7 +41,19 @@
 {% for g in groups %}
   <a class="tile" href="{% url 'group' slug g.id %}">
     {% if g.cover_rel %}
-      <img loading="lazy" src="{% thumb g.cover_rel 300 %}" alt="group {{ g.id }}">
+      {% comment %}
+        표지 위에 검출 마스크를 얹는다. viewBox 를 검출 당시의 이미지 크기로
+        잡으므로 썸네일 폭과 무관하게 맞는다. 감싼 요소의 종횡비도 그 크기로
+        잡아야 object-fit 이 잘라 내며 어긋나지 않는다.
+      {% endcomment %}
+      <span class="thumbwrap"{% if g.cover_size %} style="aspect-ratio: {{ g.cover_size.0 }}/{{ g.cover_size.1 }}"{% endif %}>
+        <img loading="lazy" src="{% thumb g.cover_rel 300 %}" alt="group {{ g.id }}">
+        {% if g.masks %}
+          <svg viewBox="0 0 {{ g.cover_size.0 }} {{ g.cover_size.1 }}" preserveAspectRatio="none">
+            {% for m in g.masks %}<polygon class="{{ m.cls }}" points="{{ m.points }}"/>{% endfor %}
+          </svg>
+        {% endif %}
+      </span>
     {% endif %}
     <div class="meta">
       <div class="t">g{{ g.id }} · {{ g.n }}장</div>
@@ -33,6 +62,7 @@
         {% if g.n == 1 %}<span class="badge warn">싱글턴</span>{% endif %}
         {% if g.has_stack %}<span class="badge on">합성됨</span>{% endif %}
         {% if g.n_detected %}<span class="badge on">{{ g.n_detected }}개 검출</span>{% endif %}
+        {% if g.reviewed %}<span class="badge on">✓ 검토</span>{% endif %}
       </div>
     </div>
   </a>

@@ -1,11 +1,16 @@
 {% load viewer_extras %}
-{# det: 검출 payload, base: 검출을 돌린 이미지 rel, uid: DOM 충돌 방지용
-   stack·frames 는 바깥 컨텍스트에서 그대로 받아 캐러셀에 쓴다. #}
+{% comment %}
+  det: 검출 payload, base: 검출을 돌린 이미지 rel, uid: DOM 충돌 방지용
+  stack·frames 는 바깥 컨텍스트에서 그대로 받아 캐러셀에 쓴다.
+
+  여러 줄 주석은 {% comment %} 로 쓴다 — {# #} 는 한 줄짜리만 주석이고
+  줄을 넘기면 주석으로 인식되지 않아 화면에 그대로 나온다.
+{% endcomment %}
 <div class="dettabs" id="tabs-{{ uid }}">
   <button type="button" class="on" data-pane="view">{{ title }}</button>
   <button type="button" data-pane="list">개체 목록 <span class="dim">{{ det.n_candidates }}</span></button>
   <span class="tabmeta">
-    후보 {{ det.n_candidates }}개{% if det.counts %} (봉상 {{ det.counts.rod }}, 원형 {{ det.counts.round }}{% if det.counts.manual %}, 수동 {{ det.counts.manual }}{% endif %}){% endif %} ·
+    후보 {{ det.n_candidates }}개{% if det.counts %} (봉상 {{ det.counts.rod }}, 원형 {{ det.counts.round }}{% if det.counts.rod_frag %}, 봉상파편 {{ det.counts.rod_frag }}{% endif %}{% if det.counts.round_frag %}, 원형파편 {{ det.counts.round_frag }}{% endif %}{% if det.counts.eucampia %}, Eucampia {{ det.counts.eucampia }}{% endif %}{% if det.counts.manual %}, 수동 {{ det.counts.manual }}{% endif %}{% if det.counts.labeled %}, 사람지정 {{ det.counts.labeled }}{% endif %}){% endif %} ·
     원시 {{ det.n_raw_masks }}{% if det.n_sized %} → 크기통과 {{ det.n_sized }}{% endif %} ·
     {{ det.um_per_pixel|floatformat:4 }} µm/px{% if det.um_per_pixel_source %}<span class="dim"> ({{ det.um_per_pixel_source }})</span>{% endif %}
   </span>
@@ -13,6 +18,11 @@
 
 {% if base %}
 <section data-pane="view" id="pane-view-{{ uid }}">
+{% comment %}
+  사진과 코멘트 목록을 나란히 둔다. 목록은 코멘트가 하나라도 있을 때만 나타난다
+  — 늘 자리를 차지하면 사진이 그만큼 좁아진다(JS 가 여닫는다).
+{% endcomment %}
+<div class="detrow" id="detrow-{{ uid }}">
 <div class="detview" id="dv-{{ uid }}"
      data-w="{{ det.size.0 }}" data-h="{{ det.size.1 }}" data-stem="{{ det.stem }}">
   <div class="canvas" id="canvas-{{ uid }}">
@@ -27,11 +37,55 @@
   <div class="layers" id="layers-{{ uid }}">
     <label><input type="checkbox" data-layer="box" checked> bbox</label>
     <label><input type="checkbox" data-layer="mask" checked> mask</label>
+    {% comment %}
+      탈락 후보 레이어. 기본은 꺼 둔다 — 시야당 100개가 넘어 켜 두면 사진이
+      묻힌다. 재현율을 눈으로 볼 때, 그리고 누락을 되살릴 때 켠다.
+    {% endcomment %}
+    <label title="문턱에서 떨어진 후보를 빨간 점선 테두리로 보여준다 (클릭하면 되살릴 수 있다)">
+      <input type="checkbox" data-layer="reject"> 탈락
+      <span class="dim">{{ det.rejected|length }}</span></label>
   </div>
 
-  {# 스케일바 — canvas 가 아니라 detview 안에 둔다. 확대/이동 변환을 받지 않아
-     항상 같은 자리에 보이고, 길이만 배율에 맞춰 다시 계산한다. #}
+  {% comment %}
+    교정 도구는 사진 위에 얹는다. 스케일바와 마찬가지로 canvas 가 아니라
+    detview 의 자식이라 확대·이동 변환을 받지 않고 늘 같은 자리에 있다.
+  {% endcomment %}
+  <div class="tools" id="tools-{{ uid }}">
+    <button type="button" data-act="all">전체 선택</button>
+    <button type="button" data-act="none">해제</button>
+    <button type="button" data-act="reset">배율 초기화</button>
+    <button type="button" data-act="ghosts">삭제분 숨기기</button>
+    <button type="button" data-act="undo">↶ 실행취소</button>
+    <button type="button" class="danger" data-act="clear">교정 전체 초기화</button>
+  </div>
+
+  {% comment %}
+    검토 완료 표시. 어느 시야를 다 봤는지 알 수 없으면 재현율을 실측할 수도,
+    학습 데이터로 쓸 시야를 고를 수도 없다. review/*.json 에 저장한다.
+  {% endcomment %}
+  <div class="donebar" id="donebar-{{ uid }}">
+    <button type="button" id="done-{{ uid }}"
+            class="{% if det.review_done %}on{% endif %}"></button>
+  </div>
+
   <div class="scalebar" id="sb-{{ uid }}"><i></i><span></span></div>
+</div>
+
+{% comment %}
+  코멘트 목록. 커서를 올리면 그 개체가 선택된다 — 메모를 읽으면서 어느 것에
+  대한 말인지 바로 짚을 수 있어야 한다.
+{% endcomment %}
+<aside class="notes" id="notes-{{ uid }}">
+  <div class="nhead">개체 코멘트 <span class="dim" id="ncount-{{ uid }}"></span></div>
+  <div class="nlist" id="nlist-{{ uid }}"></div>
+  {% comment %}
+    시야 전체 코멘트는 아래쪽 고정 칸에 둔다. 개체 목록이 길어져도 밀려나지
+    않아야 하고, 두 칸이 각각 스크롤된다.
+  {% endcomment %}
+  <div class="ghead">이 시야</div>
+  <textarea class="gnote" id="gnote-{{ uid }}" maxlength="500"
+            placeholder="이 시야 전체에 대한 메모 (초점 상태, 판정을 보류한 이유…)"></textarea>
+</aside>
 </div>
 
 <div class="shotcap" id="shotcap-{{ uid }}">
@@ -40,26 +94,32 @@
   <a id="shot-full-{{ uid }}" href="" target="_blank" rel="noopener">원본 크기</a>
 </div>
 
-<div class="strip" id="strip-{{ uid }}">
-  {% include "viewer/_shots.html" %}
+{% comment %}
+  이웃 시야의 주소를 캐러셀에 물려 둔다 — 끝에서 화살표를 누르면 그리로 넘어간다.
+  이전 시야로는 그 시야의 마지막 사진에서 시작해야 오가는 흐름이 끊기지 않는다.
+{% endcomment %}
+<div class="striprow" id="nav-{{ uid }}">
+  <button type="button" class="navbtn grp" data-nav="pgroup"
+          {% if prev_id is None %}disabled title="첫 시야다"{% else %}title="이전 시야 g{{ prev_id }} (Ctrl+← · 묻지 않고 바로 간다)"{% endif %}>&laquo;</button>
+  <button type="button" class="navbtn" data-nav="pshot" title="이전 사진 (←)">&lsaquo;</button>
+
+  <div class="strip" id="strip-{{ uid }}"
+       {% if prev_id is not None %}data-prev="{% url 'group' slug prev_id %}?shot=last" data-prev-id="{{ prev_id }}"{% endif %}
+       {% if next_id is not None %}data-next="{% url 'group' slug next_id %}" data-next-id="{{ next_id }}"{% endif %}>
+    {% include "viewer/_shots.html" %}
+  </div>
+
+  <button type="button" class="navbtn" data-nav="nshot" title="다음 사진 (→)">&rsaquo;</button>
+  <button type="button" class="navbtn grp" data-nav="ngroup"
+          {% if next_id is None %}disabled title="마지막 시야다"{% else %}title="다음 시야 g{{ next_id }} (Ctrl+→ · 묻지 않고 바로 간다)"{% endif %}>&raquo;</button>
 </div>
-<p class="dim" style="font-size:11.5px;margin:6px 2px 0">
-  캐러셀에 커서를 올리면 그 사진을 크게 보고, 클릭하면 아예 바꾼다.
-  bbox·mask 는 그대로 얹혀 있어 <b>합성본이 아닌 원본에서도 검출이 맞는지 확인할 수 있다</b>.
-</p>
 
 <div class="detbar">
   <span id="selinfo-{{ uid }}" class="dim">선택 없음</span>
-  <button type="button" data-act="all">전체 선택</button>
-  <button type="button" data-act="none">해제</button>
-  <button type="button" data-act="reset">배율 초기화</button>
-  <button type="button" data-act="ghosts">삭제분 숨기기</button>
-  <button type="button" data-act="undo">↶ 실행취소</button>
-  <button type="button" data-act="clear">교정 전체 초기화</button>
   <span id="savestate-{{ uid }}" class="hint"></span>
 </div>
 <p class="dim" style="font-size:11.5px;margin:2px 2px 0">
-  휠 = 확대 · 우클릭 드래그 = 이동 · 클릭 = 선택 · Shift+클릭 = 추가/해제 ·
+  휠 = 확대 · 우클릭 드래그 = 이동 · <b>클릭 = 선택 (겹친 자리는 다시 클릭하면 다음 것)</b> · Shift+클릭 = 추가/해제 ·
   드래그 = 범위 선택 · <b>선택 위에서 우클릭 = 오검출 삭제</b> ·
   <b>빈 곳 클릭 = 그 자리의 탈락 후보 펼쳐 보기</b>
 </p>
@@ -68,6 +128,11 @@
 <script type="application/json" id="cand-{{ uid }}">{{ det.candidates|json_dumps }}</script>
 <script type="application/json" id="rej-{{ uid }}">{{ det.rejected|json_dumps }}</script>
 <script type="application/json" id="gone-{{ uid }}">{{ det.removed_candidates|json_dumps }}</script>
+<script type="application/json" id="acc-{{ uid }}">{{ det.accepted_keys|json_dumps }}</script>
+<script type="application/json" id="lab-{{ uid }}">{{ det.labels|json_dumps }}</script>
+<script type="application/json" id="note-{{ uid }}">{{ det.notes|json_dumps }}</script>
+<script type="application/json" id="gn-{{ uid }}">{{ det.review_note|json_dumps }}</script>
+<script type="application/json" id="cls-{{ uid }}">{% class_json %}</script>
 <script type="application/json" id="umpp-{{ uid }}">{{ det.um_per_pixel|json_dumps }}</script>
 
 <script>
@@ -95,7 +160,16 @@
   // 서버에 저장된 교정 상태를 그대로 이어받는다.
   var goneList = JSON.parse(document.getElementById('gone-' + uid).textContent || '[]');
   var removed = new Set(goneList.map(keyOf));   // 오검출로 지운 것
-  var accepted = new Set(cands.filter(function (c) { return c.manual; }).map(keyOf));
+  // 복구 목록은 서버가 준 것을 그대로 쓴다. manual 플래그로 되짚으면 지워 둔
+  // 탈락분까지 복구된 것으로 세어, 다음 저장에서 지운 것이 되살아난다.
+  var accepted = new Set(JSON.parse(document.getElementById('acc-' + uid).textContent || '[]'));
+  // 사람이 지정한 분류와 코멘트. 자동 판정을 덮어쓴다.
+  var labels = JSON.parse(document.getElementById('lab-' + uid).textContent || '{}');
+  var notes = JSON.parse(document.getElementById('note-' + uid).textContent || '{}');
+  var groupNote = JSON.parse(document.getElementById('gn-' + uid).textContent || '""') || '';
+  // 검토 완료 표시 — 서버가 렌더해 둔 버튼 상태에서 그대로 이어받는다.
+  var doneBtn = document.getElementById('done-' + uid);
+  var reviewDone = !!(doneBtn && doneBtn.classList.contains('on'));
   // 지운 것도 목록에 합쳐 둔다 — 흔적으로 그려 되살릴 수 있어야 한다.
   cands = cands.concat(goneList);
   var sel = new Set();
@@ -106,9 +180,17 @@
   if (!tip) { tip = document.createElement('div'); tip.className = 'dettip'; document.body.appendChild(tip); }
 
   function num(v, d) { return (v === undefined || v === null) ? '—' : (d ? (+v).toFixed(d) : v); }
-  function clsName(c) { return c.cls === 'rod' ? '봉상' : (c.cls === 'round' ? '원형' : '미분류'); }
+  // 분류 정의는 서버(data.CLASS_LABELS)에서 온다 — 양쪽에 적어 두면 어긋난다.
+  var CLASS_DEFS = JSON.parse(document.getElementById('cls-' + uid).textContent || '[]');
+  var CLS_KO = {};
+  CLASS_DEFS.forEach(function (d) { CLS_KO[d.key] = d.label; });
+  function clsName(c) { return CLS_KO[c.cls] || '미분류'; }
   function tipHtml(c) {
-    return '<b>#' + c.id + ' · ' + clsName(c) + (c.manual ? ' · 수동복구' : '') + '</b>' +
+    return '<b>#' + c.id + ' · ' + clsName(c) +
+      (c.cls_user ? ' · 사람 지정' : '') + (c.manual ? ' · 수동복구' : '') + '</b>' +
+      (c.cls_user && c.cls_auto ? '<div class="dim">자동 판정: ' +
+        (CLS_KO[c.cls_auto] || '미분류') + '</div>' : '') +
+      (c.note ? '<div style="margin:3px 0;white-space:pre-wrap">📝 ' + c.note + '</div>' : '') +
       (c.reject ? '<div class="dim">탈락사유: ' + c.reject + '</div>' : '') +
       '<table>' +
       '<tr><td>장축 / 단축</td><td>' + num(c.major_um, 1) + ' / ' + num(c.minor_um, 1) + ' µm</td></tr>' +
@@ -160,10 +242,26 @@
 
   // --- 확대 / 이동 ---------------------------------------------------------
   var k = 1, tx = 0, ty = 0;
+  // 배율은 **원본 화소 기준**으로 표시한다. 화면에 맞춘 상태(k=1)를 100% 라고
+  // 하면 "지금 원본을 다 보고 있는가" 를 알 수 없다 — 원본 2752 px 을 1460 px
+  // 폭에 맞춰 놓은 것이라 실제로는 53% 다. 100% = 원본 1화소가 화면 1화소.
+  function zoomPct() {
+    if (!view.clientWidth || !W) return null;
+    return 100 * view.clientWidth * k / W;
+  }
+
   function applyTransform() {
     canvas.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + k + ')';
-    zoomTag.textContent = Math.round(k * 100) + '%';
-    zoomTag.style.opacity = k === 1 ? 0 : 1;
+    // 선 두께·유령 표시가 확대에 딸려 두꺼워지지 않게 역수를 넘긴다.
+    // CSS 가 calc(2px * var(--inv)) 로 곱하므로 요소마다 손댈 필요가 없다.
+    canvas.style.setProperty('--inv', String(1 / k));
+    var pct = zoomPct();
+    if (pct !== null) {
+      // 원본 화소를 보고 있는지도 같이 알려 준다 — 축소본을 늘린 화면으로
+      // areolae 를 판단하면 안 되기 때문이다.
+      zoomTag.textContent = (pct < 10 ? pct.toFixed(1) : String(Math.round(pct))) +
+        '%' + (hires ? ' · 원본' : '');
+    }
     updateScaleBar();
   }
   function clampPan() {
@@ -185,12 +283,14 @@
     k = nk;
     if (k === 1) { tx = 0; ty = 0; } else { clampPan(); }
     applyTransform();
+    maybeHiRes();
   }, { passive: false });
 
-  window.addEventListener('resize', updateScaleBar);
-  // 스크립트가 도는 시점에는 아직 폭이 잡히지 않았을 수 있다.
-  imgEl.addEventListener('load', updateScaleBar);
-  setTimeout(updateScaleBar, 0);
+  window.addEventListener('resize', applyTransform);
+  // 스크립트가 도는 시점에는 아직 폭이 잡히지 않았을 수 있다. 배율 표시도
+  // 폭을 알아야 계산되므로 스케일바와 같은 시점에 다시 그린다.
+  imgEl.addEventListener('load', applyTransform);
+  setTimeout(applyTransform, 0);
 
   // --- 레이어 토글 (bbox / mask) -------------------------------------------
   // 끄더라도 요소는 남긴다 — 클릭 판정은 bbox 가 하므로 지우면 선택이 죽는다.
@@ -241,15 +341,14 @@
     im.src = src;
   }
 
-  function paint(s) {
-    imgEl.src = s.dataset.view;
+  function paint(s, full) {
+    // full 을 생략하면 지금 배율에 맞는 것을 쓴다. 미리보기(hover)는 늘 축소본이다
+    // — 커서만 지나가는데 600 KB 를 받으면 캐러셀이 무거워진다.
+    var useFull = (full === undefined) ? hires : full;
+    imgEl.src = (useFull && s.dataset.full) ? s.dataset.full : s.dataset.view;
     imgEl.alt = s.dataset.title;
     capTitle.textContent = s.dataset.title;
-    // 합성본에 맞춰 검출했으므로 원본 프레임에서는 마스크가 조금 어긋난다.
-    // ECC 정렬로 프레임을 서로 맞춘 뒤 합성했기 때문이다.
-    capNote.textContent = (s.dataset.note || '') +
-      (s.dataset.raw === '1' && s.dataset.current !== '1'
-        ? ' · 정렬 보정 전 원본이라 마스크가 조금 어긋날 수 있다' : '');
+    capNote.textContent = s.dataset.note || '';
     capFull.href = s.dataset.full;
   }
 
@@ -258,7 +357,7 @@
     if (!s) return;
     var seq = ++hoverSeq;
     preload(s.dataset.view, function () {
-      if (seq === hoverSeq) paint(s);   // 그 사이 다른 데로 옮겨갔으면 버린다
+      if (seq === hoverSeq) paint(s, false);   // 그 사이 다른 데로 옮겨갔으면 버린다
     });
   }
   function unpreview() {
@@ -281,6 +380,30 @@
     }
   }
 
+  // --- 확대하면 원본 화소를 보여준다 ---------------------------------------
+  // 화면에는 1600 px 축소본을 띄운다(원본 2752 px). 그대로 확대하면 1.7배부터
+  // 없는 화소를 늘리는 셈이어서 areolae 를 눈으로 확인할 수가 없다. 확대가
+  // 시작되면 원본으로 갈아 끼운다 — 요소도 배율도 그대로이므로 화면은 흔들리지
+  // 않고 선명도만 올라간다.
+  var hires = false;
+
+  function maybeHiRes() {
+    if (hires) return;
+    // 지금 띄운 이미지의 실제 화소보다 넓게 그려지기 시작하면 늘려 보고 있는
+    // 것이다. naturalWidth 로 재므로 축소본 폭(1600)을 코드에 박지 않는다.
+    var nat = imgEl.naturalWidth || 0;
+    if (!nat || view.clientWidth * k <= nat) return;
+    var s = shots[current];
+    if (!s || !s.dataset.full) return;
+    hires = true;
+    preload(s.dataset.full, function () {
+      if (!hires) return;
+      paint(shots[current]);
+      committedSrc = imgEl.getAttribute('src');
+      applyTransform();          // 배율 표시에 '원본' 을 붙인다
+    });
+  }
+
   shots.forEach(function (s, i) {
     s.addEventListener('mouseenter', function () { preview(i); });
     s.addEventListener('click', function () { commit(i, true); });
@@ -295,6 +418,160 @@
     // 초기 표시는 서버가 넣어 둔 src 그대로 두고 캡션만 맞춘다.
     imgEl.src = committedSrc;
   }
+
+  // --- 캐러셀 키보드 이동 (← →) --------------------------------------------
+  // 한 페이지에 검출 패널이 둘 이상 있을 수 있다(합성본이 없어 프레임마다 검출한
+  // 그룹). 마지막으로 마우스가 지나간 패널만 화살표에 반응한다 — 둘이 함께
+  // 움직이면 무엇을 보고 있는지 알 수 없게 된다.
+  if (!window.__diatomActive) window.__diatomActive = uid;
+  [view, strip].forEach(function (el) {
+    if (el) el.addEventListener('mouseenter', function () { window.__diatomActive = uid; });
+  });
+
+  // 이전 시야로 거슬러 올 때는 그 시야의 마지막 사진에서 시작한다.
+  if (window.__diatomActive === uid && shots.length &&
+      /[?&]shot=last(&|$)/.test(location.search)) {
+    commit(shots.length - 1, true);
+    // 새로고침에서 다시 튀지 않게 주소만 정리한다.
+    // window. 를 붙여야 한다 — 이 스코프의 history 는 교정 이력 배열이다.
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', location.pathname + location.hash);
+    }
+  }
+
+  // --- 시야 간 이동 --------------------------------------------------------
+  var GNAV_KEY = 'diatom.crossgroup';        // 'ask'(기본) | 'always'
+  var ask = null;
+
+  function crossPolicy() {
+    try { return localStorage.getItem(GNAV_KEY) || 'ask'; } catch (err) { return 'ask'; }
+  }
+  function closeAsk() { if (ask) { ask.remove(); ask = null; } }
+
+  function leave(url) {
+    flushSave();               // 지연 저장이 남아 있으면 밀어내고 떠난다
+    location.href = url;
+  }
+
+  function flashNote(msg) {
+    capNote.textContent = msg;
+    setTimeout(function () { if (shots[current]) paint(shots[current]); }, 1600);
+  }
+
+  function askCross(dir, url, gid) {
+    closeAsk();
+    var word = dir > 0 ? '다음' : '이전';
+    ask = document.createElement('div');
+    ask.className = 'askwrap';
+
+    var box = document.createElement('div');
+    box.className = 'askbox';
+    box.innerHTML =
+      '<h3>' + (dir > 0 ? '이 시야의 마지막 사진이다' : '이 시야의 첫 사진이다') + '</h3>' +
+      '<div>' + word + ' 시야 <b>g' + gid + '</b> 로 넘어갈까?</div>';
+
+    var label = document.createElement('label');
+    var again = document.createElement('input');
+    again.type = 'checkbox';
+    label.appendChild(again);
+    label.appendChild(document.createTextNode('다시 묻지 않고 바로 넘어간다'));
+    box.appendChild(label);
+
+    var row = document.createElement('div');
+    row.className = 'askrow';
+    var go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'go';
+    go.textContent = word + ' 시야로 →';
+    var no = document.createElement('button');
+    no.type = 'button';
+    no.textContent = '여기 머문다';
+    row.appendChild(go);
+    row.appendChild(no);
+    box.appendChild(row);
+    ask.appendChild(box);
+
+    go.addEventListener('click', function () {
+      // 취소할 때는 기억하지 않는다 — 넘어가지 않기로 한 사람에게
+      // "앞으로 묻지 말고 넘어가라" 를 적용하면 뜻이 뒤집힌다.
+      if (again.checked) {
+        try { localStorage.setItem(GNAV_KEY, 'always'); } catch (err) { /* 사생활 모드 */ }
+      }
+      closeAsk();
+      leave(url);
+    });
+    no.addEventListener('click', closeAsk);
+    ask.addEventListener('mousedown', function (e) { if (e.target === ask) closeAsk(); });
+
+    document.body.appendChild(ask);
+    go.focus();
+  }
+
+  function gotoGroup(dir) {
+    var url = dir > 0 ? strip.dataset.next : strip.dataset.prev;
+    if (!url) {
+      flashNote(dir > 0 ? '데이터셋의 마지막 시야다' : '데이터셋의 첫 시야다');
+      return;
+    }
+    var gid = dir > 0 ? strip.dataset.nextId : strip.dataset.prevId;
+    if (crossPolicy() === 'always') { leave(url); return; }
+    askCross(dir, url, gid);
+  }
+
+  // 사진 한 칸 이동. 끝을 넘어서면 이웃 시야로 넘어갈지 묻는다.
+  // ‹ › 버튼과 ← → 가 같은 길을 쓴다 — 둘이 다르게 움직이면 안 된다.
+  function step(dir) {
+    closeSpread(); closeMenu(); tip.style.display = 'none';
+    var next = current + dir;
+    if (next < 0 || next >= shots.length) gotoGroup(dir);
+    else commit(next, true);
+  }
+
+  // « » 와 Ctrl+화살표 는 시야를 바꾸겠다고 명시한 것이므로 묻지 않는다.
+  function jumpGroup(dir) {
+    var url = dir > 0 ? strip.dataset.next : strip.dataset.prev;
+    if (!url) {
+      flashNote(dir > 0 ? '데이터셋의 마지막 시야다' : '데이터셋의 첫 시야다');
+      return;
+    }
+    leave(url);
+  }
+
+  var navRow = document.getElementById('nav-' + uid);
+  if (navRow) {
+    navRow.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-nav]');
+      if (!b || b.disabled) return;
+      window.__diatomActive = uid;      // 누른 패널이 이후 화살표의 주인이 된다
+      var nav = b.dataset.nav;
+      if (nav === 'pshot') step(-1);
+      else if (nav === 'nshot') step(1);
+      else if (nav === 'pgroup') jumpGroup(-1);
+      else if (nav === 'ngroup') jumpGroup(1);
+    });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (e.altKey || e.shiftKey) return;
+    // Ctrl(맥은 ⌘)+화살표 = 시야 이동. 사진 이동과 한 손가락 차이로 갈린다.
+    var cross = e.ctrlKey || e.metaKey;
+    if (window.__diatomActive !== uid || !strip) return;
+    if (!cross && !shots.length) return;
+    // 확인 창이 떠 있으면 그쪽이 먼저다 (Enter/Esc 로 답한다).
+    if (ask) return;
+    var t = document.activeElement;
+    if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    // 개체 목록 탭을 보는 중이면 캐러셀은 화면에 없어 사진 이동은 뜻이 없다.
+    // 시야 이동은 페이지를 옮기는 일이라 어느 탭에서든 듣는다.
+    var pane = document.getElementById('pane-view-' + uid);
+    if (!cross && pane && pane.hidden) return;
+
+    e.preventDefault();
+    var dir = e.key === 'ArrowRight' ? 1 : -1;
+    if (cross) jumpGroup(dir);
+    else step(dir);
+  });
 
   // --- 좌표 변환 -----------------------------------------------------------
   // 화면 좌표 -> 이미지 픽셀 좌표. 확대/이동이 걸려 있어도 맞는다.
@@ -317,18 +594,43 @@
   var svg = document.getElementById('masks-' + uid);
   var polys = [];
 
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  function pointsOf(p) {
+    var pts = [];
+    for (var j = 0; j < p.length; j += 2) pts.push(p[j] + ',' + p[j + 1]);
+    return pts.join(' ');
+  }
+
   function addPolygon(c, i) {
     var p = c.polygon;
     if (!p || p.length < 6) return null;   // 삼각형도 안 되면 그리지 않는다
-    var el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    var pts = [];
-    for (var j = 0; j < p.length; j += 2) pts.push(p[j] + ',' + p[j + 1]);
-    el.setAttribute('points', pts.join(' '));
-    el.setAttribute('class', c.manual ? 'manual' : (c.cls || 'none'));
+    var el = document.createElementNS(SVGNS, 'polygon');
+    el.setAttribute('points', pointsOf(p));
+    // 사람이 분류를 지정했으면 그 색이 먼저다. 아니면 수동복구(주황) > 자동 판정.
+    el.setAttribute('class', c.cls_user ? c.cls
+      : (c.manual ? 'manual' : (c.cls || 'none')));
     el.dataset.i = i;
     svg.appendChild(el);
     polys.push(el);
     return el;
+  }
+
+  // 탈락 후보 레이어 — 테두리만 그린다. 통과분 마스크보다 먼저 넣어 아래에
+  // 깔리게 한다(SVG 는 문서 순서대로 그린다).
+  var rejPolys = [];
+
+  function buildRejects() {
+    rejPolys.forEach(function (el) { el.remove(); });
+    rejPolys = [];
+    rejects.forEach(function (c) {
+      if (!hasPoly(c) || accepted.has(keyOf(c))) return;
+      var el = document.createElementNS(SVGNS, 'polygon');
+      el.setAttribute('points', pointsOf(c.polygon));
+      el.setAttribute('class', 'reject');
+      svg.appendChild(el);
+      rejPolys.push(el);
+    });
   }
 
   function build() {
@@ -336,31 +638,48 @@
     els = [];
     polys.forEach(function (el) { el.remove(); });
     polys = [];
+    buildRejects();
     cands.forEach(function (c, i) {
       var gone = removed.has(keyOf(c));
       if (gone && !showGone) return;
       var el = document.createElement('div');
       el.className = 'box' + (gone ? ' gone'
-        : (c.cls ? ' ' + c.cls : '') + (c.manual ? ' manual' : ''));
+        : (c.cls ? ' ' + c.cls : '') + (c.manual ? ' manual' : '') +
+          (c.cls_user ? ' userset' : ''));
       boxStyle(el, c.bbox_xywh);
       el.dataset.i = i;
       el.dataset.gone = gone ? '1' : '';
       // 지운 것은 마스크를 칠하지 않는다 — 점선 테두리만 남겨 아래 이미지를 본다.
       if (!gone) addPolygon(c, i);
-      // 확대해도 테두리 두께가 그대로 보이게 역보정
-      el.style.borderWidth = Math.max(1, 2 / k) + 'px';
       canvas.appendChild(el);
       els.push(el);
-      el.addEventListener('mouseenter', function (ev) {
+      // 마스크 모드에서는 마스크 안에 있을 때만 반응한다 — 클릭 판정과 같아야
+      // 한다. 안 보이는 빈 자리에서 통계 팝업이 뜨면 무엇을 누르는지 알 수 없다.
+      function over(ev) {
+        if (!maskMode() || !hasPoly(c)) return true;
+        var p = toImage(ev);
+        return inPolygon(c.polygon, p.x, p.y);
+      }
+      function showTip(ev) {
         el.classList.add('hot');
         tip.innerHTML = tipHtml(c) +
-          (gone ? '<div class="dim">오검출로 지움 — 클릭하면 되살린다</div>' : '');
-        tip.style.display = 'block'; placeTip(ev);
+          (gone ? '<div class="dim">오검출로 지움 — 클릭하면 되살린다' +
+                  (c.from_reject
+                    ? '<br>지금 문턱에서는 탈락분이다 (되살리면 수동 복구로 남는다)'
+                    : '') + '</div>'
+                : '');
+        tip.style.display = 'block';
+        placeTip(ev);
+      }
+      function hideTip() { el.classList.remove('hot'); tip.style.display = 'none'; }
+
+      el.addEventListener('mouseenter', function (ev) { if (over(ev)) showTip(ev); });
+      el.addEventListener('mousemove', function (ev) {
+        if (!over(ev)) { hideTip(); return; }
+        if (tip.style.display === 'none') showTip(ev);
+        else placeTip(ev);
       });
-      el.addEventListener('mousemove', placeTip);
-      el.addEventListener('mouseleave', function () {
-        el.classList.remove('hot'); tip.style.display = 'none';
-      });
+      el.addEventListener('mouseleave', hideTip);
     });
     redraw();
   }
@@ -372,9 +691,10 @@
     keys.forEach(function (key) {
       if (!removed.has(key)) return;
       removed.delete(key);
-      // 수동으로 되살렸다가 지운 것이면 복구 목록에도 도로 넣는다.
+      // 탈락분에서 온 개체는 되살릴 때 복구 목록에 넣어야 한다 — 그러지 않으면
+      // 화면에서는 살아나지만 저장되지 않아 새로고침에 사라진다.
       var c = cands.find(function (x) { return keyOf(x) === key; });
-      if (c && c.manual) accepted.add(key);
+      if (c && (c.from_reject || c.manual)) accepted.add(key);
     });
   }
 
@@ -388,6 +708,25 @@
         removed.add(key);
         accepted.delete(key);
       });
+    } else if (last.type === 'label') {
+      last.items.forEach(function (it) {
+        var c = cands[it.i];
+        if (!c) return;
+        c.cls = it.cls;
+        c.cls_user = it.user;
+        if (it.auto === undefined) delete c.cls_auto; else c.cls_auto = it.auto;
+        if (it.user) labels[it.key] = it.cls; else delete labels[it.key];
+      });
+    } else if (last.type === 'gnote') {
+      groupNote = last.text || '';
+      renderNotes();
+    } else if (last.type === 'note') {
+      var cn = cands[last.i];
+      if (cn) {
+        if (last.text) { notes[last.key] = last.text; cn.note = last.text; }
+        else { delete notes[last.key]; delete cn.note; }
+      }
+      renderNotes();
     } else if (last.type === 'accept') {
       accepted.delete(last.key);
       var idx = cands.findIndex(function (x) { return keyOf(x) === last.key; });
@@ -403,7 +742,6 @@
   function redraw() {
     els.forEach(function (el) {
       el.classList.toggle('sel', sel.has(+el.dataset.i));
-      el.style.borderWidth = Math.max(1, (sel.has(+el.dataset.i) ? 3 : 2) / k) + 'px';
     });
     polys.forEach(function (el) { el.classList.toggle('sel', sel.has(+el.dataset.i)); });
     var picked = Array.from(sel).map(function (i) { return cands[i]; })
@@ -417,6 +755,18 @@
         sizes[Math.floor(sizes.length / 2)].toFixed(1) + ' µm (' +
         sizes[0].toFixed(1) + '~' + sizes[sizes.length - 1].toFixed(1) + ')';
     }
+    // 선택은 코멘트 목록에도 비친다 — 어느 메모가 지금 고른 개체인지 보여야 한다.
+    if (nlist) {
+      nlist.querySelectorAll('.nitem').forEach(function (el) {
+        el.classList.toggle('on', sel.has(+el.dataset.i));
+      });
+    }
+    // 겹친 자리에서 순환 중이면 몇 개 중 몇 번째인지 알린다 — 아래에 더 있다는
+    // 것을 모르면 다시 누를 이유가 없다.
+    if (cycle && cycle.n > 1 && sel.size === 1 && sel.has(cycle.pick)) {
+      info.innerHTML += ' <span class="dim">· 이 자리에 ' + cycle.n + '개 겹침 (' +
+        (cycle.at + 1) + '/' + cycle.n + ') — 다시 클릭하면 다음</span>';
+    }
     var n = removed.size, m = accepted.size;
     saveState.textContent = (n || m)
       ? '교정: 삭제 ' + n + ' · 복구 ' + m + (history.length ? ' · Ctrl+Z 로 취소' : '')
@@ -424,29 +774,282 @@
   }
 
   // --- 저장 ----------------------------------------------------------------
-  var saveTimer = null;
+  var saveTimer = null, savePending = false;
+
+  function postReview(keepalive) {
+    savePending = false;
+    // keepalive: 페이지를 떠나는 중에도 요청이 끊기지 않게 한다.
+    return fetch('/review', {
+      method: 'POST',
+      keepalive: !!keepalive,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stem: stem,
+        done: reviewDone,
+        removed: Array.from(removed),
+        accepted: Array.from(accepted),
+        labels: labels,
+        notes: notes,
+        note: groupNote
+      })
+    }).then(function (r) {
+      saveState.textContent = r.ok
+        ? '저장됨 — 삭제 ' + removed.size + ' · 복구 ' + accepted.size +
+          (reviewDone ? ' · 검토 완료' : '')
+        : '저장 실패';
+    }).catch(function () { saveState.textContent = '저장 실패 (오프라인?)'; });
+  }
+
   function save() {
+    savePending = true;
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
-      fetch('/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stem: stem,
-          removed: Array.from(removed),
-          accepted: Array.from(accepted)
-        })
-      }).then(function (r) {
-        saveState.textContent = r.ok
-          ? '저장됨 — 삭제 ' + removed.size + ' · 복구 ' + accepted.size
-          : '저장 실패';
-      }).catch(function () { saveState.textContent = '저장 실패 (오프라인?)'; });
-    }, 400);
+    saveTimer = setTimeout(function () { postReview(false); }, 400);
+  }
+
+  // 지연 저장이 걸려 있는 채로 시야를 옮기면 그 교정이 사라진다. 떠나기 전에 밀어낸다.
+  function flushSave() {
+    if (!savePending) return;
+    clearTimeout(saveTimer);
+    postReview(true);
+  }
+
+  // --- 분류 직접 지정 -------------------------------------------------------
+  // 조각난 규조각이 봉상/원형으로 잘못 분류되는 것을 손으로 고친다. 자동 판정은
+  // cls_auto 로 남겨 두고 사람의 지정을 위에 얹는다.
+  function setLabel(idxs, cls) {
+    var touched = [];
+    idxs.forEach(function (i) {
+      var c = cands[i];
+      if (!c) return;
+      var key = keyOf(c);
+      touched.push({ i: i, key: key, cls: c.cls,
+                     user: !!c.cls_user, auto: c.cls_auto });
+      if (cls) {
+        if (c.cls_auto === undefined) c.cls_auto = c.cls || null;
+        labels[key] = cls;
+        c.cls = cls;
+        c.cls_user = true;
+      } else {
+        delete labels[key];
+        if (c.cls_auto !== undefined) c.cls = c.cls_auto;
+        c.cls_user = false;
+      }
+    });
+    if (!touched.length) return;
+    history.push({ type: 'label', items: touched });
+    build();
+    save();
+  }
+
+  // --- 코멘트 ---------------------------------------------------------------
+  var notesBox = document.getElementById('notes-' + uid);
+  var nlist = document.getElementById('nlist-' + uid);
+  var ncount = document.getElementById('ncount-' + uid);
+  var gnote = document.getElementById('gnote-' + uid);
+  if (gnote) {
+    // 시야 코멘트는 팝업을 열지 않고 이 자리에서 고친다. 입력하는 동안 저장이
+    // 흐르고(지연 저장), 칸을 벗어날 때 실행취소 한 칸으로 묶는다 — 글자마다
+    // 이력을 쌓으면 Ctrl+Z 가 쓸모없어진다.
+    var gnoteWas = null;
+    gnote.addEventListener('focus', function () { gnoteWas = groupNote; });
+    gnote.addEventListener('input', function () {
+      groupNote = gnote.value;
+      save();
+    });
+    gnote.addEventListener('blur', function () {
+      groupNote = gnote.value.trim();
+      gnote.value = groupNote;
+      if (gnoteWas !== null && gnoteWas !== groupNote) {
+        history.push({ type: 'gnote', text: gnoteWas });
+        redraw();
+      }
+      gnoteWas = null;
+      save();
+    });
+    gnote.addEventListener('keydown', function (ev) {
+      // Esc·Ctrl+Enter 로 칸에서 빠져나온다(저장은 이미 흐르고 있다).
+      if (ev.key === 'Escape' || (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey))) {
+        ev.preventDefault();
+        gnote.blur();
+      }
+    });
+    // 캔버스가 이 안의 클릭·휠을 확대·선택으로 받으면 안 된다.
+    ['wheel', 'mousedown', 'contextmenu'].forEach(function (ev) {
+      gnote.addEventListener(ev, function (x) { x.stopPropagation(); });
+    });
+  }
+  var noteEdit = null;
+
+  function closeNoteEdit() { if (noteEdit) { noteEdit.remove(); noteEdit = null; } }
+
+  function setNote(i, text) {
+    var c = cands[i];
+    if (!c) return;
+    var key = keyOf(c);
+    history.push({ type: 'note', i: i, key: key, text: notes[key] });
+    text = (text || '').trim();
+    if (text) { notes[key] = text; c.note = text; }
+    else { delete notes[key]; delete c.note; }
+    renderNotes();
+    redraw();
+    save();
+  }
+
+  // 개체 코멘트는 그 자리(사진 위)에서 팝업으로 고친다. 시야 코멘트는 오른쪽
+  // 칸에서 직접 적는다 — 두 가지를 같은 창에 묶으면 어느 것에 쓰는지 헷갈린다.
+  function openNoteEdit(e, i) {
+    closeNoteEdit(); closeMenu(); closeSpread();
+    var c = cands[i];
+    if (!c) return;
+    noteEdit = document.createElement('div');
+    noteEdit.className = 'noteedit';
+
+    var lab = document.createElement('div');
+    lab.className = 'nlabel';
+    lab.textContent = (c.id === undefined ? '삭제된 개체' : '#' + c.id) +
+      ' · ' + clsName(c) + ' · 장축 ' + num(c.major_um, 1) + ' µm';
+    noteEdit.appendChild(lab);
+
+    var ta = document.createElement('textarea');
+    ta.value = c.note || '';
+    ta.maxLength = 500;
+    ta.placeholder = '이 개체에 대한 메모';
+    noteEdit.appendChild(ta);
+
+    var row = document.createElement('div');
+    row.className = 'nrow';
+    var ok = document.createElement('button');
+    ok.type = 'button'; ok.textContent = '저장';
+    var del = document.createElement('button');
+    del.type = 'button'; del.className = 'danger'; del.textContent = '지우기';
+    var no = document.createElement('button');
+    no.type = 'button'; no.textContent = '취소';
+    var hint = document.createElement('span');
+    hint.className = 'nhint'; hint.textContent = 'Ctrl+Enter';
+    row.appendChild(ok);
+    if (c.note) row.appendChild(del);
+    row.appendChild(no);
+    row.appendChild(hint);
+    noteEdit.appendChild(row);
+
+    function commitNote(text) {
+      setNote(i, text);
+      closeNoteEdit();
+    }
+    ok.addEventListener('click', function () { commitNote(ta.value); });
+    del.addEventListener('click', function () { commitNote(''); });
+    no.addEventListener('click', closeNoteEdit);
+    ta.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+        ev.preventDefault(); commitNote(ta.value);
+      } else if (ev.key === 'Escape') { ev.preventDefault(); closeNoteEdit(); }
+    });
+    // 캔버스가 이 안의 클릭을 확대·선택으로 받으면 안 된다.
+    ['wheel', 'mousedown', 'contextmenu'].forEach(function (ev) {
+      noteEdit.addEventListener(ev, function (x) { x.stopPropagation(); });
+    });
+
+    document.body.appendChild(noteEdit);
+    var w = noteEdit.offsetWidth, h = noteEdit.offsetHeight;
+    var x = Math.min(window.innerWidth - w - 8, Math.max(8, (e ? e.clientX : 40) + 8));
+    var y = (e ? e.clientY : 40) + 8;
+    if (y + h > window.innerHeight - 8) y = Math.max(8, (e ? e.clientY : 40) - h - 8);
+    noteEdit.style.left = x + 'px';
+    noteEdit.style.top = y + 'px';
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  }
+
+  // 사진 오른쪽 목록. 커서를 올리면 그 개체가 선택된다.
+  function renderNotes() {
+    if (!notesBox || !nlist) return;
+    var items = [];
+    cands.forEach(function (c, i) { if (c.note) items.push({ c: c, i: i }); });
+    ncount.textContent = items.length ? items.length + '개' : '없음';
+    // 입력 중에는 건드리지 않는다 — 타이핑을 덮어쓰면 안 된다.
+    if (gnote && document.activeElement !== gnote) gnote.value = groupNote;
+    nlist.innerHTML = '';
+    items.forEach(function (it) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'nitem';
+      b.dataset.i = it.i;
+      var top = document.createElement('div');
+      top.className = 'ntop';
+      top.textContent = (it.c.id === undefined ? '삭제됨' : '#' + it.c.id) +
+        ' · ' + clsName(it.c) + ' · ' + num(it.c.major_um, 1) + ' µm' +
+        (removed.has(keyOf(it.c)) ? ' · 삭제됨' : '');
+      var tx = document.createElement('div');
+      tx.className = 'ntext';
+      tx.textContent = it.c.note;
+      b.appendChild(top);
+      b.appendChild(tx);
+      b.addEventListener('mouseenter', function () {
+        sel.clear(); sel.add(it.i); redraw();
+      });
+      b.addEventListener('click', function (ev) { openNoteEdit(ev, it.i); });
+      nlist.appendChild(b);
+    });
+    // 목록이 생기거나 사라지면 사진 폭이 바뀐다 — 배율·스케일바를 다시 잰다.
+    applyTransform();
   }
 
   // --- 탈락 후보 펼쳐 보기 (누락 복구) --------------------------------------
   var spread = null;
   function closeSpread() { if (spread) { spread.remove(); spread = null; } }
+
+  // 지금 보고 있는 사진의 실제 경로. 캐러셀에서 원본 프레임으로 바꿔 놨으면
+  // 그쪽에서 잘라야 하므로 썸네일 URL 의 p= 를 그대로 꺼내 쓴다.
+  function currentImageRel() {
+    var m = /[?&]p=([^&]*)/.exec(committedSrc || '');
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+
+  // 크롭 + 마스크. 종횡비를 지킨다 — 배경 트릭으로 칸을 채우면 납작한 봉상이
+  // 9배까지 늘어나(실측 종횡비 0.15~7.2) 형태를 보고 판단할 수가 없다.
+  var SPREAD_MAX_W = 220, SPREAD_MAX_H = 170;
+
+  function cropWithMask(c) {
+    var b = c.bbox_xywh;
+    // 여백을 직접 계산해 서버에 pad=0 으로 넘긴다. 잘린 범위를 알아야
+    // 폴리곤을 그 위에 정확히 얹을 수 있다.
+    var pad = Math.max(4, Math.round(0.12 * Math.max(b[2], b[3])));
+    var x0 = Math.max(0, b[0] - pad), y0 = Math.max(0, b[1] - pad);
+    var x1 = Math.min(W, b[0] + b[2] + pad), y1 = Math.min(H, b[1] + b[3] + pad);
+    var cw = Math.max(1, x1 - x0), ch = Math.max(1, y1 - y0);
+
+    var s = Math.min(SPREAD_MAX_W / cw, SPREAD_MAX_H / ch);
+    var dw = Math.max(28, Math.round(cw * s)), dh = Math.max(28, Math.round(ch * s));
+
+    var wrap = document.createElement('span');
+    wrap.className = 'scrop';
+    wrap.style.width = dw + 'px';
+    wrap.style.height = dh + 'px';
+
+    var im = document.createElement('img');
+    // 화면에 필요한 만큼만 받는다(고밀도 화면을 감안해 2배, 서버가 512 로 제한).
+    var req = Math.min(512, 2 * Math.max(dw, dh));
+    im.src = '/crop?p=' + encodeURIComponent(currentImageRel()) +
+      '&b=' + [x0, y0, cw, ch].join(',') + '&pad=0&w=' + req;
+    im.alt = '';
+    wrap.appendChild(im);
+
+    // 마스크 — viewBox 를 잘라 낸 범위로 잡으면 좌표 변환이 필요 없다.
+    if (hasPoly(c)) {
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', x0 + ' ' + y0 + ' ' + cw + ' ' + ch);
+      svg.setAttribute('preserveAspectRatio', 'none');
+      var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      var pts = [];
+      for (var j = 0; j < c.polygon.length; j += 2) {
+        pts.push(c.polygon[j] + ',' + c.polygon[j + 1]);
+      }
+      poly.setAttribute('points', pts.join(' '));
+      svg.appendChild(poly);
+      wrap.appendChild(svg);
+    }
+    return wrap;
+  }
 
   function openSpread(e, pt) {
     closeSpread();
@@ -458,8 +1061,18 @@
 
     spread = document.createElement('div');
     spread.className = 'spread';
-    spread.innerHTML = '<div class="shead">이 자리의 탈락 후보 ' + hits.length +
-      '개 — 맞는 것을 고르면 검출로 인정된다</div>';
+    spread.innerHTML = '<div class="shead">이 자리를 <b>마스크가 덮는</b> 탈락 후보 ' +
+      hits.length + '개 — 맞는 것을 고르면 검출로 인정된다</div>';
+
+    // 닫기 — 바깥 클릭과 Esc 로도 닫히지만, 눌러서 닫을 곳이 보여야 한다.
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'sclose';
+    x.title = '닫기 (Esc)';
+    x.textContent = '✕';
+    x.addEventListener('click', function (ev) { ev.stopPropagation(); closeSpread(); });
+    spread.appendChild(x);
+
     var grid = document.createElement('div');
     grid.className = 'sgrid';
     spread.appendChild(grid);
@@ -469,15 +1082,7 @@
       var cell = document.createElement('button');
       cell.type = 'button';
       cell.className = 'scell';
-      var crop = document.createElement('span');
-      crop.className = 'scrop';
-      // 배경 트릭으로 서버 크롭 없이 해당 영역만 보여준다 (% 라서 해상도 무관).
-      // 지금 보고 있는 사진에서 잘라 온다 — 원본 프레임을 보는 중이면 그쪽이다.
-      crop.style.backgroundImage = 'url("' + committedSrc + '")';
-      crop.style.backgroundSize = (100 * W / Math.max(b[2], 1)) + '% ' + (100 * H / Math.max(b[3], 1)) + '%';
-      crop.style.backgroundPosition =
-        (100 * b[0] / Math.max(W - b[2], 1)) + '% ' + (100 * b[1] / Math.max(H - b[3], 1)) + '%';
-      cell.appendChild(crop);
+      cell.appendChild(cropWithMask(c));
       var cap = document.createElement('span');
       cap.className = 'scap';
       cap.innerHTML = num(c.major_um, 1) + '×' + num(c.minor_um, 1) + ' µm<br>' +
@@ -486,7 +1091,8 @@
       cell.addEventListener('click', function (ev) {
         ev.stopPropagation();
         accepted.add(keyOf(c));
-        var copy = Object.assign({}, c, { manual: true, id: cands.length });
+        var copy = Object.assign({}, c,
+          { manual: true, from_reject: true, id: cands.length });
         cands.push(copy);
         rejects = rejects.filter(function (r) { return keyOf(r) !== keyOf(c); });
         history.push({ type: 'accept', key: keyOf(c) });
@@ -553,6 +1159,29 @@
     if (live.length) {
       items.push({ label: '오검출로 삭제 (' + live.length + ')', danger: true,
                    run: function () { removeKeys(live); } });
+      items.push({ sep: true });
+      // 분류 직접 지정 — 조각난 것이 봉상/원형으로 잘못 분류되는 것을 고친다.
+      // 형태 칸과 분류학 칸(Eucampia) 사이에는 줄을 그어 성격을 갈라 둔다.
+      var wasTaxon = false;
+      CLASS_DEFS.forEach(function (d) {
+        if (d.taxon && !wasTaxon) items.push({ sep: true });
+        wasTaxon = d.taxon;
+        var same = live.every(function (i) { return cands[i].cls === d.key; });
+        items.push({
+          label: (same ? '✓ ' : '') + d.label +
+                 (live.length > 1 ? ' (' + live.length + '개)' : ''),
+          run: function () { setLabel(live, d.key); }
+        });
+      });
+      if (live.some(function (i) { return cands[i].cls_user; })) {
+        items.push({ label: '분류 지정 해제 (자동 판정으로)',
+                     run: function () { setLabel(live, null); } });
+      }
+      items.push({ sep: true });
+      if (live.length === 1) {
+        items.push({ label: cands[live[0]].note ? '📝 코멘트 고치기' : '📝 코멘트 달기',
+                     run: function () { openNoteEdit(e, live[0]); } });
+      }
     }
     if (dead.length) {
       items.push({ label: '되살리기 (' + dead.length + ')', run: function () {
@@ -568,6 +1197,15 @@
       items.push({ label: '이 자리의 탈락 후보 보기' + (near ? ' (' + near + ')' : ''),
                    disabled: !near,
                    run: function () { openSpread(e, pt); } });
+      items.push({ sep: true });
+      // 개체에 붙지 않는 이야기 — 촬영 상태, 판정이 애매한 이유 같은 것.
+      items.push({ label: groupNote ? '📝 이 시야 코멘트 고치기' : '📝 이 시야에 코멘트 적기',
+                   disabled: !gnote,
+                   run: function () {
+                     if (!gnote) return;
+                     gnote.focus();
+                     gnote.setSelectionRange(gnote.value.length, gnote.value.length);
+                   } });
     }
     if (sel.size) items.push({ label: '선택 해제', run: function () { sel.clear(); redraw(); } });
     if (history.length) items.push({ label: '↶ 실행취소', run: undo });
@@ -576,6 +1214,12 @@
     menu = document.createElement('div');
     menu.className = 'ctxmenu';
     items.forEach(function (it) {
+      if (it.sep) {
+        var hr = document.createElement('div');
+        hr.className = 'msep';
+        menu.appendChild(hr);
+        return;
+      }
       var b = document.createElement('button');
       b.type = 'button';
       b.textContent = it.label;
@@ -592,20 +1236,98 @@
     menu.style.top = Math.min(window.innerHeight - h - 6, e.clientY + 2) + 'px';
   }
 
+  // --- 겹친 개체 순환 선택 --------------------------------------------------
+  // SAM2 는 한 자리에 여러 스케일의 마스크를 내므로 bbox 가 예사로 겹친다
+  // (후보의 84%가 더 큰 마스크 안에 든다 — devlog 002). 맨 위의 것만 잡히면
+  // 아래 것을 고를 방법이 없어서, 같은 자리를 다시 누르면 다음 것으로 넘어간다.
+  var cycle = null;      // {sx, sy, keys, at, n, pick}
+
+  // bbox 를 끄면 화면에 보이는 것은 마스크뿐이다. 그때 클릭 판정을 bbox 로
+  // 하면 큰 물체의 빈 자리를 눌렀을 때 보이지도 않는 것이 잡힌다 — 보이는
+  // 것으로 판정해야 한다. bbox 는 폴리곤 판정 전의 값싼 1차 걸름망으로 쓴다.
+  function maskMode() { return view.classList.contains('hide-box'); }
+  function hasPoly(c) { return !!(c.polygon && c.polygon.length >= 6); }
+
+  function inPolygon(p, x, y) {
+    // ray casting. p 는 [x0,y0,x1,y1,...] 로 납작하게 들어온다.
+    var inside = false, n = p.length / 2;
+    for (var i = 0, j = n - 1; i < n; j = i++) {
+      var xi = p[2 * i], yi = p[2 * i + 1], xj = p[2 * j], yj = p[2 * j + 1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  function hitsAt(pt, wantGone) {
+    var mask = maskMode();
+    var hits = [];
+    cands.forEach(function (c, i) {
+      var gone = removed.has(keyOf(c));
+      if (gone !== !!wantGone) return;
+      // 지운 것은 마스크를 칠하지 않는다 — 마스크 모드에서는 안 보이므로
+      // 누를 수도 없어야 한다(되살리려면 bbox 를 다시 켠다).
+      if (gone && mask) return;
+      var b = c.bbox_xywh;
+      if (pt.x < b[0] || pt.x > b[0] + b[2] ||
+          pt.y < b[1] || pt.y > b[1] + b[3]) return;
+      // 폴리곤이 없는 개체(윤곽이 너무 단순해 저장되지 않은 것)는 bbox 로 본다.
+      if (mask && hasPoly(c) && !inPolygon(c.polygon, pt.x, pt.y)) return;
+      hits.push(i);
+    });
+    // 작은 것부터 — 맨 위에 그려지는 것이 가장 작은 것이라 첫 클릭의 결과가
+    // 눈에 보이는 것과 같아진다.
+    hits.sort(function (a, b) {
+      return (cands[a].area_px || 0) - (cands[b].area_px || 0);
+    });
+    return hits;
+  }
+
+  function liveHitsAt(pt) { return hitsAt(pt, false); }
+
+  // 살아있는 것과 지운 것을 합쳐 맨 위(가장 작은) 하나. 우클릭 대상과
+  // 유령 되살리기가 이것을 쓴다.
+  function topHitAt(pt) {
+    var all = hitsAt(pt, false).concat(hitsAt(pt, true));
+    if (!all.length) return null;
+    all.sort(function (a, b) {
+      return (cands[a].area_px || 0) - (cands[b].area_px || 0);
+    });
+    return all[0];
+  }
+
+  function nextInCycle(d, hits) {
+    var keys = hits.join(',');
+    // 손이 미세하게 흔들려도 같은 자리로 본다. 자리가 바뀌면 처음부터.
+    var same = cycle && cycle.keys === keys &&
+      Math.abs(d.sx - cycle.sx) <= 4 && Math.abs(d.sy - cycle.sy) <= 4;
+    var at = same ? (cycle.at + 1) % hits.length : 0;
+    cycle = { sx: d.sx, sy: d.sy, keys: keys, at: at,
+              n: hits.length, pick: hits[at] };
+    return cycle.pick;
+  }
+
+  // 탈락 후보는 **마스크로만** 판정한다. bbox 로 재면 빈 곳에서도 잔뜩 뜬다 —
+  // 탈락 후보의 bbox 합집합이 화면의 46.6% 인데 마스크 합집합은 19.5% 다(실측).
+  // 그 차이 25%p 는 아무것도 없는 자리이고, 탈락분은 그려지지 않으므로 왜 떴는지
+  // 알 수도 없다. bbox 는 값싼 1차 걸름망으로만 쓴다.
   function rejectsAt(pt) {
     return rejects.filter(function (c) {
+      if (accepted.has(keyOf(c))) return false;
       var b = c.bbox_xywh;
-      return !accepted.has(keyOf(c)) &&
-        pt.x >= b[0] - 4 && pt.x <= b[0] + b[2] + 4 &&
-        pt.y >= b[1] - 4 && pt.y <= b[1] + b[3] + 4;
+      if (pt.x < b[0] || pt.x > b[0] + b[2] ||
+          pt.y < b[1] || pt.y > b[1] + b[3]) return false;
+      return hasPoly(c) && inPolygon(c.polygon, pt.x, pt.y);
     });
   }
 
   document.addEventListener('mousedown', function (e) {
     if (menu && !menu.contains(e.target)) closeMenu();
+    if (noteEdit && !noteEdit.contains(e.target)) closeNoteEdit();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closeMenu(); closeSpread(); }
+    if (e.key === 'Escape') { closeMenu(); closeSpread(); closeAsk(); closeNoteEdit(); }
   });
 
   // --- 마우스: 선택 / 범위선택 / 이동 / 삭제 -------------------------------
@@ -615,10 +1337,10 @@
 
   view.addEventListener('mousedown', function (e) {
     var pt = toImage(e);
+    // target 은 mouseup 에서 좌표로 다시 정한다 (bbox/마스크 판정이 갈리므로).
     down = {
       sx: e.clientX, sy: e.clientY, fx: pt.fx, fy: pt.fy, x: pt.x, y: pt.y,
-      shift: e.shiftKey, btn: e.button,
-      target: e.target.classList.contains('box') ? +e.target.dataset.i : null,
+      shift: e.shiftKey, btn: e.button, target: null,
       tx0: tx, ty0: ty
     };
     mode = null;
@@ -669,37 +1391,65 @@
       return;
     }
 
+    // 어느 개체를 눌렀는가는 e.target 이 아니라 좌표로 정한다 — bbox 가 꺼져
+    // 있으면 마스크로 재야 하고, 겹친 것을 순환하려면 목록이 필요하다.
+    var pt = { x: d.x, y: d.y };
+    var top = topHitAt(pt);
+
     // 움직임 없는 우클릭 -> 컨텍스트 메뉴 (드래그였다면 위에서 pan 으로 끝났다)
-    if (d.btn === 2) { openMenu(e, d); return; }
+    if (d.btn === 2) { d.target = top; openMenu(e, d); return; }
 
     if (d.btn !== 0) return;
 
-    if (d.target !== null) {
-      var c = cands[d.target];
-      // 지운 것(유령)을 클릭하면 되살린다.
-      if (c && removed.has(keyOf(c))) {
-        restore([keyOf(c)]);
-        history.push({ type: 'restore', keys: [keyOf(c)] });
-        build();
-        save();
-        return;
-      }
-      if (d.shift) { sel.has(d.target) ? sel.delete(d.target) : sel.add(d.target); }
-      else { sel.clear(); sel.add(d.target); }
+    // 지운 것(유령)을 클릭하면 되살린다 — 순환 대상에서는 빼고 이쪽이 먼저다.
+    if (top !== null && removed.has(keyOf(cands[top]))) {
+      var key = keyOf(cands[top]);
+      restore([key]);
+      history.push({ type: 'restore', keys: [key] });
+      build();
+      save();
+      return;
+    }
+
+    // Shift+클릭은 더하고 빼는 조작이라 순환하지 않는다 — 두 번 누르면 제자리로
+    // 돌아와야 한다. 맨 위의 것 하나만 토글한다.
+    if (d.shift) {
+      if (top !== null) { sel.has(top) ? sel.delete(top) : sel.add(top); }
+      redraw();
+      return;
+    }
+
+    // 그냥 클릭 -> 그 자리에 겹친 개체를 클릭마다 돌려 가며 고른다.
+    var hits = liveHitsAt(pt);
+    if (hits.length) {
+      sel.clear();
+      sel.add(nextInCycle(d, hits));
       redraw();
       return;
     }
 
     // 빈 곳 클릭 -> 그 자리의 탈락 후보를 펼쳐 보여준다
-    if (!d.shift) sel.clear();
+    cycle = null;
+    sel.clear();
     redraw();
     openSpread(e, { x: d.x, y: d.y });
   });
 
-  // --- 버튼 ----------------------------------------------------------------
-  info.parentElement.addEventListener('click', function (e) {
+  // --- 버튼 (사진 위 오버레이) ---------------------------------------------
+  var tools = document.getElementById('tools-' + uid);
+  var doneBar = document.getElementById('donebar-' + uid);
+
+  // 사진 위에 있으므로 캔버스가 이 클릭을 확대·선택·이동으로 받으면 안 된다.
+  ['wheel', 'mousedown', 'contextmenu'].forEach(function (ev) {
+    tools.addEventListener(ev, function (e) { e.stopPropagation(); });
+    if (doneBar) doneBar.addEventListener(ev, function (e) { e.stopPropagation(); });
+  });
+
+  tools.addEventListener('click', function (e) {
     var act = e.target.dataset && e.target.dataset.act;
     if (!act) return;
+    // 전파를 끊었으니 열려 있던 메뉴·펼침은 직접 닫는다.
+    closeMenu(); closeSpread(); tip.style.display = 'none';
     if (act === 'all') { visible().forEach(function (c) { sel.add(cands.indexOf(c)); }); redraw(); }
     else if (act === 'none') { sel.clear(); redraw(); }
     else if (act === 'reset') { k = 1; tx = 0; ty = 0; applyTransform(); build(); }
@@ -719,6 +1469,37 @@
       setTimeout(function () { location.reload(); }, 500);
     }
   });
+
+  // --- 검토 완료 -----------------------------------------------------------
+  // 교정이 하나도 없어도 켤 수 있어야 한다 — 고칠 것이 없는 시야와 아직 보지
+  // 않은 시야는 다르고, 그 차이가 재현율 실측과 학습 데이터 선별의 근거다.
+  function paintDone() {
+    if (!doneBtn) return;
+    doneBtn.classList.toggle('on', reviewDone);
+    doneBtn.textContent = reviewDone ? '✓ 검토 완료됨' : '검토 완료';
+    doneBtn.title = reviewDone
+      ? '검토를 마친 시야다 — 누르면 완료를 해제한다 (확인을 묻는다)'
+      : '이 시야를 다 봤다고 표시한다 (review/*.json 에 남는다)';
+  }
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function () {
+      // 해제는 한 번 더 묻는다 — 잘못 눌러 풀리면 "다 본 시야"라는 표시가
+      // 조용히 사라지고, 그것이 학습 데이터 선별의 근거이기 때문이다.
+      if (reviewDone && !confirm('이 시야의 검토 완료 표시를 해제한다.')) return;
+      reviewDone = !reviewDone;
+      paintDone();
+      save();
+      // 완료로 표시했으면 곧바로 다음 시야로 넘어간다 — 검토는 연달아 하는
+      // 일이고, 누른 사람의 뜻이 분명하므로 묻지 않는다. leave() 가 방금 켠
+      // 표시를 먼저 밀어낸다.
+      if (reviewDone) {
+        var url = strip && strip.dataset.next;
+        if (url) leave(url);
+        else flashNote('마지막 시야다 — 검토 완료로 표시했다');
+      }
+    });
+    paintDone();
+  }
 
   // Ctrl+Z / Cmd+Z — 입력란에 포커스가 있을 때는 가로채지 않는다.
   document.addEventListener('keydown', function (e) {
@@ -743,12 +1524,13 @@
       var s = document.getElementById('pane-' + n + '-' + uid);
       if (s) s.hidden = (n !== name);
     });
-    // 숨겨져 있는 동안은 clientWidth 가 0 이라 스케일바를 못 잰다.
-    if (name === 'view') updateScaleBar();
+    // 숨겨져 있는 동안은 clientWidth 가 0 이라 스케일바도 배율도 못 잰다.
+    if (name === 'view') applyTransform();
   });
 
   applyTransform();
   build();
+  renderNotes();
 })();
 </script>
 {% endif %}
@@ -757,7 +1539,7 @@
 <div class="scroll">
 <table>
   <thead><tr>
-    <th>#</th><th>형태</th><th>중심 xy</th>
+    <th>#</th><th>형태</th><th>코멘트</th><th>중심 xy</th>
     <th>장축 µm</th><th>단축 µm</th><th>신장비</th>
     <th>타원 IoU</th><th>볼록성</th><th>매끈함</th><th>텍스처</th>
   </tr></thead>
@@ -765,9 +1547,9 @@
   {% for c in det.candidates %}
     <tr>
       <td>{{ c.id }}</td>
-      <td>{% if c.cls == "rod" %}<span class="badge rod">봉상</span>
-          {% elif c.cls == "round" %}<span class="badge on">원형</span>
-          {% else %}<span class="dim">—</span>{% endif %}{% if c.manual %} <span class="badge warn">수동</span>{% endif %}</td>
+      <td>{% if c.cls %}<span class="badge {{ c.cls|cls_badge }}">{{ c.cls|cls_label }}</span>
+          {% else %}<span class="dim">—</span>{% endif %}{% if c.cls_user %} <span class="badge">사람</span>{% endif %}{% if c.manual %} <span class="badge warn">수동</span>{% endif %}</td>
+      <td style="text-align:left; white-space:pre-wrap; max-width:260px">{{ c.note|default:"" }}</td>
       <td class="mono dim">{{ c.center_xy.0 }}, {{ c.center_xy.1 }}</td>
       <td>{{ c.major_um|default:c.long_side_um }}</td>
       <td>{{ c.minor_um|default:c.short_side_um }}</td>

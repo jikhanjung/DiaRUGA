@@ -20,10 +20,34 @@ def json_dumps(value):
 
 @register.simple_tag
 def thumb(rel, width=400):
-    """축소본 URL. 폴더명에 공백이 있어 경로는 쿼리로 넘긴다."""
+    """축소본 URL. 폴더명에 공백이 있어 경로는 쿼리로 넘긴다.
+
+    v= 는 원본 mtime 이다 — 그림이 바뀌면 주소도 바뀌므로 브라우저 캐시가
+    옛 그림을 붙잡고 있을 수 없다.
+    """
     if not rel:
         return ""
-    return "/img?" + urlencode({"p": str(rel), "w": int(width)})
+    from viewer import data
+    return "/img?" + urlencode({"p": str(rel), "w": int(width),
+                                "v": data.stamp(rel)})
+
+
+@register.simple_tag
+def cropurl(rel, bbox, width=200, rot=None, out=None):
+    """검출 개체 하나만 잘라 낸 썸네일 URL.
+
+    rot/out 이 있으면 개체를 세워서(장축을 세로로) 잘라 낸다.
+    """
+    if not rel or not bbox:
+        return ""
+    from viewer import data
+    q = {"p": str(rel),
+         "b": ",".join(str(int(round(float(v)))) for v in bbox),
+         "w": int(width), "v": data.stamp(rel)}
+    if rot is not None and out:
+        q["rot"] = rot
+        q["out"] = out
+    return "/crop?" + urlencode(q)
 
 
 @register.simple_tag
@@ -31,7 +55,36 @@ def full(rel):
     """원본 URL."""
     if not rel:
         return ""
-    return "/img?" + urlencode({"p": str(rel)})
+    from viewer import data
+    return "/img?" + urlencode({"p": str(rel), "v": data.stamp(rel)})
+
+
+@register.filter
+def cls_label(value):
+    """분류 키 -> 사람이 읽는 이름. 정의는 data.CLASS_LABELS 한곳에 있다."""
+    from viewer import data
+    return data.CLASS_LABELS.get(value, "")
+
+
+@register.filter
+def cls_badge(value):
+    from viewer import data
+    return data.CLASS_BADGE.get(value, "")
+
+
+@register.simple_tag
+def class_list():
+    """분류 목록. {% class_list as classes %} 로 받아 쓴다."""
+    from viewer import data
+    return data.class_list()
+
+
+@register.simple_tag
+def class_json():
+    """클라이언트가 메뉴를 만들 때 쓰는 분류 정의."""
+    from viewer import data
+    text = json.dumps(data.class_list(), ensure_ascii=False)
+    return mark_safe(text.replace("<", "\\u003c"))
 
 
 @register.filter

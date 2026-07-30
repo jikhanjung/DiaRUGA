@@ -240,6 +240,13 @@ def classify(r, args):
 
     e, iou, sol = r["elongation"], r["ellipse_iou"], r["solidity"]
     if e < args.round_max_elong:
+        # 원형은 areolae 를 봉상보다 무겁게 본다. 밋밋한 원반·기포·쇄설물 조각은
+        # 형태만으로 걸러지지 않는다 — 실측에서 원형 통과분의 형태 지표는 텍스처
+        # 세기와 무관하게 평평했다(IoU 중앙 0.886~0.898, 볼록성 0.957~0.966).
+        # 형태로 가려낼 수 없으므로 areolae 세기 자체를 관문으로 둔다.
+        round_tex = getattr(args, "round_texture_min", None)
+        if round_tex and r.get("texture") is not None and r["texture"] < round_tex:
+            return None, "원형areolae부족"
         if iou >= args.round_min_iou and sol >= args.round_min_solidity:
             return "round", None
         return None, "원형기준미달"
@@ -389,6 +396,7 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
             "round_max_elong": args.round_max_elong,
             "round_min_iou": args.round_min_iou,
             "round_min_solidity": args.round_min_solidity,
+            "round_texture_min": args.round_texture_min,
             "rod_min_elong": args.rod_min_elong, "rod_max_elong": args.rod_max_elong,
             "rod_min_iou": args.rod_min_iou, "rod_min_solidity": args.rod_min_solidity,
         },
@@ -440,6 +448,11 @@ def main():
     g.add_argument("--round-max-elong", type=float, default=1.4)
     g.add_argument("--round-min-iou", type=float, default=0.85)
     g.add_argument("--round-min-solidity", type=float, default=0.92)
+    # 원형은 areolae 를 더 무겁게 본다 — 형태 지표가 텍스처 세기와 무관하게
+    # 평평해서(§판정 기준), 밋밋한 원반을 형태로는 가려낼 수 없다.
+    g.add_argument("--round-texture-min", type=float, default=1500.0,
+                   help="원형(중심목)에만 적용하는 areolae 세기 하한. "
+                        "--texture-min 보다 높게 잡아 밋밋한 원반을 떨어뜨린다")
     # Plate 9 는 2:1 수준, Plate 1 의 #16/#17/#24 는 20:1 에 가깝다.
     g.add_argument("--rod-min-elong", type=float, default=2.0)
     g.add_argument("--rod-max-elong", type=float, default=20.0)

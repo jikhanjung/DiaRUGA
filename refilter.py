@@ -60,6 +60,7 @@ def refilter(payload, args):
         "round_max_elong": args.round_max_elong,
         "round_min_iou": args.round_min_iou,
         "round_min_solidity": args.round_min_solidity,
+        "round_texture_min": args.round_texture_min,
         "rod_min_elong": args.rod_min_elong, "rod_max_elong": args.rod_max_elong,
         "rod_min_iou": args.rod_min_iou, "rod_min_solidity": args.rod_min_solidity,
     }
@@ -76,6 +77,9 @@ def main():
     ap.add_argument("--round-max-elong", type=float, default=1.4)
     ap.add_argument("--round-min-iou", type=float, default=0.85)
     ap.add_argument("--round-min-solidity", type=float, default=0.92)
+    # 원형에만 적용하는 areolae 세기 하한. segment_diatoms.py 와 기본값이 같아야
+    # 문턱을 건드리지 않은 재적용이 결과를 바꾸지 않는다.
+    ap.add_argument("--round-texture-min", type=float, default=1500.0)
     ap.add_argument("--rod-min-elong", type=float, default=2.0)
     ap.add_argument("--rod-max-elong", type=float, default=20.0)
     ap.add_argument("--rod-min-iou", type=float, default=0.72)
