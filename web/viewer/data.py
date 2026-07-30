@@ -1,238 +1,553 @@
-"""
-groups_*.json 과 검출 산출물을 읽어 뷰가 쓰기 좋은 형태로 만든다.
+"""DB 에서 읽어 뷰가 쓰기 좋은 형태로 만든다.
 
-DB 를 두지 않는 이유: 원본이 이미 JSON 이고, 스크립트를 다시 돌리면 그대로
-덮어써진다. 동기화 문제를 만들 바에 매번 읽는 편이 낫다. 파일 mtime 을 보고
-캐시하므로 스크립트를 재실행하면 새로고침만으로 반영된다.
+전에는 JSON 을 직접 읽었다(슬라이드 3장에 첫 화면이 251개 파일을 열었다).
+설계와 이전 과정은 devlog/20260730_P02_db-schema.md.
+
+**함수 이름과 반환 형태는 JSON 시절과 같게 유지한다** — 템플릿과 뷰를 건드리지
+않고 갈아 끼울 수 있어야 하고, 그래야 같은 화면이 나오는지 대조할 수 있다.
+그래서 여기서 만드는 것은 모델 인스턴스가 아니라 예전 그대로의 dict 다.
+
+기하 계산(주축·스케일바)은 DB 와 무관하므로 그대로 두었다.
 """
-import json
 import math
 import re
 from pathlib import Path
 
 from django.conf import settings
+from django.db.models import Count, Q
 
-# {경로: (mtime, 파싱결과)}
-_cache: dict[Path, tuple[float, object]] = {}
+from .models import (Candidate, ClassDef, Detection, Frame, ObjectReview,
+                     Slide, Stack, Viewpoint, ViewpointReview)
+
+# --- 분류 정의 -------------------------------------------------------------
+# ClassDef 테이블이 원본이다. 다만 매 요청마다 읽을 값이 아니라(거의 바뀌지 않고
+# 템플릿·클라이언트가 여러 번 묻는다) 프로세스 수명 동안 캐시한다.
+_classes = None
 
 
-def _load_json(path: Path):
-    """mtime 이 그대로면 캐시를 쓴다."""
+def _class_rows():
+    global _classes
+    if _classes is None:
+        _classes = list(ClassDef.objects.filter(active=True)
+                        .values("key", "label", "badge", "color",
+                                "is_taxon", "sort_order"))
+    return _classes
+
+
+def invalidate_classes():
+    """분류 정의를 고쳤을 때 부른다."""
+    global _classes
+    _classes = None
+
+
+def class_list() -> list[dict]:
+    """분류 목록. 템플릿·클라이언트가 메뉴를 만들 때 쓴다."""
+    return [{"key": r["key"], "label": r["label"], "badge": r["badge"],
+             "color": r["color"], "taxon": r["is_taxon"]}
+            for r in _class_rows()]
+
+
+class _LabelMap(dict):
+    """없는 키를 물어도 빈 문자열 — 템플릿에서 쓰기 편하게."""
+
+    def __missing__(self, key):
+        return ""
+
+
+def _labels():
+    return _LabelMap((r["key"], r["label"]) for r in _class_rows())
+
+
+def _badges():
+    return _LabelMap((r["key"], r["badge"]) for r in _class_rows())
+
+
+def __getattr__(name):
+    """CLASS_LABELS 같은 모듈 수준 이름을 유지한다(템플릿태그가 그렇게 쓴다)."""
+    if name == "CLASS_LABELS":
+        return _labels()
+    if name == "CLASS_BADGE":
+        return _badges()
+    if name == "CLASSES":
+        return tuple(r["key"] for r in _class_rows())
+    if name == "TAXON_CLASSES":
+        return tuple(r["key"] for r in _class_rows() if r["is_taxon"])
+    raise AttributeError(name)
+
+
+# bbox 로 만든 개체 키. 뷰어의 keyOf() 와 같은 규칙을 쓴다.
+CAND_KEY = re.compile(r"^-?\d+_-?\d+_-?\d+_-?\d+$")
+
+
+def cand_key(c) -> str:
+    """마스크의 안정적인 식별자. dict 와 Candidate 둘 다 받는다."""
+    b = (c.get("bbox_xywh") or [0, 0, 0, 0]) if isinstance(c, dict) else c.bbox_xywh
+    return "_".join(str(int(v)) for v in b)
+
+
+def _rel(path) -> str:
+    return str(Path(path).relative_to(settings.DATA_ROOT))
+
+
+def stamp(rel: str) -> int:
+    """이미지의 mtime. URL 에 넣어 "내용이 바뀌면 주소도 바뀌게" 만든다."""
     try:
-        mtime = path.stat().st_mtime
-    except OSError:
+        return int((Path(settings.DATA_ROOT) / rel).stat().st_mtime)
+    except (OSError, TypeError, ValueError):
+        return 0
+
+
+# --- 개체 dict --------------------------------------------------------------
+NUM_FIELDS = ("area_um2", "major_um", "minor_um", "long_side_um",
+              "short_side_um", "aspect_ratio", "fill_ratio", "circularity",
+              "convexity", "solidity", "elongation", "ellipse_iou",
+              "texture", "predicted_iou", "stability_score")
+
+
+def _cand_dict(c: Candidate) -> dict:
+    """Candidate -> 예전 JSON 과 같은 모양의 dict.
+
+    통과분의 id 는 아래에서 면적 순으로 다시 매기고, 탈락분은 원시 순번(raw_id)을
+    그대로 쓴다 — 예전 JSON 이 그랬고, 내보내기로 되돌릴 수 있어야 한다.
+    """
+    d = {
+        "bbox_xywh": [c.bbox_x, c.bbox_y, c.bbox_w, c.bbox_h],
+        "center_xy": [c.center_x, c.center_y],
+        "area_px": c.area_px,
+        "shape_ok": c.shape_ok,
+        "polygon": c.polygon,
+    }
+    for f in NUM_FIELDS:
+        d[f] = getattr(c, f)
+    if c.passed:
+        d["cls"] = c.cls or None
+    elif c.cls:
+        # 중첩정리로 떨어진 것은 판정을 통과한 뒤 정리됐으므로 cls 가 있다
+        d["cls"] = c.cls
+    # 파일에 적혀 있던 id 를 그대로 낸다. 통과분은 아래에서 면적 순으로 다시
+    # 매기지만, 유령(지운 것)은 이 값을 유지해야 예전과 같다.
+    if c.raw_id is not None:
+        d["id"] = c.raw_id
+    if c.reject:
+        d["reject"] = c.reject
+    return d
+
+
+def _guess_cls(c: dict) -> str | None:
+    """수동으로 되살린 개체의 표시용 분류."""
+    e = c.get("elongation")
+    if e is None:
         return None
-    hit = _cache.get(path)
-    if hit and hit[0] == mtime:
-        return hit[1]
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    if e < 1.4:
+        return "round"
+    return "rod" if 2.0 <= e <= 20.0 else None
+
+
+def mask_class(c: dict) -> str:
+    """마스크를 그릴 때 쓰는 클래스. 뷰어의 addPolygon() 과 같은 규칙이어야 한다.
+
+    사람이 지정한 분류가 가장 먼저다 — 되살린 개체(manual)에 Eucampia 를
+    지정했으면 Eucampia 색으로 보여야 한다.
+    """
+    if c.get("cls_user") and c.get("cls"):
+        return c["cls"]
+    if c.get("manual"):
+        return "manual"
+    return c.get("cls") or "none"
+
+
+def mask_points(c: dict) -> str | None:
+    """폴리곤을 SVG points 문자열로."""
+    p = c.get("polygon") or []
+    if len(p) < 6:
         return None
-    _cache[path] = (mtime, data)
-    return data
+    return " ".join(f"{p[i]},{p[i + 1]}" for i in range(0, len(p) - 1, 2))
 
 
-def group_files() -> list[Path]:
-    return sorted(Path(settings.DATA_ROOT).glob("groups_*.json"))
+# --- 검출 + 교정 ------------------------------------------------------------
+def _apply_review(det: Detection, reviews: dict, vr) -> dict:
+    """검출 결과에 교정을 얹어 예전 detection_for() 와 같은 dict 를 만든다.
 
-
-def dataset_slug(path: Path) -> str:
-    """groups_WAP13-GC47_116cm.json -> wap13-gc47_116cm"""
-    return path.stem.removeprefix("groups_").lower()
-
-
-def group_detection(group: dict) -> dict | None:
+    규칙은 JSON 시절과 같다 — **사람이 지웠다가 이긴다.** 문턱을 바꿔 개체가
+    탈락분으로 옮겨가도 지운 것이 조용히 되살아나지 않아야 한다.
     """
-    그룹 하나에 붙은 검출 결과.
+    removed = {k for k, o in reviews.items() if o.removed}
+    accepted = {k for k, o in reviews.items() if o.accepted}
 
-    합성본이 원칙이고, 싱글턴 그룹(n=1)은 합성본이 없어 그 한 장으로 돌린다.
-    run_batch.sh 의 대상 선정 규칙과 같아야 한다.
-    """
-    stack = stack_for(group_tag(group))
-    if stack and stack.get("detection"):
-        return stack["detection"]
-    stem = group.get("sharpest") or group["images"][0]
-    return detection_for(stem)
-
-
-def _detect_stats(groups: list[dict]) -> dict:
-    """검출·교정 통계를 데이터셋 단위로 모은다. 검출 안 돌린 그룹은 평균에서 뺀다.
-
-    분류별 개수는 CLASSES 를 그대로 훑으므로 분류를 더해도 여기는 손댈 필요가 없다.
-    """
-    counts, reviewed = [], 0
-    per_cls = {k: 0 for k in CLASSES}
-    n_auto = n_removed = n_accepted = n_labeled = n_noted = n_group_notes = 0
-    for g in groups:
-        det = group_detection(g)
-        if det is None:
+    kept, gone, rejected = [], [], []
+    n_auto = 0
+    for c in det.candidates.all():
+        key = c.mask_key
+        d = _cand_dict(c)
+        if c.passed:
+            n_auto += 1
+            (gone if key in removed else kept).append(d)
             continue
-        counts.append(det.get("n_candidates", 0))
-        c = det.get("counts") or {}
-        for k in CLASSES:
-            per_cls[k] += c.get(k, 0)
-        n_labeled += c.get("labeled", 0)
-        n_auto += det.get("n_auto", 0)
-        # 사람 손이 얼마나 들어갔는지 — 재현율·정밀도를 논할 때의 근거가 된다.
-        n_removed += det.get("n_removed", 0)
-        n_accepted += len(det.get("accepted_keys") or [])
-        n_noted += len(det.get("notes") or {})
-        if det.get("review_note"):
-            n_group_notes += 1
-        if det.get("review_done"):
-            reviewed += 1
+        # 탈락분: 지운 것은 유령으로, 되살린 것은 통과분으로. 나머지는 후보 풀.
+        if key in removed:
+            d["from_reject"] = True
+            gone.append(d)
+        elif key in accepted:
+            d["manual"] = True
+            d["from_reject"] = True
+            d["cls"] = _guess_cls(d)
+            kept.append(d)
+        else:
+            rejected.append(d)
 
-    class_counts = [{"key": k, "label": CLASS_LABELS[k], "n": per_cls[k]}
-                    for k in CLASSES if per_cls[k]]
-    common = {
+    # 사람이 지정한 분류·메모를 얹는다. 원래 값은 cls_auto 로 남긴다.
+    for d in kept + gone:
+        o = reviews.get(cand_key(d))
+        if not o:
+            continue
+        if o.label:
+            if d.get("cls") != o.label:
+                d["cls_auto"] = d.get("cls")
+            d["cls"] = o.label
+            d["cls_user"] = True
+        if o.note:
+            d["note"] = o.note
+
+    kept.sort(key=lambda r: -(r.get("area_px") or 0))
+    for i, d in enumerate(kept):
+        d["id"] = i
+    for d in gone:
+        d["removed"] = True
+
+    counts = {r["key"]: 0 for r in _class_rows()}
+    for d in kept:
+        if d.get("cls") in counts:
+            counts[d["cls"]] += 1
+    counts["manual"] = sum(1 for d in kept if d.get("manual"))
+    counts["labeled"] = sum(1 for d in kept if d.get("cls_user"))
+
+    stem = Path(det.image_path).stem
+    overlay = Path(settings.DATA_ROOT) / "out" / f"{stem}_overlay.jpg"
+    return {
+        "image": det.image_path,
+        "stem": stem,
+        "size": [det.width, det.height],
+        "scale": det.scale,
+        "um_per_pixel": det.um_per_pixel,
+        "um_per_pixel_native": det.um_per_pixel_native,
+        "um_per_pixel_source": det.um_per_pixel_source or None,
+        "um_per_pixel_backfilled": det.um_per_pixel_backfilled or None,
+        "n_raw_masks": det.n_raw_masks,
+        "n_sized": det.n_sized,
         "n_auto": n_auto,
-        "n_rod": per_cls["rod"],
-        "n_round": per_cls["round"],
-        "class_counts": class_counts,
-        "n_removed": n_removed,
-        "n_accepted": n_accepted,
-        "n_labeled": n_labeled,
-        "n_noted": n_noted,
-        "n_group_notes": n_group_notes,
-        # 검토를 마친 시야 수. 재현율 실측·학습 데이터 선별의 진척이다.
-        "reviewed_groups": reviewed,
+        "n_candidates": len(kept),
+        "counts": counts,
+        "thresholds": det.thresholds.as_dict() if det.thresholds else {},
+        "candidates": kept,
+        "removed_candidates": gone,
+        "rejected": rejected,
+        "n_removed": len(removed),
+        "accepted_keys": sorted(accepted),
+        "labels": {k: o.label for k, o in reviews.items() if o.label},
+        "notes": {k: o.note for k, o in reviews.items() if o.note},
+        "review_done": bool(vr and vr.done),
+        "review_note": (vr.note if vr else ""),
+        "overlay_rel": _rel(overlay) if overlay.exists() else None,
+        "source_dir": "out",
     }
-    if not counts:
-        return {"detected_groups": 0, "n_detected": 0, "mean_detected": None, **common}
+
+
+def detection_for_viewpoint(vp: Viewpoint) -> dict | None:
+    """시야에 붙은 현재 검출 결과 (교정 반영)."""
+    det = next((d for d in vp.detections.all() if d.is_current), None)
+    if det is None:
+        return None
+    reviews = {o.mask_key: o for o in vp.object_reviews.all()}
+    vr = next(iter(ViewpointReview.objects.filter(viewpoint=vp)), None)
+    return _apply_review(det, reviews, vr)
+
+
+def _viewpoint_of(stem: str) -> Viewpoint | None:
+    """검출·교정의 stem 으로 시야를 찾는다.
+
+    합성본은 `<tag>_focused`, 싱글턴은 프레임 이름(`Snap-21171`)이다.
+    """
+    qs = (Viewpoint.objects
+          .prefetch_related("detections__candidates", "object_reviews"))
+    if stem.endswith("_focused"):
+        return qs.filter(tag=stem[: -len("_focused")]).first()
+    fr = Frame.objects.filter(name=stem).values_list("viewpoint_id", flat=True).first()
+    return qs.filter(id=fr).first() if fr else None
+
+
+def detection_for(stem: str) -> dict | None:
+    """stem 으로 찾는다. 예전 시그니처를 유지하려고 남겨 둔 경로다."""
+    vp = _viewpoint_of(stem)
+    return detection_for_viewpoint(vp) if vp else None
+
+
+def _stack_dict(st: Stack, det: dict | None) -> dict:
     return {
-        "detected_groups": len(counts),
-        "n_detected": sum(counts),
-        "mean_detected": round(sum(counts) / len(counts), 1),
-        **common,
+        "focused_rel": st.focused_path,
+        "depth_rel": st.depth_path or None,
+        "stem": Path(st.focused_path).stem,
+        "detection": det,
     }
 
 
-def _stats(groups: list[dict]) -> dict:
-    sizes = [g["n"] for g in groups]
+def stack_for(tag: str) -> dict | None:
+    st = (Stack.objects.filter(viewpoint__tag=tag)
+          .select_related("viewpoint")
+          .prefetch_related("viewpoint__detections__candidates",
+                            "viewpoint__object_reviews").first())
+    if st is None:
+        return None
+    return _stack_dict(st, detection_for_viewpoint(st.viewpoint))
+
+
+# --- 집계 -------------------------------------------------------------------
+def _slide_summary(slide: Slide, details: list | None = None) -> dict:
+    """목록 화면의 집계.
+
+    details 를 넘기면 그것을 쓴다 — dataset_detail 이 이미 시야를 다 훑었으므로
+    두 번 계산하지 않는다.
+    """
+    vps = Viewpoint.objects.filter(slide=slide)
+    n_groups = vps.count()
+    sizes = list(vps.values_list("n_frames", flat=True))
     n_img = sum(sizes)
+
+    if details is None:
+        details = []
+        for vp in vps.prefetch_related("detections__candidates",
+                                       "object_reviews"):
+            det = detection_for_viewpoint(vp)
+            if det:
+                details.append(det)
+
+    per_cls = {r["key"]: 0 for r in _class_rows()}
+    counts, n_auto, n_detected, n_labeled = [], 0, 0, 0
+    for det in details:
+        counts.append(det["n_candidates"])
+        n_detected += det["n_candidates"]
+        n_auto += det["n_auto"]
+        # 분류 지정은 **통과분만** 센다 — 탭 머리의 "사람지정" 과 같은 정의여야
+        # 화면끼리 어긋나지 않는다(지웠다가 분류가 남은 개체가 있다).
+        n_labeled += det["counts"].get("labeled", 0)
+        for k in per_cls:
+            per_cls[k] += det["counts"].get(k, 0)
+
+    rv = ObjectReview.objects.filter(viewpoint__slide=slide)
+    agg = rv.aggregate(
+        removed=Count("id", filter=Q(removed=True)),
+        accepted=Count("id", filter=Q(accepted=True)),
+        noted=Count("id", filter=~Q(note="")),
+    )
+    vrs = ViewpointReview.objects.filter(viewpoint__slide=slide)
+
+    class_counts = [{"key": k, "label": _labels()[k], "n": v}
+                    for k, v in per_cls.items() if v]
     return {
-        "n_groups": len(groups),
+        "n_groups": n_groups,
         "n_images": n_img,
-        "mean_size": round(n_img / len(groups), 1) if groups else 0,
+        "mean_size": round(n_img / n_groups, 1) if n_groups else 0,
         "singletons": sum(1 for s in sizes if s == 1),
         "max_size": max(sizes) if sizes else 0,
+        "detected_groups": len(counts),
+        "n_auto": n_auto,
+        "n_detected": n_detected,
+        "mean_detected": (round(n_detected / len(counts), 1) if counts else None),
+        "n_rod": per_cls.get("rod", 0),
+        "n_round": per_cls.get("round", 0),
+        "class_counts": class_counts,
+        "n_removed": agg["removed"],
+        "n_accepted": agg["accepted"],
+        "n_labeled": n_labeled,
+        "n_noted": agg["noted"],
+        "n_group_notes": vrs.exclude(note="").count(),
+        "reviewed_groups": vrs.filter(done=True).count(),
     }
 
 
 def datasets() -> list[dict]:
-    """모든 groups_*.json 을 요약해 돌려준다."""
     out = []
-    for path in group_files():
-        meta = _load_json(path)
-        if not meta or "groups" not in meta:
-            continue
-        image_dir = Path(meta["dir"])
-        out.append(
-            {
-                "slug": dataset_slug(path),
-                "label": image_dir.name,
-                "json_name": path.name,
-                "image_dir": meta["dir"],
-                "corr_thresh": meta.get("corr_thresh"),
-                "missing_dir": not (Path(settings.DATA_ROOT) / image_dir).is_dir(),
-                **_stats(meta["groups"]),
-                **_detect_stats(meta["groups"]),
-            }
-        )
+    for slide in Slide.objects.all():
+        out.append({
+            "slug": slide.slug,
+            "label": slide.name,
+            "json_name": f"groups_{slide.slug}.json",
+            "image_dir": slide.image_dir,
+            "corr_thresh": slide.corr_thresh,
+            "missing_dir": not (Path(settings.DATA_ROOT)
+                                / slide.image_dir).is_dir(),
+            **_slide_summary(slide),
+        })
     return out
 
 
-def _find_dataset_path(slug: str) -> Path | None:
-    for path in group_files():
-        if dataset_slug(path) == slug:
-            return path
-    return None
+def _viewpoints_of(slide: Slide):
+    return (Viewpoint.objects.filter(slide=slide)
+            .select_related("sharpest_frame", "stack")
+            .prefetch_related("frames", "detections__candidates",
+                              "object_reviews"))
 
 
-def group_tag(group: dict) -> str:
-    """focus_stack.py 가 산출물 파일명에 쓰는 태그와 동일한 규칙."""
-    images = group["images"]
-    return f"g{group['id']:03d}_{images[0]}-{images[-1].split('-')[-1]}"
+def dataset_detail(slug: str) -> dict | None:
+    slide = Slide.objects.filter(slug=slug).first()
+    if slide is None:
+        return None
 
+    groups, details = [], []
+    for vp in _viewpoints_of(slide):
+        det = detection_for_viewpoint(vp)
+        if det:
+            details.append(det)
+        st = getattr(vp, "stack", None)
 
-def _rel(path: Path) -> str:
-    """DATA_ROOT 기준 상대경로 문자열. 이미지 URL 의 p= 값이 된다."""
-    return str(path.relative_to(settings.DATA_ROOT))
+        # 목록의 대표 그림은 합성본이 원칙이다 — 그룹을 대표하는 그림이 검출을
+        # 돌린 그림과 같아야 목록과 상세가 어긋나지 않는다. 합성본이 없으면
+        # 싱글턴이거나 아직 합성하지 않은 시야이므로 프레임을 쓴다.
+        cover_rel = st.focused_path if st else None
+        if cover_rel is None:
+            fr = vp.sharpest_frame or next(iter(vp.frames.all()), None)
+            if fr and (Path(settings.DATA_ROOT) / fr.path).exists():
+                cover_rel = fr.path
 
+        # 표지에 검출 마스크를 얹는다. 검출을 돌린 이미지와 표지가 같을 때만 —
+        # 다른 이미지의 좌표를 얹으면 조용히 어긋난 그림이 된다.
+        masks, size = [], None
+        if det and cover_rel and det.get("stem") == Path(cover_rel).stem:
+            size = det.get("size")
+            for c in det.get("candidates") or []:
+                pts = mask_points(c)
+                if pts:
+                    masks.append({"points": pts, "cls": mask_class(c)})
 
-def cand_key(c: dict) -> str:
-    """
-    마스크의 안정적인 식별자.
+        groups.append({
+            "id": vp.idx,
+            "n": vp.n_frames,
+            "tag": vp.tag,
+            "span_sec": round(vp.span_sec or 0, 1),
+            "sharpest": vp.sharpest_frame.name if vp.sharpest_frame else None,
+            "cover_rel": cover_rel,
+            "cover_size": size,
+            "masks": masks,
+            "has_stack": st is not None,
+            "n_detected": (det or {}).get("n_candidates"),
+            "reviewed": bool((det or {}).get("review_done")),
+        })
 
-    id 는 필터를 다시 걸면 재부여되므로 못 쓴다. bbox 는 같은 마스크면
-    그대로이므로 교정 기록(review)의 키로 삼는다. 클라이언트도 같은 규칙을
-    쓴다 — 양쪽이 어긋나면 교정이 엉뚱한 개체에 붙는다.
-    """
-    b = c.get("bbox_xywh") or [0, 0, 0, 0]
-    return "_".join(str(int(v)) for v in b)
-
-
-# 사람이 지정할 수 있는 분류. **여기가 유일한 정의다** — 뷰어의 메뉴, 표의 배지,
-# 크롭 갤러리의 필터가 모두 이것을 읽는다. 분류를 더할 때 한 줄만 고치면 된다.
-#
-# 자동 판정은 rod/round 둘뿐이다. 조각난 규조각을 그 둘로 밀어넣으면 계측·학습에서
-# 온전한 개체와 섞이므로 파편을 따로 두고, 형태가 아니라 속(屬)으로 알아보는 것은
-# 그 이름으로 둔다(Eucampia — 남극 시료의 지시종이라 형태 칸에 묶어 둘 수 없다).
-CLASS_LABELS = {
-    "round": "원형",
-    "round_frag": "원형 파편",
-    "rod": "봉상",
-    "rod_frag": "봉상 파편",
-    "eucampia": "Eucampia",
-}
-# 형태 칸과 분류학 칸은 성격이 다르다 — 메뉴에서 줄을 그어 나눈다.
-TAXON_CLASSES = ("eucampia",)
-CLASSES = tuple(CLASS_LABELS)
-CLASS_BADGE = {"round": "on", "round_frag": "frag", "rod": "rod",
-               "rod_frag": "frag", "eucampia": "euc"}
-
-
-def class_list() -> list[dict]:
-    """분류 정의를 템플릿·클라이언트가 쓰기 좋은 형태로."""
-    return [{"key": k, "label": CLASS_LABELS[k],
-             "badge": CLASS_BADGE.get(k, ""), "taxon": k in TAXON_CLASSES}
-            for k in CLASSES]
-
-# bbox 로 만든 개체 키. cand_key() 와 뷰어의 keyOf() 가 같은 규칙을 쓴다.
-CAND_KEY = re.compile(r"^-?\d+_-?\d+_-?\d+_-?\d+$")
-
-
-def review_path(stem: str) -> Path:
-    return Path(settings.DATA_ROOT) / settings.REVIEW_DIR / f"{stem}_review.json"
-
-
-def load_review(stem: str) -> dict:
-    data = _load_json(review_path(stem)) or {}
     return {
-        "removed": set(data.get("removed") or []),
-        "accepted": set(data.get("accepted") or []),
-        # 사람이 이 시야를 다 봤다고 표시했는가. 고칠 것이 없어 교정 기록이
-        # 비어 있어도 검토는 끝났을 수 있으므로 따로 남긴다 — "검토한 시야"와
-        # "아직 안 본 시야"를 가려야 재현율을 실측하고 학습 데이터를 고를 수 있다.
-        "done": bool(data.get("done")),
-        # 사람이 덮어쓴 분류. 자동 판정보다 늘 우선한다.
-        "labels": {str(k): v for k, v in (data.get("labels") or {}).items()
-                   if v in CLASSES},
-        "notes": {str(k): str(v) for k, v in (data.get("notes") or {}).items()
-                  if isinstance(v, str) and v.strip()},
-        # 시야 전체에 대한 메모. 개체에 붙지 않는 이야기를 적는 곳이다.
-        "note": (data.get("note") or "").strip() if isinstance(data.get("note"), str) else "",
+        "slug": slug,
+        "label": slide.name,
+        "json_name": f"groups_{slide.slug}.json",
+        "corr_thresh": slide.corr_thresh,
+        "groups": groups,
+        **_slide_summary(slide, details),
     }
 
 
+def _frames(vp: Viewpoint, det: dict | None, frame_det_id) -> list[dict]:
+    frames = list(vp.frames.all())
+    values = [f.sharpness for f in frames if f.sharpness is not None]
+    top = max(values) if values else 0
+    out = []
+    for f in frames:
+        out.append({
+            "name": f.name,
+            "sharpness": f.sharpness,
+            # 그룹 내 최고 선명도 대비 비율 — 막대 길이로 쓴다.
+            "sharp_pct": (round(100 * f.sharpness / top)
+                          if f.sharpness and top else 0),
+            "is_sharpest": f.is_sharpest,
+            "rel": f.path,
+            "exists": (Path(settings.DATA_ROOT) / f.path).exists(),
+            # 싱글턴 시야는 합성본이 없어 프레임에 검출이 붙는다
+            "detection": det if f.id == frame_det_id else None,
+        })
+    return out
+
+
+def group_detail(slug: str, gid: int) -> dict | None:
+    slide = Slide.objects.filter(slug=slug).first()
+    if slide is None:
+        return None
+    vp = _viewpoints_of(slide).filter(idx=gid).first()
+    if vp is None:
+        return None
+
+    ids = list(Viewpoint.objects.filter(slide=slide)
+               .order_by("idx").values_list("idx", flat=True))
+    pos = ids.index(gid)
+
+    cur = next((d for d in vp.detections.all() if d.is_current), None)
+    det = detection_for_viewpoint(vp)
+    st = getattr(vp, "stack", None)
+    return {
+        "slug": slug,
+        "label": slide.name,
+        "id": gid,
+        "n": vp.n_frames,
+        "tag": vp.tag,
+        "span_sec": round(vp.span_sec or 0, 1),
+        "sharpest": vp.sharpest_frame.name if vp.sharpest_frame else None,
+        "frames": _frames(vp, det,
+                          cur.frame_id if cur and cur.target == "frame" else None),
+        "stack": (_stack_dict(st, det if cur and cur.target == "stack" else None)
+                  if st else None),
+        "prev_id": ids[pos - 1] if pos > 0 else None,
+        "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
+    }
+
+
+# --- 교정 저장 --------------------------------------------------------------
+def save_review(stem: str, done: bool, note: str, removed, accepted,
+                labels: dict, notes: dict) -> dict | None:
+    """뷰어가 보낸 교정을 DB 에 쓴다. 예전에는 review/<stem>_review.json 이었다.
+
+    키(mask_key)마다 한 행이고, 아무 표시도 남지 않은 행은 지운다 — 그래야
+    "교정 전체 초기화" 가 예전처럼 깨끗하게 동작한다.
+    """
+    vp = _viewpoint_of(stem)
+    if vp is None:
+        return None
+
+    ViewpointReview.objects.update_or_create(
+        viewpoint=vp, defaults={"done": done, "note": note})
+
+    removed, accepted = set(removed), set(accepted)
+    keys = removed | accepted | set(labels) | set(notes)
+    by_key = {c.mask_key: c for c in
+              Candidate.objects.filter(detection__viewpoint=vp,
+                                       detection__is_current=True)}
+    for key in keys:
+        cand = by_key.get(key)
+        obj, _ = ObjectReview.objects.get_or_create(
+            viewpoint=vp, mask_key=key,
+            defaults={"candidate": cand,
+                      "bind_method": "exact" if cand else "orphan",
+                      "bind_score": 1.0 if cand else None})
+        obj.removed = key in removed
+        obj.accepted = key in accepted
+        obj.label = labels.get(key, "")
+        obj.note = notes.get(key, "")
+        if cand and obj.candidate_id != cand.id:
+            obj.candidate = cand
+            obj.bind_method = "exact"
+            obj.bind_score = 1.0
+        # 기하는 모든 교정 행이 들고 있는다 — 검출기가 바뀌어도 읽혀야 하고,
+        # 지운 것도 학습의 음성 표본이다 (P02 §2.7)
+        if cand and not obj.geom:
+            obj.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
+        obj.save()
+
+    # 표시가 사라진 행은 지운다
+    ObjectReview.objects.filter(viewpoint=vp).exclude(mask_key__in=keys).delete()
+    return {"removed": len(removed), "accepted": len(accepted),
+            "labels": len(labels), "notes": len(notes)}
+
+
+# --- 기하 (DB 와 무관, 예전 그대로) -----------------------------------------
 def polygon_axis(poly) -> tuple[float, float] | None:
-    """마스크의 주축 각도(도)와 축 비율. 폴리곤의 **면적 모멘트**로 정확히 구한다.
+    """마스크의 주축 각도(도)와 축 비율. 폴리곤의 면적 모멘트로 정확히 구한다.
 
     꼭짓점만 PCA 하면 approxPolyDP 로 단순화된 점 간격이 고르지 않아 결과가
     치우친다. 다항식 닫힌 해로 채워진 영역의 2차 모멘트를 직접 구한다.
-
-    각도는 이미지 좌표계(y 아래로) 기준이고 +x 축에서 재며, 반환값은 (각도, 이심비).
     """
     if not poly or len(poly) < 6:
         return None
@@ -257,13 +572,11 @@ def polygon_axis(poly) -> tuple[float, float] | None:
         return None
     cx /= 6.0 * area
     cy /= 6.0 * area
-    # 중심 기준 2차 모멘트
     m20 = sxx / (12.0 * area) - cx * cx
     m02 = syy / (12.0 * area) - cy * cy
     m11 = sxy / (24.0 * area) - cx * cy
 
     ang = 0.5 * math.atan2(2.0 * m11, m20 - m02)
-    # 고유값 -> 축 길이 비. 원형(비 1)에서는 각도가 뜻이 없다.
     diff = math.hypot(m20 - m02, 2.0 * m11)
     l1 = (m20 + m02 + diff) / 2.0
     l2 = (m20 + m02 - diff) / 2.0
@@ -288,15 +601,11 @@ UPRIGHT_MIN_RATIO = 1.15
 
 
 def crop_geometry(c: dict, rotate: bool = True) -> dict | None:
-    """갤러리 크롭의 회전량과 **정확한** 결과 크기(px).
+    """갤러리 크롭의 회전량과 정확한 결과 크기(px).
 
     주축을 세로로 세운다(장축이 위아래) — 방향이 통일되면 형태를 나란히 비교할
-    수 있다. 축 비율이 1에 가까운 것(원형)은 방향이 뜻 없으므로 돌리지 않는다.
-
-    크기를 여백까지 포함해 여기서 확정하는 이유: **스케일바 길이를 계산해야
-    한다.** 자르는 쪽에서 여백을 따로 더하면 결과가 몇 µm 폭인지 알 수 없다.
-    회전을 하지 않을 때도 폴리곤 범위를 쓰므로, SAM 이 떠돌이 픽셀로 부풀려 놓은
-    bbox 대신 본체에 맞춰 잘린다.
+    수 있다. 크기를 여백까지 포함해 여기서 확정하는 이유: **스케일바 길이를
+    계산해야 한다.** 자르는 쪽에서 여백을 따로 더하면 몇 µm 폭인지 알 수 없다.
     """
     poly = c.get("polygon")
     if not poly or len(poly) < 6:
@@ -327,11 +636,7 @@ def nice_length(v: float) -> float:
 
 
 def scalebar_for(out_w: int, um_per_px: float, frac: float = 0.4) -> dict | None:
-    """크롭 썸네일에 얹을 스케일바. 이미지 폭에 대한 백분율로 준다.
-
-    백분율이라 화면에서 얼마로 그려지든 맞는다 — 다만 그리는 쪽에서 그 백분율의
-    기준이 **이미지**여야 한다(칸이 아니라).
-    """
+    """크롭 썸네일에 얹을 스케일바. 이미지 폭에 대한 백분율로 준다."""
     if not out_w or not um_per_px:
         return None
     um_w = out_w * um_per_px
@@ -349,270 +654,9 @@ def scalebar_for(out_w: int, um_per_px: float, frac: float = 0.4) -> dict | None
     return {"pct": round(100.0 * bar / um_w, 2), "um": bar, "label": label}
 
 
-def mask_class(c: dict) -> str:
-    """마스크를 그릴 때 쓰는 클래스. **뷰어의 addPolygon() 과 같은 규칙이어야 한다.**
-
-    사람이 지정한 분류가 가장 먼저다 — 되살린 개체(manual)에 Eucampia 를 지정했으면
-    Eucampia 색으로 보여야 한다. 지정이 없으면 되살린 표시(주황), 그다음 자동 판정.
-    """
-    if c.get("cls_user") and c.get("cls"):
-        return c["cls"]
-    if c.get("manual"):
-        return "manual"
-    return c.get("cls") or "none"
-
-
-def mask_points(c: dict) -> str | None:
-    """폴리곤을 SVG points 문자열로. 목록 썸네일에 마스크를 얹는 데 쓴다."""
-    p = c.get("polygon") or []
-    if len(p) < 6:
-        return None
-    return " ".join(f"{p[i]},{p[i + 1]}" for i in range(0, len(p) - 1, 2))
-
-
-def _guess_cls(c: dict) -> str | None:
-    """수동으로 되살린 개체의 표시용 분류."""
-    e = c.get("elongation")
-    if e is None:
-        return None
-    if e < 1.4:
-        return "round"
-    return "rod" if 2.0 <= e <= 20.0 else None
-
-
-def detection_for(stem: str) -> dict | None:
-    """<stem>_candidates.json 을 DETECT_DIRS 순서로 찾고 교정 기록을 반영한다."""
-    root = Path(settings.DATA_ROOT)
-    for d in settings.DETECT_DIRS:
-        path = root / d / f"{stem}_candidates.json"
-        data = _load_json(path)
-        if data is None:
-            continue
-        overlay = root / d / f"{stem}_overlay.jpg"
-        data = dict(data)
-        data["source_dir"] = d
-        data["stem"] = stem
-        data["overlay_rel"] = _rel(overlay) if overlay.exists() else None
-
-        review = load_review(stem)
-        rejected = list(data.get("rejected") or [])
-        n_auto = len(data.get("candidates") or [])      # 교정 전 통과분 개수
-
-        # 오검출로 표시된 것은 빼고, 되살린 것은 넣는다.
-        # 뺀 것도 버리지 않고 따로 넘긴다 — 뷰어가 흔적으로 그려 되살릴 수 있게.
-        #
-        # 문턱을 바꿔 다시 거르면(refilter.py) 사람이 지워 둔 개체가 탈락분으로
-        # 옮겨갈 수 있다. 그때도 **"사람이 지웠다"가 이긴다** — 지운 것이 조용히
-        # 되살아나는 것이 가장 나쁜 결과다.
-        kept, gone = [], []
-        for c in data.get("candidates") or []:
-            # **반드시 복사한다.** _load_json 이 파싱 결과를 mtime 캐시에 두므로,
-            # 여기서 원본 dict 에 id·removed·cls·note 를 써 넣으면 그 값이 캐시에
-            # 남는다. 그러면 교정을 되돌려도(되살리기, 분류 지정 해제, 메모 삭제)
-            # 옛 상태가 계속 따라붙는다 — 조용히 틀린 화면이 된다.
-            c = dict(c)
-            (gone if cand_key(c) in review["removed"] else kept).append(c)
-        for c in rejected:
-            key = cand_key(c)
-            # from_reject: 기록이 탈락분에서 왔다는 표시. 되살릴 때 accepted 에
-            # 넣어야 한다는 뜻이며, manual(사람이 되살려 놓은 것)과는 다르다.
-            if key in review["removed"]:
-                c = dict(c)
-                c["from_reject"] = True
-                gone.append(c)
-            elif key in review["accepted"]:
-                c = dict(c)
-                c["manual"] = True
-                c["from_reject"] = True
-                c["cls"] = _guess_cls(c)
-                kept.append(c)
-
-        # 사람이 지정한 분류·메모를 얹는다. 분류는 자동 판정을 덮어쓰되 원래
-        # 값을 cls_auto 로 남긴다 — 나중에 "기계가 무엇이라고 했나" 를 봐야 한다.
-        for c in kept + gone:
-            key = cand_key(c)
-            label = review["labels"].get(key)
-            if label:
-                if c.get("cls") != label:
-                    c["cls_auto"] = c.get("cls")
-                c["cls"] = label
-                c["cls_user"] = True
-            note = review["notes"].get(key)
-            if note:
-                c["note"] = note
-
-        kept.sort(key=lambda r: -r.get("area_px", 0))
-        for i, c in enumerate(kept):
-            c["id"] = i
-        for c in gone:
-            c["removed"] = True
-        data["candidates"] = kept
-        data["removed_candidates"] = gone
-        data["n_candidates"] = len(kept)
-        data["counts"] = {
-            **{k: sum(1 for c in kept if c.get("cls") == k) for k in CLASSES},
-            "manual": sum(1 for c in kept if c.get("manual")),
-            "labeled": sum(1 for c in kept if c.get("cls_user")),
-        }
-        # 자동 판정이 잡은 개수(교정 전). 화면의 "검출 N -> 남은 M" 이 여기서 온다.
-        data["n_auto"] = n_auto
-        data["n_removed"] = len(review["removed"])
-        data["review_done"] = review["done"]
-        # 분류·메모는 클라이언트가 그대로 이어받아 편집한다.
-        data["labels"] = dict(review["labels"])
-        data["notes"] = dict(review["notes"])
-        data["review_note"] = review["note"]
-        # 복구 목록을 그대로 넘긴다. 클라이언트가 manual 플래그로 되짚으면,
-        # 지워 둔 탈락분(위의 from_reject)까지 "복구된 것"으로 잘못 세어
-        # 다음 저장에서 지운 것이 되살아난다.
-        data["accepted_keys"] = sorted(review["accepted"])
-        # 되살리기 후보 — 이미 채택했거나 지워 둔 것은 뺀다. 지운 것은 유령으로
-        # 이미 화면에 있으므로, 여기 남기면 같은 개체가 두 곳에 나온다.
-        data["rejected"] = [c for c in rejected
-                            if cand_key(c) not in review["accepted"]
-                            and cand_key(c) not in review["removed"]]
-        return data
-    return None
-
-
-def stack_for(tag: str) -> dict | None:
-    """focus_stack.py 산출물이 있으면 경로를 모아 준다."""
-    root = Path(settings.DATA_ROOT)
-    focused = root / settings.STACK_DIR / f"{tag}_focused.jpg"
-    if not focused.exists():
-        return None
-    depth = root / settings.STACK_DIR / f"{tag}_depth.jpg"
-    return {
-        "focused_rel": _rel(focused),
-        "depth_rel": _rel(depth) if depth.exists() else None,
-        "stem": f"{tag}_focused",
-        "detection": detection_for(f"{tag}_focused"),
-    }
-
-
-def _frames(group: dict, image_dir: Path) -> list[dict]:
-    sharp = group.get("sharpness") or {}
-    values = [v for v in sharp.values() if isinstance(v, (int, float))]
-    top = max(values) if values else 0
-    frames = []
-    for name in group["images"]:
-        value = sharp.get(name)
-        jpg = image_dir / f"{name}.jpg"
-        frames.append(
-            {
-                "name": name,
-                "sharpness": value,
-                # 그룹 내 최고 선명도 대비 비율 — 막대 길이로 쓴다.
-                "sharp_pct": round(100 * value / top) if value and top else 0,
-                "is_sharpest": name == group.get("sharpest"),
-                "rel": _rel(jpg),
-                "exists": jpg.exists(),
-                "detection": detection_for(name),
-            }
-        )
-    return frames
-
-
-def dataset_detail(slug: str) -> dict | None:
-    path = _find_dataset_path(slug)
-    if path is None:
-        return None
-    meta = _load_json(path)
-    if not meta:
-        return None
-    image_dir = Path(settings.DATA_ROOT) / meta["dir"]
-    groups = []
-    for g in meta["groups"]:
-        tag = group_tag(g)
-        stack = stack_for(tag)
-        det = group_detection(g)
-        # 목록의 대표 그림은 합성본이 원칙이다 — 그룹을 대표하는 그림이 검출을
-        # 돌린 그림과 같아야 목록과 상세가 어긋나지 않는다. 합성본이 없으면
-        # 싱글턴(한 장뿐)이거나 아직 합성하지 않은 그룹이므로 프레임을 쓴다.
-        cover_rel = stack["focused_rel"] if stack else None
-        if cover_rel is None:
-            cover = image_dir / f"{g.get('sharpest', g['images'][0])}.jpg"
-            cover_rel = _rel(cover) if cover.exists() else None
-
-        # 표지에 검출 마스크를 얹는다. 검출을 돌린 이미지와 표지가 같을 때만 —
-        # 다른 이미지의 좌표를 얹으면 조용히 어긋난 그림이 된다.
-        masks, size = [], None
-        if det and cover_rel and det.get("stem") == Path(cover_rel).stem:
-            size = det.get("size")
-            for c in det.get("candidates") or []:
-                pts = mask_points(c)
-                if pts:
-                    masks.append({"points": pts, "cls": mask_class(c)})
-        groups.append(
-            {
-                "id": g["id"],
-                "n": g["n"],
-                "tag": tag,
-                "span_sec": round(g.get("span_sec", 0), 1),
-                "sharpest": g.get("sharpest"),
-                "cover_rel": cover_rel,
-                "cover_size": size,
-                "masks": masks,
-                "has_stack": stack is not None,
-                "n_detected": (det or {}).get("n_candidates"),
-                "reviewed": bool((det or {}).get("review_done")),
-            }
-        )
-    return {
-        "slug": slug,
-        "label": image_dir.name,
-        "json_name": path.name,
-        "corr_thresh": meta.get("corr_thresh"),
-        "groups": groups,
-        **_stats(meta["groups"]),
-        **_detect_stats(meta["groups"]),
-    }
-
-
-def group_detail(slug: str, gid: int) -> dict | None:
-    path = _find_dataset_path(slug)
-    if path is None:
-        return None
-    meta = _load_json(path)
-    if not meta:
-        return None
-    group = next((g for g in meta["groups"] if g["id"] == gid), None)
-    if group is None:
-        return None
-    image_dir = Path(settings.DATA_ROOT) / meta["dir"]
-    ids = [g["id"] for g in meta["groups"]]
-    pos = ids.index(gid)
-    tag = group_tag(group)
-    return {
-        "slug": slug,
-        "label": image_dir.name,
-        "id": gid,
-        "n": group["n"],
-        "tag": tag,
-        "span_sec": round(group.get("span_sec", 0), 1),
-        "sharpest": group.get("sharpest"),
-        "frames": _frames(group, image_dir),
-        "stack": stack_for(tag),
-        "prev_id": ids[pos - 1] if pos > 0 else None,
-        "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
-    }
-
-
-def stamp(rel: str) -> int:
-    """이미지의 mtime. URL 에 넣어 "내용이 바뀌면 주소도 바뀌게" 만든다.
-
-    주소가 그대로면 브라우저는 합성본을 다시 만들어도 옛 그림을 계속 쓴다.
-    반대로 주소에 mtime 이 있으면 마음껏 캐시해도 늘 맞는다.
-    """
-    try:
-        return int((Path(settings.DATA_ROOT) / rel).stat().st_mtime)
-    except (OSError, TypeError, ValueError):
-        return 0
-
-
+# --- 파일 접근 --------------------------------------------------------------
 def safe_image_path(rel: str) -> Path | None:
-    """
-    p= 로 들어온 상대경로를 실제 파일로 바꾼다.
+    """p= 로 들어온 상대경로를 실제 파일로 바꾼다.
 
     IMAGE_DIRS 안에 실제로 들어 있는 파일만 허용한다. symlink 까지 풀어서
     비교하므로 ../ 나 링크로 바깥을 가리키는 경로는 통과하지 못한다.

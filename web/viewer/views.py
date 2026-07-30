@@ -405,7 +405,9 @@ def save_review(request):
          "notes":  {key: "사람이 적은 메모"}}
 
     키는 bbox 에서 만든 것이라 검출을 다시 돌려도 같은 마스크면 그대로 붙는다.
-    문턱만 바꾸는 refilter.py 실행에는 영향받지 않는다.
+    문턱만 바꾸는 refilter.py 실행에는 영향받지 않는다. 저장 위치는 DB 이고
+    (예전에는 review/<stem>_review.json), git 에 남길 감사 기록은
+    export_review.py 가 내보낸다.
 
     labels 는 자동 판정을 사람이 덮어쓴 것이다 — 조각난 규조각이 봉상/원형으로
     잘못 분류되는 것을 손으로 고치는 수단이고, 학습 데이터의 정답이 된다.
@@ -470,17 +472,11 @@ def save_review(request):
     if not isinstance(payload.get("note", ""), (str, type(None))):
         return HttpResponseBadRequest("bad note")
 
-    path = data.review_path(stem)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    body = {"stem": stem, "done": done, "note": note,
-            "removed": removed, "accepted": accepted,
-            "labels": labels, "notes": notes}
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(body, indent=2, ensure_ascii=False), encoding="utf-8")
-    tmp.replace(path)
-    return JsonResponse({"ok": True, "done": done, "note": bool(note),
-                         "removed": len(removed), "accepted": len(accepted),
-                         "labels": len(labels), "notes": len(notes)})
+    saved = data.save_review(stem, done=done, note=note, removed=removed,
+                             accepted=accepted, labels=labels, notes=notes)
+    if saved is None:
+        return HttpResponseBadRequest("unknown stem")
+    return JsonResponse({"ok": True, "done": done, "note": bool(note), **saved})
 
 
 def healthz(request):

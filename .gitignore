@@ -12,6 +12,12 @@ stacked/
 
 .venv/
 
+# DB 는 산출물이다 — JSON(review/ 포함)에서 다시 만들 수 있다.
+# 사람의 교정은 review/*.json 으로 내보내 git 에 남긴다 (P02)
+diatom.db
+diatom.db-wal
+diatom.db-shm
+
 # 뷰어가 만드는 썸네일 캐시 — 원본에서 언제든 다시 생성된다
 web/.thumbcache/
 

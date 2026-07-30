@@ -1,8 +1,13 @@
 """
 규조류 뷰어 설정.
 
-ORM 을 쓰지 않는다. 그룹핑 결과(groups_*.json)와 검출 결과(out/*.json)를
-파일에서 직접 읽으므로 DATABASES 는 비워 둔다. 마이그레이션도 필요 없다.
+데이터와 설정은 SQLite(`diatom.db`)에 모은다. 이전에는 JSON 을 직접 읽었는데
+(슬라이드 3장에 첫 화면이 251개 파일을 열었다) NAS 로 사진이 계속 들어오면
+선형으로 늘어나고, 실행 이력·처리 상태·문턱 이력을 둘 곳이 없었다.
+자세한 것은 devlog/20260730_P02_db-schema.md.
+
+JSON 은 내보내기 형식으로 남는다 — 특히 `review/*.json` 은 사람이 읽고 diff 할
+감사 기록이라 계속 git 에 둔다(DB 파일은 gitignore).
 """
 import os
 from pathlib import Path
@@ -52,7 +57,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "diatomweb.wsgi.application"
 
-DATABASES = {}
+# GPU 배치가 쓰는 동안 뷰어가 읽어야 하므로 WAL 이 필수다. 기본 journal 모드면
+# 쓰기 트랜잭션이 읽기를 막는다.
+DIATOM_DB = Path(os.environ.get("DIATOM_DB", PROJECT_ROOT / "diatom.db"))
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": DIATOM_DB,
+        "OPTIONS": {
+            "timeout": 20,
+            "init_command": (
+                "PRAGMA journal_mode=WAL;"
+                "PRAGMA synchronous=NORMAL;"
+                "PRAGMA foreign_keys=ON;"
+            ),
+        },
+    }
+}
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 STATIC_URL = "static/"
 
