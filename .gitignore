@@ -18,6 +18,9 @@ diatom.db
 diatom.db-wal
 diatom.db-shm
 
+# DB 사본. backup_db.py 가 만든다 — 로컬 안전망이라 깃에 넣지 않는다
+backup/
+
 # 뷰어가 만드는 썸네일 캐시 — 원본에서 언제든 다시 생성된다
 web/.thumbcache/
 
