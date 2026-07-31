@@ -1,0 +1,295 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block title %}문턱 조정 — 규조류 뷰어{% endblock %}
+{% block subtitle %}<a href="/">데이터셋</a> /
+  {% if slug %}<a href="{% url 'dataset' slug %}">{{ label }}</a> / {% endif %}
+  <b>문턱 조정</b>{% endblock %}
+{% block nav %}
+  {% if slug %}<a href="{% url 'dataset' slug %}">그룹 목록</a>{% endif %}
+  <a href="{% url 'thresholds_all' %}">전체</a>
+{% endblock %}
+
+{% block content %}
+{% comment %}
+  문턱을 만지는 일의 어려움은 한 시야를 보며 정한 값이 124개 시야 전부에 걸린다는
+  것이다. 그래서 이 화면은 영향받는 시야를 **영향 큰 순으로** 늘어놓고, 뒤집히는
+  개체를 표시한다 — 영향 없는 시야는 볼 이유가 없다.
+{% endcomment %}
+
+{% if spread > 1 %}
+<div class="note">
+  <b>문턱이 {{ spread }}가지로 갈라져 있다.</b> 시야마다 기준이 다르면 개수를 서로
+  비교할 수 없다 — 깊이별·지역별 비교가 이 시료의 목적이므로 하나로 맞추는 것이 좋다.
+</div>
+{% endif %}
+
+<div class="thpanel">
+  <div class="thgrid" id="thgrid"></div>
+
+  <div class="thside">
+    <div class="thsum" id="thsum">읽는 중…</div>
+    <div class="thbtns">
+      <button type="button" id="th-reset">지금 값</button>
+      <button type="button" id="th-defaults">기본값</button>
+      <button type="button" class="go" id="th-apply" disabled>적용</button>
+    </div>
+    <div class="thscope">
+      적용 범위 <b>{% if slug %}{{ label }}{% else %}전체 슬라이드{% endif %}</b>
+      <div class="dim" style="font-size:11px;margin-top:3px">
+        사람의 교정(삭제·복구·분류)은 건드리지 않는다. 판정만 다시 건다.
+      </div>
+    </div>
+    <div class="thhist" id="thhist"></div>
+  </div>
+</div>
+
+<div class="croptools" style="margin:14px 0 8px">
+  <span class="dim" id="thcount">영향받는 시야</span>
+  <label class="chip"><input type="checkbox" id="th-onlytouched" checked> 영향받는 것만</label>
+  <label class="chip"><input type="checkbox" id="th-marks" checked> 뒤집힘 표시</label>
+  <span class="dim" style="margin-left:auto">칸을 클릭하면 그 시야를 연다</span>
+</div>
+
+<div class="vpgrid" id="vpgrid"></div>
+<div class="dim" id="vpmore" style="margin:12px 2px; font-size:12px"></div>
+
+<script type="application/json" id="th-fields">{{ fields|json_dumps }}</script>
+<script type="application/json" id="th-current">{{ current|json_dumps }}</script>
+<script type="application/json" id="th-defaults-json">{{ defaults|json_dumps }}</script>
+
+<script>
+(function () {
+  var FIELDS = JSON.parse(document.getElementById('th-fields').textContent);
+  var CURRENT = JSON.parse(document.getElementById('th-current').textContent);
+  var DEFAULTS = JSON.parse(document.getElementById('th-defaults-json').textContent);
+  var SLUG = "{{ slug }}";
+  var LIMIT = 24;
+
+  var values = Object.assign({}, CURRENT);
+  var grid = document.getElementById('thgrid');
+  var sum = document.getElementById('thsum');
+  var vpgrid = document.getElementById('vpgrid');
+  var vpmore = document.getElementById('vpmore');
+  var applyBtn = document.getElementById('th-apply');
+  var onlyTouched = document.getElementById('th-onlytouched');
+  var showMarks = document.getElementById('th-marks');
+  var inputs = {};
+
+  function fmt(v) { return (Math.round(v * 100) / 100).toString(); }
+
+  // --- 슬라이더 ------------------------------------------------------------
+  FIELDS.forEach(function (f) {
+    var key = f[0], label = f[1], hint = f[2], lo = f[3], hi = f[4], step = f[5];
+    var row = document.createElement('div');
+    row.className = 'throw';
+    row.innerHTML =
+      '<label>' + label + (hint ? ' <span class="dim">' + hint + '</span>' : '') + '</label>';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'thctl';
+    var range = document.createElement('input');
+    range.type = 'range'; range.min = lo; range.max = hi; range.step = step;
+    range.value = values[key];
+    var num = document.createElement('input');
+    num.type = 'number'; num.min = lo; num.max = hi; num.step = step;
+    num.value = fmt(values[key]);
+    var was = document.createElement('span');
+    was.className = 'thwas';
+
+    function setVal(v, from) {
+      v = Math.max(lo, Math.min(hi, +v));
+      values[key] = v;
+      if (from !== 'range') range.value = v;
+      if (from !== 'num') num.value = fmt(v);
+      // 지금 적용된 값과 다르면 표시한다 — 무엇을 만졌는지 보여야 한다
+      var diff = Math.abs(v - CURRENT[key]) > 1e-9;
+      row.classList.toggle('changed', diff);
+      was.textContent = diff ? '지금 ' + fmt(CURRENT[key]) : '';
+      schedule();
+    }
+    range.addEventListener('input', function () { setVal(range.value, 'range'); });
+    num.addEventListener('input', function () { setVal(num.value, 'num'); });
+
+    wrap.appendChild(range); wrap.appendChild(num); wrap.appendChild(was);
+    row.appendChild(wrap);
+    grid.appendChild(row);
+    inputs[key] = { set: setVal };
+  });
+
+  function setAll(src) {
+    Object.keys(src).forEach(function (k) {
+      if (inputs[k]) inputs[k].set(src[k]);
+    });
+  }
+  document.getElementById('th-reset').addEventListener('click', function () { setAll(CURRENT); });
+  document.getElementById('th-defaults').addEventListener('click', function () { setAll(DEFAULTS); });
+
+  // --- 미리보기 ------------------------------------------------------------
+  // 판정은 서버가 한다(judge.py 하나). 규칙을 JS 로 복사하면 두 곳이 어긋난다.
+  var timer = null, seq = 0, lastRows = [], lastVerdicts = {};
+
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(fetchPreview, 180);
+  }
+
+  function fetchPreview() {
+    var my = ++seq;
+    sum.classList.add('busy');
+    fetch('/api/threshold/preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: SLUG, values: values, limit: LIMIT })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (my !== seq || !d.ok) return;          // 그 사이 더 움직였으면 버린다
+      lastRows = d.rows; lastVerdicts = d.verdicts;
+      paintSummary(d);
+      paintGrid();
+    }).catch(function () {
+      sum.textContent = '미리보기 실패';
+    }).then(function () { sum.classList.remove('busy'); });
+  }
+
+  function paintSummary(d) {
+    var t = d.total;
+    var cls = Object.keys(d.classes).sort().map(function (k) {
+      return k + ' ' + d.classes[k];
+    }).join(' · ');
+    var delta = t.delta === 0 ? '변화 없음'
+      : (t.delta > 0 ? '+' : '') + t.delta + '개';
+    sum.innerHTML =
+      '<div class="thbig">' + t.before + ' → <b>' + t.after + '</b> ' +
+        '<span class="' + (t.delta === 0 ? 'dim' : (t.delta > 0 ? 'up' : 'down')) +
+        '">' + delta + '</span></div>' +
+      '<div class="dim">' + cls + '</div>' +
+      '<div class="dim">들어옴 ' + t.added + ' · 빠짐 ' + t.removed +
+        ' · 영향받는 시야 <b>' + t.touched + '</b>/' + t.viewpoints + '</div>';
+    applyBtn.disabled = (t.added === 0 && t.removed === 0);
+    document.getElementById('thcount').textContent =
+      '영향받는 시야 ' + t.touched + '개' +
+      (d.n_rows > LIMIT ? ' (위 ' + LIMIT + '개만 그린다)' : '');
+    vpmore.textContent = t.touched > LIMIT
+      ? '영향 큰 순으로 ' + LIMIT + '개만 보여준다. 문턱을 좁히면 줄어든다.'
+      : (t.touched === 0 ? '이 문턱에서는 바뀌는 것이 없다.' : '');
+  }
+
+  // --- 시야 격자 -----------------------------------------------------------
+  // 폴리곤은 시야마다 한 번만 받아 캐시한다. 슬라이더를 움직일 때는 판정만
+  // 다시 받아 색을 바꾼다 — 그래서 즉각 반응한다.
+  var polyCache = {};
+
+  function loadPolys(det) {
+    if (polyCache[det]) return Promise.resolve(polyCache[det]);
+    return fetch('/api/threshold/masks?det=' + det)
+      .then(function (r) { return r.json(); })
+      .then(function (d) { polyCache[det] = d.masks || []; return polyCache[det]; });
+  }
+
+  function paintGrid() {
+    var rows = lastRows.filter(function (r) {
+      return !onlyTouched.checked || r.flips > 0;
+    });
+    vpgrid.innerHTML = '';
+    rows.forEach(function (r) {
+      var cell = document.createElement('a');
+      cell.className = 'vpcell';
+      cell.href = '/d/' + r.slug + '/g/' + r.gid + '/';
+      cell.target = '_blank';
+      cell.rel = 'noopener';
+
+      var head = document.createElement('div');
+      head.className = 'vphead';
+      var marks = [];
+      if (r.removed.length) marks.push('<span class="down">−' + r.removed.length + '</span>');
+      if (r.added.length) marks.push('<span class="up">+' + r.added.length + '</span>');
+      head.innerHTML = '<b>g' + r.gid + '</b> <span class="dim">' + r.label + '</span>' +
+        '<span style="margin-left:auto">' + r.before + ' → ' + r.after + ' ' +
+        marks.join(' ') + '</span>';
+      cell.appendChild(head);
+
+      var box = document.createElement('div');
+      box.className = 'vpimg';
+      var img = document.createElement('img');
+      img.loading = 'lazy';
+      img.src = '/img?p=' + encodeURIComponent(r.image_rel) + '&w=800';
+      box.appendChild(img);
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + r.size[0] + ' ' + r.size[1]);
+      svg.setAttribute('preserveAspectRatio', 'none');
+      box.appendChild(svg);
+      cell.appendChild(box);
+      vpgrid.appendChild(cell);
+
+      var verdict = lastVerdicts[r.detection_id] || {};
+      var added = {}, removed = {};
+      r.added.forEach(function (k) { added[k] = 1; });
+      r.removed.forEach(function (k) { removed[k] = 1; });
+
+      loadPolys(r.detection_id).then(function (masks) {
+        svg.innerHTML = '';
+        masks.forEach(function (m) {
+          var cls = verdict[m.k];
+          var flipped = added[m.k] || removed[m.k];
+          if (!cls && !flipped) return;         // 탈락분은 그리지 않는다
+          var el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+          el.setAttribute('points', m.p);
+          var name = cls || 'none';
+          if (showMarks.checked && removed[m.k]) name = 'flip-out';
+          else if (showMarks.checked && added[m.k]) name = 'flip-in';
+          el.setAttribute('class', name);
+          svg.appendChild(el);
+        });
+      });
+    });
+  }
+
+  onlyTouched.addEventListener('change', paintGrid);
+  showMarks.addEventListener('change', paintGrid);
+
+  // --- 적용 ----------------------------------------------------------------
+  applyBtn.addEventListener('click', function () {
+    var t = sum.querySelector('.thbig');
+    if (!confirm('이 문턱을 ' + (SLUG ? '{{ label }}' : '전체 슬라이드') +
+                 '에 적용한다.\n\n' + (t ? t.textContent.trim() : '') +
+                 '\n\n사람의 교정은 그대로 남는다. 문턱은 다시 바꿀 수 있다.')) return;
+    applyBtn.disabled = true;
+    applyBtn.textContent = '적용 중…';
+    fetch('/api/threshold/apply', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: SLUG, values: values })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) throw new Error();
+      location.reload();
+    }).catch(function () {
+      applyBtn.textContent = '적용 실패';
+    });
+  });
+
+  // --- 이력 ----------------------------------------------------------------
+  fetch('/api/threshold/history').then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.ok || !d.rows.length) return;
+      var box = document.getElementById('thhist');
+      box.innerHTML = '<div class="thhead">문턱을 바꾼 기록</div>';
+      d.rows.slice(0, 8).forEach(function (r) {
+        var keys = Object.keys(r.values);
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'thhitem';
+        b.innerHTML = '<span class="dim">' + r.at + ' · ' + r.via + '</span> ' +
+          (keys.length
+            ? keys.map(function (k) { return k + ' ' + r.values[k]; }).join(', ')
+            : '(기본값)') +
+          (r.counts.before !== undefined
+            ? ' <span class="dim">' + r.counts.before + ' → ' + r.counts.after + '</span>'
+            : '');
+        b.title = '이 값을 불러온다';
+        b.addEventListener('click', function () { setAll(r.values); });
+        box.appendChild(b);
+      });
+    });
+
+  fetchPreview();
+})();
+</script>
+{% endblock %}

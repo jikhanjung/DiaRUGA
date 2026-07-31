@@ -86,6 +86,90 @@
   .badge.frag { color: #a78bfa; border-color: #a78bfa; }
   .badge.euc { color: #ff6ebe; border-color: #ff6ebe; }
 
+  /* --- 문턱 조정 화면 ---
+     한 시야를 보며 정한 값이 시야 전부에 걸리므로, 영향받는 시야를 영향 큰 순으로
+     늘어놓고 뒤집히는 개체를 표시한다. */
+  .thpanel { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+  .thgrid {
+    flex: 1 1 460px; min-width: 0;
+    display: grid; gap: 3px 10px; grid-template-columns: 1fr 1fr;
+  }
+  .throw {
+    display: flex; flex-direction: column; gap: 1px;
+    padding: 4px 6px; border-radius: 6px; border: 1px solid transparent;
+  }
+  .throw.changed { border-color: var(--accent); background: rgba(90,200,250,.07); }
+  .throw label { font-size: 11.5px; }
+  .thctl { display: flex; gap: 6px; align-items: center; }
+  .thctl input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: var(--accent); }
+  .thctl input[type=number] {
+    flex: 0 0 66px; width: 66px; font: inherit; font-size: 11.5px;
+    padding: 1px 4px; background: var(--bg); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 5px;
+  }
+  .thwas { font-size: 10.5px; color: var(--dim); min-width: 62px; }
+
+  .thside {
+    flex: 0 0 250px; width: 250px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 9px; padding: 10px 11px;
+  }
+  .thsum { font-size: 12px; line-height: 1.6; min-height: 62px; }
+  .thsum.busy { opacity: .5; }
+  .thbig { font-size: 15px; }
+  .up { color: var(--good); }
+  .down { color: #ff6b6b; }
+  .thbtns { display: flex; gap: 6px; margin: 9px 0 8px; }
+  .thbtns button {
+    font: inherit; font-size: 12px; padding: 4px 10px; cursor: pointer;
+    background: var(--panel); color: inherit;
+    border: 1px solid var(--line); border-radius: 6px;
+  }
+  .thbtns button:hover:not(:disabled) { border-color: var(--accent); }
+  .thbtns button.go { margin-left: auto; border-color: var(--accent); color: var(--accent); }
+  .thbtns button:disabled { opacity: .4; cursor: default; }
+  .thscope { font-size: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .thhist { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .thhead { font-size: 11.5px; font-weight: 650; margin-bottom: 5px; }
+  .thhitem {
+    display: block; width: 100%; text-align: left; font: inherit; font-size: 11px;
+    background: transparent; color: inherit; cursor: pointer; line-height: 1.4;
+    border: 1px solid transparent; border-radius: 5px; padding: 3px 5px;
+  }
+  .thhitem:hover { border-color: var(--accent); }
+
+  /* 시야 격자 — 2컬럼. 800 px 썸네일이면 마스크 위치는 충분히 보이고,
+     areolae 를 확대해 볼 일은 그룹 화면이 맡는다(원본 화소 전환이 있다). */
+  .vpgrid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+  .vpcell {
+    display: block; color: inherit; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 9px; overflow: hidden;
+  }
+  .vpcell:hover { border-color: var(--accent); text-decoration: none; }
+  .vphead {
+    display: flex; gap: 6px; align-items: baseline;
+    padding: 6px 9px; font-size: 12px; border-bottom: 1px solid var(--line);
+  }
+  .vpimg { position: relative; line-height: 0; background: #000; }
+  .vpimg img { width: 100%; display: block; }
+  .vpimg svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .vpimg polygon { stroke-width: 0; }
+  .vpimg polygon.rod { fill: rgba(70,140,255,.42); }
+  .vpimg polygon.round { fill: rgba(60,220,120,.42); }
+  .vpimg polygon.rod_frag { fill: rgba(160,120,255,.42); }
+  .vpimg polygon.round_frag { fill: rgba(60,205,205,.42); }
+  .vpimg polygon.eucampia { fill: rgba(255,110,190,.45); }
+  .vpimg polygon.none { fill: rgba(255,60,60,.28); }
+  /* 뒤집히는 것 — 이 문턱 때문에 빠지거나 들어오는 개체 */
+  .vpimg polygon.flip-out {
+    fill: rgba(255,70,70,.30); stroke: #ff4d4d; stroke-width: 3px;
+    vector-effect: non-scaling-stroke;
+  }
+  .vpimg polygon.flip-in {
+    fill: rgba(120,255,140,.32); stroke: #5ee87a; stroke-width: 3px;
+    vector-effect: non-scaling-stroke;
+  }
+
   /* --- 검출 개체 크롭 갤러리 ---
      테두리 색이 형태 판정이다 — 봉상/원형/수동복구를 사진과 같은 색으로 쓴다. */
   .croptools {

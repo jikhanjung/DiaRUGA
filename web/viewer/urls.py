@@ -11,6 +11,12 @@ urlpatterns = [
     path("d/<slug:slug>/", views.dataset, name="dataset"),
     path("d/<slug:slug>/detections/", views.detections, name="detections"),
     path("d/<slug:slug>/crops/", views.crops, name="crops"),
+    path("thresholds/", views.threshold_page, name="thresholds_all"),
+    path("d/<slug:slug>/thresholds/", views.threshold_page, name="thresholds"),
+    path("api/threshold/preview", views.threshold_preview, name="threshold_preview"),
+    path("api/threshold/apply", views.threshold_apply, name="threshold_apply"),
+    path("api/threshold/masks", views.threshold_masks, name="threshold_masks"),
+    path("api/threshold/history", views.threshold_history, name="threshold_history"),
     path("d/<slug:slug>/g/<int:gid>/", views.group, name="group"),
     path("api/d/<slug:slug>.json", views.api_dataset, name="api_dataset"),
 ]

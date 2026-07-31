@@ -4,6 +4,7 @@
 {% block subtitle %}{{ label }}{% endblock %}
 {% block nav %}
   <a href="{% url 'crops' slug %}">검출 결과만 보기</a>
+  <a href="{% url 'thresholds' slug %}">문턱 조정</a>
   <a href="{% url 'detections' slug %}">계측 표</a>
 {% endblock %}
 

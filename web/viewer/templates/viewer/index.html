@@ -1,11 +1,14 @@
 {% extends "viewer/base.html" %}
 {% load viewer_extras %}
 {% block content %}
-<h2>데이터셋</h2>
-<p class="dim">groups_*.json 을 읽어 표시한다. 스크립트를 다시 돌리면 새로고침만으로 반영된다.</p>
+<h2>데이터셋 <a href="{% url 'thresholds_all' %}" style="font-size:13px; font-weight:400; margin-left:10px">문턱 조정 →</a></h2>
+<p class="dim">DB(diatom.db)에서 읽는다. 파이프라인을 다시 돌린 뒤에는
+  <code class="mono">import_json.py</code> 로 넣는다.</p>
 
 {% if not datasets %}
-  <div class="note">groups_*.json 을 찾지 못했다. <code class="mono">group_focus_series.py</code> 를 먼저 실행해야 한다.</div>
+  <div class="note">슬라이드가 없다.
+    <code class="mono">group_focus_series.py</code> 로 그룹핑한 뒤
+    <code class="mono">import_json.py</code> 를 돌려야 한다.</div>
 {% endif %}
 
 <div class="cards">

@@ -8,15 +8,37 @@ from django.conf import settings
 from django.http import (FileResponse, Http404, HttpResponse,
                          HttpResponseBadRequest, JsonResponse)
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import data
+from . import data, thresholds as th
+from .models import Detection, Run, ThresholdSet
+
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+import judge  # noqa: E402
 
 # 파일명으로 그대로 쓰이므로 경로 성분이 될 수 있는 문자를 막는다.
 SAFE_STEM = re.compile(r"^[A-Za-z0-9._-]+$")
 
 # 메모 길이 상한. 사람이 손으로 적는 것이라 넉넉하면 충분하다.
 NOTE_MAX = 500
+
+# 문턱 조정 화면에 보여줄 순서와 이름. 판정에서 먼저 걸리는 것을 위에 둔다.
+THRESHOLD_FIELDS = [
+    ("texture_min", "텍스처", "1차 관문 — 규조각인가", 0, 8000, 50),
+    ("round_texture_min", "원형 areolae", "원형에만 걸리는 하한", 0, 8000, 50),
+    ("min_um", "크기 하한", "타원 장축 µm", 0, 60, 0.5),
+    ("max_um", "크기 상한", "타원 장축 µm", 20, 400, 5),
+    ("round_max_elong", "원형 신장비", "이 값 미만이면 원형으로 본다", 1, 3, 0.05),
+    ("round_min_iou", "원형 타원 IoU", "", 0, 1, 0.01),
+    ("round_min_solidity", "원형 볼록성", "", 0, 1, 0.01),
+    ("rod_min_elong", "봉상 신장비 하한", "", 1, 10, 0.1),
+    ("rod_max_elong", "봉상 신장비 상한", "", 2, 40, 0.5),
+    ("rod_min_iou", "봉상 타원 IoU", "우상목은 피침형이라 구조적으로 낮다", 0, 1, 0.01),
+    ("rod_min_solidity", "봉상 볼록성", "", 0, 1, 0.01),
+]
 
 
 def index(request):
@@ -331,6 +353,151 @@ def _crop_thumb(path, box, width, pad=None):
     except OSError:
         return None
     return out
+
+
+def threshold_page(request, slug=None):
+    """문턱 조정 화면.
+
+    한 시야를 보며 정한 값이 124개 시야 전부에 걸린다. 그 영향을 눈으로 볼 수
+    없으면 적용하고 나서 시야를 하나씩 확인해야 한다 — 그래서 이 화면은 **영향받는
+    시야를 영향 큰 순으로** 늘어놓는다. 영향 없는 시야는 볼 이유가 없다.
+    """
+    ds = data.dataset_detail(slug) if slug else None
+    if slug and ds is None:
+        raise Http404(f"unknown dataset: {slug}")
+    return render(request, "viewer/thresholds.html", {
+        "slug": slug or "",
+        "label": ds["label"] if ds else "전체",
+        "datasets": data.datasets(),
+        "fields": THRESHOLD_FIELDS,
+        "current": th.current_values(slug),
+        "defaults": dict(judge.DEFAULTS),
+        "presets": list(ThresholdSet.objects.values(
+            "id", "name", *judge.FIELDS)),
+        "spread": th.threshold_spread(slug),
+    })
+
+
+@require_POST
+def threshold_preview(request):
+    """문턱을 받아 전체 영향과 시야별 뒤집힘을 돌려준다. 저장하지 않는다."""
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return HttpResponseBadRequest("bad json")
+
+    slug = payload.get("slug") or None
+    try:
+        values = th.clean_values(payload.get("values") or {},
+                                 th.current_values(slug))
+    except ValueError as e:
+        return HttpResponseBadRequest(f"bad threshold: {e}")
+
+    pool = th.load_pool(slug)
+    result = th.preview(values, pool)
+    index = th.detection_index(slug)
+
+    # 영향 큰 순으로 — 볼 것이 위에 오게 한다
+    rows = []
+    for did, r in result["per_det"].items():
+        meta = index.get(did)
+        if not meta:
+            continue
+        flips = len(r["added"]) + len(r["removed"])
+        rows.append({**meta, "before": r["before"], "after": r["after"],
+                     "added": r["added"], "removed": r["removed"],
+                     "flips": flips})
+    rows.sort(key=lambda x: (-x["flips"], x["slug"], x["gid"]))
+
+    limit = max(1, min(int(payload.get("limit") or 24), 200))
+    verdicts = {}
+    for row in rows[:limit]:
+        verdicts[row["detection_id"]] = result["per_det"][row["detection_id"]]["verdict"]
+
+    return JsonResponse({
+        "ok": True,
+        "values": values,
+        "total": result["total"],
+        "classes": th.class_counts(values, pool),
+        "rows": rows[:limit],
+        "n_rows": len(rows),
+        "n_touched": result["total"]["touched"],
+        "verdicts": verdicts,
+    })
+
+
+@require_POST
+def threshold_apply(request):
+    """미리보기와 같은 판정을 실제로 저장한다."""
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return HttpResponseBadRequest("bad json")
+
+    slug = payload.get("slug") or None
+    try:
+        values = th.clean_values(payload.get("values") or {},
+                                 th.current_values(slug))
+    except ValueError as e:
+        return HttpResponseBadRequest(f"bad threshold: {e}")
+
+    run = Run.objects.create(kind="refilter", status="running",
+                             params={"values": values, "slide": slug or "*",
+                                     "via": "viewer"})
+    try:
+        out = th.apply_values(values, slug, run)
+    except Exception as e:                       # noqa: BLE001
+        run.status = "failed"
+        run.error = str(e)
+        run.finished_at = timezone.now()
+        run.save()
+        raise
+    run.status = "done"
+    run.finished_at = timezone.now()
+    run.save()
+    return JsonResponse({"ok": True, "run": run.pk, **out})
+
+
+def threshold_masks(request):
+    """시야 하나의 폴리곤. 슬라이더를 움직일 때마다 다시 받지 않게 따로 둔다.
+
+    폴리곤은 시야당 29 KB 로 무겁지만 문턱과 무관하다 — 한 번 받아 두고, 이후에는
+    판정(mask_key -> cls)만 갈아 끼우면 색이 바뀐다.
+    """
+    try:
+        det_id = int(request.GET.get("det", ""))
+    except ValueError:
+        return HttpResponseBadRequest("bad det")
+    det = Detection.objects.filter(pk=det_id, is_current=True).first()
+    if det is None:
+        raise Http404("unknown detection")
+    masks = []
+    for c in det.candidates.all():
+        pts = data.mask_points({"polygon": c.polygon})
+        if pts:
+            masks.append({"k": c.mask_key, "p": pts})
+    resp = JsonResponse({"ok": True, "masks": masks})
+    # 폴리곤은 검출이 바뀌지 않는 한 그대로다
+    resp["Cache-Control"] = "private, max-age=300"
+    return resp
+
+
+def threshold_history(request, slug=None):
+    """문턱을 언제 무엇으로 바꿨나. 되돌리기의 근거가 된다."""
+    runs = (Run.objects.filter(kind="refilter", status="done")
+            .order_by("-started_at")[:50])
+    rows = []
+    for r in runs:
+        v = (r.params or {}).get("values") or (r.params or {}).get("overrides") or {}
+        rows.append({
+            "id": r.pk,
+            "at": r.started_at.strftime("%m-%d %H:%M"),
+            "slide": (r.params or {}).get("slide", "*"),
+            "via": (r.params or {}).get("via", "cli"),
+            "values": v,
+            "counts": r.counts or {},
+        })
+    return JsonResponse({"ok": True, "rows": rows})
 
 
 def api_dataset(request, slug):
