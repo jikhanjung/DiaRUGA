@@ -160,15 +160,25 @@
   .vpimg polygon.round_frag { fill: rgba(60,205,205,.42); }
   .vpimg polygon.eucampia { fill: rgba(255,110,190,.45); }
   .vpimg polygon.none { fill: rgba(255,60,60,.28); }
-  /* 뒤집히는 것 — 이 문턱 때문에 빠지거나 들어오는 개체 */
+  /* 뒤집히는 것 — 이 문턱 때문에 빠지거나 들어오는 개체.
+     들어오는 것을 초록으로 두면 원형(초록 fill) 위에서 안 보인다. 분류에 안 쓰는
+     색을 골라야 한다 — 빠짐은 빨강, 들어옴은 노랑(선택 표시와 같은 색).
+     어두운 후광을 먼저 깔아 어떤 배경에서도 보이게 한다. */
+  .vpimg polygon.halo {
+    fill: none; stroke: rgba(0,0,0,.85); stroke-width: 7px;
+    vector-effect: non-scaling-stroke; stroke-linejoin: round;
+  }
   .vpimg polygon.flip-out {
-    fill: rgba(255,70,70,.30); stroke: #ff4d4d; stroke-width: 3px;
-    vector-effect: non-scaling-stroke;
+    fill: rgba(255,70,70,.22); stroke: #ff4d4d; stroke-width: 3px;
+    vector-effect: non-scaling-stroke; stroke-linejoin: round;
   }
   .vpimg polygon.flip-in {
-    fill: rgba(120,255,140,.32); stroke: #5ee87a; stroke-width: 3px;
-    vector-effect: non-scaling-stroke;
+    fill: rgba(255,210,63,.26); stroke: #ffd23f; stroke-width: 3px;
+    vector-effect: non-scaling-stroke; stroke-linejoin: round;
   }
+  /* 기존 검출을 끄면 바뀌는 것만 남는다 — 찾기가 훨씬 쉽다 */
+  .vpimg.only-flips polygon:not(.flip-in):not(.flip-out):not(.halo) { display: none; }
+  .vphead .up { color: #ffd23f; }
 
   /* --- 검출 개체 크롭 갤러리 ---
      테두리 색이 형태 판정이다 — 봉상/원형/수동복구를 사진과 같은 색으로 쓴다. */
