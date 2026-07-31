@@ -52,6 +52,7 @@ from django.conf import settings                                    # noqa: E402
 from django.db import transaction                                   # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
+import runlog                                                       # noqa: E402
 from viewer.models import Frame, Run, Slide, Stack, Viewpoint       # noqa: E402
 from zen_meta import ScaleLog, scaling_for, write_scale_sidecar     # noqa: E402
 
@@ -405,8 +406,8 @@ def main():
     del by_tag
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    run = Run.objects.create(
-        kind="stack", status="running", slide=slide,
+    run = runlog.start(
+        "stack", slide=slide,
         params={"scale": args.scale, "ecc": not args.no_ecc,
                 "soft": not args.hard, "conf_pct": args.conf_pct,
                 "min_n": args.min_n, "groups_json": args.groups_json},

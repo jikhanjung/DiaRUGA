@@ -42,6 +42,7 @@ django.setup()
 from django.conf import settings                                    # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
+import runlog                                                       # noqa: E402
 import scan_nas                                                     # noqa: E402
 from group_focus_series import (parse_sample_name, slide_slug,      # noqa: E402
                                 git_version, rel)
@@ -111,8 +112,8 @@ def main():
         print("\ndry-run — 아무것도 가져오지 않았다.")
         return 0
 
-    run = Run.objects.create(
-        kind="ingest", status="running",
+    run = runlog.start(
+        "ingest",
         params={"nas_root": res["nas_root"], "stable_min": args.stable_min,
                 "slides": [r["rel"] for r in todo]},
         host=os.uname().nodename, code_version=git_version())

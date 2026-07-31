@@ -12,10 +12,12 @@
 <div class="crumb"><a href="/">데이터셋</a> / {{ label }}</div>
 <h2>{{ label }}</h2>
 <p class="dim mono" style="font-size:12px; margin-bottom:2px">
-  {{ json_name }} · thresh {{ corr_thresh }} ·
+  {% if site %}{{ site }} · {% endif %}{% if core %}{{ core }} · {% endif %}{% if depth_cm %}{{ depth_cm|floatformat:"-1" }} cm · {% endif %}
+  {% if um_per_pixel %}{{ um_per_pixel|floatformat:4 }} µm/px · {% endif %}
   사진 {{ n_images }} → 그룹 {{ n_groups }} · 평균 {{ mean_size }}장 ·
   싱글턴 {{ singletons }} · 최대 {{ max_size }}장 ·
-  검토 완료 {{ reviewed_groups }}/{{ n_groups }}
+  검토 완료 {{ reviewed_groups }}/{{ n_groups }} ·
+  <a href="{% url 'dataset_edit' slug %}">속성 편집</a>
 </p>
 {% comment %}
   검출 결과와 사람 손이 들어간 양을 한 줄로. 재현율·정밀도를 논할 때 근거가

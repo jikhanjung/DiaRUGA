@@ -22,11 +22,14 @@ DB 로 옮기면서 달라진 것 (P02 6단계):
 남는다(`verify_db.py` 가 대조에 쓴다). 7단계에서 정리한다.
 """
 import argparse
+import contextlib
+import fcntl
 import json
 import os
 import socket
 import subprocess
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -46,6 +49,7 @@ from django.db import transaction                                   # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
 import rebind                                                       # noqa: E402
+import runlog                                                       # noqa: E402
 from viewer.models import (Candidate, Detection, Frame, Run,        # noqa: E402
                            ThresholdSet, Viewpoint)
 from judge import classify, dedupe                 # noqa: F401,E402 (외부에서 쓴다)
@@ -388,6 +392,42 @@ def threshold_set_for(values: dict) -> ThresholdSet:
                                        **values)
 
 
+@contextlib.contextmanager
+def gpu_lock(timeout: float = 7200.0):
+    """GPU 를 쓰는 작업이 한 번에 하나만 돌게 한다.
+
+    **부르는 쪽이 기억해야 하는 일로 두지 않는다.** 폴러는 `flock` 으로 자기들끼리
+    막지만, 사람이 손으로 돌릴 때 그것을 잊으면 겹친다. 이 장비는 8 GB 라 두
+    작업이 겹치면 둘 다 느려지거나 하나가 죽는다.
+
+    잠금 파일은 호스트와 컨테이너가 같은 경로로 보는 자리에 둔다. 컨테이너가
+    죽어도 파일 잠금은 커널이 풀어 준다 — 남은 파일이 막지 않는다.
+    """
+    path = Path(os.environ.get("DIATOM_GPU_LOCK",
+                               str(Path(settings.DATA_ROOT) / "locks" / "gpu.lock")))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fh = open(path, "w")
+    waited = 0.0
+    try:
+        while True:
+            try:
+                fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if waited >= timeout:
+                    raise SystemExit(
+                        f"다른 GPU 작업이 {timeout / 60:.0f}분 넘게 돌고 있다: {path}")
+                if waited == 0:
+                    print("다른 GPU 작업이 끝나기를 기다린다…", file=sys.stderr)
+                time.sleep(5.0)
+                waited += 5.0
+        if waited:
+            print(f"  {waited:.0f}초 기다렸다", file=sys.stderr)
+        yield
+    finally:
+        fh.close()          # 닫으면 잠금도 풀린다
+
+
 def mark_done_if_complete(slide) -> bool:
     """자동 처리가 다 끝났으면 슬라이드를 `done` 으로 연다.
 
@@ -681,8 +721,8 @@ def main():
 
     run = None
     if not args.no_db:
-        run = Run.objects.create(
-            kind="detect", status="running",
+        run = runlog.start(
+        "detect",
             params={"backend": args.backend, "scale": args.scale,
                     "points_per_side": args.points_per_side,
                     "min_um": args.min_um, "max_um": args.max_um,
@@ -729,6 +769,10 @@ def main():
                           file=sys.stderr)
             return
 
+    # GPU 를 잡는 것은 여기서부터다. 모델 적재도 VRAM 을 쓴다.
+    gpu = gpu_lock() if device == "cuda" else contextlib.nullcontext()
+    stack_ctx = contextlib.ExitStack()
+    stack_ctx.enter_context(gpu)
     gen = load_generator(args.backend, device, args)
     scale_log = ScaleLog()
     n_det = n_cand = n_oom = 0
@@ -772,6 +816,8 @@ def main():
             run.counts = {"detections": n_det, "candidates": n_cand}
             run.save()
         raise
+
+    stack_ctx.close()          # GPU 를 놓는다. 뒷정리는 DB 작업뿐이다
 
     if run:
         run.status = "done"

@@ -44,8 +44,8 @@ from django.db import transaction                                   # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
 import zen_meta                                                     # noqa: E402
-from viewer.models import (Core, Frame, Run, Site, Slide,           # noqa: E402
-                           Viewpoint)
+import runlog                                                       # noqa: E402
+from viewer.models import (Core, Frame, Site, Slide, Viewpoint)     # noqa: E402
 # XML 을 찾는 규칙은 zen_meta 한 곳에만 둔다
 from zen_meta import read_timestamp                                 # noqa: E402
 
@@ -224,9 +224,17 @@ def main():
     ap.add_argument("--blur", type=float, default=2.0)
     ap.add_argument("--max-gap-sec", type=float, default=0.0,
                     help=">0 이면 이 시간 이상 벌어진 경우 상관계수와 무관하게 분리")
-    ap.add_argument("--min-gap", type=float, default=0.05,
+    # 실측 4개 슬라이드: 0.100 · 0.554 · 0.623 · 0.664. 정상인 셋은 0.55 이상이고
+    # 하나만 0.100 이다. 0.2 로 두면 그 하나가 걸리고 나머지는 여유 있게 통과한다.
+    # 뜻으로 보면 "임계값을 ±0.1 움직여도 그룹이 안 바뀌는가" 다.
+    ap.add_argument("--min-gap", type=float, default=0.2,
                     help="그룹 안 최소 상관과 경계 최대 상관의 최소 여유. "
                          "이보다 좁으면 임계값이 분포 한가운데를 자르는 것이다")
+    # 같은 시야로 묶인 사진끼리도 이만큼은 닮아야 한다. 실측에서 정상은
+    # 0.90~0.99 인데 미심쩍은 슬라이드 하나가 0.594 였다 — 여유와 별개 신호다.
+    ap.add_argument("--min-within", type=float, default=0.8,
+                    help="그룹 안 최소 상관의 하한. 이보다 낮으면 같은 시야가 "
+                         "아닌 사진이 한 그룹에 들어갔을 수 있다")
     ap.add_argument("--force", action="store_true",
                     help="이미 검출·교정이 있는 슬라이드도 다시 묶는다 (아래를 읽을 것)")
     ap.add_argument("--dry-run", action="store_true",
@@ -250,6 +258,17 @@ def main():
                 f"{existing.slug} 은 이미 검출 {n_det}건 · 교정 {n_rev}건이 있다.\n"
                 f"  다시 묶으면 시야가 재편되어 그 아래가 통째로 어긋난다.\n"
                 f"  정말 다시 묶으려면 --force (교정은 mask_key 로 남지만 고아가 된다).")
+
+    # Run 을 계산 **전에** 연다. 끝난 뒤에 만들면 DB 쓰기 시간(2초)만 잡히고
+    # 실제 소요(412장에 31초)가 기록되지 않는다.
+    run = None
+    if not args.dry_run:
+        run = runlog.start(
+            "group",
+            params={"corr_thresh": args.corr_thresh, "blur": args.blur,
+                    "max_gap_sec": args.max_gap_sec, "dir": rel(slide_dir),
+                    "n_images": len(files)},
+            host=socket.gethostname(), code_version=git_version())
 
     fps = [fingerprint(f, args.blur) for f in files]
     times = [read_timestamp(f) for f in files]
@@ -295,12 +314,18 @@ def main():
           f"경계 최대 {sep['between_max']} · 여유 {sep['gap']}")
     print(f"단독 그룹 {singles}/{len(groups)}개")
 
-    suspect = sep["gap"] is not None and sep["gap"] < args.min_gap
+    why = []
+    if sep["gap"] is not None and sep["gap"] < args.min_gap:
+        why.append(f"여유가 좁다 ({sep['gap']} < {args.min_gap}) — "
+                   f"임계값 {args.corr_thresh} 을 조금만 움직여도 그룹이 바뀐다")
+    if sep["within_min"] is not None and sep["within_min"] < args.min_within:
+        why.append(f"그룹 안 최소 상관이 낮다 ({sep['within_min']} < {args.min_within}) "
+                   f"— 같은 시야가 아닌 사진이 한 그룹에 들어갔을 수 있다")
+    suspect = bool(why)
     if suspect:
-        print(f"\n** 분포가 양분되지 않는다 (여유 {sep['gap']} < {args.min_gap}).\n"
-              f"   임계값 {args.corr_thresh} 이 분포 한가운데를 자르고 있다 —\n"
-              f"   이대로 두면 조용히 잘못 묶인다. 사람이 봐야 한다.",
-              file=sys.stderr)
+        print("\n** 그룹핑이 미심쩍다. 사람이 봐야 한다.", file=sys.stderr)
+        for w in why:
+            print(f"   - {w}", file=sys.stderr)
 
     if args.out:
         Path(args.out).write_text(json.dumps(out, indent=2), encoding="utf-8")
@@ -310,12 +335,6 @@ def main():
         print("\ndry-run — DB 에 쓰지 않았다.")
         return
 
-    run = Run.objects.create(
-        kind="group", status="running",
-        params={"corr_thresh": args.corr_thresh, "blur": args.blur,
-                "max_gap_sec": args.max_gap_sec, "dir": rel(slide_dir),
-                "n_images": len(files)},
-        host=socket.gethostname(), code_version=git_version())
     try:
         slide = save_grouping(slide_dir, files, groups, sharps, times,
                               args, sep, run)
@@ -324,9 +343,8 @@ def main():
             # 자동으로 넘기지 않는다. 잘못 묶인 시야 위에 쌓은 검출과 교정은
             # 나중에 되돌리기가 훨씬 비싸다 (P01 §1).
             slide.state = "failed"
-            slide.state_note = (f"상관계수 분포가 양분되지 않는다 "
-                                f"(여유 {sep['gap']} < {args.min_gap}, "
-                                f"단독 그룹 {singles}/{len(groups)}). 사람이 볼 것")
+            slide.state_note = ("그룹핑이 미심쩍다 — " + " · ".join(why) +
+                                f" (단독 그룹 {singles}/{len(groups)})")
             slide.save(update_fields=["state", "state_note"])
     except Exception as e:
         run.status = "failed"

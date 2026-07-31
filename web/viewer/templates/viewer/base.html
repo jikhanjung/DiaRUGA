@@ -9,12 +9,23 @@
     --bg: #0f1115; --panel: #171a21; --line: #262b36;
     --fg: #e6e9ef; --dim: #8b93a3; --accent: #5ac8fa; --warn: #ffb454;
     --good: #7ee787; --danger: #ff6b6b;
+    /* 알림 배너 — 밝은 화면에서도 읽히도록 테마마다 따로 준다.
+       배경만 정하고 글자색을 상속시키면 한쪽 테마에서 묻힌다. */
+    --ok-bg: #14361f;   --ok-fg: #c9f5d8;   --ok-line: #2c6b41;
+    --err-bg: #4a1d1d;  --err-fg: #ffd9d9;  --err-line: #7d2f2f;
+    --warn-bg: #4a3a12; --warn-fg: #ffe9b8; --warn-line: #7d6222;
+    /* 입력칸. 패널보다 살짝 눌러 앉은 면 */
+    --field-bg: #0e0e11;
   }
   @media (prefers-color-scheme: light) {
     :root {
       --bg: #f6f7f9; --panel: #fff; --line: #e0e3e9;
       --fg: #1a1d23; --dim: #6b7280; --accent: #0b7ec4; --warn: #b45309;
       --good: #15803d; --danger: #dc2626;
+      --ok-bg: #e8f7ee;   --ok-fg: #14532d;  --ok-line: #a7d9bb;
+      --err-bg: #fdecec;  --err-fg: #7f1d1d; --err-line: #f0b4b4;
+      --warn-bg: #fdf3e0; --warn-fg: #7c4a03; --warn-line: #e8c98a;
+      --field-bg: #fff;
     }
   }
   * { box-sizing: border-box; }

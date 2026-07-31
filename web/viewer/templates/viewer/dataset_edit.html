@@ -126,7 +126,7 @@
   .propform input, .propform textarea {
     display: block; width: 100%; margin-top: 4px; box-sizing: border-box;
     font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 5px;
-    background: #0e0e11; color: inherit; border: 1px solid var(--line);
+    background: var(--field-bg); color: var(--fg); border: 1px solid var(--line);
   }
   .propform input:focus, .propform textarea:focus { outline: none; border-color: var(--accent); }
   .propform .hint { display: block; margin-top: 3px; font-size: 11px; color: var(--dim); }
@@ -148,7 +148,7 @@
   .okbar, .errbar {
     padding: 9px 13px; border-radius: 6px; margin-bottom: 13px; font-size: 13px;
   }
-  .okbar { background: #14361f; color: #c9f5d8; border: 1px solid #2c6b41; }
-  .errbar { background: #4a1d1d; color: #ffd9d9; border: 1px solid #7d2f2f; }
+  .okbar { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid var(--ok-line); }
+  .errbar { background: var(--err-bg); color: var(--err-fg); border: 1px solid var(--err-line); }
 </style>
 {% endblock %}

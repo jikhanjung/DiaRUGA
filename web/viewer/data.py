@@ -11,6 +11,7 @@
 """
 import math
 import re
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from django.conf import settings
@@ -259,12 +260,15 @@ def scales_by_slide() -> dict:
     같은 시료를 40x 와 100x 로 찍으면 texture 중앙값이 1,903 대 109 다(devlog 013).
     크기(µm)와 비율 지표는 배율과 무관하다.
     """
-    out = {}
+    # 재검출이 도는 중에는 한 슬라이드 안에 옛 값과 새 값이 섞인다. 처음 만난
+    # 것을 집으면 진행 상황에 따라 표시가 널뛴다 — 가장 많은 쪽을 쓴다.
+    # 한 슬라이드 안이 갈라진 것 자체는 check_db 가 따로 잡는다.
+    per = defaultdict(Counter)
     for d in (Detection.objects.filter(is_current=True,
                                        um_per_pixel__isnull=False)
               .select_related("viewpoint__slide")):
-        out.setdefault(d.viewpoint.slide.slug, round(d.um_per_pixel, 9))
-    return out
+        per[d.viewpoint.slide.slug][round(d.um_per_pixel, 9)] += 1
+    return {slug: c.most_common(1)[0][0] for slug, c in per.items()}
 
 
 def preview_detection(vp: Viewpoint) -> dict | None:
@@ -533,8 +537,14 @@ def dataset_detail(slug: str) -> dict | None:
     return {
         "slug": slug,
         "label": slide.name,
-        "json_name": f"groups_{slide.slug}.json",
+        # groups_*.json 은 파이프라인에서 빠졌다(P02 7단계). 파일 이름 대신
+        # 시료가 무엇이고 어떤 배율로 찍혔는지를 보인다.
         "corr_thresh": slide.corr_thresh,
+        "site": (slide.core.site.region or slide.core.site.name
+                 or slide.core.site.code) if slide.core else "",
+        "core": slide.core.code if slide.core else "",
+        "depth_cm": slide.depth_cm,
+        "um_per_pixel": scales_by_slide().get(slide.slug),
         "groups": groups,
         **_slide_summary(slide, details),
     }
