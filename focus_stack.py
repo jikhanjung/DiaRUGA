@@ -14,18 +14,93 @@ group_focus_series.py 가 만든 groups.json 을 입력으로 받는다.
      규조류 피각의 입체 구조가 여기에 드러난다.
 
 사용 예:
-    python focus_stack.py groups_RS23.json -o stacked/
-    python focus_stack.py groups_RS23.json -o stacked/ --only 0 1 2
+    python focus_stack.py groups_RS23.json --dry-run
+    python focus_stack.py groups_RS23.json
+    python focus_stack.py groups_RS23.json --only 0 1 2
+
+DB 로 옮기면서 달라진 것 (P02 6단계):
+
+- **`stack_report.json` 이 없어졌다.** 슬라이드마다 덮어써져서, 마지막으로 돌린
+  것만 남고 나머지는 사라졌다. 이제 시야마다 `Stack` 행이다
+- 실행이 `Run(kind=stack)` 에 남는다 — 무슨 설정으로 몇 개를 합성했는지
+- **이미지 경로를 DB 에서 얻는다.** groups.json 의 `dir` 은 사진을 옮기면 낡는다
+  (실제로 `260729/…` 를 가리킨 채 남아 있었다). 어느 시야의 어느 프레임인지는
+  DB 가 안다 — JSON 은 아직 "무엇이 한 그룹인가" 만 알려 준다
+  (`group_focus_series.py` 가 6단계 마지막이라 그렇다)
+
+이미지 파일 자체는 그대로 파일로 둔다. `*_scale.json` 사이드카도 계속 쓴다 —
+`segment_diatoms.py` 가 아직 그것을 읽는다 (6단계에서 다음 차례다).
 """
 import argparse
 import json
+import os
+import socket
+import subprocess
 import sys
 from pathlib import Path
 
 import cv2
 import numpy as np
+import django
 
-from zen_meta import ScaleLog, scaling_for, write_scale_sidecar
+sys.path.insert(0, str(Path(__file__).resolve().parent / "web"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+django.setup()
+
+from django.conf import settings                                    # noqa: E402
+from django.db import transaction                                   # noqa: E402
+from django.utils import timezone                                   # noqa: E402
+
+from viewer.models import Frame, Run, Slide, Stack, Viewpoint       # noqa: E402
+from zen_meta import ScaleLog, scaling_for, write_scale_sidecar     # noqa: E402
+
+
+def git_version():
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                             capture_output=True, text=True, timeout=5,
+                             cwd=Path(__file__).resolve().parent)
+        return out.stdout.strip() if out.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def rel(p) -> str:
+    """DATA_ROOT 기준 상대경로. DB 는 이 형태로만 경로를 담는다."""
+    p = Path(p)
+    if not p.is_absolute():
+        return str(p)
+    try:
+        return str(p.relative_to(Path(settings.DATA_ROOT)))
+    except ValueError:
+        return str(p)
+
+
+def resolve_slide(groups_dir: str, want: str | None) -> Slide:
+    """groups.json 의 dir 로 슬라이드를 찾는다.
+
+    경로를 그대로 믿지 않는다 — 사진을 옮기면 JSON 은 낡은 채 남는다. 폴더
+    이름으로 맞추되, 촬영일이 다른 같은 이름이 둘이면 사람에게 묻는다
+    (photos/<촬영일>/<슬라이드>/ 구조라 그 상황이 실제로 가능하다).
+    """
+    if want:
+        try:
+            return Slide.objects.get(slug=want)
+        except Slide.DoesNotExist:
+            raise SystemExit(f"그런 슬라이드가 없다: {want}")
+
+    name = Path(groups_dir).name
+    hits = [s for s in Slide.objects.all() if Path(s.image_dir).name == name]
+    if not hits:
+        raise SystemExit(
+            f"'{name}' 에 맞는 슬라이드가 DB 에 없다.\n"
+            f"  groups.json 의 dir: {groups_dir}\n"
+            f"  아직 임포트하지 않았는가?")
+    if len(hits) > 1:
+        opts = " · ".join(f"{s.slug}({s.image_dir})" for s in hits)
+        raise SystemExit(f"'{name}' 이 여럿이다 — --slide 로 고를 것: {opts}")
+    return hits[0]
 
 
 def align_to_reference(ref_gray, img, img_gray, use_ecc=True):
@@ -114,7 +189,12 @@ def carry_scaling(paths, scale, out_img, tag, scale_log=None):
                         stacked_from=[p.name for p in paths])
     if scale_log is not None:
         scale_log.add(tag, um)
-    return um
+    # 사이드카에 적는 것과 같은 값을 Stack 행에도 넣는다. 사이드카는
+    # segment_diatoms.py 가 아직 읽으므로 둘 다 남긴다 (6단계 다음 차례).
+    return {"um_per_pixel": um,
+            "native_um_per_pixel": native,
+            "resize_scale": scale,
+            "um_per_pixel_source": scalings[0]["source"]}
 
 
 def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag, scale_log=None):
@@ -170,7 +250,7 @@ def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag, scale_log=N
 
     out_img = out_dir / f"{tag}_focused.jpg"
     cv2.imwrite(str(out_img), fused, [cv2.IMWRITE_JPEG_QUALITY, 92])
-    um_per_px = carry_scaling(paths, scale, out_img, tag, scale_log)
+    sc = carry_scaling(paths, scale, out_img, tag, scale_log)
     cv2.imwrite(str(out_dir / f"{tag}_depth.jpg"), depth_vis,
                 [cv2.IMWRITE_JPEG_QUALITY, 92])
     np.savez_compressed(str(out_dir / f"{tag}_depth.npz"),
@@ -189,17 +269,61 @@ def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag, scale_log=N
           f"local sharpness (object px) best-single {best_single:.2f} -> "
           f"fused {fused_mean:.2f} ({fused_mean / max(best_single, 1e-6):.2f}x)")
     return {"tag": tag, "n": len(paths), "ref": paths[ref_i].stem,
-            "align_failed": n_failed, "um_per_pixel": round(um_per_px, 8),
+            "align_failed": n_failed,
+            # 배율은 반올림하지 않는다. 계측의 기준이고, 사이드카·Frame 과 값이
+            # 어긋나면 check_db 의 "배율이 하나다" 검사가 둘로 갈라진다.
+            "um_per_pixel": sc["um_per_pixel"],
+            "native_um_per_pixel": sc["native_um_per_pixel"],
+            "resize_scale": sc["resize_scale"],
+            "um_per_pixel_source": sc["um_per_pixel_source"],
             "object_px_frac": round(float(m.mean()), 4),
             "sharpness_best_single": round(best_single, 3),
             "sharpness_fused": round(fused_mean, 3),
             "gain": round(fused_mean / max(best_single, 1e-6), 3)}
 
 
+def save_stack(vp: Viewpoint, out_dir: Path, r: dict, run: Run) -> None:
+    """합성 결과를 Stack 행으로 남긴다.
+
+    Viewpoint 당 하나(OneToOne)라 다시 합성하면 덮어쓴다. 검출과 달리 쌓지 않는
+    이유는 합성본이 재생성 가능한 산출물이고 사람의 교정이 붙지 않기 때문이다 —
+    교정은 mask_key 로 검출에 붙는다.
+    """
+    focused = out_dir / f"{r['tag']}_focused.jpg"
+    depth = out_dir / f"{r['tag']}_depth.jpg"
+    npz = out_dir / f"{r['tag']}_depth.npz"
+
+    ref = Frame.objects.filter(slide=vp.slide, name=r["ref"]).first()
+    if ref is None:
+        # 프레임을 못 찾아도 합성 자체는 유효하다. 조용히 넘기지 않고 알린다.
+        print(f"  {r['tag']}: 경고 — 기준 프레임 {r['ref']} 을 DB 에서 못 찾았다",
+              file=sys.stderr)
+
+    Stack.objects.update_or_create(
+        viewpoint=vp,
+        defaults=dict(
+            focused_path=rel(focused),
+            depth_path=rel(depth) if depth.exists() else "",
+            depth_npz_path=rel(npz) if npz.exists() else "",
+            um_per_pixel=r["um_per_pixel"],
+            native_um_per_pixel=r["native_um_per_pixel"],
+            resize_scale=r["resize_scale"],
+            um_per_pixel_source=r["um_per_pixel_source"],
+            ref_frame=ref,
+            align_failed=r["align_failed"],
+            object_px_frac=r["object_px_frac"],
+            sharpness_best_single=r["sharpness_best_single"],
+            sharpness_fused=r["sharpness_fused"],
+            gain=r["gain"],
+            run=run))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("groups_json")
-    ap.add_argument("-o", "--out", default="stacked")
+    ap.add_argument("-o", "--out", default=None,
+                    help="기본값은 DATA_ROOT/stacked")
+    ap.add_argument("--slide", help="슬라이드 slug (폴더 이름이 겹칠 때만 필요)")
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--min-n", type=int, default=2,
                     help="이 장수 미만인 그룹은 건너뜀 (단발 촬영)")
@@ -209,29 +333,90 @@ def main():
                     help="soft blending 대신 픽셀별 최선명 장을 그대로 선택")
     ap.add_argument("--conf-pct", type=float, default=90.0,
                     help="깊이 맵 신뢰 영역 퍼센타일 (높을수록 물체만 남음)")
+    ap.add_argument("--force", action="store_true",
+                    help="이미 합성된 시야도 다시 합성한다")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="무엇을 할지만 보여 준다. 파일도 DB 도 건드리지 않는다")
     args = ap.parse_args()
 
     meta = json.loads(Path(args.groups_json).read_text(encoding="utf-8"))
-    root = Path(meta["dir"])
-    out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    slide = resolve_slide(meta["dir"], args.slide)
 
-    results = []
-    scale_log = ScaleLog()
+    # 사진이 어디 있는지는 DB 가 안다. groups.json 의 dir 은 옮기면 낡는다.
+    root = Path(settings.DATA_ROOT) / slide.image_dir
+    out_dir = Path(args.out) if args.out else (Path(settings.DATA_ROOT)
+                                               / settings.STACK_DIR)
+
+    # 시야를 tag 로 찾는다 — group_focus_series.py 가 만든 그 이름이다
+    by_tag = {vp.tag: vp for vp in slide.viewpoints.all()}
+    done = {vp.tag for vp in slide.viewpoints.filter(stack__isnull=False)}
+
+    todo, skipped, missing = [], [], []
     for g in meta["groups"]:
         if args.only is not None and g["id"] not in args.only:
             continue
         if g["n"] < args.min_n:
             continue
-        paths = [root / f"{name}.jpg" for name in g["images"]]
         tag = f"g{g['id']:03d}_{g['images'][0]}-{g['images'][-1].split('-')[-1]}"
-        results.append(stack_group(paths, args.scale, not args.no_ecc,
-                                   not args.hard, args.conf_pct, out_dir, tag,
-                                   scale_log))
+        vp = by_tag.get(tag)
+        if vp is None:
+            missing.append(tag)
+            continue
+        if tag in done and not args.force:
+            skipped.append(tag)
+            continue
+        todo.append((g, tag, vp))
 
-    (out_dir / "stack_report.json").write_text(
-        json.dumps(results, indent=2), encoding="utf-8")
-    print(f"\n{len(results)} groups stacked -> {out_dir}")
+    print(f"슬라이드 {slide.slug} · 시야 {len(by_tag)}개 · "
+          f"합성 대상 {len(todo)}개 (완료 {len(skipped)} 건너뜀)")
+    if missing:
+        # 조용히 넘기지 않는다 — 그룹핑과 DB 가 어긋났다는 뜻이다
+        print(f"  경고: DB 에 없는 시야 {len(missing)}개 — "
+              f"{', '.join(missing[:3])}{' …' if len(missing) > 3 else ''}",
+              file=sys.stderr)
+    if not todo:
+        return
+
+    if args.dry_run:
+        for _, tag, _ in todo:
+            print(f"  합성할 것: {tag}")
+        print(f"\ndry-run — {len(todo)}개. 아무것도 쓰지 않았다.")
+        return
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    run = Run.objects.create(
+        kind="stack", status="running", slide=slide,
+        params={"scale": args.scale, "ecc": not args.no_ecc,
+                "soft": not args.hard, "conf_pct": args.conf_pct,
+                "min_n": args.min_n, "groups_json": args.groups_json},
+        host=socket.gethostname(), code_version=git_version())
+
+    scale_log = ScaleLog()
+    n_ok = 0
+    try:
+        for g, tag, vp in todo:
+            paths = [root / f"{name}.jpg" for name in g["images"]]
+            r = stack_group(paths, args.scale, not args.no_ecc, not args.hard,
+                            args.conf_pct, out_dir, tag, scale_log)
+            # 그룹 하나마다 커밋한다. 합성이 그룹당 17초라 전체를 한 트랜잭션으로
+            # 묶으면 그동안 뷰어의 쓰기가 막히고, 중간에 끊기면 전부 잃는다.
+            with transaction.atomic():
+                save_stack(vp, out_dir, r, run)
+            n_ok += 1
+    except Exception as e:
+        run.status = "failed"
+        run.error = f"{type(e).__name__}: {e}"
+        run.finished_at = timezone.now()
+        run.counts = {"stacked": n_ok, "planned": len(todo)}
+        run.save()
+        raise
+
+    run.status = "done"
+    run.finished_at = timezone.now()
+    run.counts = {"stacked": n_ok, "skipped": len(skipped),
+                  "missing_viewpoint": len(missing)}
+    run.save()
+    print(f"\n합성 {n_ok}개 -> {out_dir} · Run #{run.pk}")
 
 
 if __name__ == "__main__":

@@ -46,8 +46,6 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.pipeline
-      args:
-        BASE: diatom-base:latest
     image: diatom-pipeline:latest
     profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
     volumes:
