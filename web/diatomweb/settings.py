@@ -16,6 +16,31 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR.parent
 
+
+def _load_dotenv(path):
+    """프로젝트 루트의 .env 를 환경변수로 올린다 (이미 있는 값은 덮지 않는다).
+
+    사진이 저장소 밖(/data3/diatom)으로 나가면서 호스트에서 스크립트를 그냥
+    돌렸을 때도 데이터 위치를 알아야 해서 둔다 (P03). 컨테이너는 compose 가
+    환경변수를 직접 주므로 이 파일 없이도 돈다 — 그래서 없어도 조용히 넘어간다.
+
+    라이브러리를 하나 더 들이지 않으려고 최소한만 읽는다. KEY=VALUE 와 주석뿐,
+    따옴표·여러 줄·치환은 다루지 않는다.
+    """
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+_load_dotenv(PROJECT_ROOT / ".env")
+
 # 사내망 분석용 뷰어. 인증이 없으므로 공개망에 그대로 올릴 물건이 아니다.
 SECRET_KEY = os.environ.get("DIATOM_SECRET_KEY", "dev-only-not-a-secret")
 DEBUG = os.environ.get("DIATOM_DEBUG", "1") == "1"
@@ -27,8 +52,8 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "[::1]",
-    "172.16.112.150",   # 이 서버의 사내망 주소
-    "jikhanserver",
+    "172.16.116.98",    # 이 서버의 사내망 주소
+    "paleo-server",
 ]
 ALLOWED_HOSTS += [h.strip() for h in os.environ.get("DIATOM_HOSTS", "").split(",") if h.strip()]
 
@@ -86,8 +111,14 @@ USE_TZ = True
 # --- 뷰어 전용 설정 -------------------------------------------------------
 
 # 원본 이미지와 산출물이 놓인 곳. 이미지 서빙은 이 목록 안으로만 허용한다.
-DATA_ROOT = PROJECT_ROOT
-IMAGE_DIRS = ["260729", "stacked", "out", "out_hi"]
+#
+# 뿌리를 환경변수로 뺀 것은 컨테이너 때문이다 (P03). 컨테이너 안에서는 /data 로,
+# 호스트에서는 /data3/diatom 으로 같은 디렉토리를 가리킨다. 경로는 전부 이 뿌리
+# 기준 상대경로로 다루므로(data.py:_rel), 뿌리만 바꾸면 나머지는 그대로 돈다.
+DATA_ROOT = Path(os.environ.get("DIATOM_DATA_ROOT", PROJECT_ROOT))
+# 260729 이 photos 로 바뀐 것은 이름이 날짜였기 때문이다 — 슬라이드가 NAS 에서
+# 계속 들어오는데 첫 촬영일이 디렉토리 이름으로 남아 있을 이유가 없다 (P03).
+IMAGE_DIRS = ["photos", "stacked", "out", "out_hi"]
 
 # 검출 결과(<stem>_candidates.json)를 찾을 순서.
 DETECT_DIRS = ["out_hi", "out"]
@@ -97,7 +128,14 @@ STACK_DIR = "stacked"
 
 # 사람이 교정한 결과(오검출 제거 / 누락 복구). 산출물이 아니라 사람의 판단이므로
 # out/ 과 달리 재생성되지 않는다 — 지우면 복구할 수 없다.
+#
+# 그래서 이것만은 DATA_ROOT 를 따라가지 않는다. 사진·산출물은 용량 때문에
+# /data3 로 나갔지만 review/ 는 git 이 추적하는 감사 기록이라 저장소에 남는다 (P03).
+REVIEW_ROOT = PROJECT_ROOT
 REVIEW_DIR = "review"
 
 # 썸네일 캐시. 원본이 2752x2208 이라 그리드에 원본을 그대로 물리면 못 쓴다.
-THUMB_CACHE = BASE_DIR / ".thumbcache"
+#
+# 컨테이너에서는 이미지 안(/app)이 읽기 전용이나 마찬가지라 여기 못 쓴다.
+# 데이터 쪽으로 빼면 이미지를 다시 구워도 캐시가 살아남는다 (P03).
+THUMB_CACHE = Path(os.environ.get("DIATOM_THUMB_CACHE", BASE_DIR / ".thumbcache"))

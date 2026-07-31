@@ -354,7 +354,7 @@ def import_reviews():
     n_vp = n_obj = 0
     bind = {"exact": 0, "orphan": 0}
     missing = []
-    for path in sorted((ROOT / settings.REVIEW_DIR).glob("*_review.json")):
+    for path in sorted((Path(settings.REVIEW_ROOT) / settings.REVIEW_DIR).glob("*_review.json")):
         stem = path.name[: -len("_review.json")]
         vp, _, _ = find_viewpoint(stem)
         if vp is None:

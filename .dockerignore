@@ -1,0 +1,44 @@
+# 빌드 컨텍스트에서 뺄 것 (P03).
+#
+# docker 는 .gitignore 를 보지 않는다. 이 파일이 없으면 260729/(994 MB)와
+# backup/(3.3 GB)까지 컨텍스트로 올라가 빌드가 몇 분씩 걸린다.
+#
+# 데이터는 이미지에 굽지 않는다 — 전부 /data 로 마운트해서 본다.
+
+.git/
+.gitignore
+__pycache__/
+*.pyc
+
+# 데이터와 산출물 — 컨테이너는 /data 마운트로 본다
+260729/
+photos/
+out/
+out_hi/
+stacked/
+review/
+*.npy
+
+# DB 와 백업 — 마운트해서 쓴다. 이미지에 구우면 사본이 갈라진다
+diatom.db
+diatom.db-wal
+diatom.db-shm
+backup/
+
+# 썸네일 캐시 — 컨테이너가 다시 만든다
+web/.thumbcache/
+
+# 호스트 venv
+.venv/
+
+# 장비별 설정. 컨테이너는 compose 가 환경변수를 직접 준다 — 이미지에 구우면
+# 호스트의 데이터 경로와 (앞으로는) 비밀키까지 이미지에 박힌다
+.env
+
+# 문서·보고서. 이미지에 넣을 이유가 없다
+docs/
+devlog/
+*.docx
+
+# groups_*.json 은 제외하지 않는다 — git 이 추적하는 그룹핑 결과이고
+# run_batch.sh 가 읽는다. P02 6단계에서 DB 로 들어가면 사라진다

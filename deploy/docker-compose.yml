@@ -1,0 +1,66 @@
+# diatom 이미지를 굽는 구성 (P03).
+#
+#   docker compose -f deploy/docker-compose.yml build          # 둘 다
+#   docker compose -f deploy/docker-compose.yml build web      # 뷰어만 (빠르다)
+#
+# **운영은 이 파일로 하지 않는다.** 배포는 /srv/diatom/docker-compose.yml 이다
+# (phyloserver 와 같은 갈래 — 저장소는 굽고, /srv/<앱>/ 은 돌린다):
+#
+#   cd /srv/diatom && docker compose up -d web
+#   cd /srv/diatom && docker compose run --rm pipeline <명령>
+#
+# 그래도 여기서 바로 돌려볼 수 있게 마운트는 배포와 같게 맞춰 두었다.
+# 컨테이너 안팎의 경로가 같아서 명령을 그대로 옮겨 쓸 수 있다.
+
+x-common: &common
+  # root 로 돌면 diatom.db 소유자가 바뀌어 호스트의 backup_db.py·check_db.py 가
+  # 못 쓰게 된다. 교정이 재생성 불가라 이건 양보할 수 없다.
+  user: "1000:1000"
+  environment: &common-env
+    DIATOM_DB: /srv/diatom/diatom.db
+    DIATOM_DATA_ROOT: /data3/diatom
+    DIATOM_THUMB_CACHE: /data3/diatom/.thumbcache
+    DIATOM_DEBUG: "0"
+    DIATOM_SECRET_KEY: ${DIATOM_SECRET_KEY:-dev-only-not-a-secret}
+    DIATOM_HOSTS: ${DIATOM_HOSTS:-}
+  volumes:
+    # DB 가 있는 곳. **파일이 아니라 디렉토리째로** 물린다 — WAL 이 만드는
+    # -wal·-shm 형제가 컨테이너 안쪽에 생기면 호스트와 WAL 을 공유하지 못한다.
+    - /srv/diatom:/srv/diatom
+    # 사진·산출물
+    - /data3/diatom:/data3/diatom
+
+services:
+  web:
+    <<: *common
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.base
+    image: diatom-base:latest
+    entrypoint: ["/app/deploy/entrypoint-web.sh"]
+    ports:
+      - "127.0.0.1:8090:9090"
+
+  pipeline:
+    <<: *common
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.pipeline
+      args:
+        BASE: diatom-base:latest
+    image: diatom-pipeline:latest
+    profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
+    volumes:
+      - /srv/diatom:/srv/diatom
+      - /data3/diatom:/data3/diatom
+      # NAS 는 **읽기 전용**. 촬영 원본을 건드리지 않는다 (P01 §1)
+      - /nfs/temp-share/DiatomPhotos:/nfs/temp-share/DiatomPhotos:ro
+      # SAM2 가중치. 없으면 실행마다 HuggingFace 에서 다시 받는다
+      - /data3/diatom/hf:/hf
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

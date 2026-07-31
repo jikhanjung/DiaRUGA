@@ -263,3 +263,91 @@ opencv-headless · numpy · pillow.
 | Run | — | **25** |
 
 분류 내역: `rod_frag` 118 · `round_frag` 120 · `rod` 29 · `eucampia` 21 · `round` 5
+
+---
+
+## 9. 컨테이너로 옮겼다 (2026-07-31, P03)
+
+**뷰어는 이제 컨테이너로 돈다.** 파이프라인 이미지도 있지만 아직 상주하지 않는다.
+자세한 것은 `devlog/20260731_008_containerize.md`, 계획은 `20260731_P03_*`.
+
+### 9.1 어디서 무엇이 도는가
+
+```
+바깥 :9090 ──nginx──▶ 127.0.0.1:8090 ──▶ diatom-web-1 (gunicorn, uid 1000)
+                                              │
+/srv/diatom/    docker-compose.yml  .env  ────┤  배포. diatom.db 가 여기 있다
+/data3/diatom/  photos/<촬영일>/<슬라이드>/  ──┘  사진·산출물·백업·HF 캐시
+                stacked/ out/ backup/ hf/
+```
+
+**저장소는 굽고, `/srv/diatom` 은 돌린다** (phyloserver 와 같은 갈래).
+컨테이너 안팎의 경로는 같다 — 명령을 그대로 옮겨 쓸 수 있다.
+
+```bash
+cd /srv/diatom && docker compose up -d web                    # 뷰어 (배포)
+cd /srv/diatom && docker compose run --rm pipeline <명령>      # GPU, 일회성
+
+docker compose -f deploy/docker-compose.yml build web         # 이미지 굽기 (저장소)
+```
+
+### 9.2 데이터가 저장소 밖으로 나갔다
+
+사진·산출물은 `/data3/diatom/` 이다. `/` 가 74% 차 있었고 슬라이드가 계속 들어온다.
+
+- 위치는 `.env` 의 `DIATOM_DATA_ROOT` 가 알려 준다 (`.env.template` 이 견본,
+  `.env` 는 gitignore). **없으면 호스트에서 `check_db.py` 가 사진을 못 찾는다**
+- `photos/` 아래는 `<촬영일>/<슬라이드>/` 두 단계다 — NAS 구조와 1:1 이다.
+  평탄하게 펴면 같은 슬라이드를 다시 촬영했을 때 이름이 부딪힌다
+- **`review/`(124개)와 `groups_*.json`(3개)은 저장소에 남아 있다.** git 이 추적하는
+  감사 기록이라 `DATA_ROOT` 를 따라가지 않는다 — `REVIEW_ROOT` 가 따로 있다
+
+### 9.3 파이프라인은 일회성으로만 돌린다
+
+`profiles: [manual]` 로 묶어 `up` 에 딸려 뜨지 않는다. 상주 워커로 두면 PyTorch
+캐싱 할당자가 최대치 VRAM 을 프로세스가 죽을 때까지 물고 있다. 3060 Ti 는 8 GB 뿐이다.
+
+컨테이너를 `--gpus all` 로 띄우는 것 자체는 VRAM 을 쓰지 않는다(확인함: 77 MiB →
+77 MiB). 메모리를 잡는 것은 컨테이너가 아니라 그 안에서 CUDA 컨텍스트를 만드는
+프로세스다.
+
+### 9.4 사내망이 TLS 를 가로챈다
+
+KOPRI 망이 `download.pytorch.org` 를 자체 CA 로 다시 서명한다. 파이프라인 이미지
+빌드가 `CERTIFICATE_VERIFY_FAILED` 로 죽으면 `deploy/ca/README.md` 를 볼 것.
+PyPI·GitHub·huggingface.co 는 통과한다.
+
+### 9.5 nginx
+
+`/etc/nginx/sites-enabled/diatom` 에 설치돼 있다(원본은 `deploy/nginx/diatom.conf`).
+바깥 `:9090` 을 받아 `127.0.0.1:8090` 으로 넘긴다. **컨테이너는 루프백에만 붙는다** —
+바깥으로 나가는 문은 nginx 하나뿐이다.
+
+80 을 쓰지 않은 이유: 이 머신의 80 은 phyloserver 블록이 `server_name 172.16.116.98`
+로 이미 잡고 있다. 서브경로(`/diatom/`)로 얹으려면 `FORCE_SCRIPT_NAME` 에 더해
+템플릿의 `fetch()` 5곳이 절대경로라 손봐야 한다.
+
+**nginx 가 사진을 직접 서빙하지는 않는다.** `/img?p=…&w=400` 은 즉석에서 축소본을
+만들고 `/crop` 은 bbox 로 잘라낸다 — 정적 파일이 아니고 경로도 쿼리 문자열이다
+(폴더명에 공백이 있어서). 재 보니 썸네일 캐시 적중이 1.1~1.4 ms, 시야 화면 전체가
+29 ms 라 병목도 아니다. 필요해지면 `X-Accel-Redirect` 가 맞는 방식이다.
+
+### 9.6 백업
+
+`backup_db.py` 는 **호스트에서 돌린다.** 컨테이너가 서빙하는 중에 떠도 안전하다
+(30개 요청을 처리하는 중에 시험함 — `integrity=ok`). 디렉토리째 마운트해서 호스트와
+컨테이너가 같은 inode·같은 WAL 을 보기 때문이다.
+
+호스트에서 도는 게 **오히려 낫다** — 이 스크립트는 Django 를 임포트하지 않는 마지막
+안전망이라 컨테이너가 안 뜨는 상황에서도 돌아야 한다.
+
+사본은 파일 하나로 떨어진다. SQLite 온라인 백업 API 로 뜬 뒤 `journal_mode=DELETE`
+를 걸어 `-wal`·`-shm` 이 따라다니지 않게 한다. 사본은 `/data3/diatom/backup/` 이다.
+
+### 9.7 아직 안 한 것
+
+- 파이프라인 스크립트는 아직 호스트 venv 기준이다. `run_batch.sh` 의
+  `PY=.venv/bin/python` 도 그대로다 — P02 6단계와 함께 정리한다
+- 저장소 `backup/` 에 머신 이전 때 쓴 스냅샷이 2.3 GB 남아 있다
+  (`diatom-snapshot-*.tar.gz` 와 풀어 놓은 디렉토리). DB 사본 6개는
+  `/data3/diatom/backup/` 으로 옮겼다. 스냅샷은 판단해서 지울 것

@@ -14,14 +14,40 @@ DB 는 gitignore 다. 사람의 교정(재생성 불가)이 DB 에만 있는 동
 갖춰지면 그쪽이 감사 기록을 맡는다.
 """
 import argparse
+import os
 import sqlite3
 import sys
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-DB = ROOT / "diatom.db"
-OUT = ROOT / "backup"
+
+
+def _env(key, default):
+    """환경변수 → .env → 기본값.
+
+    settings.py 에도 같은 것이 있다. 일부러 나눠 뒀다 — 이 스크립트는 **다른 것이
+    전부 망가졌을 때 쓰는 마지막 안전망**이라, Django 를 임포트하지 않고 혼자
+    돌아야 한다. 열 줄 중복이 그 값을 한다.
+    """
+    if key in os.environ:
+        return os.environ[key]
+    try:
+        for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                if k.strip() == key:
+                    return v.strip()
+    except OSError:
+        pass
+    return default
+
+
+# DB 는 배포 위치(/srv/diatom)로 나가 있을 수 있다 — .env 의 DIATOM_DB 를 따른다.
+DB = Path(_env("DIATOM_DB", str(ROOT / "diatom.db")))
+# 사본은 커지므로(3 GB 넘었다) 큰 디스크에 둘 수 있게 뺀다.
+OUT = Path(_env("DIATOM_BACKUP_DIR", str(ROOT / "backup")))
 
 TABLES = ("slide", "viewpoint", "frame", "detection", "candidate",
           "objectreview", "viewpointreview", "run")
@@ -72,7 +98,12 @@ def main():
             stray.unlink()
 
     mb = out.stat().st_size / 1e6
-    print(f"{out.relative_to(ROOT)}  {mb:.1f} MB  integrity={ok}")
+    # 사본 디렉토리는 저장소 밖일 수 있다 (DIATOM_BACKUP_DIR)
+    try:
+        shown = out.relative_to(ROOT)
+    except ValueError:
+        shown = out
+    print(f"{shown}  {mb:.1f} MB  integrity={ok}")
     print("  " + " · ".join(f"{t} {n}" for t, n in counts.items() if n is not None))
     if ok != "ok":
         print("사본이 깨졌다 — 지우지 말고 원인을 확인하라", file=sys.stderr)

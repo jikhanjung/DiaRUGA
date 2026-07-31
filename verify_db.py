@@ -26,6 +26,12 @@ from pathlib import Path
 
 import django
 
+# 이 파일은 본문이 전부 최상위에 있다 — 임포트하면 그대로 실행된다. 그러면
+# django.setup() 이 SQLite 에 연결하면서 **diatom.db 가 없을 때 빈 파일을 만든다**
+# (실제로 그렇게 만들어진 적이 있다). DB 연결 전에 막는다.
+if __name__ != "__main__":
+    raise ImportError("verify_db.py 는 실행 전용이다: python verify_db.py")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent / "web"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
 django.setup()
@@ -74,7 +80,7 @@ for p in sorted((ROOT / "out").glob("*_candidates.json")):
         p.read_text(encoding="utf-8"))
 
 reviews = {}
-for p in sorted((ROOT / settings.REVIEW_DIR).glob("*_review.json")):
+for p in sorted((Path(settings.REVIEW_ROOT) / settings.REVIEW_DIR).glob("*_review.json")):
     reviews[p.name[: -len("_review.json")]] = json.loads(
         p.read_text(encoding="utf-8"))
 

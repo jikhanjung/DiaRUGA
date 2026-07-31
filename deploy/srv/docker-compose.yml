@@ -1,0 +1,52 @@
+# diatom 배포 구성 — **/srv/diatom/docker-compose.yml 로 복사해 쓴다** (P03).
+#
+#   sudo cp deploy/srv/docker-compose.yml /srv/diatom/
+#   cd /srv/diatom && docker compose up -d web
+#
+# 이 파일은 **빌드하지 않는다.** 이미 구워진 이미지를 참조만 한다.
+# 이미지를 굽는 것은 저장소의 deploy/docker-compose.yml 이다 (phyloserver 와 같은 갈래).
+#
+# 컨테이너 안팎의 경로를 같게 두었다. 파이프라인 스크립트가 파일 경로를 인자로
+# 받으므로, 같은 명령을 호스트와 컨테이너 사이에 그대로 옮겨 쓸 수 있다.
+
+x-common: &common
+  # root 로 돌면 diatom.db 소유자가 바뀌어 호스트의 backup_db.py·check_db.py 가
+  # 못 쓰게 된다. 교정이 재생성 불가라 이건 양보할 수 없다.
+  user: "1000:1000"
+  env_file: [.env]
+  volumes:
+    # DB 가 있는 곳. **파일이 아니라 디렉토리째로** 물린다 — WAL 이 만드는
+    # -wal·-shm 형제가 컨테이너 안쪽에 생기면 호스트와 WAL 을 공유하지 못한다.
+    - /srv/diatom:/srv/diatom
+    # 사진·산출물
+    - /data3/diatom:/data3/diatom
+
+services:
+  web:
+    <<: *common
+    image: diatom-base:latest
+    entrypoint: ["/app/deploy/entrypoint-web.sh"]
+    ports:
+      # 루프백에만 붙인다. 바깥으로 나가는 문은 nginx 하나뿐이다
+      # (/etc/nginx/sites-enabled/diatom 이 :9090 을 받아 여기로 넘긴다).
+      - "127.0.0.1:8090:9090"
+    restart: unless-stopped
+
+  pipeline:
+    <<: *common
+    image: diatom-pipeline:latest
+    profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
+    volumes:
+      - /srv/diatom:/srv/diatom
+      - /data3/diatom:/data3/diatom
+      # NAS 는 **읽기 전용**. 촬영 원본을 건드리지 않는다 (P01 §1)
+      - /nfs/temp-share/DiatomPhotos:/nfs/temp-share/DiatomPhotos:ro
+      # SAM2 가중치. 없으면 실행마다 HuggingFace 에서 다시 받는다
+      - /data3/diatom/hf:/hf
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

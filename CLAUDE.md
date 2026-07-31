@@ -26,14 +26,33 @@
 python --version        # 3.12.3
 ```
 
-`requirements.txt` 에 **Django 가 빠져 있다**(뷰어가 Django 5.2 로 돈다).
-새 환경을 만들면 따로 깔아야 한다.
+requirements 는 셋으로 갈라져 있다 (P03). 호스트 venv 는 `requirements.txt` 하나면
+되고, 컨테이너가 `-web`(Django·pillow·gunicorn)과 `-pipeline`(torch·SAM2)을 나눠 쓴다.
+
+**데이터도 DB 도 저장소 안에 없다.** 위치는 `.env` 가 알려 준다(`.env.template`
+참고 — 없으면 스크립트가 사진을 못 찾는다). `review/`·`groups_*.json` 은 git 추적
+대상이라 저장소에 남아 있다.
+
+```
+/srv/diatom/   diatom.db  docker-compose.yml  .env      ← 배포
+/data3/diatom/ photos/<촬영일>/<슬라이드>/               ← NAS 구조와 1:1
+               stacked/  out/  backup/  hf/  .thumbcache/
+```
+
+컨테이너 안팎의 경로가 같다 — 명령을 그대로 옮겨 쓸 수 있다.
 
 ## 자주 쓰는 명령
 
 ```bash
-# 뷰어
-cd web && python manage.py runserver 0.0.0.0:9090
+# 뷰어 — 배포는 /srv/diatom 에서. 바깥 :9090 은 nginx 가 127.0.0.1:8090 으로 넘긴다
+cd /srv/diatom && docker compose up -d web
+cd /srv/diatom && docker compose logs -f web
+
+# 파이프라인은 일회성으로만. 상주시키면 VRAM 을 물고 놓지 않는다 (P03)
+cd /srv/diatom && docker compose run --rm pipeline <명령>
+
+# 이미지 굽기는 저장소에서 (저장소는 굽고, /srv/diatom 은 돌린다)
+docker compose -f deploy/docker-compose.yml build web
 
 # DB 가 앞뒤가 맞는지 — 1초. refilter/segment 뒤, judge.py 를 고친 뒤, 숫자가 이상할 때
 python check_db.py
@@ -47,7 +66,7 @@ python refilter.py --dry-run
 python refilter.py --round-texture-min 2000
 
 # 파이프라인 (GPU 필요)
-python group_focus_series.py "260729/RS23-GC03 71cm" -o groups_RS23.json
+python group_focus_series.py "/data3/diatom/photos/260729/RS23-GC03 71cm" -o groups_RS23.json
 ./run_batch.sh                      # 합성 + 검출 일괄
 python import_json.py               # JSON 산출물을 DB 로 (6단계 끝나면 사라진다)
 ```
@@ -92,6 +111,14 @@ P02 6단계가 진행 중이다(`refilter.py` 끝, `focus_stack.py` 다음).
   `{% comment %}` 를 쓸 것
 - **`refilter.py` 에서 주지 않은 문턱은 현재 값을 그대로 쓴다.** 전부 기본값으로
   되돌리는 것이 아니다 — 하나 바꾸려다 나머지가 조용히 초기화되는 것을 막는 설계다
+- **`diatom.db` 는 파일이 아니라 디렉토리째로 마운트한다.** 파일 하나만 물리면
+  WAL 이 만드는 `-wal`·`-shm` 형제가 컨테이너 안쪽에 생겨 호스트와 WAL 을 공유하지
+  못한다. 같은 DB 를 보는 줄 알았는데 아닌 상태가 된다 (P03)
+- **컨테이너는 `1000:1000` 으로 돌린다.** root 로 돌면 `diatom.db` 소유자가 바뀌어
+  호스트의 `backup_db.py`·`check_db.py` 가 못 쓰게 된다
+- **사내망이 `download.pytorch.org` 의 TLS 를 가로챈다.** 파이프라인 이미지 빌드가
+  거기서 죽으면 `deploy/ca/` 를 볼 것. `pip` 은 시스템 CA 저장소를 보지 않아
+  `PIP_CERT` 를 함께 줘야 한다
 
 ## 사람의 교정은 재생성 불가다
 

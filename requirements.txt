@@ -1,31 +1,20 @@
 # 규조류 현미경 사진 분석 파이프라인
 #
-# CUDA 휠은 기본 PyPI에 없으므로 torch/torchvision은 아래 인덱스에서 받는다.
+# 이 파일은 호스트 venv 하나에 전부 까는 입구다. 컨테이너는 갈라 놓은 두 파일을
+# 따로 쓴다 — web 이미지에 torch 6 GB 를 넣지 않기 위해서다 (P03):
+#
+#   requirements-web.txt       뷰어       Django, pillow, gunicorn
+#   requirements-pipeline.txt  파이프라인  torch, SAM2, opencv (web 을 포함한다)
+#
 # 설치:
-#   python -m venv .venv && . .venv/bin/activate
+#   python -m venv ~/venv/diatom && . ~/venv/diatom/bin/activate
 #   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu126
 #
-# CUDA 12.6 기준. 드라이버가 더 낮으면 cu121 등으로 바꾸고, CPU만 쓸 경우
-# --extra-index-url 없이 설치하면 CPU 휠이 잡힌다 (매우 느림).
+# 이 저장소의 venv 는 ~/venv/diatom 이다. README 의 .venv 가 아니다 (HANDOFF 8.3).
+# CUDA 12.6 기준 — 자세한 것은 requirements-pipeline.txt 를 볼 것.
 
-torch==2.13.0
-torchvision==0.28.0
+-r requirements-pipeline.txt
 
-# SAM2.1 automatic mask generation.
-# facebook/sam3 는 HF gated 모델이라 별도 승인 + HF_TOKEN 필요.
-SAM-2 @ git+https://github.com/facebookresearch/sam2.git@2b90b9f5ceec907a1c18123530e92e794ad901a4
-huggingface_hub==1.25.1
-
-# sam2가 config 로딩에 사용
-hydra-core==1.3.4
-omegaconf==2.3.1
-iopath==0.1.10
-
-# 이미지 입출력, 초점 시리즈 그룹핑, focus stacking
-# 보고서 .md -> .docx 변환 (md2docx.py). 분석 파이프라인에는 쓰이지 않는다.
+# 보고서 .md -> .docx 변환 (md2docx.py). 분석 파이프라인에도 뷰어에도 쓰이지
+# 않으므로 어느 컨테이너 이미지에도 넣지 않는다.
 python-docx==1.2.0
-
-numpy==2.4.4
-pillow==12.2.0
-opencv-python-headless==5.0.0.93
-tqdm==4.70.0

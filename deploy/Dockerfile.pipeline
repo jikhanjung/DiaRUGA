@@ -1,0 +1,41 @@
+# diatom 파이프라인 이미지 (P03) — 그룹핑·합성·SAM2 검출·문턱 적용.
+#
+# 뷰어 이미지를 FROM 해서 torch·SAM2 만 얹는다. 코드와 Django 는 이미 들어 있다
+# (refilter.py 등이 Django ORM 을 쓴다).
+#
+# CUDA 툴킷을 깔지 않는다 — torch cu126 휠이 CUDA 런타임을 들고 있고, 드라이버는
+# nvidia 컨테이너 런타임이 호스트에서 넣어 준다. 그래서 slim 베이스로 충분하다.
+#
+# 이 컨테이너는 상주하지 않는다. `docker compose run --rm` 으로 일회성으로 돌린다 —
+# 상주시키면 PyTorch 캐싱 할당자가 최대치 VRAM 을 물고 놓지 않는다 (P03 "버린 선택지").
+
+ARG BASE=diatom-base:latest
+FROM ${BASE}
+
+# 사내 CA. KOPRI 망이 download.pytorch.org 의 TLS 를 가로채 자체 CA 로 다시
+# 서명하는데 이미지에는 그 CA 가 없어 빌드가 막힌다. deploy/ca/README.md 참고.
+# 비어 있으면(망 밖) update-ca-certificates 가 그냥 넘어간다.
+COPY deploy/ca/ /usr/local/share/ca-certificates/
+
+# SAM-2 를 git 에서 받는다 (requirements-pipeline.txt). 컴파일 확장은 없어서
+# 빌드 도구는 필요 없다 — git 하나면 된다.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git ca-certificates \
+ && update-ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# pip 은 기본적으로 certifi 묶음을 쓰고 시스템 저장소를 보지 않는다.
+# 위에서 CA 를 깔아도 이 줄이 없으면 여전히 막힌다.
+ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+
+RUN pip install -r requirements-pipeline.txt \
+      --extra-index-url https://download.pytorch.org/whl/cu126 \
+ && apt-get purge -y git && apt-get autoremove -y
+
+# SAM2 가중치는 HuggingFace 에서 받는다 (segment_diatoms.py:57 build_sam2_hf).
+# 실행마다 다시 받지 않도록 볼륨으로 물린다 — compose 참고.
+ENV HF_HOME=/hf
+
+WORKDIR /app
