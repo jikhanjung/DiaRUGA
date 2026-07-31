@@ -54,16 +54,29 @@
             {% for m in g.masks %}<polygon class="{{ m.cls }}" points="{{ m.points }}"/>{% endfor %}
           </svg>
         {% endif %}
+        {% comment %}
+          사진이 여럿인 시야 표시. 싱글턴에 배지를 붙이는 것보다 이쪽이 낫다 —
+          대부분이 여럿이므로 배지를 달면 목록이 배지로 덮인다. 겹친 네모로
+          "초점을 바꿔 여러 장 찍은 시야" 를 나타낸다.
+        {% endcomment %}
+        {% if g.n > 1 %}
+          <span class="multi" title="사진 {{ g.n }}장 (초점 시리즈)">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="4.5" y="1.5" width="10" height="10" rx="1.5"/>
+              <rect x="2.5" y="3.5" width="10" height="10" rx="1.5"/>
+              <rect x="0.5" y="5.5" width="10" height="10" rx="1.5"/>
+            </svg>
+          </span>
+        {% endif %}
       </span>
     {% endif %}
     <div class="meta">
       <div class="t">g{{ g.id }} · {{ g.n }}장</div>
       <div class="dim mono">{{ g.sharpest }}</div>
       <div style="margin-top:5px; display:flex; gap:5px; flex-wrap:wrap">
-        {% if g.n == 1 %}<span class="badge warn">싱글턴</span>{% endif %}
         {% if g.has_stack %}<span class="badge on">합성됨</span>{% endif %}
         {% if g.n_detected %}<span class="badge on">{{ g.n_detected }}개 검출</span>{% endif %}
-        {% if g.reviewed %}<span class="badge on">✓ 검토</span>{% endif %}
+        {% if g.reviewed %}<span class="badge done">✓ 검토</span>{% endif %}
       </div>
     </div>
   </a>

@@ -8,13 +8,13 @@
   :root {
     --bg: #0f1115; --panel: #171a21; --line: #262b36;
     --fg: #e6e9ef; --dim: #8b93a3; --accent: #5ac8fa; --warn: #ffb454;
-    --good: #7ee787;
+    --good: #7ee787; --danger: #ff6b6b;
   }
   @media (prefers-color-scheme: light) {
     :root {
       --bg: #f6f7f9; --panel: #fff; --line: #e0e3e9;
       --fg: #1a1d23; --dim: #6b7280; --accent: #0b7ec4; --warn: #b45309;
-      --good: #15803d;
+      --good: #15803d; --danger: #dc2626;
     }
   }
   * { box-sizing: border-box; }
@@ -72,6 +72,18 @@
   .tile .thumbwrap polygon.rod_frag { fill: rgba(160,120,255,.45); }
   .tile .thumbwrap polygon.round_frag { fill: rgba(60,205,205,.45); }
   .tile .thumbwrap polygon.eucampia { fill: rgba(255,110,190,.5); }
+  /* 사진이 여럿인 시야 — 겹친 네모. 어두운 판 위에 흰 선이라 어느 사진 위에서도
+     보인다(썸네일은 밝기가 제각각이다). */
+  .tile .multi {
+    position: absolute; right: 5px; top: 5px; z-index: 2;
+    width: 22px; height: 22px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55);
+  }
+  .tile .multi svg { width: 13px; height: 13px; display: block; }
+  .tile .multi rect {
+    fill: none; stroke: rgba(255,255,255,.92); stroke-width: 1.2;
+  }
   .tile .thumbwrap polygon.none { fill: rgba(255,60,60,.34); }
   .tile .meta { padding: 8px 10px; font-size: 12px; }
   .tile .meta .t { font-weight: 600; }
@@ -81,6 +93,8 @@
     font-size: 11px; border: 1px solid var(--line); color: var(--dim);
   }
   .badge.on { color: var(--good); border-color: var(--good); }
+  /* 검토 완료 — 다른 배지(초록·주황)와 갈라져야 목록에서 한눈에 짚인다 */
+  .badge.done { color: var(--danger); border-color: var(--danger); }
   .badge.warn { color: var(--warn); border-color: var(--warn); }
   .badge.rod { color: var(--accent); border-color: var(--accent); }
   .badge.frag { color: #a78bfa; border-color: #a78bfa; }
