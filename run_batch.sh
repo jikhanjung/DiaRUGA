@@ -77,8 +77,12 @@ EOF
             echo "skip  $stem"
             continue
         fi
+        # points-per-batch 는 이 장비(RTX 3060 Ti, 8 GB)에 맞춘 값이다.
+        # 스크립트가 만들어진 RTX 8000 은 48 GB 라 64 로 돌았지만 여기서는 OOM 난다.
+        # 검출 결과에는 영향이 없다 — 배치로 나눠 넣을 뿐이다.
         $PY segment_diatoms.py "$f" -o "$OUT" \
-            --scale 1.0 --points-per-side 48 --points-per-batch 64 \
+            --scale 1.0 --points-per-side 48 \
+            --points-per-batch "${PPB:-16}" \
             --min-um 10 --max-um 150 2>&1 | grep -viE 'warn|futurew' | grep ':'
     done
 done

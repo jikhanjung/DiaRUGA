@@ -129,27 +129,32 @@ def check_current(slug=None):
 
 # --- 3. 교정이 실제 개체에 붙어 있는가 ---------------------------------------
 def check_reviews(slug=None):
-    """교정은 `mask_key` 로 붙는다. 그 키가 현재 검출에 없으면 고아다 —
-    **지우지 않는다**(재생성 불가한 자료다). 다만 몇 개인지는 알아야 한다."""
+    """교정이 현재 검출의 개체를 가리키고 있는가.
+
+    **`mask_key` 가 맞는지로 보면 안 된다.** 검출을 다시 돌리면 SAM2 가 미세하게
+    다른 마스크를 내서 키가 어긋나는데, 그때 `rebind.py` 가 IoU 로 다시 맺어 준다
+    (실측: 재검출 한 번에 67건 중 exact 26 · iou 40 · 고아 1). 키만 보면 정상적으로
+    맺힌 40건이 전부 고아로 잡힌다.
+
+    진짜 고아는 **가리키는 개체가 아예 없는 것**이다. 지우지 않는다 —
+    재생성 불가한 자료이고 `geom` 에 기하를 스스로 들고 있다.
+    """
     qs = ObjectReview.objects.select_related("viewpoint")
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
     reviews = list(qs)
 
-    keys = {}
-    for c in Candidate.objects.filter(detection__is_current=True,
-                                      **({"detection__viewpoint__slide__slug": slug}
-                                         if slug else {})
-                                      ).values_list("detection__viewpoint_id",
-                                                    "mask_key", "id"):
-        keys[(c[0], c[1])] = c[2]
+    # 현재 검출에 속한 개체 id 집합. 교정이 이 밖을 가리키면 옛 검출에 남은 것이다.
+    current = set(Candidate.objects.filter(
+        detection__is_current=True,
+        **({"detection__viewpoint__slide__slug": slug} if slug else {})
+    ).values_list("id", flat=True))
 
     orphan, mismatch, nogeom = [], [], []
     for o in reviews:
-        cid = keys.get((o.viewpoint_id, o.mask_key))
-        if cid is None:
+        if o.candidate_id is None:
             orphan.append(o)
-        elif o.candidate_id != cid:
+        elif o.candidate_id not in current:
             mismatch.append(o)
         if not o.geom:
             nogeom.append(o)
@@ -158,7 +163,7 @@ def check_reviews(slug=None):
            "고아 교정 — 지우지 말 것. 8단계(고아 화면)에서 다시 맺는다",
            [f"{o.viewpoint} {o.mask_key}" for o in orphan])
     report("교정의 candidate 링크가 맞다", len(mismatch), len(reviews),
-           "mask_key 는 맞는데 candidate_id 가 다른 행을 가리킨다",
+           "옛 검출의 개체를 가리킨다 — 재바인딩이 중간에 끊겼는가",
            [f"{o.viewpoint} {o.mask_key}" for o in mismatch])
     report("교정이 기하(geom)를 갖고 있다", len(nogeom), len(reviews),
            "검출기가 바뀌면 그릴 것이 없어진다 (P02 §2.7)",

@@ -6,23 +6,51 @@
 facebook/sam3 접근 권한이 생기면 --backend sam3 로 바꾸면 된다.
 
 사용 예:
-    python segment_diatoms.py "/mnt/d/260729/RS23-GC03 71cm/Snap-21365.jpg" -o out/
-    python segment_diatoms.py "/mnt/d/260729/RS23-GC03 71cm" -o out/ --limit 5
+    python segment_diatoms.py "/data3/diatom/stacked/g000_Snap-21365-21370_focused.jpg"
+    python segment_diatoms.py "/data3/diatom/photos/260729/RS23-GC03 71cm" --limit 5
+
+DB 로 옮기면서 달라진 것 (P02 6단계):
+
+- **검출을 덮어쓰지 않고 쌓는다.** 돌릴 때마다 새 `Detection` 행이고 `is_current`
+  가 뷰어가 볼 것을 가리킨다. 덮어쓰면 엔진 교체 전후를 비교할 수 없다
+- **사람의 교정을 다시 맺는다** (`rebind.py`). 개체 행은 통째로 새로 만들어지므로
+  교정의 `candidate` 링크가 끊긴다. `is_current` 이동과 재바인딩은 **반드시 한
+  트랜잭션**이다 — 중간에 끊기면 뷰어가 "교정이 붙지 않은 새 검출"을 보여준다
+- 실행이 `Run(kind=detect)` 에 남는다
+
+`out/*_candidates.json` 은 계속 쓴다. 원본은 DB 지만 이 파일은 내보내기 형식으로
+남는다(`verify_db.py` 가 대조에 쓴다). 7단계에서 정리한다.
 """
 import argparse
 import json
 import os
+import socket
+import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 import cv2
 import numpy as np
 import torch
+import django
 from PIL import Image
 
-from judge import classify, dedupe                 # noqa: F401 (외부에서 쓴다)
-from judge import DEFAULTS as JUDGE_DEFAULTS
-from zen_meta import DEFAULT_UM_PER_PIXEL, ScaleLog, scaling_for
+sys.path.insert(0, str(Path(__file__).resolve().parent / "web"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+django.setup()
+
+from django.conf import settings                                    # noqa: E402
+from django.db import transaction                                   # noqa: E402
+from django.utils import timezone                                   # noqa: E402
+
+import rebind                                                       # noqa: E402
+from viewer.models import (Candidate, Detection, Frame, Run,        # noqa: E402
+                           ThresholdSet, Viewpoint)
+from judge import classify, dedupe                 # noqa: F401,E402 (외부에서 쓴다)
+from judge import DEFAULTS as JUDGE_DEFAULTS       # noqa: E402
+from zen_meta import DEFAULT_UM_PER_PIXEL, ScaleLog, scaling_for    # noqa: E402
 
 # 판정 규칙은 judge.py 에 있다 — refilter.py 와 같은 함수를 써야 하고,
 # 문턱 재조정은 GPU 가 필요 없는 일이라 torch 에 기대지 않아야 한다.
@@ -169,13 +197,58 @@ def texture_score(gray, seg, bbox, um_per_px):
     return float(vals.max() / med)
 
 
-def masks_to_records(masks, um_per_px=DEFAULT_UM_PER_PIXEL, gray=None):
-    """SAM 마스크 dict 리스트를 정리된 후보 레코드로."""
+def largest_body(seg):
+    """마스크에서 **가장 큰 연결 성분 하나만** 남긴다.
+
+    후처리를 껐으므로(`apply_postprocessing=False`, `min_mask_region_area=0`)
+    SAM 마스크에는 떨어져 나온 작은 조각이 남는다. 005 §5 실측으로 한 사진에서
+    **마스크의 21%(24/117)가 연결 성분 2개 이상**이었고, 떠돌이 픽셀 하나가
+    bbox 를 24 px 넓힌 사례가 있었다.
+
+    이것이 조용히 문제가 되는 이유는 **두 갈래가 다른 것을 보기 때문**이다 —
+    bbox·area 는 SAM 이 준 마스크 전체에서 오고, 폴리곤과 형태 지표는
+    `shape_metrics()` 가 가장 큰 윤곽 하나에서 낸다. 그래서 통과분의 27.5%
+    (694/2,522)가 bbox 가 본체보다 10 px 이상 컸고, bbox 로 재는 중복 정리가
+    무력화됐다(실측: cover 0.794 로 문턱을 아슬아슬하게 피해 둘 다 남았는데,
+    본체 bbox 였다면 0.925 로 정리됐을 것이다).
+
+    여기서 본체만 남기면 두 갈래가 같은 것을 보게 된다.
+
+    돌려주는 값: (본체 마스크, (x,y,w,h), 면적, 성분 수). 빈 마스크면 None.
+    """
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(
+        seg.astype(np.uint8), connectivity=8)
+    if n <= 1:                      # 0 번은 배경이다
+        return None
+    idx = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    box = (int(stats[idx, cv2.CC_STAT_LEFT]), int(stats[idx, cv2.CC_STAT_TOP]),
+           int(stats[idx, cv2.CC_STAT_WIDTH]), int(stats[idx, cv2.CC_STAT_HEIGHT]))
+    return labels == idx, box, int(stats[idx, cv2.CC_STAT_AREA]), n - 1
+
+
+def masks_to_records(masks, um_per_px=DEFAULT_UM_PER_PIXEL, gray=None,
+                     keep_largest_body=True):
+    """SAM 마스크 dict 리스트를 정리된 후보 레코드로.
+
+    `keep_largest_body` 는 2026-07-31 부터 켜 두는 것이 기본이다. 그 전에 검출한
+    것(260729)은 다시 돌리지 않는다 — `bbox_xywh` 가 교정 기록의 키라서, 전수
+    검토를 마친 자료의 키를 흔들면 2,400여 건을 다시 맺어야 한다(005 §5 가
+    `tighten_bbox.py` 를 만들어 놓고도 적용하지 않은 이유가 그것이다).
+    """
     records = []
+    n_split = 0
     for i, m in enumerate(masks):
         x, y, w, h = m["bbox"]
         area_px = int(m["area"])
         seg = m["segmentation"]
+
+        if keep_largest_body:
+            body = largest_body(seg)
+            if body is None:
+                continue                       # 빈 마스크
+            seg, (x, y, w, h), area_px, n_bodies = body
+            if n_bodies > 1:
+                n_split += 1
         # 형태 지표: 채움율, 종횡비 — 규조류(껍질)는 대체로 채움율이 높다
         fill = area_px / max(w * h, 1)
         records.append(
@@ -210,14 +283,29 @@ def masks_to_records(masks, um_per_px=DEFAULT_UM_PER_PIXEL, gray=None):
         rec["texture"] = round(
             texture_score(gray, seg, (int(x), int(y), int(w), int(h)), um_per_px), 1
         ) if gray is not None else None
+    if n_split:
+        print(f"  연결 성분이 여럿인 마스크 {n_split}/{len(masks)}개 — "
+              f"본체만 남겼다", file=sys.stderr)
     return records
 
 
 def filter_records(records, min_um, max_um, drop_background_frac=0.5, img_area=None):
-    """너무 작은 debris와 배경 전체를 덮는 마스크를 제거."""
+    """너무 작은 debris와 배경 전체를 덮는 마스크를 제거.
+
+    **크기는 타원 장축으로 잰다.** README 가 그렇게 정해 뒀고 `judge.classify()`
+    도 `major_um` 을 본다. 여기만 bbox 긴 변으로 재고 있었는데, 지금까지는 bbox 가
+    떠돌이 조각 때문에 부풀어 있어서 이 관문이 거의 안 걸렸다. 본체만 남기면서
+    bbox 가 조여지자 **타원 장축은 범위 안인데 bbox 로는 밖인 개체**가 생긴다
+    (005 §5 실측 33개, 장축 중앙값 11.2 µm — 관문 한가운데다).
+
+    형태를 못 낸 마스크(`shape_ok=False`)만 bbox 긴 변으로 대신 잰다.
+    """
     out = []
     for r in records:
-        if r["long_side_um"] < min_um or r["long_side_um"] > max_um:
+        size_um = r.get("major_um") if r.get("shape_ok") else r["long_side_um"]
+        if size_um is None:
+            size_um = r["long_side_um"]
+        if size_um < min_um or size_um > max_um:
             continue
         if img_area and r["area_px"] > drop_background_frac * img_area:
             continue
@@ -245,6 +333,122 @@ def draw_overlay(img: Image.Image, records, out_path: Path):
         d.text((x + 4, max(y - 16, 0)), f"{r['id']}:{r['long_side_um']:.0f}um",
                fill=(255, 40, 40))
     vis.save(out_path, quality=88)
+
+
+# Candidate 에 그대로 들어가는 수치 칸들 (import_json.py 와 같아야 한다)
+NUM = ("area_um2", "major_um", "minor_um", "long_side_um", "short_side_um",
+       "aspect_ratio", "fill_ratio", "circularity", "convexity", "solidity",
+       "elongation", "ellipse_iou", "texture", "predicted_iou",
+       "stability_score")
+
+
+def git_version():
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                             capture_output=True, text=True, timeout=5,
+                             cwd=Path(__file__).resolve().parent)
+        return out.stdout.strip() if out.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def rel(p) -> str:
+    """DATA_ROOT 기준 상대경로. DB 는 이 형태로만 경로를 담는다."""
+    p = Path(p)
+    if not p.is_absolute():
+        return str(p)
+    try:
+        return str(p.relative_to(Path(settings.DATA_ROOT)))
+    except ValueError:
+        return str(p)
+
+
+def find_viewpoint(stem: str):
+    """파일 이름으로 시야를 찾는다.
+
+    합성본은 `<tag>_focused`, 싱글턴은 프레임 이름(`Snap-21171`)이다.
+    """
+    if stem.endswith("_focused"):
+        tag = stem[: -len("_focused")]
+        return Viewpoint.objects.filter(tag=tag).first(), "stack", None
+    fr = Frame.objects.filter(name=stem).select_related("viewpoint").first()
+    if fr and fr.viewpoint:
+        return fr.viewpoint, "frame", fr
+    return None, None, None
+
+
+def threshold_set_for(values: dict) -> ThresholdSet:
+    """같은 문턱 조합이면 한 행을 공유한다. refilter.py 와 같은 규칙."""
+    found = ThresholdSet.objects.filter(**values).first()
+    if found:
+        return found
+    name = (f"texture {values['texture_min']:g} · "
+            f"areolae {values['round_texture_min']:g}")
+    return ThresholdSet.objects.create(name=name, note="segment 가 만들었다",
+                                       **values)
+
+
+def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float):
+    """검출 결과를 새 Detection 으로 쌓고 교정을 다시 맺는다.
+
+    **통째로 한 트랜잭션이다.** `is_current` 를 옮기는 것과 교정을 다시 맺는 것이
+    갈라지면, 그 사이에 뷰어를 연 사람은 "교정이 하나도 안 붙은 새 검출"을 본다.
+
+    돌려주는 값: (Detection, 개체 수, 재바인딩 방법별 개수)
+    """
+    stem = img_path.stem
+    vp, target, frame = find_viewpoint(stem)
+    if vp is None:
+        return None, 0, None
+
+    with transaction.atomic():
+        ts = threshold_set_for(payload["thresholds"])
+        det = Detection.objects.create(
+            viewpoint=vp, target=target, frame=frame,
+            image_path=rel(img_path),
+            width=payload["size"][0], height=payload["size"][1],
+            scale=payload["scale"],
+            um_per_pixel=payload["um_per_pixel"],
+            um_per_pixel_native=payload["um_per_pixel_native"],
+            um_per_pixel_source=payload["um_per_pixel_source"] or "",
+            n_raw_masks=payload["n_raw_masks"], n_sized=payload["n_sized"],
+            thresholds=ts, run=run, is_current=False)   # 아직 아니다
+
+        rows, seen = [], set()
+        for passed, pool in ((True, payload["candidates"]),
+                             (False, payload["rejected"])):
+            for c in pool:
+                b = c["bbox_xywh"]
+                key = rebind.mask_key(b)
+                # 같은 bbox 가 두 번 나오면 unique 에 걸린다 — 첫 것만 둔다
+                if key in seen:
+                    continue
+                seen.add(key)
+                ctr = c.get("center_xy") or [None, None]
+                rows.append(Candidate(
+                    detection=det, mask_key=key, raw_id=c.get("id"),
+                    bbox_x=int(b[0]), bbox_y=int(b[1]),
+                    bbox_w=int(b[2]), bbox_h=int(b[3]),
+                    center_x=ctr[0], center_y=ctr[1],
+                    area_px=c.get("area_px") or 0,
+                    shape_ok=bool(c.get("shape_ok")),
+                    polygon=c.get("polygon") or [],
+                    passed=passed, cls=c.get("cls") or "",
+                    reject=(c.get("reject") or "") if not passed else "",
+                    **{f: c.get(f) for f in NUM}))
+        Candidate.objects.bulk_create(rows, batch_size=2000)
+
+        # 여기부터가 한 덩어리여야 하는 부분이다
+        old = list(vp.detections.filter(is_current=True))
+        Detection.objects.filter(pk__in=[d.pk for d in old]).update(
+            is_current=False, superseded_by=det)
+        det.is_current = True
+        det.save(update_fields=["is_current"])
+
+        det.refresh_from_db()
+        stat = rebind.rebind_viewpoint(vp, det, iou_min=iou_min)
+
+    return det, len(rows), stat
 
 
 def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
@@ -275,7 +479,8 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
     # --scale 로 리사이즈했으면 픽셀이 그만큼 커진 셈이다
     um_per_px = scaling["um_per_pixel"] / args.scale
     gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
-    recs = masks_to_records(masks, um_per_px, gray=gray)
+    recs = masks_to_records(masks, um_per_px, gray=gray,
+                            keep_largest_body=not args.all_bodies)
     sized = filter_records(recs, args.min_um, args.max_um,
                            img_area=arr.shape[0] * arr.shape[1])
 
@@ -350,7 +555,15 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("input", help="이미지 파일 또는 디렉토리")
-    ap.add_argument("-o", "--out", default="out")
+    ap.add_argument("-o", "--out", default=None, help="기본값은 DATA_ROOT/out")
+    ap.add_argument("--no-db", action="store_true",
+                    help="JSON 만 쓰고 DB 는 건드리지 않는다 (시험용)")
+    ap.add_argument("--rebind-iou", type=float, default=0.5,
+                    help="mask_key 가 안 맞을 때 교정을 다시 맺는 IoU 하한")
+    ap.add_argument("--force", action="store_true",
+                    help="사람이 교정한 시야도 다시 검출한다 (아래 설명을 읽을 것)")
+    ap.add_argument("--all-bodies", action="store_true",
+                    help="떨어진 조각까지 마스크로 인정한다 (2026-07-31 이전 방식)")
     ap.add_argument("--backend", default="sam2", choices=["sam2", "sam3"])
     ap.add_argument("--scale", type=float, default=0.5,
                     help="처리 전 리사이즈 배율 (VRAM 절약)")
@@ -398,21 +611,112 @@ def main():
     if args.limit:
         files = files[: args.limit]
 
-    out_dir = Path(args.out)
+    out_dir = Path(args.out) if args.out else (Path(settings.DATA_ROOT) / "out")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.um_per_pixel:
         print(f"픽셀 크기를 {args.um_per_pixel} µm/px 로 지정 — XML 을 읽지 않는다",
               file=sys.stderr)
 
+    run = None
+    if not args.no_db:
+        run = Run.objects.create(
+            kind="detect", status="running",
+            params={"backend": args.backend, "scale": args.scale,
+                    "points_per_side": args.points_per_side,
+                    "min_um": args.min_um, "max_um": args.max_um,
+                    "rebind_iou": args.rebind_iou, "n_files": len(files)},
+            host=socket.gethostname(), gpu=device, code_version=git_version())
+
+    # 사람이 교정한 시야는 GPU 를 돌리기 **전에** 걸러 낸다.
+    #
+    # 재검출 자체는 안전하다 — 교정은 (viewpoint, mask_key) 에 붙고 rebind.py 가
+    # 다시 맺어 준다. 다만 SAM2 가 미세하게 다른 마스크를 내므로 결과가 달라진다
+    # (실측: 67건 중 exact 26 · iou 40 · 고아 1). 전수 검토를 마친 시야에서 그것이
+    # 실수로 일어나면 안 된다. 특히 2026-07-31 부터 연결 성분 처리가 바뀌어
+    # bbox 가 조여지므로, 옛 자료를 다시 돌리면 키가 대량으로 흔들린다.
+    if not args.no_db and not args.force:
+        keep = []
+        for f in files:
+            vp, _, _ = find_viewpoint(f.stem)
+            n_rev = vp.object_reviews.count() if vp else 0
+            if n_rev:
+                print(f"  건너뜀 {f.stem}: 사람의 교정 {n_rev}건이 있다 "
+                      f"(다시 검출하려면 --force)", file=sys.stderr)
+                continue
+            keep.append(f)
+        if len(keep) != len(files):
+            print(f"교정이 있는 시야 {len(files) - len(keep)}개를 건너뛴다 "
+                  f"— 남은 {len(keep)}개를 검출한다", file=sys.stderr)
+        files = keep
+        if not files:
+            print("검출할 것이 없다.", file=sys.stderr)
+            return
+
     gen = load_generator(args.backend, device, args)
     scale_log = ScaleLog()
-    for f in files:
-        try:
-            process(f, gen, args, out_dir, scale_log)
-        except torch.cuda.OutOfMemoryError:
-            print(f"OOM on {f.name} — --scale 을 낮추세요", file=sys.stderr)
-            torch.cuda.empty_cache()
+    n_det = n_cand = n_oom = 0
+    bind = Counter()
+    missing = []
+    try:
+        for f in files:
+            try:
+                payload = process(f, gen, args, out_dir, scale_log)
+            except torch.cuda.OutOfMemoryError:
+                # 조용히 넘기면 "검출 0개 · done" 으로 끝나 성공처럼 보인다
+                print(f"OOM on {f.name} — --points-per-batch 를 낮추세요 "
+                      f"(지금 {args.points_per_batch})", file=sys.stderr)
+                torch.cuda.empty_cache()
+                n_oom += 1
+                continue
+            if args.no_db:
+                continue
+            det, nc, stat = save_detection(payload, f, run, args.rebind_iou)
+            if det is None:
+                # 조용히 넘기지 않는다 — 그룹핑과 DB 가 어긋났다는 뜻이다
+                missing.append(f.stem)
+                print(f"  {f.stem}: 시야를 DB 에서 못 찾았다 — DB 에 남기지 않았다",
+                      file=sys.stderr)
+                continue
+            n_det += 1
+            n_cand += nc
+            bind += stat
+            if stat and (stat["iou"] or stat["orphan"]):
+                # 고아는 손실이 아니지만(geom 이 남는다) 뷰어가 못 그린다.
+                # 반드시 보이게 한다 — 조용하면 한참 뒤에나 알게 된다.
+                print(f"  {f.stem}: 교정 재바인딩 exact {stat['exact']} · "
+                      f"iou {stat['iou']} · 고아 {stat['orphan']}")
+    except Exception as e:
+        if run:
+            run.status = "failed"
+            run.error = f"{type(e).__name__}: {e}"
+            run.finished_at = timezone.now()
+            run.counts = {"detections": n_det, "candidates": n_cand}
+            run.save()
+        raise
+
+    if run:
+        run.status = "done"
+        run.finished_at = timezone.now()
+        run.counts = {"detections": n_det, "candidates": n_cand,
+                      "missing_viewpoint": len(missing), "oom": n_oom,
+                      **dict(bind)}
+        # 전부 OOM 으로 죽었는데 done 으로 남으면 성공한 줄 안다
+        if n_oom and not n_det:
+            run.status = "failed"
+            run.error = f"OOM {n_oom}건 — 검출된 것이 없다"
+        run.save()
+        print(f"\n검출 {n_det}개 · 개체 {n_cand}개 · Run #{run.pk}")
+        if bind:
+            print(f"  교정 재바인딩: exact {bind['exact']} · iou {bind['iou']} · "
+                  f"고아 {bind['orphan']}")
+        if bind["orphan"]:
+            print(f"  ** 고아 {bind['orphan']}개 — 뷰어에서 안 보인다. "
+                  f"geom 은 남아 있다 (P02 8단계의 고아 화면이 필요하다)",
+                  file=sys.stderr)
+        if missing:
+            print(f"  [확인필요] 시야를 못 찾은 이미지 {len(missing)}개: "
+                  f"{missing[:5]}", file=sys.stderr)
 
 
 if __name__ == "__main__":
