@@ -61,10 +61,13 @@
         {% endcomment %}
         {% if g.n > 1 %}
           <span class="multi" title="사진 {{ g.n }}장 (초점 시리즈)">
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <rect x="4.5" y="1.5" width="10" height="10" rx="1.5"/>
-              <rect x="2.5" y="3.5" width="10" height="10" rx="1.5"/>
-              <rect x="0.5" y="5.5" width="10" height="10" rx="1.5"/>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              {% comment %}
+                뒤 장은 위·오른쪽 모서리만 보인다. 인스타그램의 캐러셀 표시와
+                같은 모양이라 "여러 장" 이라는 뜻이 바로 읽힌다.
+              {% endcomment %}
+              <path class="back" d="M8 3.5h9.5a2.5 2.5 0 0 1 2.5 2.5V16"/>
+              <rect class="front" x="3.5" y="7.5" width="13" height="13" rx="3"/>
             </svg>
           </span>
         {% endif %}
