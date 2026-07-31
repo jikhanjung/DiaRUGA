@@ -506,12 +506,17 @@ def threshold_history(request, slug=None):
     rows = []
     for r in runs:
         v = (r.params or {}).get("values") or (r.params or {}).get("overrides") or {}
+        # 웹은 슬라이더 11개를 통째로 보내므로 그대로 보여주면 무엇을 바꿨는지
+        # 안 보인다. 기본값과 다른 것만 추린다 — 불러오기는 전체 값을 쓴다.
+        changed = {k: val for k, val in v.items()
+                   if abs(float(val) - judge.DEFAULTS.get(k, val)) > 1e-9}
         rows.append({
             "id": r.pk,
             "at": r.started_at.strftime("%m-%d %H:%M"),
             "slide": (r.params or {}).get("slide", "*"),
             "via": (r.params or {}).get("via", "cli"),
-            "values": v,
+            "values": v,          # 불러올 때 쓴다
+            "changed": changed,   # 화면에 보여줄 것
             "counts": r.counts or {},
         })
     return JsonResponse({"ok": True, "rows": rows})

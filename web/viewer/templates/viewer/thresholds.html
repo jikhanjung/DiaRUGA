@@ -301,19 +301,28 @@
       if (!d.ok || !d.rows.length) return;
       var box = document.getElementById('thhist');
       box.innerHTML = '<div class="thhead">문턱을 바꾼 기록</div>';
+      var SHORT = { texture_min: '텍스처', round_texture_min: '원형 areolae',
+                    min_um: '크기≥', max_um: '크기≤',
+                    round_max_elong: '원형 신장비', round_min_iou: '원형 IoU',
+                    round_min_solidity: '원형 볼록성',
+                    rod_min_elong: '봉상 신장비≥', rod_max_elong: '봉상 신장비≤',
+                    rod_min_iou: '봉상 IoU', rod_min_solidity: '봉상 볼록성' };
       d.rows.slice(0, 8).forEach(function (r) {
-        var keys = Object.keys(r.values);
+        // 기본값과 다른 것만 보여준다 — 11개를 다 늘어놓으면 무엇을 바꿨는지 안 보인다
+        var keys = Object.keys(r.changed || {});
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'thhitem';
         b.innerHTML = '<span class="dim">' + r.at + ' · ' + r.via + '</span> ' +
           (keys.length
-            ? keys.map(function (k) { return k + ' ' + r.values[k]; }).join(', ')
-            : '(기본값)') +
+            ? keys.map(function (k) {
+                return (SHORT[k] || k) + ' <b>' + r.changed[k] + '</b>';
+              }).join(' · ')
+            : '<span class="dim">기본값 그대로</span>') +
           (r.counts.before !== undefined
             ? ' <span class="dim">' + r.counts.before + ' → ' + r.counts.after + '</span>'
             : '');
-        b.title = '이 값을 불러온다';
+        b.title = '이 값을 불러온다 (문턱 11개 전부)';
         b.addEventListener('click', function () { setAll(r.values); });
         box.appendChild(b);
       });
