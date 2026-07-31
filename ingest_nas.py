@@ -85,13 +85,13 @@ def copy_slide(src: Path, dst: Path) -> tuple[int, int]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--quiet-min", type=float, default=20.0,
-                    help="마지막 파일이 이 시간(분) 이상 조용해야 가져온다")
+    ap.add_argument("--stable-min", type=float, default=5.0,
+                    help="폴더 내용이 이만큼(분) 안 변해야 가져온다")
     ap.add_argument("--only", help="이 상대경로 하나만 (예: '260731/RS23-GC03 369cm')")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    res = scan_nas.scan(args.quiet_min)
+    res = scan_nas.scan(args.stable_min)
     todo = [r for r in res["slides"] if r["state"] == "new"]
     if args.only:
         todo = [r for r in todo if r["rel"] == args.only]
@@ -113,7 +113,7 @@ def main():
 
     run = Run.objects.create(
         kind="ingest", status="running",
-        params={"nas_root": res["nas_root"], "quiet_min": args.quiet_min,
+        params={"nas_root": res["nas_root"], "stable_min": args.stable_min,
                 "slides": [r["rel"] for r in todo]},
         host=os.uname().nodename, code_version=git_version())
 

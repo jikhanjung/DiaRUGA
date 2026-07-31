@@ -19,15 +19,25 @@ DB 도 파일도 건드리지 않는다. 반입은 `ingest_nas.py` 가 한다.
 로컬은 이 구조를 그대로 비춘다: `<DATA_ROOT>/photos/<촬영일>/<슬라이드>/`.
 그래서 상대경로 하나가 곧 키다.
 
-## 촬영이 끝났는지 어떻게 아는가
+## 복사가 끝났는지 어떻게 아는가
 
-**촬영 중인 폴더를 건드리면 안 된다.** 절반만 가져가면 그룹핑이 시야를 잘못 묶고,
-그 위에 검출과 교정이 쌓인 뒤에 되돌리는 것은 훨씬 비싸다.
+**아직 들어오는 중인 폴더를 건드리면 안 된다.** 절반만 가져가면 그룹핑이 시야를
+잘못 묶고, 그 위에 검출과 교정이 쌓인 뒤에 되돌리는 것은 훨씬 비싸다.
 
-NFS 에서 inotify 는 믿을 수 없으므로(P01 §1) 폴링으로 본다. **파일 개수와 가장 최근
-mtime 이 일정 시간 그대로면 끝난 것으로 본다.** 완벽하지는 않다 — 촬영자가 오래
-쉬었다 다시 찍으면 중간에 끝난 것으로 볼 수 있다. 그래서 `--quiet-min` 을 넉넉히
-잡고, 그래도 잘못 잡히면 `Slide.state` 로 사람이 되돌릴 수 있게 해 둔다.
+NFS 에서 inotify 는 믿을 수 없으므로(P01 §1) 폴링으로 본다. 그런데 **mtime 만으로는
+안 된다** — `rsync -a` 나 `cp -p` 는 원본 시각을 보존하므로, 지금 한창 들어오는
+중인데도 "몇 시간째 조용함" 으로 보인다.
+
+그래서 **본 것을 기억한다.** 폴더마다 (사진 수, XML 수, 총 바이트)를 지문으로 삼아
+파일에 적어 두고, 다음 폴링에서 그대로면 "그때부터 안 변했다" 로 센다. 지문이
+달라지면 시계를 0 으로 되돌린다. `--stable-min` 동안 지문이 한 번도 안 바뀌어야
+가져온다.
+
+여기에 mtime 을 보조로 쓴다. 최근 1분 안에 쓰인 파일이 있으면 지문이 우연히 같아도
+(같은 크기로 덮어쓰는 중) 아직 들어오는 중으로 본다.
+
+상태 파일은 `DIATOM_NAS_STATE` (기본 `<로그디렉토리>/nas_state.json`). 지워도
+안전하다 — 시계가 처음부터 다시 갈 뿐이다.
 """
 import argparse
 import json
@@ -94,14 +104,44 @@ def survey(slide_dir: Path) -> dict:
             "quiet_min": round((time.time() - newest) / 60, 1) if newest else None}
 
 
-def scan(quiet_min: float = 20.0) -> dict:
-    """NAS 의 슬라이드 폴더를 전부 훑고 DB 와 대조한다."""
+def state_path() -> Path:
+    return Path(os.environ.get(
+        "DIATOM_NAS_STATE",
+        str(Path(settings.DATA_ROOT) / "logs" / "nas_state.json")))
+
+
+def load_state() -> dict:
+    try:
+        return json.loads(state_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}          # 없으면 시계를 처음부터 — 안전한 쪽으로 틀린다
+
+
+def save_state(state: dict) -> None:
+    p = state_path()
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tmp = p.with_suffix(".tmp")
+        tmp.write_text(json.dumps(state, indent=1), encoding="utf-8")
+        tmp.replace(p)
+    except OSError as e:
+        # 못 적어도 스캔 자체는 유효하다. 다만 안정성 시계가 매번 0 이 되어
+        # 아무것도 안 가져오게 되므로 조용히 넘기지 않는다.
+        print(f"경고: 상태를 적지 못했다 ({e}) — 안정성 판단이 진행되지 않는다",
+              file=sys.stderr)
+
+
+def scan(stable_min: float = 5.0, remember: bool = True) -> dict:
+    """NAS 의 슬라이드 폴더를 전부 훑고 DB·직전 관측과 대조한다."""
     root = nas_root()
     if not is_mounted(root):
         raise SystemExit(f"NAS 가 마운트되어 있지 않다: {root}\n"
                          f"  빈 디렉토리를 '새것 없음' 으로 읽으면 안 된다 — 멈춘다.")
 
     known = set(Slide.objects.values_list("image_dir", flat=True))
+    prev = load_state()
+    now = time.time()
+    state_out = {}
 
     rows = []
     for date_dir in sorted(p for p in root.iterdir() if p.is_dir()):
@@ -109,36 +149,58 @@ def scan(quiet_min: float = 20.0) -> dict:
             rel = f"{date_dir.name}/{slide_dir.name}"
             local = f"{PHOTOS}/{rel}"
             s = survey(slide_dir)
+
+            # 지문이 그대로면 그때부터 안 변한 것이다. 달라지면 시계를 되돌린다.
+            sig = f"{s['jpgs']}:{s['xmls']}:{s['bytes']}"
+            was = prev.get(rel)
+            since = (was["since"] if was and was.get("sig") == sig else now)
+            state_out[rel] = {"sig": sig, "since": since}
+            stable_min_seen = (now - since) / 60.0
+
             if s["jpgs"] == 0:
-                state = "empty"
+                st = "empty"
             elif local in known:
-                state = "known"
-            elif s["quiet_min"] is not None and s["quiet_min"] < quiet_min:
-                state = "uploading"
+                st = "known"
+            elif stable_min_seen < stable_min:
+                st = "copying"
+            elif s["quiet_min"] is not None and s["quiet_min"] < 1.0:
+                # 지문이 같아도 방금 쓰인 파일이 있으면 아직 들어오는 중이다
+                # (같은 크기로 덮어쓰는 경우)
+                st = "copying"
             else:
-                state = "new"
-            rows.append({"rel": rel, "local": local, "state": state,
-                         "nas_path": str(slide_dir), **s})
-    return {"nas_root": str(root), "quiet_min": quiet_min, "slides": rows}
+                st = "new"
+
+            rows.append({"rel": rel, "local": local, "state": st,
+                         "nas_path": str(slide_dir),
+                         "stable_min": round(stable_min_seen, 1), **s})
+
+    if remember:
+        save_state(state_out)
+    return {"nas_root": str(root), "stable_min_required": stable_min,
+            "slides": rows}
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--quiet-min", type=float, default=20.0,
-                    help="마지막 파일이 이 시간(분) 이상 조용해야 촬영이 끝난 것으로 본다")
+    ap.add_argument("--stable-min", type=float, default=5.0,
+                    help="폴더 내용(파일 수·바이트)이 이만큼(분) 안 변해야 "
+                         "복사가 끝난 것으로 본다")
+    ap.add_argument("--no-remember", action="store_true",
+                    help="관측을 기록하지 않는다 (사람이 들여다볼 때)")
     ap.add_argument("--json", dest="json_file", help="결과를 JSON 으로 저장")
     args = ap.parse_args()
 
-    res = scan(args.quiet_min)
+    res = scan(args.stable_min, remember=not args.no_remember)
     rows = res["slides"]
     by = {}
     for r in rows:
         by.setdefault(r["state"], []).append(r)
 
     label = {"new": "새 슬라이드", "known": "이미 있음",
-             "uploading": "촬영 중(조용해지길 기다림)", "empty": "사진 없음"}
-    print(f"NAS {res['nas_root']} · 슬라이드 폴더 {len(rows)}개")
-    for state in ("new", "uploading", "known", "empty"):
+             "copying": "들어오는 중(안정되길 기다림)", "empty": "사진 없음"}
+    print(f"NAS {res['nas_root']} · 슬라이드 폴더 {len(rows)}개 "
+          f"· 안정 기준 {args.stable_min}분")
+    for state in ("new", "copying", "known", "empty"):
         got = by.get(state) or []
         if not got:
             continue
@@ -146,7 +208,7 @@ def main():
         for r in got:
             xml = "" if r["xmls"] >= r["jpgs"] else f"  ** XML {r['xmls']}/{r['jpgs']}"
             print(f"  {r['rel']:<40} 사진 {r['jpgs']:>4}  "
-                  f"{r['bytes'] / 1e6:>7.1f} MB  조용 {r['quiet_min']}분{xml}")
+                  f"{r['bytes'] / 1e6:>7.1f} MB  안정 {r['stable_min']}분{xml}")
 
     # XML 이 모자라면 배율이 기본값으로 조용히 떨어진다 (004 에서 한 번 당했다)
     short = [r for r in rows if r["state"] in ("new", "known")

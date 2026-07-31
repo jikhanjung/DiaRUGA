@@ -691,21 +691,36 @@ def main():
     # 실수로 일어나면 안 된다. 특히 2026-07-31 부터 연결 성분 처리가 바뀌어
     # bbox 가 조여지므로, 옛 자료를 다시 돌리면 키가 대량으로 흔들린다.
     if not args.no_db and not args.force:
-        keep = []
+        keep, n_rev_skip, n_done_skip = [], 0, 0
         for f in files:
             vp, _, _ = find_viewpoint(f.stem)
-            n_rev = vp.object_reviews.count() if vp else 0
-            if n_rev:
-                print(f"  건너뜀 {f.stem}: 사람의 교정 {n_rev}건이 있다 "
-                      f"(다시 검출하려면 --force)", file=sys.stderr)
+            if vp is None:
+                keep.append(f)
+                continue
+            if vp.object_reviews.exists():
+                n_rev_skip += 1
+                continue
+            # 이미 검출한 시야도 건너뛴다. 주기 실행이 중간에 끊겼을 때 다음
+            # 주기가 처음부터 다시 돌리면 한 슬라이드에 몇 시간이 또 든다.
+            if vp.detections.filter(is_current=True).exists():
+                n_done_skip += 1
                 continue
             keep.append(f)
-        if len(keep) != len(files):
-            print(f"교정이 있는 시야 {len(files) - len(keep)}개를 건너뛴다 "
-                  f"— 남은 {len(keep)}개를 검출한다", file=sys.stderr)
+        if n_rev_skip:
+            print(f"사람의 교정이 있는 시야 {n_rev_skip}개를 건너뛴다 "
+                  f"(다시 검출하려면 --force)", file=sys.stderr)
+        if n_done_skip:
+            print(f"이미 검출한 시야 {n_done_skip}개를 건너뛴다", file=sys.stderr)
         files = keep
         if not files:
             print("검출할 것이 없다.", file=sys.stderr)
+            # 다 끝나 있으면 상태를 열어 준다 — 앞 실행이 여기서 끊겼을 수 있다
+            if args.slide:
+                from viewer.models import Slide                     # noqa: PLC0415
+                sl = Slide.objects.filter(slug=args.slide).first()
+                if sl and mark_done_if_complete(sl):
+                    print(f"  {sl.slug}: 자동 처리 완료 — 검토를 연다",
+                          file=sys.stderr)
             return
 
     gen = load_generator(args.backend, device, args)
