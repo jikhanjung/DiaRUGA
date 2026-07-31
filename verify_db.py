@@ -3,8 +3,16 @@
 
     python verify_db.py
 
-**한 칸이라도 어긋나면 멈춘다.** 교정 기록은 재생성 불가한 자료이고, 어긋난 채로
-뷰어를 DB 로 옮기면 무엇이 맞는지 알 수 없게 된다.
+**이전(migration) 직후에 한 번 쓰는 검사다.** 그때는 한 칸이라도 어긋나면 멈춰야
+했다 — 교정 기록은 재생성 불가한 자료이고, 어긋난 채로 뷰어를 DB 로 옮기면 무엇이
+맞는지 알 수 없게 되기 때문이다.
+
+**지금은 교정 항목이 어긋나는 것이 정상이다.** DB 가 원본이 됐고 `review/*.json` 은
+이전 시점 스냅샷이라, 그 뒤로 사람이 교정한 만큼 벌어진다(내보내기는 P02 5단계).
+검출 개체·지표는 여전히 일치해야 한다.
+
+DB 자체의 앞뒤가 맞는지는 **`check_db.py`** 가 본다 — 그쪽은 JSON 과 무관하므로
+계속 유효하다.
 
 세는 것: 슬라이드·시야·프레임·합성본, 검출별 개체 수와 지표 합, 분류별 개수,
 교정(삭제·되살림·분류·코멘트·검토완료), 그리고 뷰어가 실제로 쓰는 파생값
@@ -121,6 +129,9 @@ for k in sorted(set(jc) | set(dbc)):
     check(f"cls={k or '(없음)'}", jc.get(k, 0), dbc.get(k, 0))
 
 print("\n=== 4. 교정 ===")
+print("   (DB 가 원본이므로 이전 시점 이후의 교정은 JSON 에 없다 —")
+print("    여기서 어긋나는 것은 그동안 사람이 더 교정했다는 뜻이다.")
+print("    DB 자체의 앞뒤가 맞는지는 check_db.py 가 본다)")
 j_removed = sum(len(r.get("removed") or []) for r in reviews.values())
 j_accepted = sum(len(r.get("accepted") or []) for r in reviews.values())
 j_labels = sum(len(r.get("labels") or {}) for r in reviews.values())

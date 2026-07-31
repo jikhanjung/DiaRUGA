@@ -62,20 +62,25 @@ DB 에만 쓰인다(`export_review.py` 가 아직 없다 — P02 5단계).
 - **큰 작업 전에 반드시** `python backup_db.py --note <설명>`
 - `cp diatom.db` 로 뜨지 말 것 — WAL 이라 불완전한 사본이 된다
 
-### 3.2 `import_json.py` 를 아무 때나 돌리지 말 것
+### 3.2 이상하면 `check_db.py` 부터
+
+`refilter`·`segment_diatoms` 를 돌린 뒤, `judge.py` 의 판정 규칙을 고친 뒤, 그리고
+숫자가 이상할 때 돌린다(1초). 여기서 잡는 것은 **예외가 나지 않고 그냥 틀린 상태**다.
+
+### 3.3 `import_json.py` 를 아무 때나 돌리지 말 것
 
 멱등이지만 **`Candidate` 를 지우고 다시 만든다.** 교정은 `mask_key` 로 붙으므로
 사라지지 않지만, DB 에서만 한 교정이 있는 상태에서 옛 JSON 을 다시 넣으면
 JSON 쪽 값으로 되돌아간다. 지금은 JSON = DB 라 안전하다(대조 확인).
 
-### 3.3 `tighten_bbox.py` 는 만들어 뒀지만 **적용하지 않았다**
+### 3.4 `tighten_bbox.py` 는 만들어 뒀지만 **적용하지 않았다**
 
 떠돌이 픽셀 하나가 bbox 를 부풀리는 문제(devlog 005 §5)를 고치는 스크립트다.
 dry-run 까지 했다(개체 18,936 중 11,472의 bbox 가 줄고, 중복 정리를 다시 돌리면
 2,522 → 2,193). **`mask_key` 를 바꾸는 작업이라 DB 이전이 끝난 뒤에 하는 것이
 낫다** — 그때 `ObjectReview` 재바인딩과 한 번에 푼다.
 
-### 3.4 devlog 005 의 숫자가 조금 낮다
+### 3.5 devlog 005 의 숫자가 조금 낮다
 
 devlog 를 쓴 뒤에도 교정이 이어졌다. 실제 값은 위 2절(삭제 2,044 · 분류 174)이다.
 
@@ -114,7 +119,8 @@ devlog 를 쓴 뒤에도 교정이 이어졌다. 실제 값은 위 2절(삭제 2
 | `web/viewer/models.py` | 스키마 14개 모델. 읽기 전에 파일 첫 주석부터 |
 | `web/viewer/data.py` | DB → 뷰가 쓰는 dict. **함수 이름·반환 형태를 JSON 시절과 같게 유지**했다(템플릿을 안 건드리려고) |
 | `import_json.py` | JSON → DB (멱등) |
-| `verify_db.py` | DB ↔ JSON 대조. **한 칸이라도 어긋나면 멈춘다** |
+| `check_db.py` | **DB 무결성**. 판정 캐시·현재 검출·교정 바인딩·분류·파일·문턱을 본다. 1초 |
+| `verify_db.py` | DB ↔ JSON 대조. **이전 직후용**. 지금은 교정 항목이 어긋나는 것이 정상이다(DB 가 원본) |
 | `backup_db.py` | DB 사본 (WAL 안전) |
 | `tighten_bbox.py` | bbox 본체 정렬 — **미적용** |
 | `backfill_scale_source.py` | 배율 출처 소급 — 적용 완료(일회성) |
