@@ -409,19 +409,36 @@ def threshold_preview(request):
                      "flips": flips})
     rows.sort(key=lambda x: (-x["flips"], x["slug"], x["gid"]))
 
+    # 무엇을 보여줄지는 **서버가 정한다.** 영향 큰 순으로 잘라 보낸 뒤 클라이언트가
+    # 또 거르면, 잘린 것이 이미 전부 "영향받는 것" 이라 필터가 헛돈다 — 반대로
+    # 영향이 없을 때는 켜는 순간 화면이 텅 빈다.
+    touched = [r for r in rows if r["flips"]]
+    only_touched = bool(payload.get("only_touched", True))
     limit = max(1, min(int(payload.get("limit") or 24), 200))
-    verdicts = {}
-    for row in rows[:limit]:
-        verdicts[row["detection_id"]] = result["per_det"][row["detection_id"]]["verdict"]
+
+    if only_touched:
+        shown = touched[:limit]
+    else:
+        # 끄면 영향 없는 시야도 섞여야 뜻이 통한다 — 영향받는 것이 24개를 넘으면
+        # 그것만으로 화면이 차서 켠 것과 구분이 안 된다. 절반은 영향 순으로,
+        # 나머지는 시야 순으로 채운다.
+        head = touched[:max(1, limit // 2)]
+        seen = {r["detection_id"] for r in head}
+        rest = sorted((r for r in rows if r["detection_id"] not in seen),
+                      key=lambda x: (x["slug"], x["gid"]))
+        shown = head + rest[:limit - len(head)]
+    verdicts = {r["detection_id"]: result["per_det"][r["detection_id"]]["verdict"]
+                for r in shown}
 
     return JsonResponse({
         "ok": True,
         "values": values,
         "total": result["total"],
         "classes": th.class_counts(values, pool),
-        "rows": rows[:limit],
+        "rows": shown,
         "n_rows": len(rows),
-        "n_touched": result["total"]["touched"],
+        "n_touched": len(touched),
+        "only_touched": only_touched,
         "verdicts": verdicts,
     })
 

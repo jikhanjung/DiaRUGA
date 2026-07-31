@@ -138,7 +138,8 @@
     sum.classList.add('busy');
     fetch('/api/threshold/preview', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: SLUG, values: values, limit: LIMIT })
+      body: JSON.stringify({ slug: SLUG, values: values, limit: LIMIT,
+                             only_touched: onlyTouched.checked })
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (my !== seq || !d.ok) return;          // 그 사이 더 움직였으면 버린다
       lastRows = d.rows; lastVerdicts = d.verdicts;
@@ -164,12 +165,24 @@
       '<div class="dim">들어옴 ' + t.added + ' · 빠짐 ' + t.removed +
         ' · 영향받는 시야 <b>' + t.touched + '</b>/' + t.viewpoints + '</div>';
     applyBtn.disabled = (t.added === 0 && t.removed === 0);
+    var shown = (d.rows || []).length;
+    var pool = d.only_touched ? d.n_touched : d.n_rows;
     document.getElementById('thcount').textContent =
-      '영향받는 시야 ' + t.touched + '개' +
-      (d.n_rows > LIMIT ? ' (위 ' + LIMIT + '개만 그린다)' : '');
-    vpmore.textContent = t.touched > LIMIT
-      ? '영향 큰 순으로 ' + LIMIT + '개만 보여준다. 문턱을 좁히면 줄어든다.'
-      : (t.touched === 0 ? '이 문턱에서는 바뀌는 것이 없다.' : '');
+      d.only_touched
+        ? '영향받는 시야 ' + d.n_touched + '개' +
+          (shown < pool ? ' 중 ' + shown + '개' : '')
+        : '시야 ' + d.n_rows + '개' + (shown < pool ? ' 중 ' + shown + '개' : '');
+
+    if (d.n_touched === 0) {
+      vpmore.textContent = d.only_touched
+        ? '이 문턱에서는 바뀌는 것이 없다. 체크를 풀면 지금 판정을 볼 수 있다.'
+        : '이 문턱에서는 바뀌는 것이 없다 — 아래는 지금 판정 그대로다.';
+    } else if (shown < pool) {
+      vpmore.textContent = '영향 큰 순으로 ' + shown + '개만 그린다 (모두 ' +
+        pool + '개).';
+    } else {
+      vpmore.textContent = '';
+    }
   }
 
   // --- 시야 격자 -----------------------------------------------------------
@@ -185,9 +198,8 @@
   }
 
   function paintGrid() {
-    var rows = lastRows.filter(function (r) {
-      return !onlyTouched.checked || r.flips > 0;
-    });
+    // 무엇을 그릴지는 서버가 이미 정했다 — 여기서 또 거르지 않는다.
+    var rows = lastRows;
     vpgrid.innerHTML = '';
     rows.forEach(function (r) {
       var cell = document.createElement('a');
@@ -243,7 +255,8 @@
     });
   }
 
-  onlyTouched.addEventListener('change', paintGrid);
+  // 무엇을 받을지가 달라지므로 다시 받는다. 표시 방식만 바꾸는 것은 다시 그린다.
+  onlyTouched.addEventListener('change', fetchPreview);
   showMarks.addEventListener('change', paintGrid);
 
   // --- 적용 ----------------------------------------------------------------
