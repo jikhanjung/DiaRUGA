@@ -29,6 +29,13 @@
       <input type="number" step="0.1" name="depth_cm"
              value="{{ slide.depth_cm|default_if_none:'' }}">
       <span class="hint">폴더 이름에서 읽었습니다. 예: 369</span></label>
+    <label>배율 (µm/px)
+      <input type="number" step="any" name="um_per_pixel_override"
+             value="{{ slide.um_per_pixel_override|default_if_none:'' }}"
+             placeholder="비우면 40x 로 계산합니다">
+      <span class="hint">비워 두면 40x 대물렌즈로 가정해 계산합니다
+        (40x·1.6x 옵토바·0.63x 어댑터 = 0.1126). ZEN 이 실제와 다른 대물렌즈를
+        적는 일이 있어 XML 을 그대로 믿지 않습니다. 다른 배율로 찍었다면 여기 적으세요.</span></label>
     <label>설명
       <textarea name="description" rows="3"
                 placeholder="이 슬라이드에 대해 남길 것">{{ slide.description }}</textarea></label>

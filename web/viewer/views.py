@@ -94,6 +94,7 @@ def dataset_edit(request, slug):
             slide.name = (p.get("slide_name") or slide.name).strip()
             slide.depth_cm = _num(p.get("depth_cm"))
             slide.description = (p.get("description") or "").strip()
+            slide.um_per_pixel_override = _num(p.get("um_per_pixel_override"))
             if core:
                 core.code = (p.get("core_code") or core.code).strip()
                 core.kind = (p.get("core_kind") or "").strip()

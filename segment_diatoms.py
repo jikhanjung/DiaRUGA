@@ -646,6 +646,12 @@ def main():
             slide = Slide.objects.get(slug=args.slide)
         except Slide.DoesNotExist:
             raise SystemExit(f"그런 슬라이드가 없다: {args.slide}")
+        # 슬라이드에 배율이 못 박혀 있으면 그것을 쓴다. CLI 로 준 값이 우선한다 —
+        # 사람이 그 자리에서 내린 지시가 더 최근이다.
+        if slide.um_per_pixel_override and not args.um_per_pixel:
+            args.um_per_pixel = slide.um_per_pixel_override
+            print(f"{slide.slug}: 슬라이드에 지정된 배율 "
+                  f"{args.um_per_pixel:.9f} µm/px 를 쓴다", file=sys.stderr)
         data_root = Path(settings.DATA_ROOT)
         files = []
         for vp in slide.viewpoints.order_by("idx"):

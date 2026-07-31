@@ -108,6 +108,10 @@ class Slide(models.Model):
     depth_cm = models.FloatField(null=True, blank=True)
     # 사람이 적는 설명. state_note 와 갈라 둔다 — 그쪽은 자동 처리가 덮어쓴다.
     description = models.TextField(blank=True, default="")
+    # 배율을 사람이 못 박는다. 비어 있으면 zen_meta 가 40x 로 가정해 계산한다.
+    # ZEN 이 소프트웨어에서 선택된 대물렌즈로 적어서 실제와 어긋난 적이 있다
+    # (260731 이 100x 로 기록돼 µm/px 가 2.5배 작았다 — devlog 015).
+    um_per_pixel_override = models.FloatField(null=True, blank=True)
     corr_thresh = models.FloatField(null=True, blank=True)
     # NAS 로 폴더가 계속 들어오면 상태 관리가 필요해진다 (P01 §1)
     state = models.CharField(max_length=12, choices=STATE, default="done")

@@ -169,13 +169,17 @@ def build_depth(smaps, best, conf_pct):
     return depth, mask
 
 
-def carry_scaling(paths, scale, out_img, tag, scale_log=None):
+def carry_scaling(paths, scale, out_img, tag, scale_log=None, override=None):
     """합성본에 픽셀 크기를 물려준다.
 
     합성본에는 ZEN XML 이 따라오지 않으므로, 원본에서 읽은 값을 사이드카로
     남기지 않으면 검출 단계가 계측 기준을 잃는다.
     """
-    scalings = [scaling_for(p) for p in paths]
+    if override:
+        # 슬라이드에 배율이 못 박혀 있으면 XML 을 읽지 않는다 (P03 · devlog 015)
+        scalings = [{"um_per_pixel": override, "source": "cli"} for _ in paths]
+    else:
+        scalings = [scaling_for(p) for p in paths]
     native = scalings[0]["um_per_pixel"]
     if any(abs(s["um_per_pixel"] - native) > native * 1e-3 for s in scalings):
         print(f"{tag}: 경고 — 그룹 안에서 픽셀 크기가 다르다. "
@@ -197,7 +201,8 @@ def carry_scaling(paths, scale, out_img, tag, scale_log=None):
             "um_per_pixel_source": scalings[0]["source"]}
 
 
-def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag, scale_log=None):
+def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag, scale_log=None,
+                override=None):
     imgs, grays = [], []
     for p in paths:
         im = cv2.imread(str(p), cv2.IMREAD_COLOR)
@@ -250,7 +255,7 @@ def stack_group(paths, scale, use_ecc, soft, conf_pct, out_dir, tag, scale_log=N
 
     out_img = out_dir / f"{tag}_focused.jpg"
     cv2.imwrite(str(out_img), fused, [cv2.IMWRITE_JPEG_QUALITY, 92])
-    sc = carry_scaling(paths, scale, out_img, tag, scale_log)
+    sc = carry_scaling(paths, scale, out_img, tag, scale_log, override)
     cv2.imwrite(str(out_dir / f"{tag}_depth.jpg"), depth_vis,
                 [cv2.IMWRITE_JPEG_QUALITY, 92])
     np.savez_compressed(str(out_dir / f"{tag}_depth.npz"),
@@ -412,7 +417,8 @@ def main():
     try:
         for vp, tag, paths in todo:
             r = stack_group(paths, args.scale, not args.no_ecc, not args.hard,
-                            args.conf_pct, out_dir, tag, scale_log)
+                            args.conf_pct, out_dir, tag, scale_log,
+                            slide.um_per_pixel_override)
             # 그룹 하나마다 커밋한다. 합성이 그룹당 17초라 전체를 한 트랜잭션으로
             # 묶으면 그동안 뷰어의 쓰기가 막히고, 중간에 끊기면 전부 잃는다.
             with transaction.atomic():

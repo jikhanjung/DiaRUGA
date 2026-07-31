@@ -21,6 +21,26 @@ from pathlib import Path
 # XML 도 사이드카도 없을 때만 쓰는 최후의 기본값이다.
 DEFAULT_UM_PER_PIXEL = 0.11259920634920635
 
+# 규조류는 40x 로 찍는다. **따로 지정하지 않으면 이것으로 계산한다.**
+#
+# ZEN 은 소프트웨어에서 *선택된* 대물렌즈로 배율을 계산한다. 렌즈 교환대가 수동이면
+# 실제 광학계와 어긋날 수 있고, 실제로 그런 일이 있었다 — 260731 슬라이드의 XML 이
+# 100x 로 적혀 있어 µm/px 가 2.5배 작게 기록됐다(0.045 대신 0.1126).
+#
+# 그 오차는 조용히 번진다. 계측값은 비례해서 틀리는 데 그치지만 **텍스처는 무너진다** —
+# 조흔 대역(0.4~1.6 µm)을 픽셀로 환산해 스펙트럼의 어느 고리를 볼지 정하기 때문에,
+# 배율이 2.5배 틀리면 실제 대역과 20% 밖에 안 겹치는 엉뚱한 곳을 뒤진다. 그러고는
+# 예외도 경고도 없이 "규조각이 아니다" 라는 그럴듯한 답을 낸다(실측: 텍스처 중앙값이
+# 2,659 → 83 으로 떨어져 통과율이 1.6% 가 됐다).
+#
+# 그래서 XML 의 대물렌즈 배율을 그대로 믿지 않는다. 카메라 화소·옵토바·어댑터는
+# XML 에 기록된 실측값을 쓰고 **대물렌즈만 이 값으로 고정해 다시 계산한다.**
+# 장비 구성이 바뀌면 나머지는 따라간다.
+#
+# 다른 배율로 찍었다면 알려 줘야 한다 — `--um-per-pixel` 또는 슬라이드 속성의
+# 배율 칸으로. 자동으로 알아내려 하지 않는다.
+ASSUMED_OBJECTIVE_MAG = 40.0
+
 # 광학현미경에서 나올 수 있는 범위. 이 밖의 값이면 파싱을 잘못한 것으로 본다.
 PLAUSIBLE_UM_PER_PIXEL = (0.001, 100.0)
 
@@ -95,12 +115,69 @@ def _distances(text):
     return out
 
 
+def _one(text, tag):
+    m = re.search(rf"<{tag}>([^<]*)</{tag}>", text)
+    return m.group(1).strip() if m else None
+
+
+def optics(text):
+    """XML 의 `Scaling/AutoScaling` 에서 광학 경로를 읽는다.
+
+    ZEN 은 여기에 배율을 만드는 요소를 다 적어 둔다:
+
+        카메라 화소 ÷ (대물렌즈 × 옵토바 × 카메라어댑터) = µm/픽셀
+
+    실제로 검산하면 `Scaling/Items/Distance` 와 소수점까지 맞는다(네 슬라이드 확인).
+    """
+    def f(tag):
+        return _to_float(_one(text, tag))
+    cam = _one(text, "CameraPixelDistance") or ""
+    cell = _to_float(cam.split(",")[0]) if cam else None
+    return {
+        "objective": f("NominalMagnification"),
+        "optovar": f("OptovarMagnification"),
+        "adapter": f("CameraAdapterMagnification"),
+        "camera_px_um": cell,
+        "objective_name": _one(text, "ObjectiveName"),
+    }
+
+
+def _um_at_assumed_objective(text):
+    """대물렌즈를 `ASSUMED_OBJECTIVE_MAG` 로 놓고 µm/px 를 다시 계산한다.
+
+    나머지(카메라 화소·옵토바·어댑터)는 XML 값을 그대로 쓴다 — 그쪽은 소프트웨어
+    설정이 아니라 장비 구성이라 어긋날 이유가 적다.
+    """
+    o = optics(text)
+    if not (o["camera_px_um"] and o["optovar"] and o["adapter"]):
+        return None, o
+    total = ASSUMED_OBJECTIVE_MAG * o["optovar"] * o["adapter"]
+    return (o["camera_px_um"] / total if total else None), o
+
+
 def read_um_per_pixel(img):
-    """XML 에 기록된 픽셀 크기(µm). XML 이 없거나 값이 이상하면 None."""
+    """픽셀 크기(µm). XML 이 없거나 값이 이상하면 None.
+
+    **XML 의 대물렌즈 배율을 그대로 믿지 않는다** — 위 `ASSUMED_OBJECTIVE_MAG`
+    주석을 볼 것.
+    """
     xml = xml_sidecar(img)
     text = _read_text(xml)
     if text is None:
         return None
+
+    # 대물렌즈가 가정과 다르면, 나머지 광학 경로는 그대로 두고 다시 계산한다.
+    fixed, o = _um_at_assumed_objective(text)
+    if fixed is not None and o["objective"] and \
+            abs(o["objective"] - ASSUMED_OBJECTIVE_MAG) > 1e-6:
+        _warn(f"objmismatch:{xml.parent}",
+              f"{xml.parent.name}: XML 의 대물렌즈가 "
+              f"{o['objective']:g}x 다 ({o['objective_name']}). "
+              f"규조류는 {ASSUMED_OBJECTIVE_MAG:g}x 로 찍으므로 "
+              f"{fixed:.9f} µm/px 로 계산한다. "
+              f"정말 {o['objective']:g}x 로 찍었다면 --um-per-pixel 로 알려 줄 것")
+        lo, hi = PLAUSIBLE_UM_PER_PIXEL
+        return fixed if lo <= fixed <= hi else None
 
     d = _distances(text)
     if not d:
