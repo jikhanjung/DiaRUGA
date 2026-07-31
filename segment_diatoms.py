@@ -388,6 +388,34 @@ def threshold_set_for(values: dict) -> ThresholdSet:
                                        **values)
 
 
+def mark_done_if_complete(slide) -> bool:
+    """자동 처리가 다 끝났으면 슬라이드를 `done` 으로 연다.
+
+    **`done` 이 되기 전에는 뷰어가 검토를 막는다** (P01 §1). 반쯤 처리된 슬라이드를
+    사람이 검토하면, 아직 안 돌아간 시야의 검출이 뒤늦게 들어오면서 이미 본 화면이
+    바뀐다. 최상위 디렉토리 하나를 단위로 열고 닫는다.
+
+    `failed`(그룹핑이 미심쩍다고 표시한 것)는 열지 않는다 — 사람이 봐야 한다.
+    """
+    if slide.state == "failed":
+        return False
+    vps = list(slide.viewpoints.all())
+    if not vps:
+        return False
+    missing = [vp for vp in vps
+               if not vp.detections.filter(is_current=True).exists()]
+    if missing:
+        slide.state = "processing"
+        slide.state_note = f"검출 대기 시야 {len(missing)}개"
+        slide.save(update_fields=["state", "state_note"])
+        return False
+    slide.state = "done"
+    slide.state_note = ""
+    slide.processed_at = timezone.now()
+    slide.save(update_fields=["state", "state_note", "processed_at"])
+    return True
+
+
 def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float):
     """검출 결과를 새 Detection 으로 쌓고 교정을 다시 맺는다.
 
@@ -658,6 +686,7 @@ def main():
     n_det = n_cand = n_oom = 0
     bind = Counter()
     missing = []
+    touched = set()
     try:
         for f in files:
             try:
@@ -681,6 +710,7 @@ def main():
             n_det += 1
             n_cand += nc
             bind += stat
+            touched.add(det.viewpoint.slide_id)
             if stat and (stat["iou"] or stat["orphan"]):
                 # 고아는 손실이 아니지만(geom 이 남는다) 뷰어가 못 그린다.
                 # 반드시 보이게 한다 — 조용하면 한참 뒤에나 알게 된다.
@@ -706,6 +736,14 @@ def main():
             run.status = "failed"
             run.error = f"OOM {n_oom}건 — 검출된 것이 없다"
         run.save()
+        # 슬라이드 하나가 다 끝났으면 검토를 연다
+        from viewer.models import Slide                             # noqa: PLC0415
+        for sl in Slide.objects.filter(pk__in=touched):
+            if mark_done_if_complete(sl):
+                print(f"  {sl.slug}: 자동 처리 완료 — 검토를 연다")
+            else:
+                print(f"  {sl.slug}: {sl.state} — {sl.state_note}")
+
         print(f"\n검출 {n_det}개 · 개체 {n_cand}개 · Run #{run.pk}")
         if bind:
             print(f"  교정 재바인딩: exact {bind['exact']} · iou {bind['iou']} · "

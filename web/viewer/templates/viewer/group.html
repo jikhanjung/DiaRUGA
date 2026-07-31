@@ -16,6 +16,27 @@
 {% block content %}
 
 {% comment %}
+  자동 처리가 끝나기 전에는 검토를 막는다 (P01 §1). 반쯤 처리된 슬라이드를
+  검토하면 아직 안 돌아간 시야의 검출이 뒤늦게 들어오면서 이미 본 화면이 바뀐다.
+  서버도 저장을 거절하지만(views.save_review), 사람이 헛수고하지 않게 여기서 먼저
+  알리고 교정 UI 를 잠근다.
+{% endcomment %}
+{% if review_blocked %}
+<div class="blocked">
+  <b>검토를 아직 열 수 없다</b>
+  <span>{{ review_blocked }}</span>
+</div>
+<style>
+  .blocked { margin: 0 0 12px; padding: 10px 14px; border-radius: 6px;
+             background: #4a1d1d; color: #ffd9d9; border: 1px solid #7d2f2f; }
+  .blocked b { display: block; margin-bottom: 3px; }
+  .blocked span { opacity: .85; font-size: 13px; }
+  /* 교정 도구는 잠근다 — 눌러도 서버가 409 로 거절한다 */
+  .toolbar, .donebar { opacity: .35; pointer-events: none; }
+</style>
+{% endif %}
+
+{% comment %}
   이미지와 검출은 한 화면에 있다. 사진 아래 캐러셀에서 합성본·깊이 맵·원본
   프레임을 오가며 같은 검출 레이어를 얹어 본다.
 {% endcomment %}

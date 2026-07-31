@@ -610,6 +610,13 @@ def save_review(request):
     if not SAFE_STEM.match(stem):
         return HttpResponseBadRequest("bad stem")
 
+    # 자동 처리가 끝나기 전에는 저장을 받지 않는다 (P01 §1).
+    # 반쯤 처리된 슬라이드를 검토하면 아직 안 돌아간 시야의 검출이 뒤늦게
+    # 들어오면서 이미 본 화면이 바뀐다. 최상위 폴더 하나를 단위로 열고 닫는다.
+    blocked = data.review_blocked(stem)
+    if blocked:
+        return JsonResponse({"ok": False, "error": blocked}, status=409)
+
     def keys(name):
         v = payload.get(name) or []
         if not isinstance(v, list):

@@ -262,6 +262,32 @@ def detection_for_viewpoint(vp: Viewpoint) -> dict | None:
     return _apply_review(det, reviews, vr)
 
 
+def review_blocked(stem_or_slide) -> str:
+    """검토를 막아야 하면 그 이유를, 아니면 빈 문자열을 돌려준다.
+
+    슬라이드(최상위 폴더) 하나를 단위로 연다. 자동으로 할 수 있는 처리 — 그룹핑,
+    합성, 검출, 문턱 적용 — 이 다 끝나야 `state="done"` 이 되고, 그때 검토가 열린다
+    (P01 §1, `segment_diatoms.mark_done_if_complete`).
+
+    반쯤 처리된 슬라이드를 검토하면 아직 안 돌아간 시야의 검출이 뒤늦게 들어오면서
+    이미 본 화면이 바뀐다. 사람의 판단이 재생성 불가라 그 상황을 만들면 안 된다.
+    """
+    slide = stem_or_slide
+    if isinstance(stem_or_slide, str):
+        vp = _viewpoint_of(stem_or_slide)
+        if vp is None:
+            return ""
+        slide = vp.slide
+    if slide is None or slide.state == "done":
+        return ""
+    if slide.state == "failed":
+        return (f"이 슬라이드는 자동 처리에서 멈췄다 — {slide.state_note or '원인 확인 필요'}. "
+                f"사람이 확인하기 전에는 검토를 열지 않는다.")
+    return (f"자동 처리가 끝나지 않았다 ({slide.state}"
+            f"{' · ' + slide.state_note if slide.state_note else ''}). "
+            f"끝나면 검토가 열린다.")
+
+
 def _viewpoint_of(stem: str) -> Viewpoint | None:
     """검출·교정의 stem 으로 시야를 찾는다.
 
@@ -492,6 +518,8 @@ def group_detail(slug: str, gid: int) -> dict | None:
                   if st else None),
         "prev_id": ids[pos - 1] if pos > 0 else None,
         "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
+        # 자동 처리가 안 끝났으면 검토를 막는다 (P01 §1). 저장도 서버에서 거절한다.
+        "review_blocked": review_blocked(slide),
     }
 
 
