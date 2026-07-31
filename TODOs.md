@@ -17,9 +17,15 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 - [x] **4. 뷰어를 DB 로** — JSON 판과 개체 dict 하나하나까지 같은 값
 - [ ] **5. `export_review.py`** — DB → `review/*.json` (git 에 남길 감사 기록).
       당분간 DB 위주로 작업하기로 해서 미뤘다. 그동안은 `backup_db.py` 가 안전망
-- [ ] **6. 스크립트 4개를 DB 에 쓰게** ← **다음 작업**.
-      `refilter.py`(119줄) 부터 — 가장 작고, 문턱 이력이 바로 생기고,
-      `segment_diatoms.py`(489줄) 에 필요한 조각을 먼저 검증할 수 있다
+- [ ] **6. 스크립트 4개를 DB 에 쓰게** — 진행 중
+  - [x] `refilter.py` — UPDATE 한 번으로 바뀌었다(124 시야 0.9초).
+        문턱이 `ThresholdSet` 행에 남고 실행이 `Run` 에 기록된다.
+        판정 규칙은 `judge.py` 로 떼어냈다(torch 없이 돈다)
+  - [ ] `focus_stack.py` — 이미지는 파일 그대로, 메타데이터를 `Stack` 행으로
+  - [ ] `segment_diatoms.py`(489줄) — 가장 크다. 새 `Detection` 을 쌓고
+        `is_current` 를 옮기며 교정을 다시 맺는다. **한 트랜잭션이어야 한다**
+  - [ ] `group_focus_series.py` — 마지막에. 재그룹핑은 `Viewpoint` 를 재편하므로
+        그 아래 검출·교정이 통째로 어긋난다(기존 시야가 있으면 경고해야 한다)
 - [ ] **7. JSON 을 원본에서 내리기** — `README`·주석 갱신
 - [ ] **8. 재바인딩 + 고아 화면**(`/orphans/`) — 새 run 과 기존 교정을 잇는다.
       **학습·엔진 교체 전에 반드시** (없으면 교정이 조용히 버려진다)

@@ -20,7 +20,12 @@ import numpy as np
 import torch
 from PIL import Image
 
+from judge import classify, dedupe                 # noqa: F401 (외부에서 쓴다)
+from judge import DEFAULTS as JUDGE_DEFAULTS
 from zen_meta import DEFAULT_UM_PER_PIXEL, ScaleLog, scaling_for
+
+# 판정 규칙은 judge.py 에 있다 — refilter.py 와 같은 함수를 써야 하고,
+# 문턱 재조정은 GPU 가 필요 없는 일이라 torch 에 기대지 않아야 한다.
 
 # µm/픽셀은 사진마다 딸려 오는 XML(Scaling/Items/Distance)에서 읽는다.
 # 상수로 박아 두면 촬영 조건이 바뀌었을 때 조용히 전부 틀리기 때문이다.
@@ -220,81 +225,6 @@ def filter_records(records, min_um, max_um, drop_background_frac=0.5, img_area=N
     return out
 
 
-def classify(r, args):
-    """
-    (분류, 탈락사유). 분류가 None 이면 규조각 후보가 아니다.
-
-    텍스처가 1차 관문("규조각인가"), 형태가 2차("어떤 형태인가").
-    둘 다 필요하다 — 텍스처만 쓰면 쇄설물 조각이, 형태만 쓰면 구조 없는
-    티끌이 들어온다. 실측으로 확인했다.
-    """
-    if not r.get("shape_ok"):
-        return None, "형태측정불가"
-    # 크기는 적합 타원의 장축으로 다시 본다. bbox 긴 변은 비스듬히 누운 물체에서
-    # 실제보다 커지므로, 그것만 보면 4 µm 짜리가 10 µm 관문을 통과한다.
-    major = r.get("major_um")
-    if major is not None and not (args.min_um <= major <= args.max_um):
-        return None, "장축범위밖"
-    if r.get("texture") is not None and r["texture"] < args.texture_min:
-        return None, "텍스처부족"
-
-    e, iou, sol = r["elongation"], r["ellipse_iou"], r["solidity"]
-    if e < args.round_max_elong:
-        # 원형은 areolae 를 봉상보다 무겁게 본다. 밋밋한 원반·기포·쇄설물 조각은
-        # 형태만으로 걸러지지 않는다 — 실측에서 원형 통과분의 형태 지표는 텍스처
-        # 세기와 무관하게 평평했다(IoU 중앙 0.886~0.898, 볼록성 0.957~0.966).
-        # 형태로 가려낼 수 없으므로 areolae 세기 자체를 관문으로 둔다.
-        round_tex = getattr(args, "round_texture_min", None)
-        if round_tex and r.get("texture") is not None and r["texture"] < round_tex:
-            return None, "원형areolae부족"
-        if iou >= args.round_min_iou and sol >= args.round_min_solidity:
-            return "round", None
-        return None, "원형기준미달"
-    if args.rod_min_elong <= e <= args.rod_max_elong:
-        if iou >= args.rod_min_iou and sol >= args.rod_min_solidity:
-            return "rod", None
-        return None, "봉상기준미달"
-    return None, "신장비범위밖"
-
-
-def _cover(a, b):
-    """a 의 bbox 가 b 안에 들어간 비율 (a 면적 기준)."""
-    ax, ay, aw, ah = a["bbox_xywh"]
-    bx, by, bw, bh = b["bbox_xywh"]
-    ix = max(0, min(ax + aw, bx + bw) - max(ax, bx))
-    iy = max(0, min(ay + ah, by + bh) - max(ay, by))
-    return ix * iy / max(aw * ah, 1)
-
-
-def dedupe(selected):
-    """
-    중첩 마스크 정리.
-
-    SAM2 AMG 는 격자 포인트마다 다중 스케일 마스크를 내므로 최대 6단계까지
-    중첩된다. NMS 는 IoU 기반이라 이걸 못 잡는다 — 작은 것이 큰 것 안에 들면
-    IoU 는 오히려 작아진다 (실측 중앙값 0.07).
-
-    큰 쪽을 남기면 덩어리가 내부 규조각을 전부 삼키므로, 집합체를 골라 버리고
-    개별 물체를 남긴다.
-    """
-    keep = []
-    for a in selected:
-        kids = [b for b in selected
-                if b is not a and b["area_px"] < a["area_px"] and _cover(b, a) > 0.85]
-        # 자식 2개 이상이 자기 면적의 절반 이상을 설명하면 개별 물체가 아니다.
-        if len(kids) >= 2 and sum(b["area_px"] for b in kids) > 0.5 * a["area_px"]:
-            continue
-        keep.append(a)
-
-    # 거의 같은 마스크는 하나로 — 텍스처가 높은 쪽을 남긴다.
-    keep.sort(key=lambda r: -(r.get("texture") or 0))
-    out = []
-    for r in keep:
-        if not any(_cover(r, k) > 0.8 and _cover(k, r) > 0.8 for k in out):
-            out.append(r)
-    return out
-
-
 def draw_overlay(img: Image.Image, records, out_path: Path):
     from PIL import ImageDraw
 
@@ -443,21 +373,21 @@ def main():
     g = ap.add_argument_group("규조각 판정")
     g.add_argument("--no-shape-filter", action="store_true",
                    help="형태·텍스처 판정 없이 크기 필터만 (지표는 그대로 기록)")
-    g.add_argument("--texture-min", type=float, default=1000.0,
+    g.add_argument("--texture-min", type=float, default=JUDGE_DEFAULTS["texture_min"],
                    help="주기 구조 세기 하한. 규조각 1500~19000, 티끌 12~240")
-    g.add_argument("--round-max-elong", type=float, default=1.4)
-    g.add_argument("--round-min-iou", type=float, default=0.85)
-    g.add_argument("--round-min-solidity", type=float, default=0.92)
+    g.add_argument("--round-max-elong", type=float, default=JUDGE_DEFAULTS["round_max_elong"])
+    g.add_argument("--round-min-iou", type=float, default=JUDGE_DEFAULTS["round_min_iou"])
+    g.add_argument("--round-min-solidity", type=float, default=JUDGE_DEFAULTS["round_min_solidity"])
     # 원형은 areolae 를 더 무겁게 본다 — 형태 지표가 텍스처 세기와 무관하게
     # 평평해서(§판정 기준), 밋밋한 원반을 형태로는 가려낼 수 없다.
-    g.add_argument("--round-texture-min", type=float, default=1500.0,
+    g.add_argument("--round-texture-min", type=float, default=JUDGE_DEFAULTS["round_texture_min"],
                    help="원형(중심목)에만 적용하는 areolae 세기 하한. "
                         "--texture-min 보다 높게 잡아 밋밋한 원반을 떨어뜨린다")
     # Plate 9 는 2:1 수준, Plate 1 의 #16/#17/#24 는 20:1 에 가깝다.
-    g.add_argument("--rod-min-elong", type=float, default=2.0)
-    g.add_argument("--rod-max-elong", type=float, default=20.0)
-    g.add_argument("--rod-min-iou", type=float, default=0.72)
-    g.add_argument("--rod-min-solidity", type=float, default=0.85)
+    g.add_argument("--rod-min-elong", type=float, default=JUDGE_DEFAULTS["rod_min_elong"])
+    g.add_argument("--rod-max-elong", type=float, default=JUDGE_DEFAULTS["rod_max_elong"])
+    g.add_argument("--rod-min-iou", type=float, default=JUDGE_DEFAULTS["rod_min_iou"])
+    g.add_argument("--rod-min-solidity", type=float, default=JUDGE_DEFAULTS["rod_min_solidity"])
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"

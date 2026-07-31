@@ -148,15 +148,29 @@ python segment_diatoms.py <이미지> -o out --no-shape-filter   # 판정 없이
 
 ### refilter.py — 재추론 없는 문턱 재조정
 
-지표가 JSON에 남아 있으므로 문턱만 바꿔 다시 거를 수 있다.
+지표가 통과분·탈락분 **양쪽에** 남아 있으므로 문턱만 바꿔 다시 거를 수 있다.
 
 ```
-python refilter.py out/ --texture-min 3000 --dry-run   # 개수만 확인
-python refilter.py out/ --rod-min-iou 0.70             # 적용
+python refilter.py --dry-run                          # 지금 문턱 그대로 (변화 확인)
+python refilter.py --round-texture-min 2000 --dry-run # 바꾸면 어떻게 되나
+python refilter.py --round-texture-min 2000           # 적용
+python refilter.py --slide rs23 --texture-min 3000    # 한 슬라이드만
 ```
 
-**124개 시야 재적용에 약 2초.** 재추론이면 40분 이상이다. 문턱 실험은 이쪽으로
-한다. (오버레이 JPG는 다시 그리지 않는다 — 뷰어는 JSON에서 직접 그리므로 무관하다.)
+**124개 시야 재적용에 0.9초.** 재추론이면 40분 이상이다. 문턱 실험은 이쪽으로 한다.
+
+DB 로 옮기면서 세 가지가 달라졌다.
+
+- 통과분·탈락분을 합치는 코드가 사라졌다 — 한 표에 `passed` 칼럼이라 **UPDATE 한 번**이다
+- **문턱이 `ThresholdSet` 행으로 남는다.** 예전에는 결과마다 복사됐고 다시 거르면
+  덮어써져서, "원형 669 → 514 가 언제 무슨 문턱으로 바뀌었나" 에 답할 수 없었다
+- 실행이 `Run(kind=refilter)` 에 남는다
+
+**주지 않은 문턱은 그 검출이 지금 쓰는 값 그대로다.** `--round-texture-min` 하나를
+바꾸려다 나머지 열 개가 조용히 초기화되면 안 된다(`--defaults` 로 강제할 수 있다).
+
+사람의 교정은 건드리지 않는다 — `mask_key` 로 붙어 있고 이것은 판정만 바꾼다.
+지운 개체가 탈락분으로 옮겨가도 뷰어에서는 여전히 지운 것으로 보인다.
 
 ### run_batch.sh — 합성 + 검출 일괄
 
@@ -428,6 +442,15 @@ XML (Scaling/Items/Distance)  >  사이드카 <파일명>_scale.json  >  기본�
 
 `python3 test_zen_meta.py` — 합성 XML 로 파서를 검증한다. 촬영 데이터도 GPU도
 필요 없고 표준 라이브러리만 쓴다.
+
+### judge.py — 규조각 판정 규칙
+
+`segment_diatoms.py`(검출 직후)와 `refilter.py`(문턱 재조정)가 **같은 함수를 쓴다.**
+두 곳에 적어 두면 어긋나고, 어긋나면 "다시 걸렀더니 결과가 달라졌다" 는 일이 조용히
+생긴다. 문턱 기본값(`DEFAULTS`)도 여기가 유일한 정의다.
+
+**torch·cv2 에 기대지 않는다** — 문턱 재조정은 GPU 가 필요 없는 일이고, 뷰어와 처리를
+갈라 담을 때 이 규칙은 가벼운 쪽에 있어야 한다.
 
 ### 그 밖에
 
