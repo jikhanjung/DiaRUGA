@@ -151,9 +151,10 @@ UPDATE 한 번이 됐고(0.9초), 문턱이 `ThresholdSet` 행에 남고 실행�
   얹는 이유다 — 원본을 고치면 교정을 되돌려도 옛 상태가 따라붙는다 (005 §4.2)
 - 이 머신에는 **node·브라우저가 없다.** JS 는 렌더한 인라인 스크립트를 뽑아
   구문·미선언 참조 검사로 확인해 왔다(그 검사가 실제 버그를 잡았다)
-- GPU 는 두 장인데 **1번은 다른 작업이 점유** 중이다. 검출을 돌릴 때
-  `CUDA_VISIBLE_DEVICES=0`
-- 디스크 `/` 가 86% 다 (47 G 여유)
+- **`verify_db.py` 는 임포트하면 `ImportError` 를 낸다.** 본문이 전부 최상위에
+  있어서 임포트만으로 `django.setup()` 이 돌고, **DB 가 없으면 빈 `diatom.db` 를
+  만든다.** 실제로 한 번 그렇게 만들어져서 막아 뒀다(실행 전용)
+- GPU·디스크는 아래 8절 — **머신이 바뀌었다**
 
 ---
 
@@ -170,3 +171,95 @@ WAP13-GC47   450 cm
 DB 에 `Site`·`Core`·`Slide.depth_cm` 으로 갈라 담았다 — *같은 코어에서 깊이에 따른
 군집 변화*와 *지역별 차이*가 분석 목적이라 통짜 문자열로는 질의가 안 된다.
 **지역 코드의 정식 명칭(`Site.name`·`region`)은 비어 있다.** 사람이 채울 값이다.
+
+---
+
+## 8. 머신을 옮겼다 (2026-07-31)
+
+작업 환경이 **이전 서버에서 이 머신으로 바뀌었다.** 코드는 git 에서 받았고, 데이터는
+`backup/diatom-snapshot-20260731_024326.tar.gz` (1.13 GB) 를 풀어 옮겼다.
+
+### 8.1 GPU — **재부팅해야 쓸 수 있다**
+
+`apt upgrade` 가 드라이버를 올렸는데 **실행 중인 커널에는 옛 모듈이 그대로 물려
+있다.** 그래서 `nvidia-smi` 가 죽고 `torch.cuda.is_available()` 이 `False` 다.
+
+| | 버전 |
+|---|---|
+| 로드된 커널 모듈 | `580.126.09` ← 옛 것 |
+| 유저스페이스 (`libnvidia-ml`, `libcuda`) | `580.173.02` |
+| 디스크에 설치된 모듈 | `580.173.02` |
+
+증상은 두 가지 얼굴로 나온다 — `nvidia-smi` 는 `Failed to initialize NVML:
+Driver/library version mismatch`, torch 는 `CUDA error 804: forward compatibility
+was attempted on non supported HW`. **둘 다 원인이 같다.**
+
+**재부팅 한 번이면 끝난다.** DKMS 가 `580.173.02` 를 현재 커널(`6.8.0-106`)과
+새 커널(`6.8.0-136`) **양쪽에 이미 빌드해 뒀다** — 재설치나 재빌드가 필요 없다.
+재부팅하면 커널이 `6.8.0-136` 으로 올라간다.
+
+> **모듈만 다시 올리는 것(`rmmod`)은 권하지 않는다.** GDM 이 떠 있고
+> `graphical.target` 이라 `nvidia` 참조수가 152 다 — 데스크톱을 내려야 해서
+> 재부팅과 다를 게 없으면서 실패할 구석만 많다. `libc6`·`apparmor` 때문에
+> `/var/run/reboot-required` 도 이미 서 있다.
+
+재부팅 뒤 확인:
+
+```bash
+uname -r                     # 6.8.0-136-generic
+nvidia-smi                   # 580.173.02
+python -c "import torch; print(torch.cuda.is_available(), torch.cuda.device_count())"
+```
+
+### 8.2 GPU 구성이 달라졌다 — **한 장이다**
+
+이전 서버는 두 장이었고 "1번은 다른 작업이 점유 중이니 `CUDA_VISIBLE_DEVICES=0`"
+이라고 적혀 있었다. **이 머신은 다르다.**
+
+```
+01:00.0  NVIDIA GA104 [GeForce RTX 3060 Ti]     <- 이것 하나
+0a:00.0  AMD Cezanne [Radeon Vega]              <- 내장, 화면용
+```
+
+`CUDA_VISIBLE_DEVICES` 를 걸 이유가 없어졌다. 대신 **VRAM 8 GB 다** — 검출을
+돌릴 때 `--scale`·`points_per_side` 에서 이전 서버 설정이 그대로 통하는지는
+**아직 확인하지 못했다**(재부팅 전이라 돌려보지 못했다).
+
+### 8.3 venv 위치가 README 와 다르다
+
+README·스냅샷 README.txt 는 `.venv` 를 만들라고 하지만, 이 머신은
+**`~/venv/diatom`** 을 쓴다 (Python 3.12.3). 설치는 끝났다 —
+`torch 2.13.0+cu126` · `torchvision 0.28.0+cu126` · `SAM-2 1.0` · Django 5.2.16 ·
+opencv-headless · numpy · pillow.
+
+> **`requirements.txt` 에 Django 가 없다.** 뷰어가 Django 로 도는데 목록에는
+> torch·SAM2·opencv 만 있어서 따로 깔아야 했다. 넣어 두는 편이 낫다.
+
+### 8.4 데이터 복원 상태 — 검증까지 끝냈다
+
+`diatom.db` (12.7 MB) · `260729/` (994 M) · `out/` (92 M) · `stacked/` (68 M) 를
+프로젝트 루트에 놓았다. `groups_*.json` 과 `review/` 는 git 것과 **바이트 동일**이라
+건드리지 않았다. 마이그레이션도 DB 와 코드가 3건으로 일치해 `migrate` 가 필요 없다.
+
+- `check_db.py` **12개 검사 전부 OK**. 특히 **`바인딩: {'exact': 2408}`** —
+  교정이 하나도 고아가 되지 않았다(이전에서 제일 잃기 쉬운 것이다)
+- 뷰어 전 화면 200 (데이터셋 3종 × 목록·`/crops/`·`/detections/`·`/thresholds/`,
+  시야 화면, `/healthz`). `/img` 로 원본 프레임·합성본이 실제로 스트리밍된다
+- `journal_mode` 는 스냅샷의 `delete` 에서 Django 가 붙으며 **`wal` 로 돌아왔다** —
+  다시 `cp diatom.db` 금지, `backup_db.py` 를 쓸 것 (3.1 절)
+
+보관본은 `backup/*.tar.gz` 하나만 남겼다(gzip CRC·목록 1,400 항목 확인). 푼
+디렉터리는 지웠다.
+
+### 8.5 DB 표(2절)가 이 스냅샷보다 오래됐다
+
+2절 표는 이전 시점 값이다. 실측은 이렇다 — 문턱 조정 UI 를 실제로 쓴 흔적이다.
+
+| | 2절 표 | 실측 |
+|---|---|---|
+| ObjectReview | 2,306 | **2,408** |
+| 삭제 / 되살림 / 분류 | 2,044 / 133 / 174 | **2,084 / 139 / 293** |
+| ThresholdSet | 1 | **2** |
+| Run | — | **25** |
+
+분류 내역: `rod_frag` 118 · `round_frag` 120 · `rod` 29 · `eucampia` 21 · `round` 5
