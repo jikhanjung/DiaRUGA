@@ -10,9 +10,13 @@
 
 ## 1. 한 줄 요약
 
-파이프라인은 한 바퀴 완주했고(124 시야), **사람이 전수 검토를 마쳤으며**, 데이터와
-설정을 **SQLite 로 옮기는 중**이다 — 뷰어는 이미 DB 로만 돌지만 파이프라인
-스크립트 4개는 아직 JSON 을 쓴다.
+파이프라인 스크립트가 **전부 DB 를 쓴다**(P02 6단계 끝). 뷰어와 파이프라인이
+컨테이너로 돌고, **NAS 에 새 슬라이드가 올라오면 1분 안에 감지해 검출까지 스스로
+간다**(P03). 첫 슬라이드(260729, 124 시야)는 사람이 전수 검토를 마쳤다.
+
+**지금 걸려 있는 것**: 새로 들어온 260731 슬라이드가 100x 로 찍혀 배율이 다르고
+(0.045 vs 0.1126 µm/px), 텍스처 문턱이 안 맞아 통과율이 1.6% 다. 촬영 확인 대기
+(9.9절·devlog 013).
 
 ---
 
@@ -24,11 +28,10 @@
 **문턱 조정(`/thresholds/`)** · 계측 표(`/detections/`)
 
 ```bash
-cd web && python manage.py runserver 0.0.0.0:9090
+cd /srv/diatom && docker compose up -d web     # 바깥 :9090 은 nginx 가 받는다
 ```
 
-읽기·쓰기 모두 DB 다. `groups_*.json` 을 치워도 화면이 그대로 나오는 것으로
-확인했다.
+읽기·쓰기 모두 DB 다. 9절을 볼 것 — 배포 구조가 바뀌었다.
 
 ### DB (`diatom.db`, WAL)
 
@@ -44,11 +47,14 @@ cd web && python manage.py runserver 0.0.0.0:9090
 **교정 현황**: 삭제 2,044 · 되살림 133 · 분류 지정 174 · 코멘트 2 ·
 **검토 완료 124/124** · 통과 개체 2,522(자동) → 627(교정 반영)
 
-### 파이프라인 스크립트 (아직 JSON)
+### 파이프라인 (전부 DB)
 
-`group_focus_series.py` → `focus_stack.py` → `segment_diatoms.py` → (`refilter.py`)
-`run_batch.sh` 가 가운데 둘을 묶어 돌린다. **결과를 DB 에 넣으려면 그 뒤에
-`python import_json.py` 를 한 번 돌려야 한다** (6단계에서 없어질 임시 상태다).
+```
+scan_nas → ingest_nas → group_focus_series → focus_stack --slide → segment_diatoms --slide
+```
+
+`import_json.py` 는 더 이상 파이프라인에 없다. `groups_*.json` 도 빠졌다 —
+`-o` 를 줄 때만 내보낸다. 이 흐름을 `deploy/poll_nas.sh` 가 1분마다 돌린다.
 
 ---
 
@@ -97,9 +103,9 @@ devlog 를 쓴 뒤에도 교정이 이어졌다. 실제 값은 위 2절(삭제 2
 | 3. 대조 `verify_db.py` | **끝** — 검사 37개 전부 일치 |
 | 4. 뷰어를 DB 로 | **끝** — JSON 판과 개체 dict 하나하나까지 같은 값 |
 | 5. `export_review.py` | **남음** (당분간 DB 위주로 작업하기로 해서 미뤘다) |
-| 6. 스크립트 4개를 DB 에 쓰게 | **진행 중** — `refilter.py`·`focus_stack.py` 끝. 다음은 `segment_diatoms.py` |
-| 7. JSON 을 원본에서 내리기 | 남음 |
-| 8. 재바인딩 + 고아 화면 | 남음 — 학습·엔진 교체 전에 반드시 |
+| 6. 스크립트 4개를 DB 에 쓰게 | **끝** — devlog 010·011·012 |
+| 7. JSON 을 원본에서 내리기 | **거의** — 파이프라인에서 빠졌다. `import_json.py` 의 중복 코드가 남아 있다 |
+| 8. 재바인딩 + 고아 화면 | **반** — `rebind.py` 는 만들었다(011). 고아 화면이 남았다 |
 
 ### 6단계 — `refilter.py` 는 끝났다
 
@@ -187,7 +193,7 @@ DB 에 `Site`·`Core`·`Slide.depth_cm` 으로 갈라 담았다 — *같은 코�
 작업 환경이 **이전 서버에서 이 머신으로 바뀌었다.** 코드는 git 에서 받았고, 데이터는
 `backup/diatom-snapshot-20260731_024326.tar.gz` (1.13 GB) 를 풀어 옮겼다.
 
-### 8.1 GPU — **재부팅해야 쓸 수 있다**
+### 8.1 GPU — 재부팅으로 해결됐다 (아래는 그때 기록)
 
 `apt upgrade` 가 드라이버를 올렸는데 **실행 중인 커널에는 옛 모듈이 그대로 물려
 있다.** 그래서 `nvidia-smi` 가 죽고 `torch.cuda.is_available()` 이 `False` 다.
