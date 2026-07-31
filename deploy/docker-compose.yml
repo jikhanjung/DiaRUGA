@@ -17,7 +17,7 @@ x-common: &common
   # 못 쓰게 된다. 교정이 재생성 불가라 이건 양보할 수 없다.
   user: "1000:1000"
   environment: &common-env
-    DIATOM_DB: /srv/diatom/diatom.db
+    DIATOM_DB: /srv/diatom/db/diatom.db
     DIATOM_DATA_ROOT: /data3/diatom
     DIATOM_THUMB_CACHE: /data3/diatom/.thumbcache
     DIATOM_DEBUG: "0"
@@ -26,7 +26,7 @@ x-common: &common
   volumes:
     # DB 가 있는 곳. **파일이 아니라 디렉토리째로** 물린다 — WAL 이 만드는
     # -wal·-shm 형제가 컨테이너 안쪽에 생기면 호스트와 WAL 을 공유하지 못한다.
-    - /srv/diatom:/srv/diatom
+    - /srv/diatom/db:/srv/diatom/db
     # 사진·산출물
     - /data3/diatom:/data3/diatom
 
@@ -51,7 +51,7 @@ services:
     image: diatom-pipeline:latest
     profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
     volumes:
-      - /srv/diatom:/srv/diatom
+      - /srv/diatom/db:/srv/diatom/db
       - /data3/diatom:/data3/diatom
       # NAS 는 **읽기 전용**. 촬영 원본을 건드리지 않는다 (P01 §1)
       - /nfs/temp-share/DiatomPhotos:/nfs/temp-share/DiatomPhotos:ro
