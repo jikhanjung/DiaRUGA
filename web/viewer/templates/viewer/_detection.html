@@ -38,6 +38,11 @@
     <label><input type="checkbox" data-layer="box" checked> bbox</label>
     <label><input type="checkbox" data-layer="mask" checked> mask</label>
     {% comment %}
+      mask 를 켰을 때만 뜻이 있는 선택지라 mask 가 꺼지면 같이 감춘다.
+      끄면 테두리만 그린다 — 채우면 정작 "이게 규조각인가" 를 볼 수 없을 때가 있다.
+    {% endcomment %}
+    <label class="fillopt"><input type="checkbox" data-layer="fill" checked> fill</label>
+    {% comment %}
       탈락 후보 레이어. 기본은 꺼 둔다 — 시야당 100개가 넘어 켜 두면 사진이
       묻힌다. 재현율을 눈으로 볼 때, 그리고 누락을 되살릴 때 켠다.
     {% endcomment %}
@@ -56,7 +61,7 @@
     <button type="button" data-act="reset">배율 초기화</button>
     <button type="button" data-act="ghosts">삭제분 숨기기</button>
     <button type="button" data-act="undo">↶ 실행취소</button>
-    <button type="button" class="danger" data-act="clear">교정 전체 초기화</button>
+    <button type="button" class="danger" data-act="clear">검토 전체 초기화</button>
   </div>
 
   {% comment %}
@@ -100,7 +105,7 @@
 {% endcomment %}
 <div class="striprow" id="nav-{{ uid }}">
   <button type="button" class="navbtn grp" data-nav="pgroup"
-          {% if prev_id is None %}disabled title="첫 시야다"{% else %}title="이전 시야 g{{ prev_id }} (Ctrl+← · 묻지 않고 바로 간다)"{% endif %}>&laquo;</button>
+          {% if prev_id is None %}disabled title="첫 시야입니다"{% else %}title="이전 시야 g{{ prev_id }} (Ctrl+← · 묻지 않고 바로 이동)"{% endif %}>&laquo;</button>
   <button type="button" class="navbtn" data-nav="pshot" title="이전 사진 (←)">&lsaquo;</button>
 
   <div class="strip" id="strip-{{ uid }}"
@@ -111,7 +116,7 @@
 
   <button type="button" class="navbtn" data-nav="nshot" title="다음 사진 (→)">&rsaquo;</button>
   <button type="button" class="navbtn grp" data-nav="ngroup"
-          {% if next_id is None %}disabled title="마지막 시야다"{% else %}title="다음 시야 g{{ next_id }} (Ctrl+→ · 묻지 않고 바로 간다)"{% endif %}>&raquo;</button>
+          {% if next_id is None %}disabled title="마지막 시야입니다"{% else %}title="다음 시야 g{{ next_id }} (Ctrl+→ · 묻지 않고 바로 이동)"{% endif %}>&raquo;</button>
 </div>
 
 <div class="detbar">
@@ -301,6 +306,15 @@
     layers.querySelectorAll('input[data-layer]').forEach(function (cb) {
       view.classList.toggle('hide-' + cb.dataset.layer, !cb.checked);
     });
+    // fill 은 mask 를 켰을 때만 뜻이 있다. 감추지 않고 잠근다 — 자리가 사라지면
+    // 옆 항목들이 밀려서, 체크를 껐다 켤 때 마우스가 엉뚱한 것을 누르게 된다.
+    var maskCb = layers.querySelector('input[data-layer="mask"]');
+    var fillOpt = layers.querySelector('.fillopt');
+    if (maskCb && fillOpt) {
+      var fillCb = fillOpt.querySelector('input');
+      if (fillCb) fillCb.disabled = !maskCb.checked;
+      fillOpt.classList.toggle('off', !maskCb.checked);
+    }
   }
   (function initLayers() {
     var saved = {};
@@ -467,14 +481,15 @@
     var box = document.createElement('div');
     box.className = 'askbox';
     box.innerHTML =
-      '<h3>' + (dir > 0 ? '이 시야의 마지막 사진이다' : '이 시야의 첫 사진이다') + '</h3>' +
-      '<div>' + word + ' 시야 <b>g' + gid + '</b> 로 넘어갈까?</div>';
+      '<h3>' + (dir > 0 ? '이 시야의 마지막 사진입니다'
+                        : '이 시야의 첫 사진입니다') + '</h3>' +
+      '<div>' + word + ' 시야 <b>g' + gid + '</b> 로 넘어갈까요?</div>';
 
     var label = document.createElement('label');
     var again = document.createElement('input');
     again.type = 'checkbox';
     label.appendChild(again);
-    label.appendChild(document.createTextNode('다시 묻지 않고 바로 넘어간다'));
+    label.appendChild(document.createTextNode('다음부터는 묻지 않고 바로 넘어가기'));
     box.appendChild(label);
 
     var row = document.createElement('div');
@@ -485,9 +500,10 @@
     go.textContent = word + ' 시야로 →';
     var no = document.createElement('button');
     no.type = 'button';
-    no.textContent = '여기 머문다';
-    row.appendChild(go);
+    no.textContent = '여기 머물기';
+    // 머무르기가 왼쪽, 넘어가기가 오른쪽. 진행 방향이 오른쪽이라 그쪽이 자연스럽다.
     row.appendChild(no);
+    row.appendChild(go);
     box.appendChild(row);
     ask.appendChild(box);
 
@@ -510,7 +526,7 @@
   function gotoGroup(dir) {
     var url = dir > 0 ? strip.dataset.next : strip.dataset.prev;
     if (!url) {
-      flashNote(dir > 0 ? '데이터셋의 마지막 시야다' : '데이터셋의 첫 시야다');
+      flashNote(dir > 0 ? '데이터셋의 마지막 시야입니다' : '데이터셋의 첫 시야입니다');
       return;
     }
     var gid = dir > 0 ? strip.dataset.nextId : strip.dataset.prevId;
@@ -531,7 +547,7 @@
   function jumpGroup(dir) {
     var url = dir > 0 ? strip.dataset.next : strip.dataset.prev;
     if (!url) {
-      flashNote(dir > 0 ? '데이터셋의 마지막 시야다' : '데이터셋의 첫 시야다');
+      flashNote(dir > 0 ? '데이터셋의 마지막 시야입니다' : '데이터셋의 첫 시야입니다');
       return;
     }
     leave(url);
@@ -700,7 +716,7 @@
 
   function undo() {
     var last = history.pop();
-    if (!last) { saveState.textContent = '되돌릴 교정이 없다'; return; }
+    if (!last) { saveState.textContent = '되돌릴 내용이 없습니다'; return; }
     if (last.type === 'remove') {
       restore(last.keys);
     } else if (last.type === 'restore') {
@@ -769,7 +785,7 @@
     }
     var n = removed.size, m = accepted.size;
     saveState.textContent = (n || m)
-      ? '교정: 삭제 ' + n + ' · 복구 ' + m + (history.length ? ' · Ctrl+Z 로 취소' : '')
+      ? '검토: 삭제 ' + n + ' · 복구 ' + m + (history.length ? ' · Ctrl+Z 로 취소' : '')
       : '';
   }
 
@@ -793,11 +809,17 @@
         note: groupNote
       })
     }).then(function (r) {
-      saveState.textContent = r.ok
-        ? '저장됨 — 삭제 ' + removed.size + ' · 복구 ' + accepted.size +
-          (reviewDone ? ' · 검토 완료' : '')
-        : '저장 실패';
-    }).catch(function () { saveState.textContent = '저장 실패 (오프라인?)'; });
+      if (r.ok) {
+        saveState.textContent =
+          '저장됨 — 삭제 ' + removed.size + ' · 복구 ' + accepted.size +
+          (reviewDone ? ' · 검토 완료' : '');
+      } else if (r.status === 409) {
+        // 자동 처리가 끝나기 전에는 서버가 받지 않는다 (P01 §1)
+        saveState.textContent = '아직 검토를 열지 않았습니다 — 저장하지 않았습니다';
+      } else {
+        saveState.textContent = '저장하지 못했습니다';
+      }
+    }).catch(function () { saveState.textContent = '저장하지 못했습니다 (연결 확인)'; });
   }
 
   function save() {
@@ -1460,9 +1482,9 @@
       build();
     }
     else if (act === 'clear') {
-      if (!removed.size && !accepted.size) { saveState.textContent = '교정 기록이 없다'; return; }
-      if (!confirm('이 이미지의 교정 기록(삭제 ' + removed.size +
-                   ', 복구 ' + accepted.size + ')을 모두 지운다.')) return;
+      if (!removed.size && !accepted.size) { saveState.textContent = '검토 기록이 없습니다'; return; }
+      if (!confirm('이 시야의 검토 기록(삭제 ' + removed.size +
+                   ', 복구 ' + accepted.size + ')을 모두 지울까요?')) return;
       removed.clear(); accepted.clear(); sel.clear(); history.length = 0;
       save();
       // 되살린 개체를 목록에서 빼려면 서버 상태를 다시 받아야 한다.
@@ -1485,7 +1507,7 @@
     doneBtn.addEventListener('click', function () {
       // 해제는 한 번 더 묻는다 — 잘못 눌러 풀리면 "다 본 시야"라는 표시가
       // 조용히 사라지고, 그것이 학습 데이터 선별의 근거이기 때문이다.
-      if (reviewDone && !confirm('이 시야의 검토 완료 표시를 해제한다.')) return;
+      if (reviewDone && !confirm('이 시야의 검토 완료 표시를 해제할까요?')) return;
       reviewDone = !reviewDone;
       paintDone();
       save();
@@ -1495,7 +1517,7 @@
       if (reviewDone) {
         var url = strip && strip.dataset.next;
         if (url) leave(url);
-        else flashNote('마지막 시야다 — 검토 완료로 표시했다');
+        else flashNote('마지막 시야입니다 — 검토 완료로 표시했습니다');
       }
     });
     paintDone();

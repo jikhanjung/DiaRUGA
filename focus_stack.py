@@ -320,10 +320,11 @@ def save_stack(vp: Viewpoint, out_dir: Path, r: dict, run: Run) -> None:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("groups_json")
+    ap.add_argument("groups_json", nargs="?",
+                    help="옛 방식. 지금은 --slide 로 DB 에서 읽는 것이 기본이다")
     ap.add_argument("-o", "--out", default=None,
                     help="기본값은 DATA_ROOT/stacked")
-    ap.add_argument("--slide", help="슬라이드 slug (폴더 이름이 겹칠 때만 필요)")
+    ap.add_argument("--slide", help="슬라이드 slug. 시야를 DB 에서 읽는다")
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--min-n", type=int, default=2,
                     help="이 장수 미만인 그룹은 건너뜀 (단발 촬영)")
@@ -339,33 +340,47 @@ def main():
                     help="무엇을 할지만 보여 준다. 파일도 DB 도 건드리지 않는다")
     args = ap.parse_args()
 
-    meta = json.loads(Path(args.groups_json).read_text(encoding="utf-8"))
-    slide = resolve_slide(meta["dir"], args.slide)
+    if not args.slide and not args.groups_json:
+        raise SystemExit("--slide <slug> 또는 groups.json 중 하나가 필요하다")
 
-    # 사진이 어디 있는지는 DB 가 안다. groups.json 의 dir 은 옮기면 낡는다.
-    root = Path(settings.DATA_ROOT) / slide.image_dir
-    out_dir = Path(args.out) if args.out else (Path(settings.DATA_ROOT)
-                                               / settings.STACK_DIR)
+    data_root = Path(settings.DATA_ROOT)
+    if args.slide:
+        slide = resolve_slide("", args.slide)
+        # 시야도 프레임도 DB 에 있다 (group_focus_series.py 가 넣었다).
+        # JSON 을 거치지 않으므로 경로가 낡을 자리가 없다.
+        plan = [(vp, [data_root / f.path
+                      for f in vp.frames.order_by("seq")])
+                for vp in slide.viewpoints.order_by("idx")]
+    else:
+        # 옛 방식 — 6단계 전에 만든 groups_*.json 으로도 돌 수 있게 남겨 둔다
+        meta = json.loads(Path(args.groups_json).read_text(encoding="utf-8"))
+        slide = resolve_slide(meta["dir"], args.slide)
+        root = data_root / slide.image_dir
+        by_tag = {vp.tag: vp for vp in slide.viewpoints.all()}
+        plan = []
+        for g in meta["groups"]:
+            tag = f"g{g['id']:03d}_{g['images'][0]}-{g['images'][-1].split('-')[-1]}"
+            vp = by_tag.get(tag)
+            plan.append((vp if vp else tag,
+                         [root / f"{n}.jpg" for n in g["images"]]))
 
-    # 시야를 tag 로 찾는다 — group_focus_series.py 가 만든 그 이름이다
-    by_tag = {vp.tag: vp for vp in slide.viewpoints.all()}
+    out_dir = Path(args.out) if args.out else (data_root / settings.STACK_DIR)
     done = {vp.tag for vp in slide.viewpoints.filter(stack__isnull=False)}
 
     todo, skipped, missing = [], [], []
-    for g in meta["groups"]:
-        if args.only is not None and g["id"] not in args.only:
+    for vp, paths in plan:
+        if not hasattr(vp, "tag"):          # 시야를 못 찾은 옛 JSON 항목
+            missing.append(str(vp))
             continue
-        if g["n"] < args.min_n:
+        if args.only is not None and vp.idx not in args.only:
             continue
-        tag = f"g{g['id']:03d}_{g['images'][0]}-{g['images'][-1].split('-')[-1]}"
-        vp = by_tag.get(tag)
-        if vp is None:
-            missing.append(tag)
+        if len(paths) < args.min_n:         # 싱글턴은 합성본이 없다
             continue
-        if tag in done and not args.force:
-            skipped.append(tag)
+        if vp.tag in done and not args.force:
+            skipped.append(vp.tag)
             continue
-        todo.append((g, tag, vp))
+        todo.append((vp, vp.tag, paths))
+    by_tag = {vp.tag: vp for vp in slide.viewpoints.all()}
 
     print(f"슬라이드 {slide.slug} · 시야 {len(by_tag)}개 · "
           f"합성 대상 {len(todo)}개 (완료 {len(skipped)} 건너뜀)")
@@ -382,6 +397,7 @@ def main():
             print(f"  합성할 것: {tag}")
         print(f"\ndry-run — {len(todo)}개. 아무것도 쓰지 않았다.")
         return
+    del by_tag
 
     out_dir.mkdir(parents=True, exist_ok=True)
     run = Run.objects.create(
@@ -394,8 +410,7 @@ def main():
     scale_log = ScaleLog()
     n_ok = 0
     try:
-        for g, tag, vp in todo:
-            paths = [root / f"{name}.jpg" for name in g["images"]]
+        for vp, tag, paths in todo:
             r = stack_group(paths, args.scale, not args.no_ecc, not args.hard,
                             args.conf_pct, out_dir, tag, scale_log)
             # 그룹 하나마다 커밋한다. 합성이 그룹당 17초라 전체를 한 트랜잭션으로

@@ -582,7 +582,10 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("input", help="이미지 파일 또는 디렉토리")
+    ap.add_argument("input", nargs="?", help="이미지 파일 또는 디렉토리")
+    ap.add_argument("--slide",
+                    help="슬라이드 slug. 검출 대상을 DB 에서 고른다 — 합성본이 "
+                         "있으면 그것을, 싱글턴 시야는 그 한 장을 쓴다")
     ap.add_argument("-o", "--out", default=None, help="기본값은 DATA_ROOT/out")
     ap.add_argument("--no-db", action="store_true",
                     help="JSON 만 쓰고 DB 는 건드리지 않는다 (시험용)")
@@ -634,8 +637,32 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"device={device} backend={args.backend}", file=sys.stderr)
 
-    inp = Path(args.input)
-    files = sorted(inp.glob("*.jpg")) if inp.is_dir() else [inp]
+    if args.slide:
+        # 검출 대상을 DB 에서 고른다. 합성본이 원칙이다 — 초점 흐림 잔해가 줄어
+        # 20 µm 이상 구간에서 더 잘 잡힌다. 싱글턴 시야는 합성본이 없으므로
+        # 그 한 장을 그대로 쓴다. 예전에는 run_batch.sh 가 JSON 을 읽어 골랐다.
+        from viewer.models import Slide                             # noqa: PLC0415
+        try:
+            slide = Slide.objects.get(slug=args.slide)
+        except Slide.DoesNotExist:
+            raise SystemExit(f"그런 슬라이드가 없다: {args.slide}")
+        data_root = Path(settings.DATA_ROOT)
+        files = []
+        for vp in slide.viewpoints.order_by("idx"):
+            st = getattr(vp, "stack", None)
+            if st and st.focused_path:
+                files.append(data_root / st.focused_path)
+            else:
+                fr = vp.sharpest_frame or vp.frames.order_by("seq").first()
+                if fr:
+                    files.append(data_root / fr.path)
+        files = [f for f in files if f.exists()]
+        print(f"{slide.slug}: 검출 대상 {len(files)}개", file=sys.stderr)
+    elif args.input:
+        inp = Path(args.input)
+        files = sorted(inp.glob("*.jpg")) if inp.is_dir() else [inp]
+    else:
+        raise SystemExit("--slide <slug> 또는 이미지 경로 중 하나가 필요하다")
     if args.limit:
         files = files[: args.limit]
 

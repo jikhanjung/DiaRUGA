@@ -380,6 +380,20 @@
   /* Eucampia — 형태가 아니라 속으로 알아본 것이라 색을 따로 준다 */
   .detview svg.masks polygon.eucampia   { fill: rgba(255,110,190,.45); }
   .detview svg.masks polygon.sel    { fill: rgba(255,210,63,.55); }
+  /* fill 을 끄면 마스크를 테두리만 그린다. 채운 색을 그대로 선으로 옮기되
+     불투명하게 올린다 — 얇은 선은 반투명하면 잘 안 보인다.
+     두께는 non-scaling-stroke 라 확대해도 화면에서 같게 보인다. */
+  .detview.hide-fill svg.masks polygon:not(.reject) {
+    fill: none; stroke-width: 1.6px; vector-effect: non-scaling-stroke;
+  }
+  .detview.hide-fill svg.masks polygon.rod        { stroke: rgba(70,140,255,.95); }
+  .detview.hide-fill svg.masks polygon.round      { stroke: rgba(60,220,120,.95); }
+  .detview.hide-fill svg.masks polygon.manual     { stroke: rgba(255,180,70,.95); }
+  .detview.hide-fill svg.masks polygon.none       { stroke: rgba(255,60,60,.9); }
+  .detview.hide-fill svg.masks polygon.rod_frag   { stroke: rgba(160,120,255,.95); }
+  .detview.hide-fill svg.masks polygon.round_frag { stroke: rgba(60,205,205,.95); }
+  .detview.hide-fill svg.masks polygon.eucampia   { stroke: rgba(255,110,190,.95); }
+  .detview.hide-fill svg.masks polygon.sel        { stroke: rgba(255,210,63,1); stroke-width: 2.2px; }
   /* 네 귀퉁이가 다 쓰인다: 좌상 교정 도구, 우상 레이어 토글, 우하 스케일바,
      하단 가운데 검토 완료. 배율 표시는 남은 좌하단으로 뺀다. */
   /* 배율은 원본 화소 기준이라 확대하지 않은 상태(예: 53%)도 뜻이 있는 값이다.
@@ -439,6 +453,10 @@
     font-size: 11.5px; color: #fff; cursor: pointer;
   }
   .detview .layers input { margin: 0; cursor: pointer; accent-color: #5ac8fa; }
+  /* fill 은 mask 가 꺼져 있으면 뜻이 없다. 감추지 않고 잠근다 — 자리가 사라지면
+     옆 항목이 밀려서 껐다 켜는 동안 마우스가 엉뚱한 것을 누른다. */
+  .detview .layers label.off { opacity: .4; cursor: default; }
+  .detview .layers label.off input { cursor: default; }
 
   /* --- 스케일바 (사진 우하단) ---
      canvas 가 아니라 detview 의 자식이라 확대/이동 변환을 받지 않는다.

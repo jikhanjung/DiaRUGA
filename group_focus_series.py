@@ -141,6 +141,16 @@ def ncc(a, b):
     return float((a * b).mean())
 
 
+def slide_slug(slide_dir: Path) -> str:
+    """`photos/<촬영일>/<슬라이드>/` 에서 슬러그를 만든다.
+
+    촬영일을 함께 넣는다 — 같은 슬라이드를 다른 날 다시 촬영하면 이름이 부딪힌다.
+    `ingest_nas.py` 도 이것을 쓴다. 규칙이 갈라지면 반입한 슬라이드를 그룹핑이
+    새것으로 다시 만든다.
+    """
+    return f"{slide_dir.parent.name}_{slide_dir.name}".lower().replace(" ", "_")
+
+
 def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run):
     """Slide·Viewpoint·Frame 을 만든다. 통째로 한 트랜잭션이다.
 
@@ -154,10 +164,7 @@ def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run)
         site, _ = Site.objects.get_or_create(code=site_code)
         core, _ = Core.objects.get_or_create(site=site, code=core_code)
 
-    # 촬영일 폴더가 위에 있으므로 슬러그에 함께 넣는다 — 같은 슬라이드를 다른 날
-    # 다시 촬영하면 이름이 부딪힌다 (photos/<촬영일>/<슬라이드>/ 구조, P03)
-    shoot = slide_dir.parent.name
-    slug = f"{shoot}_{folder}".lower().replace(" ", "_")
+    slug = slide_slug(slide_dir)
 
     with transaction.atomic():
         slide, _ = Slide.objects.update_or_create(

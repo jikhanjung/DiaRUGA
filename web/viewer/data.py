@@ -252,6 +252,51 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
     }
 
 
+def preview_detection(vp: Viewpoint) -> dict | None:
+    """검출 전에도 같은 화면을 쓰려고 만드는 빈 검출.
+
+    자동 처리가 도는 동안에도 사람은 "무엇이 찍혔나" 를 봐야 한다. 그렇다고 화면을
+    따로 만들 이유는 없다 — 캐러셀(합성본·깊이 맵·프레임)은 `_shots.html` 이
+    `stack`·`frames` 로 그리고 검출과 무관하다. 개체가 0개인 검출을 넘겨 주면
+    같은 화면이 그대로 돌고, 검토 도구만 CSS 로 잠그면 된다.
+
+    크기는 합성본에서 읽는다. `Frame.width/height` 는 아직 비어 있고, 겹쳐 그릴
+    개체가 없으므로 못 읽어도 화면은 멀쩡하다.
+    """
+    st = getattr(vp, "stack", None)
+    if st is None or not st.focused_path:
+        return None
+
+    w = h = None
+    try:
+        from PIL import Image                                 # noqa: PLC0415
+        with Image.open(Path(settings.DATA_ROOT) / st.focused_path) as im:
+            w, h = im.size          # 헤더만 읽는다 — 픽셀을 디코딩하지 않는다
+    except (OSError, ValueError):
+        pass
+
+    vr = next(iter(ViewpointReview.objects.filter(viewpoint=vp)), None)
+    return {
+        "image": st.focused_path,
+        "stem": Path(st.focused_path).stem,
+        "size": [w, h],
+        "scale": st.resize_scale or 1.0,
+        "um_per_pixel": st.um_per_pixel,
+        "um_per_pixel_native": st.native_um_per_pixel,
+        "um_per_pixel_source": st.um_per_pixel_source or None,
+        "um_per_pixel_backfilled": None,
+        "n_raw_masks": 0, "n_sized": 0, "n_auto": 0, "n_candidates": 0,
+        "counts": {}, "thresholds": {},
+        "candidates": [], "removed_candidates": [], "rejected": [],
+        "n_removed": 0, "accepted_keys": [], "labels": {}, "notes": {},
+        "review_done": bool(vr and vr.done),
+        "review_note": (vr.note if vr else ""),
+        "overlay_rel": None, "source_dir": "out",
+        # 이 화면은 아직 검출이 없다 — 템플릿이 도구를 감추는 데 쓴다
+        "preview_only": True,
+    }
+
+
 def detection_for_viewpoint(vp: Viewpoint) -> dict | None:
     """시야에 붙은 현재 검출 결과 (교정 반영)."""
     det = next((d for d in vp.detections.all() if d.is_current), None)
@@ -281,11 +326,12 @@ def review_blocked(stem_or_slide) -> str:
     if slide is None or slide.state == "done":
         return ""
     if slide.state == "failed":
-        return (f"이 슬라이드는 자동 처리에서 멈췄다 — {slide.state_note or '원인 확인 필요'}. "
-                f"사람이 확인하기 전에는 검토를 열지 않는다.")
-    return (f"자동 처리가 끝나지 않았다 ({slide.state}"
-            f"{' · ' + slide.state_note if slide.state_note else ''}). "
-            f"끝나면 검토가 열린다.")
+        why = slide.state_note or "원인을 확인해야 합니다"
+        return (f"자동 처리 중에 확인이 필요한 문제가 생겼습니다 — {why}. "
+                f"확인하신 뒤에 검토를 열 수 있습니다.")
+    note = f" ({slide.state_note})" if slide.state_note else ""
+    return (f"자동 처리가 아직 끝나지 않았습니다{note}. "
+            f"끝나는 대로 검토를 열겠습니다.")
 
 
 def _viewpoint_of(stem: str) -> Viewpoint | None:
@@ -514,7 +560,9 @@ def group_detail(slug: str, gid: int) -> dict | None:
         "sharpest": vp.sharpest_frame.name if vp.sharpest_frame else None,
         "frames": _frames(vp, det,
                           cur.frame_id if cur and cur.target == "frame" else None),
-        "stack": (_stack_dict(st, det if cur and cur.target == "stack" else None)
+        # 검출이 아직 없으면 빈 검출을 넘겨 같은 화면을 쓴다 (도구만 잠근다)
+        "stack": (_stack_dict(st, (det if cur and cur.target == "stack"
+                                   else preview_detection(vp)))
                   if st else None),
         "prev_id": ids[pos - 1] if pos > 0 else None,
         "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,

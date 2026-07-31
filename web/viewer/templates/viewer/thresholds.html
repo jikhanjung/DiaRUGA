@@ -36,7 +36,7 @@
     <div class="thscope">
       적용 범위 <b>{% if slug %}{{ label }}{% else %}전체 슬라이드{% endif %}</b>
       <div class="dim" style="font-size:11px;margin-top:3px">
-        사람의 교정(삭제·복구·분류)은 건드리지 않는다. 판정만 다시 건다.
+        사람이 검토한 내용(삭제·복구·분류)은 그대로 둡니다. 판정만 다시 겁니다. 판정만 다시 건다.
       </div>
     </div>
     <div class="thhist" id="thhist"></div>
@@ -280,8 +280,8 @@
   applyBtn.addEventListener('click', function () {
     var t = sum.querySelector('.thbig');
     if (!confirm('이 문턱을 ' + (SLUG ? '{{ label }}' : '전체 슬라이드') +
-                 '에 적용한다.\n\n' + (t ? t.textContent.trim() : '') +
-                 '\n\n사람의 교정은 그대로 남는다. 문턱은 다시 바꿀 수 있다.')) return;
+                 '에 적용할까요?\n\n' + (t ? t.textContent.trim() : '') +
+                 '\n\n사람이 검토한 내용은 그대로 남습니다. 문턱은 다시 바꿀 수 있습니다.')) return;
     applyBtn.disabled = true;
     applyBtn.textContent = '적용 중…';
     fetch('/api/threshold/apply', {

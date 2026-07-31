@@ -23,17 +23,32 @@
 {% endcomment %}
 {% if review_blocked %}
 <div class="blocked">
-  <b>검토를 아직 열 수 없다</b>
-  <span>{{ review_blocked }}</span>
+  <b>검토 준비 중입니다</b>
+  <span>{{ review_blocked }} 사진은 그대로 보실 수 있고, 검토 도구만 잠가 두었습니다.</span>
 </div>
 <style>
   .blocked { margin: 0 0 12px; padding: 10px 14px; border-radius: 6px;
              background: #4a1d1d; color: #ffd9d9; border: 1px solid #7d2f2f; }
   .blocked b { display: block; margin-bottom: 3px; }
   .blocked span { opacity: .85; font-size: 13px; }
-  /* 교정 도구는 잠근다 — 눌러도 서버가 409 로 거절한다 */
-  .toolbar, .donebar { opacity: .35; pointer-events: none; }
 </style>
+{% endif %}
+
+{% comment %}
+  검출 전에도 같은 화면을 쓴다. 캐러셀은 stack·frames 로 그리므로 검출과 무관하고,
+  개체가 0개인 검출을 넘기면 그대로 돈다 (data.preview_detection).
+  없앨 것은 화면이 아니라 도구다 — 눌러도 서버가 409 로 거절한다.
+{% endcomment %}
+{% if review_blocked or stack.detection.preview_only %}
+<style>
+  /* 사진과 캐러셀은 그대로 두고 도구만 감춘다 */
+  .tools, .donebar, .layers { display: none; }
+  /* 개체가 없으니 "개체 목록" 탭과 후보 수 표시도 의미가 없다 */
+  .dettabs [data-pane="list"], .dettabs .tabmeta { display: none; }
+</style>
+{% endif %}
+{% if stack.detection.preview_only %}
+<div class="note">합성은 끝났고 검출은 아직입니다. 사진만 보실 수 있습니다.</div>
 {% endif %}
 
 {% comment %}
@@ -48,17 +63,7 @@
   {% endif %}{% endfor %}
 {% endif %}
 
-{% if stack and not stack.detection %}
-  <div class="note">
-    합성본은 있으나 아직 검출을 돌리지 않았다:
-    <code class="mono">python segment_diatoms.py {{ stack.focused_rel }} -o out</code>
-  </div>
-{% endif %}
-
-{% if not stack %}
-  <div class="note">
-    이 그룹은 아직 합성하지 않았다:
-    <code class="mono">python focus_stack.py {{ slug|groups_json }} -o stacked/ --only {{ id }}</code>
-  </div>
+{% if not stack and not frames %}
+  <div class="note">이 시야는 아직 합성하지 않았습니다.</div>
 {% endif %}
 {% endblock %}
