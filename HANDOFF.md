@@ -344,6 +344,22 @@ PyPI·GitHub·huggingface.co 는 통과한다.
 사본은 파일 하나로 떨어진다. SQLite 온라인 백업 API 로 뜬 뒤 `journal_mode=DELETE`
 를 걸어 `-wal`·`-shm` 이 따라다니지 않게 한다. 사본은 `/data3/diatom/backup/` 이다.
 
+**오프사이트는 NAS 다** (`sync_backup_nas.py`, devlog 009). 이 장비가 개발·운영·
+백업을 겸해서 `/data3` 안의 사본만으로는 디스크 한 장에 교정 2,408건이 걸린다.
+
+```bash
+python backup_db.py --note <꼬리말>          # 로컬 스냅샷 (검증 포함)
+python sync_backup_nas.py --keep 30          # 검증된 것만 NAS 로, 수신 후 재검증
+```
+
+**라이브 DB 를 복사하지 않는다** — 검증을 통과한 단일 파일 스냅샷만 소비한다.
+NAS 가 안 붙었으면 거부한다(`/proc/mounts` 확인). 빈 디렉토리에 쓰면 "오프사이트에
+뒀다"고 믿으면서 같은 디스크에 쌓인다. 검증 실패 시 **정리를 건너뛴다** — 지난
+성공 사본이 유일한 안전망일 수 있다. 두 게이트 모두 실제로 터뜨려 확인했다.
+
+아직 cron 에 걸지 않았다. NAS 가 `hard` 마운트라 cron 에서는 `timeout` 으로 감쌀 것
+(스크립트 머리말에 한 줄 있다).
+
 ### 9.7 아직 안 한 것
 
 - 파이프라인 스크립트는 아직 호스트 venv 기준이다. `run_batch.sh` 의
