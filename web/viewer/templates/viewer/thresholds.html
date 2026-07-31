@@ -35,11 +35,28 @@
     </div>
     <div class="thscope">
       적용 범위 <b>{% if slug %}{{ label }}{% else %}전체 슬라이드{% endif %}</b>
+      {% comment %}
+        배율이 다르면 텍스처 문턱이 같을 수 없다. 같은 시료를 40x 와 100x 로 찍으면
+        texture 중앙값이 1,903 대 109 로 나온다 (devlog 013). 크기(µm)와 비율
+        지표는 배율과 무관하므로 그대로 비교해도 된다.
+      {% endcomment %}
+      {% if scale_mixed and not slug %}
+      <div class="thwarn">
+        슬라이드마다 배율이 다릅니다 ({{ scale_list }}).
+        텍스처 문턱은 배율에 딸려 가므로 전체에 같은 값을 걸면 한쪽이 무너집니다.
+        슬라이드를 골라 따로 잡으시길 권합니다.
+      </div>
+      {% endif %}
       <div class="dim" style="font-size:11px;margin-top:3px">
-        사람이 검토한 내용(삭제·복구·분류)은 그대로 둡니다. 판정만 다시 겁니다. 판정만 다시 건다.
+        사람이 검토한 내용(삭제·복구·분류)은 그대로 둡니다. 판정만 다시 겁니다.
       </div>
     </div>
     <div class="thhist" id="thhist"></div>
+    <style>
+      .thwarn { margin-top: 7px; padding: 7px 9px; border-radius: 5px;
+                background: #4a3a12; color: #ffe9b8; border: 1px solid #7d6222;
+                font-size: 11.5px; line-height: 1.5; }
+    </style>
   </div>
 </div>
 

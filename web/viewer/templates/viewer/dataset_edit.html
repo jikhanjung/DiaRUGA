@@ -1,0 +1,147 @@
+{% extends "viewer/base.html" %}
+{% block title %}{{ label }} 속성 — 규조류 뷰어{% endblock %}
+{% block subtitle %}<a href="/">데이터셋</a> /
+  <a href="{% url 'dataset' slug %}">{{ label }}</a> / <b>속성</b>{% endblock %}
+{% block content %}
+
+{% comment %}
+  폴더 이름에서 뽑을 수 있는 것(지역 코드·코어 코드·깊이)은 채워져 있고, 뽑을 수
+  없는 것(정식 명칭·좌표·수심)은 비어 있다. 코드만으로 "RS = 로스해" 를 단정하지
+  않는다 — 사람이 확인해서 채운다 (models.Site 머리말).
+
+  지역과 코어는 **여러 슬라이드가 공유한다.** 여기서 고치면 같은 코어의 다른 깊이
+  슬라이드에도 반영된다. 그래서 몇 개가 함께 바뀌는지 미리 보여 준다.
+{% endcomment %}
+
+{% if saved %}<div class="okbar">저장했습니다.</div>{% endif %}
+{% if errors %}<div class="errbar">{% for e in errors %}{{ e }}<br>{% endfor %}</div>{% endif %}
+
+<form method="post" class="propform">
+  {% csrf_token %}
+
+  <section>
+    <h3>슬라이드</h3>
+    <p class="dim">이 슬라이드 하나에만 해당합니다.</p>
+    <label>이름
+      <input type="text" name="slide_name" value="{{ slide.name }}" maxlength="200">
+      <span class="hint">폴더 이름에서 가져왔습니다.</span></label>
+    <label>깊이 (cm)
+      <input type="number" step="0.1" name="depth_cm"
+             value="{{ slide.depth_cm|default_if_none:'' }}">
+      <span class="hint">폴더 이름에서 읽었습니다. 예: 369</span></label>
+    <label>설명
+      <textarea name="description" rows="3"
+                placeholder="이 슬라이드에 대해 남길 것">{{ slide.description }}</textarea></label>
+    <div class="ro">
+      <span>폴더</span><code class="mono">{{ slide.image_dir }}</code>
+      <span>상태</span><code class="mono">{{ slide.state }}{% if slide.state_note %} · {{ slide.state_note }}{% endif %}</code>
+      {% if um_per_pixel %}<span>배율</span><code class="mono">{{ um_per_pixel|floatformat:6 }} µm/px</code>{% endif %}
+      <span>시야 / 사진</span><code class="mono">{{ n_viewpoints }} / {{ n_frames }}</code>
+    </div>
+  </section>
+
+  <section>
+    <h3>코어 <span class="dim">{{ core_code }}</span></h3>
+    <p class="dim">같은 코어를 쓰는 슬라이드 <b>{{ n_slides_core }}</b>개에 함께 반영됩니다.</p>
+    <label>코어 코드
+      <input type="text" name="core_code" value="{{ core.code }}" maxlength="32">
+      <span class="hint">폴더 이름의 가운데 토막입니다. 예: GC03</span></label>
+    <label>채취 방식
+      <input type="text" name="core_kind" value="{{ core.kind }}" maxlength="64"
+             placeholder="gravity core">
+      <span class="hint">GC 가 gravity core 를 뜻하는 일이 많지만 단정하지 않았습니다.</span></label>
+    <div class="two">
+      <label>위도
+        <input type="number" step="any" name="core_lat"
+               value="{{ core.lat|default_if_none:'' }}" placeholder="-74.5"></label>
+      <label>경도
+        <input type="number" step="any" name="core_lon"
+               value="{{ core.lon|default_if_none:'' }}" placeholder="171.2"></label>
+    </div>
+    <div class="two">
+      <label>수심 (m)
+        <input type="number" step="any" name="core_water_depth"
+               value="{{ core.water_depth_m|default_if_none:'' }}"></label>
+      <label>채취일
+        <input type="date" name="core_collected_at"
+               value="{{ core.collected_at|date:'Y-m-d' }}"></label>
+    </div>
+    <label>메모
+      <textarea name="core_note" rows="2">{{ core.note }}</textarea></label>
+  </section>
+
+  <section>
+    <h3>지역 <span class="dim">{{ site_code }}</span></h3>
+    <p class="dim">같은 지역을 쓰는 슬라이드 <b>{{ n_slides_site }}</b>개에 함께 반영됩니다.</p>
+    <label>지역 코드
+      <input type="text" name="site_code" value="{{ site.code }}" maxlength="32">
+      <span class="hint">폴더 이름의 앞 토막입니다. 예: RS23</span></label>
+    <label>이름
+      <input type="text" name="site_name" value="{{ site.name }}" maxlength="200"
+             placeholder="Ross Sea 2023">
+      <span class="hint">정식 명칭. 코드만으로는 단정할 수 없어 비워 두었습니다.</span></label>
+    <label>해역
+      <input type="text" name="site_region" value="{{ site.region }}" maxlength="200"
+             list="region-hints" placeholder="로스해">
+      <datalist id="region-hints">
+        <option value="로스해"><option value="웨델해"><option value="아문센해">
+        <option value="벨링스하우젠해"><option value="남극반도">
+      </datalist>
+      <span class="hint">RS 는 로스해(Ross Sea), WAP 은 남극반도 서안(West
+        Antarctic Peninsula)일 가능성이 큽니다 — 확인하고 채우세요.</span></label>
+    <div class="two">
+      <label>위도
+        <input type="number" step="any" name="site_lat"
+               value="{{ site.lat|default_if_none:'' }}"></label>
+      <label>경도
+        <input type="number" step="any" name="site_lon"
+               value="{{ site.lon|default_if_none:'' }}"></label>
+    </div>
+    <label>메모
+      <textarea name="site_note" rows="2">{{ site.note }}</textarea></label>
+  </section>
+
+  <div class="formrow">
+    <a class="btn" href="{% url 'dataset' slug %}">취소</a>
+    <button type="submit" class="btn go">저장</button>
+  </div>
+</form>
+
+<style>
+  .propform { max-width: 720px; }
+  .propform section {
+    border: 1px solid var(--line); border-radius: 9px;
+    padding: 14px 16px 16px; margin-bottom: 14px; background: var(--panel);
+  }
+  .propform h3 { margin: 0 0 2px; font-size: 14px; }
+  .propform section > p.dim { margin: 0 0 12px; font-size: 12px; }
+  .propform label { display: block; margin-bottom: 11px; font-size: 12.5px; }
+  .propform input, .propform textarea {
+    display: block; width: 100%; margin-top: 4px; box-sizing: border-box;
+    font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 5px;
+    background: #0e0e11; color: inherit; border: 1px solid var(--line);
+  }
+  .propform input:focus, .propform textarea:focus { outline: none; border-color: var(--accent); }
+  .propform .hint { display: block; margin-top: 3px; font-size: 11px; color: var(--dim); }
+  .propform .two { display: flex; gap: 12px; }
+  .propform .two label { flex: 1; }
+  .propform .ro {
+    display: grid; grid-template-columns: auto 1fr; gap: 4px 12px;
+    margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line);
+    font-size: 11.5px; color: var(--dim); align-items: center;
+  }
+  .formrow { display: flex; gap: 9px; justify-content: flex-end; }
+  .btn {
+    font: inherit; font-size: 13px; padding: 6px 15px; border-radius: 6px;
+    cursor: pointer; text-decoration: none; display: inline-block;
+    background: var(--panel); color: inherit; border: 1px solid var(--line);
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.go { border-color: var(--accent); color: var(--accent); }
+  .okbar, .errbar {
+    padding: 9px 13px; border-radius: 6px; margin-bottom: 13px; font-size: 13px;
+  }
+  .okbar { background: #14361f; color: #c9f5d8; border: 1px solid #2c6b41; }
+  .errbar { background: #4a1d1d; color: #ffd9d9; border: 1px solid #7d2f2f; }
+</style>
+{% endblock %}

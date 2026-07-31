@@ -252,6 +252,21 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
     }
 
 
+def scales_by_slide() -> dict:
+    """슬라이드마다의 µm/px. 대물렌즈를 바꿔 찍으면 슬라이드마다 다르다.
+
+    배율에 딸려가는 지표(texture)는 문턱을 슬라이드마다 따로 잡아야 한다 —
+    같은 시료를 40x 와 100x 로 찍으면 texture 중앙값이 1,903 대 109 다(devlog 013).
+    크기(µm)와 비율 지표는 배율과 무관하다.
+    """
+    out = {}
+    for d in (Detection.objects.filter(is_current=True,
+                                       um_per_pixel__isnull=False)
+              .select_related("viewpoint__slide")):
+        out.setdefault(d.viewpoint.slide.slug, round(d.um_per_pixel, 9))
+    return out
+
+
 def preview_detection(vp: Viewpoint) -> dict | None:
     """검출 전에도 같은 화면을 쓰려고 만드는 빈 검출.
 
@@ -437,14 +452,25 @@ def _slide_summary(slide: Slide, details: list | None = None) -> dict:
 
 
 def datasets() -> list[dict]:
+    # groups_*.json 은 파이프라인에서 빠졌다(P02 7단계). 목록에 파일 이름 대신
+    # 시료가 무엇인지와 어떤 배율로 찍혔는지를 보인다 — 그쪽이 화면에서 쓸모 있다.
+    scales = scales_by_slide()
     out = []
-    for slide in Slide.objects.all():
+    for slide in Slide.objects.select_related("core", "core__site"):
+        core = slide.core
+        site = core.site if core else None
         out.append({
             "slug": slide.slug,
             "label": slide.name,
-            "json_name": f"groups_{slide.slug}.json",
             "image_dir": slide.image_dir,
             "corr_thresh": slide.corr_thresh,
+            "site": (site.region or site.name or site.code) if site else "",
+            "core": core.code if core else "",
+            "depth_cm": slide.depth_cm,
+            "description": slide.description,
+            "um_per_pixel": scales.get(slide.slug),
+            "state": slide.state,
+            "state_note": slide.state_note,
             "missing_dir": not (Path(settings.DATA_ROOT)
                                 / slide.image_dir).is_dir(),
             **_slide_summary(slide),

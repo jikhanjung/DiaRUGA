@@ -20,7 +20,7 @@
 import argparse
 import os
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import django
@@ -229,33 +229,66 @@ def check_skeleton(slug=None):
     fm = [f for f in fl if not (root / f.path).exists()]
     report("원본 프레임 파일이 있다", len(fm), len(fl), "", [f.path for f in fm])
 
-    # 배율이 섞이면 계측값을 한데 모아 비교할 수 없다
-    scales = {round(d.um_per_pixel, 9) for d in dl if d.um_per_pixel}
-    if len(scales) > 1:
-        print(f"!!   배율이 {len(scales)}가지로 섞여 있다: {sorted(scales)}")
-        print("       <-- 계측값을 한데 모아 비교하면 안 된다")
-        problems.append(("배율 혼재", len(scales), ""))
+    # 배율은 **슬라이드 안에서** 하나여야 한다.
+    #
+    # 슬라이드끼리 다른 것은 정상이다 — 대물렌즈를 바꿔 찍는다(260729 는 40x 로
+    # 0.1126, 260731 은 100x 로 0.045 µm/px). 전체를 한 덩어리로 보면 그것까지
+    # 문제로 잡혀서, 정작 한 슬라이드 안이 어긋난 진짜 사고를 못 본다.
+    #
+    # 계측값을 여러 슬라이드에 걸쳐 비교하는 것은 여전히 조심할 일이지만, 그건
+    # µm 단위 값(major_um 등)으로 하면 되고 배율이 같을 필요는 없다. 배율에
+    # 딸려가는 지표(texture)는 슬라이드마다 문턱을 따로 잡아야 한다 — devlog 013.
+    by_slide = defaultdict(set)
+    for d in dl:
+        if d.um_per_pixel:
+            by_slide[d.viewpoint.slide.slug].add(round(d.um_per_pixel, 9))
+
+    mixed = {s: v for s, v in by_slide.items() if len(v) > 1}
+    if mixed:
+        print(f"!!   슬라이드 안에서 배율이 섞였다 — {len(mixed)}개")
+        for s, v in sorted(mixed.items()):
+            print(f"       {s}: {sorted(v)}")
+        print("       <-- 한 슬라이드는 한 배율로 찍힌다. 사이드카나 XML 을 볼 것")
+        problems.append(("슬라이드 내 배율 혼재", len(mixed), ""))
     else:
-        print(f"   배율이 하나다 ({list(scales)[0] if scales else '-'} µm/px)")
+        print(f"   슬라이드마다 배율이 하나다 ({len(by_slide)}개 슬라이드)")
+    if VERBOSE or len(by_slide) > 1:
+        for s, v in sorted(by_slide.items()):
+            print(f"     {s:<28} {list(v)[0]:.9f} µm/px")
 
 
 # --- 6. 문턱이 갈라져 있는가 -------------------------------------------------
 def check_thresholds(slug=None):
-    """시야마다 문턱이 다르면 개수를 서로 비교할 수 없다.
+    """문턱은 **슬라이드 안에서** 하나여야 한다.
 
     스키마는 시야 단위 문턱을 허용한다(이력과 예외를 정직하게 기록하려고).
-    다만 **깊이별·지역별 비교가 이 시료의 목적**이므로 갈라져 있으면 알려야 한다.
+    한 슬라이드 안에서 갈라지면 시야 간 개수를 비교할 수 없으므로 알린다.
+
+    **슬라이드끼리 다른 것은 정상이다.** 배율이 다르면 텍스처 문턱도 달라야 한다 —
+    같은 시료를 40x 와 100x 로 찍으면 texture 중앙값이 1,903 대 109 로 나온다
+    (devlog 013). 크기(µm)와 비율 지표는 배율과 무관하니 그대로 비교하면 된다.
     """
     qs = dets(slug)
-    ids = Counter(d.thresholds_id for d in qs)
-    n = len(ids)
-    if n <= 1:
-        print(f"   문턱이 하나다 (검출 {sum(ids.values())}개)")
+    per = defaultdict(Counter)
+    for d in qs:
+        per[d.viewpoint.slide.slug][d.thresholds_id] += 1
+
+    mixed = {s: c for s, c in per.items() if len(c) > 1}
+    if not mixed:
+        sets = {tid for c in per.values() for tid in c}
+        print(f"   슬라이드마다 문턱이 하나다 "
+              f"({len(per)}개 슬라이드 · 문턱 조합 {len(sets)}가지)")
+        if len(sets) > 1:
+            for s, c in sorted(per.items()):
+                print(f"     {s:<28} 문턱 #{next(iter(c))}")
         return
-    print(f"!! 문턱이 {n}가지로 갈라져 있다  <-- 시야 간 개수를 비교할 수 없다")
-    for tid, cnt in ids.most_common():
-        print(f"       #{tid}: 검출 {cnt}개")
-    problems.append(("문턱 혼재", n, "하나로 맞추는 것이 좋다"))
+    print(f"!! 슬라이드 안에서 문턱이 갈라졌다 — {len(mixed)}개"
+          f"  <-- 시야 간 개수를 비교할 수 없다")
+    for s, c in sorted(mixed.items()):
+        detail = " · ".join(f"#{t}:{n}" for t, n in c.most_common())
+        print(f"       {s}: {detail}")
+    problems.append(("슬라이드 내 문턱 혼재", len(mixed),
+                     "refilter.py --slide 로 맞출 것"))
 
 
 def main():

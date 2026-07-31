@@ -2,9 +2,11 @@ import hashlib
 import json
 import math
 import re
+from datetime import date
 from urllib.parse import urlencode
 
 from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.http import (FileResponse, Http404, HttpResponse,
                          HttpResponseBadRequest, JsonResponse)
 from django.shortcuts import render
@@ -12,7 +14,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import data, thresholds as th
-from .models import Detection, Run, ThresholdSet
+from .models import Detection, Run, Slide, ThresholdSet
 
 import sys
 from pathlib import Path
@@ -57,6 +59,92 @@ def group(request, slug, gid):
     if ctx is None:
         raise Http404(f"unknown group: {slug}/{gid}")
     return render(request, "viewer/group.html", ctx)
+
+
+def _num(raw, cast=float):
+    """빈 칸은 None 으로. 잘못된 값은 예외를 올려 보낸다 — 조용히 0 이 되면 안 된다."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    return cast(raw)
+
+
+def dataset_edit(request, slug):
+    """슬라이드·코어·지역의 속성을 사람이 채우는 화면.
+
+    폴더 이름에서 뽑을 수 있는 것(지역 코드·코어 코드·깊이)은 파이프라인이 채워
+    두었고, 뽑을 수 없는 것(정식 명칭·좌표·수심·채취일)은 비어 있다. 코드만으로
+    "RS = 로스해" 를 단정하지 않는다 — `models.Site` 머리말이 정한 방침이다.
+    화면에서는 그것을 **추천으로만** 보여 주고 사람이 확인해 넣게 한다.
+
+    **지역과 코어는 여러 슬라이드가 공유한다.** 여기서 고치면 같은 코어의 다른
+    깊이 슬라이드에도 반영되므로, 몇 개가 함께 바뀌는지 미리 알린다.
+    """
+    slide = Slide.objects.filter(slug=slug).select_related(
+        "core", "core__site").first()
+    if slide is None:
+        raise Http404(f"unknown dataset: {slug}")
+    core = slide.core
+    site = core.site if core else None
+
+    errors, saved = [], False
+    if request.method == "POST":
+        p = request.POST
+        try:
+            slide.name = (p.get("slide_name") or slide.name).strip()
+            slide.depth_cm = _num(p.get("depth_cm"))
+            slide.description = (p.get("description") or "").strip()
+            if core:
+                core.code = (p.get("core_code") or core.code).strip()
+                core.kind = (p.get("core_kind") or "").strip()
+                core.lat = _num(p.get("core_lat"))
+                core.lon = _num(p.get("core_lon"))
+                core.water_depth_m = _num(p.get("core_water_depth"))
+                d = (p.get("core_collected_at") or "").strip()
+                core.collected_at = date.fromisoformat(d) if d else None
+                core.note = (p.get("core_note") or "").strip()
+            if site:
+                site.code = (p.get("site_code") or site.code).strip()
+                site.name = (p.get("site_name") or "").strip()
+                site.region = (p.get("site_region") or "").strip()
+                site.lat = _num(p.get("site_lat"))
+                site.lon = _num(p.get("site_lon"))
+                site.note = (p.get("site_note") or "").strip()
+        except ValueError as e:
+            errors.append(f"값을 읽지 못했습니다: {e}")
+
+        if not errors:
+            # 셋을 한 덩어리로 저장한다. 코어만 바뀌고 지역이 안 바뀌면
+            # 화면에 보이는 것과 저장된 것이 어긋난다.
+            try:
+                with transaction.atomic():
+                    if site:
+                        site.save()
+                    if core:
+                        core.save()
+                    slide.save()
+                saved = True
+            except IntegrityError as e:
+                errors.append(f"같은 코드가 이미 있습니다: {e}")
+
+    scales = data.scales_by_slide()
+    return render(request, "viewer/dataset_edit.html", {
+        "slug": slug,
+        "label": slide.name,
+        "slide": slide,
+        "core": core,
+        "site": site,
+        "core_code": core.code if core else "-",
+        "site_code": site.code if site else "-",
+        "n_slides_core": core.slides.count() if core else 0,
+        "n_slides_site": (Slide.objects.filter(core__site=site).count()
+                          if site else 0),
+        "n_viewpoints": slide.viewpoints.count(),
+        "n_frames": slide.frames.count(),
+        "um_per_pixel": scales.get(slug),
+        "errors": errors,
+        "saved": saved,
+    })
 
 
 def _candidate_rows(slug, ds):
@@ -365,6 +453,9 @@ def threshold_page(request, slug=None):
     ds = data.dataset_detail(slug) if slug else None
     if slug and ds is None:
         raise Http404(f"unknown dataset: {slug}")
+    # 배율이 다르면 텍스처 문턱을 같이 걸 수 없다 (devlog 013). 전역 적용 화면에서
+    # 미리 알린다 — 적용하고 나서 한쪽이 무너진 것을 발견하면 되돌리기가 번거롭다.
+    scales = data.scales_by_slide()
     return render(request, "viewer/thresholds.html", {
         "slug": slug or "",
         "label": ds["label"] if ds else "전체",
@@ -375,6 +466,8 @@ def threshold_page(request, slug=None):
         "presets": list(ThresholdSet.objects.values(
             "id", "name", *judge.FIELDS)),
         "spread": th.threshold_spread(slug),
+        "scale_mixed": len(set(scales.values())) > 1,
+        "scale_list": " · ".join(f"{s} {v:g}" for s, v in sorted(scales.items())),
     })
 
 

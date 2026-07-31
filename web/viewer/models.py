@@ -106,6 +106,8 @@ class Slide(models.Model):
                              on_delete=models.SET_NULL, related_name="slides")
     # 기준점(해저면)에서부터의 깊이. 코어 안에서 이 값으로 정렬한다.
     depth_cm = models.FloatField(null=True, blank=True)
+    # 사람이 적는 설명. state_note 와 갈라 둔다 — 그쪽은 자동 처리가 덮어쓴다.
+    description = models.TextField(blank=True, default="")
     corr_thresh = models.FloatField(null=True, blank=True)
     # NAS 로 폴더가 계속 들어오면 상태 관리가 필요해진다 (P01 §1)
     state = models.CharField(max_length=12, choices=STATE, default="done")

@@ -2,20 +2,26 @@
 {% load viewer_extras %}
 {% block content %}
 <h2>데이터셋 <a href="{% url 'thresholds_all' %}" style="font-size:13px; font-weight:400; margin-left:10px">문턱 조정 →</a></h2>
-<p class="dim">DB(diatom.db)에서 읽는다. 파이프라인을 다시 돌린 뒤에는
-  <code class="mono">import_json.py</code> 로 넣는다.</p>
+<p class="dim">NAS 에 새 슬라이드가 올라오면 자동으로 가져와 검출까지 돌립니다.
+  자동 처리가 끝나야 검토가 열립니다.</p>
 
 {% if not datasets %}
-  <div class="note">슬라이드가 없다.
-    <code class="mono">group_focus_series.py</code> 로 그룹핑한 뒤
-    <code class="mono">import_json.py</code> 를 돌려야 한다.</div>
+  <div class="note">아직 슬라이드가 없습니다.
+    NAS 의 <code class="mono">DiatomPhotos/&lt;촬영일&gt;/&lt;슬라이드&gt;/</code> 에
+    사진을 올리면 자동으로 들어옵니다.</div>
 {% endif %}
 
 <div class="cards">
 {% for d in datasets %}
   <div class="card">
     <h3><a href="{% url 'dataset' d.slug %}">{{ d.label }}</a></h3>
-    <div class="dim mono" style="font-size:12px">{{ d.json_name }} · thresh {{ d.corr_thresh }}</div>
+    <div class="dsmeta">
+      {% if d.site %}{{ d.site }}{% endif %}{% if d.core %} · {{ d.core }}{% endif %}{% if d.depth_cm %} · {{ d.depth_cm|floatformat:"-1" }} cm{% endif %}
+      {% if d.um_per_pixel %}<span class="mono">· {{ d.um_per_pixel|floatformat:4 }} µm/px</span>{% endif %}
+      {% if d.state != "done" %}<span class="dsstate">{{ d.state }}</span>{% endif %}
+      <a class="dsedit" href="{% url 'dataset_edit' d.slug %}">속성 편집</a>
+    </div>
+    {% if d.description %}<div class="dsdesc">{{ d.description }}</div>{% endif %}
     {% if d.missing_dir %}
       <div class="note" style="margin:10px 0 0">이미지 디렉토리를 찾을 수 없다: <code class="mono">{{ d.image_dir }}</code></div>
     {% endif %}
@@ -46,3 +52,13 @@
 {% endfor %}
 </div>
 {% endblock %}
+
+<style>
+  .dsmeta { font-size: 12px; color: var(--dim); display: flex; flex-wrap: wrap;
+            gap: 6px; align-items: center; margin-top: 2px; }
+  .dsmeta .mono { font-size: 11.5px; }
+  .dsstate { padding: 1px 7px; border-radius: 999px; font-size: 10.5px;
+             background: #4a3a12; color: #ffe9b8; border: 1px solid #7d6222; }
+  .dsedit { margin-left: auto; font-size: 11.5px; }
+  .dsdesc { font-size: 12px; margin-top: 6px; line-height: 1.5; }
+</style>

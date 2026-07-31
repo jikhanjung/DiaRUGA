@@ -9,6 +9,7 @@ urlpatterns = [
     path("healthz", views.healthz, name="healthz"),
     path("review", views.save_review, name="save_review"),
     path("d/<slug:slug>/", views.dataset, name="dataset"),
+    path("d/<slug:slug>/edit/", views.dataset_edit, name="dataset_edit"),
     path("d/<slug:slug>/detections/", views.detections, name="detections"),
     path("d/<slug:slug>/crops/", views.crops, name="crops"),
     path("thresholds/", views.threshold_page, name="thresholds_all"),
