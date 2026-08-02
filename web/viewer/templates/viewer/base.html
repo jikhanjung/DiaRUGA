@@ -277,6 +277,31 @@
   th { color: var(--dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
   .scroll { overflow-x: auto; }
 
+  /* --- 데이터셋 목록 (index) --- */
+  .dslist { font-size: 13px; }
+  .dslist th, .dslist td { white-space: nowrap; vertical-align: top; }
+  /* 줄이 길어 눈이 옆으로 새기 쉽다. 짚고 있는 줄을 표시한다. */
+  .dslist tbody tr:hover { background: var(--panel); }
+  .dslist .dsname { text-align: left; font-weight: 600; }
+  .dslist .dscore { text-align: left; font-weight: 400; }
+  .dslist .dsname a { font-size: 14px; }
+  .dsstate { margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px;
+             background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-line); }
+  /* 설명·경고는 이름 칸 아래로 흘린다. 줄바꿈이 되어야 하므로 nowrap 을 푼다. */
+  .dsdesc, .dswarn { font-weight: 400; white-space: normal; max-width: 34ch;
+                     font-size: 11.5px; line-height: 1.5; margin-top: 3px; }
+  .dsdesc { color: var(--dim); }
+  .dswarn { color: var(--warn-fg); }
+  .dslist .nodet { text-align: center; font-size: 11.5px; }
+  /* 검출이 일부 시야에만 돌았을 때. 숫자를 지우지 않고 단서만 붙인다. */
+  .dslist .partial { color: var(--warn-fg); }
+  .dslist .revcol { min-width: 78px; }
+  .revnum { font-variant-numeric: tabular-nums; }
+  .dslist .bar { margin-top: 4px; }
+  .dsedit { font-size: 11.5px; }
+  .dslist tfoot td { border-bottom: 0; border-top: 2px solid var(--line);
+                     font-weight: 650; color: var(--dim); }
+
   /* --- 탭 (검출 화면 / 개체 목록) --- */
   .dettabs {
     display: flex; gap: 2px; align-items: center; flex-wrap: wrap;

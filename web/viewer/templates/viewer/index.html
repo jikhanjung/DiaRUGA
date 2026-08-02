@@ -1,5 +1,17 @@
 {% extends "viewer/base.html" %}
 {% load viewer_extras %}
+{% comment %}
+  카드에서 표로 바꿨다. 슬라이드가 3장일 때는 카드가 읽혔지만 7장이 되면서
+  같은 항목을 카드마다 눈으로 찾아 옮겨 다니게 됐다. 같은 코어의 깊이별 변화를
+  보는 것이 목적이라 **세로로 줄이 맞아야** 비교가 된다.
+
+  줄 순서도 지역 → 코어 → 깊이다. 들어온 순서(id)로 두면 같은 코어의 깊이들이
+  떨어져 놓인다.
+
+  스타일을 base.html 에 둔 이유: 부모를 extends 한 템플릿에서 block 바깥에 적은
+  것은 렌더되지 않는다. 예전 <style> 블록이 실제로 그렇게 죽어 있었다 —
+  .dsmeta·.dsstate·.dsdesc 가 화면에 한 번도 먹은 적이 없다.
+{% endcomment %}
 {% block content %}
 <h2>데이터셋 <a href="{% url 'thresholds_all' %}" style="font-size:13px; font-weight:400; margin-left:10px">문턱 조정 →</a></h2>
 <p class="dim">NAS 에 새 슬라이드가 올라오면 자동으로 가져와 검출까지 돌립니다.
@@ -9,56 +21,89 @@
   <div class="note">아직 슬라이드가 없습니다.
     NAS 의 <code class="mono">DiatomPhotos/&lt;촬영일&gt;/&lt;슬라이드&gt;/</code> 에
     사진을 올리면 자동으로 들어옵니다.</div>
-{% endif %}
+{% else %}
 
-<div class="cards">
-{% for d in datasets %}
-  <div class="card">
-    <h3><a href="{% url 'dataset' d.slug %}">{{ d.label }}</a></h3>
-    <div class="dsmeta">
-      {% if d.site %}{{ d.site }}{% endif %}{% if d.core %} · {{ d.core }}{% endif %}{% if d.depth_cm %} · {{ d.depth_cm|floatformat:"-1" }} cm{% endif %}
-      {% if d.um_per_pixel %}<span class="mono">· {{ d.um_per_pixel|floatformat:4 }} µm/px</span>{% endif %}
-      {% if d.state != "done" %}<span class="dsstate">{{ d.state }}</span>{% endif %}
-      <a class="dsedit" href="{% url 'dataset_edit' d.slug %}">속성 편집</a>
-    </div>
-    {% if d.description %}<div class="dsdesc">{{ d.description }}</div>{% endif %}
-    {% if d.missing_dir %}
-      <div class="note" style="margin:10px 0 0">이미지 디렉토리를 찾을 수 없다: <code class="mono">{{ d.image_dir }}</code></div>
-    {% endif %}
-    <div class="stat-row">
-      <div class="stat"><b>{{ d.n_images }}</b><span>사진</span></div>
-      <div class="stat"><b>{{ d.n_groups }}</b><span>그룹</span></div>
-      <div class="stat"><b>{{ d.mean_size }}</b><span>평균 장수</span></div>
-      <div class="stat"><b>{{ d.singletons }}</b><span>싱글턴</span></div>
-    </div>
-
-    <div class="stat-row" style="border-top:1px solid var(--line); padding-top:10px; margin-top:12px">
+<div class="scroll">
+<table class="dslist">
+  <thead>
+    <tr>
+      <th>슬라이드</th>
+      <th>코어</th>
+      <th>깊이</th>
+      <th>µm/px</th>
+      <th>사진</th>
+      <th>시야</th>
+      <th>평균 장수</th>
+      <th>싱글턴</th>
+      <th>검출</th>
+      <th>시야당</th>
+      <th>봉상</th>
+      <th>원형</th>
+      <th class="revcol">검토</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for d in datasets %}
+    <tr>
+      <td class="dsname">
+        <a href="{% url 'dataset' d.slug %}">{{ d.label }}</a>
+        {% if d.state != "done" %}<span class="dsstate" title="{{ d.state_note }}">{{ d.state }}</span>{% endif %}
+        {% if d.description %}<div class="dsdesc">{{ d.description }}</div>{% endif %}
+        {% if d.missing_dir %}
+          <div class="dswarn">이미지 디렉토리를 찾을 수 없다: <code class="mono">{{ d.image_dir }}</code></div>
+        {% endif %}
+      </td>
+      <td class="dscore">
+        {% if d.site %}<span class="dim">{{ d.site }}</span> {% endif %}{{ d.core }}
+      </td>
+      <td>{% if d.depth_cm %}{{ d.depth_cm|floatformat:"-1" }} cm{% else %}<span class="dim">—</span>{% endif %}</td>
+      <td class="mono">{% if d.um_per_pixel %}{{ d.um_per_pixel|floatformat:4 }}{% else %}<span class="dim">—</span>{% endif %}</td>
+      <td>{{ d.n_images }}</td>
+      <td>{{ d.n_groups }}</td>
+      <td>{{ d.mean_size }}</td>
+      <td>{{ d.singletons }}</td>
       {% if d.mean_detected is not None %}
-        <div class="stat"><b>{{ d.mean_detected }}</b><span>그룹당 검출</span></div>
-        <div class="stat"><b>{{ d.n_detected }}</b><span>검출 합계</span></div>
-        <div class="stat"><b>{{ d.n_rod }}</b><span>봉상</span></div>
-        <div class="stat"><b>{{ d.n_round }}</b><span>원형</span></div>
-        <div class="stat"><b>{{ d.reviewed_groups }}<span class="dim" style="font-size:13px">/{{ d.n_groups }}</span></b><span>검토 완료</span></div>
+        <td>{{ d.n_detected }}</td>
+        {% comment %}
+          검출이 시야 전부에 돌지 않았으면 평균의 분모가 다르다. 숫자만 놓으면
+          같은 뜻으로 읽히므로 그 자리에서 표시한다.
+        {% endcomment %}
+        <td{% if d.detected_groups < d.n_groups %} class="partial" title="{{ d.n_groups }}개 시야 중 {{ d.detected_groups }}개만 검출됨 — 평균은 그 시야들 기준"{% endif %}>
+          {{ d.mean_detected }}{% if d.detected_groups < d.n_groups %}<span class="dim">*</span>{% endif %}
+        </td>
+        <td>{{ d.n_rod }}</td>
+        <td>{{ d.n_round }}</td>
       {% else %}
-        <span class="dim" style="font-size:12px">검출 결과 없음</span>
+        <td colspan="4" class="dim nodet">검출 결과 없음</td>
       {% endif %}
-    </div>
-    {% if d.mean_detected is not None and d.detected_groups < d.n_groups %}
-      <div class="dim" style="font-size:11.5px; margin-top:6px">
-        {{ d.n_groups }}개 중 {{ d.detected_groups }}개 그룹만 검출됨 — 평균은 그 그룹들 기준
-      </div>
-    {% endif %}
-  </div>
-{% endfor %}
+      <td class="revcol">
+        <div class="revnum">{{ d.reviewed_groups }}<span class="dim">/{{ d.n_groups }}</span></div>
+        <div class="bar"><i style="width:{% widthratio d.reviewed_groups d.n_groups 100 %}%"></i></div>
+      </td>
+      <td><a class="dsedit" href="{% url 'dataset_edit' d.slug %}">속성</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td class="dsname">합계 <span class="dim">{{ datasets|length }}장</span></td>
+      <td colspan="3"></td>
+      <td>{{ totals.n_images }}</td>
+      <td>{{ totals.n_groups }}</td>
+      <td colspan="2"></td>
+      <td>{{ totals.n_detected }}</td>
+      <td></td>
+      <td>{{ totals.n_rod }}</td>
+      <td>{{ totals.n_round }}</td>
+      <td class="revcol">
+        <div class="revnum">{{ totals.reviewed_groups }}<span class="dim">/{{ totals.n_groups }}</span></div>
+        <div class="bar"><i style="width:{% widthratio totals.reviewed_groups totals.n_groups 100 %}%"></i></div>
+      </td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
 </div>
+{% endif %}
 {% endblock %}
-
-<style>
-  .dsmeta { font-size: 12px; color: var(--dim); display: flex; flex-wrap: wrap;
-            gap: 6px; align-items: center; margin-top: 2px; }
-  .dsmeta .mono { font-size: 11.5px; }
-  .dsstate { padding: 1px 7px; border-radius: 999px; font-size: 10.5px;
-             background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-line); }
-  .dsedit { margin-left: auto; font-size: 11.5px; }
-  .dsdesc { font-size: 12px; margin-top: 6px; line-height: 1.5; }
-</style>

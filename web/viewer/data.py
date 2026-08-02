@@ -460,7 +460,12 @@ def datasets() -> list[dict]:
     # 시료가 무엇인지와 어떤 배율로 찍혔는지를 보인다 — 그쪽이 화면에서 쓸모 있다.
     scales = scales_by_slide()
     out = []
-    for slide in Slide.objects.select_related("core", "core__site"):
+    # 지역 → 코어 → 깊이 순. 들어온 순서(id)로 두면 같은 코어의 깊이들이 표에서
+    # 떨어져 놓인다 — 깊이에 따른 변화를 보는 것이 분석 목적이라 그게 제일 아프다.
+    # 지역·코어가 아직 안 붙은 슬라이드도 있어서 빈 값이 섞여도 죽지 않게 둔다.
+    slides = (Slide.objects.select_related("core", "core__site")
+              .order_by("core__site__code", "core__code", "depth_cm", "name"))
+    for slide in slides:
         core = slide.core
         site = core.site if core else None
         out.append({
@@ -480,6 +485,18 @@ def datasets() -> list[dict]:
             **_slide_summary(slide),
         })
     return out
+
+
+def datasets_total(rows: list[dict]) -> dict:
+    """목록 표의 합계 줄.
+
+    합칠 수 있는 것만 합친다. 평균(`mean_size`·`mean_detected`)은 분모가 슬라이드마다
+    달라서 다시 더할 수 없고, 배율은 슬라이드마다 다를 수 있다(devlog 015·017) —
+    합계 칸을 비워 두는 편이 그럴듯한 숫자를 놓는 것보다 낫다.
+    """
+    keys = ("n_images", "n_groups", "n_detected", "n_rod", "n_round",
+            "reviewed_groups")
+    return {k: sum(r.get(k) or 0 for r in rows) for k in keys}
 
 
 def _viewpoints_of(slide: Slide):

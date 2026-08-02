@@ -44,7 +44,9 @@ THRESHOLD_FIELDS = [
 
 
 def index(request):
-    return render(request, "viewer/index.html", {"datasets": data.datasets()})
+    rows = data.datasets()
+    return render(request, "viewer/index.html",
+                  {"datasets": rows, "totals": data.datasets_total(rows)})
 
 
 def dataset(request, slug):
