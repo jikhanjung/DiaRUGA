@@ -1,7 +1,7 @@
 {% extends "viewer/base.html" %}
 {% load viewer_extras %}
 {% block title %}문턱 조정 — 규조류 뷰어{% endblock %}
-{% block subtitle %}<a href="/">데이터셋</a> /
+{% block subtitle %}<a href="{% url 'index' %}">데이터셋</a> /
   {% if slug %}<a href="{% url 'dataset' slug %}">{{ label }}</a> / {% endif %}
   <b>문턱 조정</b>{% endblock %}
 {% block nav %}
@@ -155,7 +155,7 @@
   function fetchPreview() {
     var my = ++seq;
     sum.classList.add('busy');
-    fetch('/api/threshold/preview', {
+    fetch(ROOT + '/api/threshold/preview', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: SLUG, values: values, limit: LIMIT,
                              only_touched: onlyTouched.checked })
@@ -211,7 +211,7 @@
 
   function loadPolys(det) {
     if (polyCache[det]) return Promise.resolve(polyCache[det]);
-    return fetch('/api/threshold/masks?det=' + det)
+    return fetch(ROOT + '/api/threshold/masks?det=' + det)
       .then(function (r) { return r.json(); })
       .then(function (d) { polyCache[det] = d.masks || []; return polyCache[det]; });
   }
@@ -223,7 +223,7 @@
     rows.forEach(function (r) {
       var cell = document.createElement('a');
       cell.className = 'vpcell';
-      cell.href = '/d/' + r.slug + '/g/' + r.gid + '/';
+      cell.href = ROOT + '/d/' + r.slug + '/g/' + r.gid + '/';
       cell.target = '_blank';
       cell.rel = 'noopener';
 
@@ -242,7 +242,7 @@
       box.className = 'vpimg';
       var img = document.createElement('img');
       img.loading = 'lazy';
-      img.src = '/img?p=' + encodeURIComponent(r.image_rel) + '&w=800';
+      img.src = ROOT + '/img?p=' + encodeURIComponent(r.image_rel) + '&w=800';
       box.appendChild(img);
 
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -301,7 +301,7 @@
                  '\n\n사람이 검토한 내용은 그대로 남습니다. 문턱은 다시 바꿀 수 있습니다.')) return;
     applyBtn.disabled = true;
     applyBtn.textContent = '적용 중…';
-    fetch('/api/threshold/apply', {
+    fetch(ROOT + '/api/threshold/apply', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: SLUG, values: values })
     }).then(function (r) { return r.json(); }).then(function (d) {
@@ -313,7 +313,7 @@
   });
 
   // --- 이력 ----------------------------------------------------------------
-  fetch('/api/threshold/history').then(function (r) { return r.json(); })
+  fetch(ROOT + '/api/threshold/history').then(function (r) { return r.json(); })
     .then(function (d) {
       if (!d.ok || !d.rows.length) return;
       var box = document.getElementById('thhist');

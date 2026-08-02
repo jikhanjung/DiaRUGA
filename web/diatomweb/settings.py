@@ -57,9 +57,23 @@ ALLOWED_HOSTS = [
 ]
 ALLOWED_HOSTS += [h.strip() for h in os.environ.get("DIATOM_HOSTS", "").split(",") if h.strip()]
 
+# 서브경로 아래에 얹을 때 쓴다 (예: "/diatom"). 빈 값이면 뿌리(/)에 붙는다.
+#
+# 왜 필요한가: 사내 VPN 이 80 만 통과시킨다. 이 머신의 80 은 phyloserver 블록이
+# server_name 172.16.116.98 로 이미 잡고 있어서 뷰어를 /diatom/ 아래로 넣는 것
+# 말고는 방법이 없다(호스트명 기반 vhost 는 IP 로 들어오는 VPN 사용자에게 안 걸린다).
+#
+# 이 값을 주면 Django 의 reverse()·{% url %} 가 앞에 뿌리를 붙인다. 템플릿의
+# JS 는 base.html 이 내보내는 window.ROOT 를 쓴다 — 절대경로를 박아 두면 여기만
+# 바꿔서는 안 돌아간다.
+FORCE_SCRIPT_NAME = os.environ.get("DIATOM_SCRIPT_NAME", "").rstrip("/") or None
+
 # 폼이 없어 CSRF 표면은 없지만, DEBUG 를 끄고 쓸 때를 위해 맞춰 둔다.
+# 9090(직접)과 80(nginx 서브경로) 둘 다 살아 있다.
 CSRF_TRUSTED_ORIGINS = [
     f"http://{h}:9090" for h in ALLOWED_HOSTS if not h.startswith("[")
+] + [
+    f"http://{h}" for h in ALLOWED_HOSTS if not h.startswith("[")
 ]
 
 INSTALLED_APPS = [
@@ -101,6 +115,8 @@ DATABASES = {
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# 슬래시로 시작하지 않는 것이 중요하다 — 상대경로면 Django 가 SCRIPT_NAME 을
+# 앞에 붙여 준다. "/static/" 로 박으면 서브경로 배포에서 어긋난다.
 STATIC_URL = "static/"
 
 LANGUAGE_CODE = "ko-kr"

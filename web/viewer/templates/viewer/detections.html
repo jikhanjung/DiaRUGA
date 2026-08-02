@@ -4,7 +4,7 @@
 {% block subtitle %}{{ label }} · 검출 목록{% endblock %}
 
 {% block content %}
-<div class="crumb"><a href="/">데이터셋</a> / <a href="{% url 'dataset' slug %}">{{ label }}</a> / 검출</div>
+<div class="crumb"><a href="{% url 'index' %}">데이터셋</a> / <a href="{% url 'dataset' slug %}">{{ label }}</a> / 검출</div>
 <h2>검출 후보</h2>
 
 {% if not rows %}

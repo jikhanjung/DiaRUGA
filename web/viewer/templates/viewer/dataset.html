@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="crumb"><a href="/">데이터셋</a> / {{ label }}</div>
+<div class="crumb"><a href="{% url 'index' %}">데이터셋</a> / {{ label }}</div>
 <h2>{{ label }}</h2>
 <p class="dim mono" style="font-size:12px; margin-bottom:2px">
   {% if site %}{{ site }} · {% endif %}{% if core %}{{ core }} · {% endif %}{% if depth_cm %}{{ depth_cm|floatformat:"-1" }} cm · {% endif %}

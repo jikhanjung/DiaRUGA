@@ -795,7 +795,7 @@
   function postReview(keepalive) {
     savePending = false;
     // keepalive: 페이지를 떠나는 중에도 요청이 끊기지 않게 한다.
-    return fetch('/review', {
+    return fetch(ROOT + '/review', {
       method: 'POST',
       keepalive: !!keepalive,
       headers: { 'Content-Type': 'application/json' },
@@ -1051,7 +1051,7 @@
     var im = document.createElement('img');
     // 화면에 필요한 만큼만 받는다(고밀도 화면을 감안해 2배, 서버가 512 로 제한).
     var req = Math.min(512, 2 * Math.max(dw, dh));
-    im.src = '/crop?p=' + encodeURIComponent(currentImageRel()) +
+    im.src = ROOT + '/crop?p=' + encodeURIComponent(currentImageRel()) +
       '&b=' + [x0, y0, cw, ch].join(',') + '&pad=0&w=' + req;
     im.alt = '';
     wrap.appendChild(im);

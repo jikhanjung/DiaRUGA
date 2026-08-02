@@ -5,7 +5,7 @@
   경로·그룹·태그를 머리글 한 줄에 모은다. 본문은 곧바로 사진으로 시작한다 —
   사진 위에 세 줄을 쌓아 두면 정작 볼 것이 화면 밖으로 밀린다.
 {% endcomment %}
-{% block subtitle %}<a href="/">데이터셋</a> /
+{% block subtitle %}<a href="{% url 'index' %}">데이터셋</a> /
   <a href="{% url 'dataset' slug %}">{{ label }}</a> / <b>g{{ id }}</b> ·
   {{ n }}장 · <span class="mono">{{ tag }}</span> · 최선 {{ sharpest }}{% endblock %}
 {% block nav %}

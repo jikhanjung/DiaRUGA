@@ -1,7 +1,7 @@
 {% extends "viewer/base.html" %}
 {% load viewer_extras %}
 {% block title %}{{ label }} 검출 결과 — 규조류 뷰어{% endblock %}
-{% block subtitle %}<a href="/">데이터셋</a> /
+{% block subtitle %}<a href="{% url 'index' %}">데이터셋</a> /
   <a href="{% url 'dataset' slug %}">{{ label }}</a> / <b>검출 결과</b> ·
   {{ total }}개{% if shown_to %} 중 {{ shown_from }}~{{ shown_to }}{% endif %}{% endblock %}
 {% block nav %}

@@ -2,6 +2,7 @@ import json
 from urllib.parse import urlencode
 
 from django import template
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 register = template.Library()
@@ -28,8 +29,8 @@ def thumb(rel, width=400):
     if not rel:
         return ""
     from viewer import data
-    return "/img?" + urlencode({"p": str(rel), "w": int(width),
-                                "v": data.stamp(rel)})
+    return reverse("image") + "?" + urlencode({"p": str(rel), "w": int(width),
+                                               "v": data.stamp(rel)})
 
 
 @register.simple_tag
@@ -47,7 +48,7 @@ def cropurl(rel, bbox, width=200, rot=None, out=None):
     if rot is not None and out:
         q["rot"] = rot
         q["out"] = out
-    return "/crop?" + urlencode(q)
+    return reverse("crop") + "?" + urlencode(q)
 
 
 @register.simple_tag
@@ -56,7 +57,7 @@ def full(rel):
     if not rel:
         return ""
     from viewer import data
-    return "/img?" + urlencode({"p": str(rel), "v": data.stamp(rel)})
+    return reverse("image") + "?" + urlencode({"p": str(rel), "v": data.stamp(rel)})
 
 
 @register.filter
