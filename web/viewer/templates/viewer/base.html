@@ -277,6 +277,45 @@
   th { color: var(--dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
   .scroll { overflow-x: auto; }
 
+  /* --- 데이터셋 목록: 표 / 카드 전환 ---
+     둘 다 그려 두고 여기서 감춘다. 갈아탈 때 서버를 다시 부르지 않는다. */
+  .pagehead {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .pagehead h2 { margin: 0; }
+  .pagehead .thlink { font-size: 13px; font-weight: 400; margin-left: 10px; }
+  .viewtoggle {
+    margin-left: auto; display: flex; gap: 2px; padding: 2px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .viewtoggle button {
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 26px; padding: 0; cursor: pointer;
+    background: transparent; border: 0; border-radius: 6px;
+    color: var(--dim);
+  }
+  .viewtoggle button:hover { color: var(--fg); background: var(--bg); }
+  /* 고른 쪽은 눌린 것처럼 — 테두리만으로는 어느 쪽인지 한눈에 안 잡힌다 */
+  .viewtoggle button.on { background: var(--accent); color: #fff; }
+  .viewtoggle svg { fill: currentColor; display: block; }
+
+  .dsview .asCards { display: none; }
+  .dsview.showCards .asTable { display: none; }
+  .dsview.showCards .asCards { display: grid; }
+  .card .cardstats2 {
+    border-top: 1px solid var(--line); padding-top: 10px; margin-top: 12px;
+  }
+  .card .nodet { font-size: 12px; }
+  .card .dsnote { font-size: 11.5px; color: var(--dim); margin-top: 6px; }
+  .card .dsmeta {
+    font-size: 12px; color: var(--dim); display: flex; flex-wrap: wrap;
+    gap: 6px; align-items: center; margin: -4px 0 10px;
+  }
+  .card .dsmeta .mono { font-size: 11.5px; }
+  .card .dsmeta .dsedit { margin-left: auto; }
+  .card .dsdesc, .card .dswarn { max-width: none; margin-bottom: 10px; }
+
   /* --- 데이터셋 목록 (index) --- */
   .dslist { font-size: 13px; }
   .dslist th, .dslist td { white-space: nowrap; vertical-align: top; }

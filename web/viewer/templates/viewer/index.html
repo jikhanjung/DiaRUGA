@@ -13,7 +13,38 @@
   .dsmeta·.dsstate·.dsdesc 가 화면에 한 번도 먹은 적이 없다.
 {% endcomment %}
 {% block content %}
-<h2>데이터셋 <a href="{% url 'thresholds_all' %}" style="font-size:13px; font-weight:400; margin-left:10px">문턱 조정 →</a></h2>
+{% comment %}
+  보기 방식은 둘 다 그려 두고 CSS 로 감춘다. 갈아탈 때 서버를 다시 부르지 않아
+  즉시 바뀌고, 스크롤 위치도 그대로 남는다.
+
+  아이콘은 탐색기의 "자세히 / 큰 아이콘" 과 같은 뜻으로 맞췄다 — 줄이 그어진
+  것이 표, 네모 넷이 카드다. 글자를 안 붙여도 무엇인지 읽힌다.
+{% endcomment %}
+<div class="pagehead">
+  <h2>데이터셋 <a href="{% url 'thresholds_all' %}" class="thlink">문턱 조정 →</a></h2>
+  <div class="viewtoggle" id="viewtoggle" role="group" aria-label="보기 방식">
+    <button type="button" data-view="table" title="표로 보기 — 같은 항목이 세로로 맞아 비교하기 좋습니다"
+            aria-label="표로 보기">
+      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+        <rect x="1" y="2.5" width="3" height="2.2" rx=".5"/>
+        <rect x="6" y="2.9" width="9" height="1.4" rx=".7"/>
+        <rect x="1" y="6.9" width="3" height="2.2" rx=".5"/>
+        <rect x="6" y="7.3" width="9" height="1.4" rx=".7"/>
+        <rect x="1" y="11.3" width="3" height="2.2" rx=".5"/>
+        <rect x="6" y="11.7" width="9" height="1.4" rx=".7"/>
+      </svg>
+    </button>
+    <button type="button" data-view="cards" title="카드로 보기 — 슬라이드 하나씩 훑어보기 좋습니다"
+            aria-label="카드로 보기">
+      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+        <rect x="1" y="1" width="6.2" height="6.2" rx="1.2"/>
+        <rect x="8.8" y="1" width="6.2" height="6.2" rx="1.2"/>
+        <rect x="1" y="8.8" width="6.2" height="6.2" rx="1.2"/>
+        <rect x="8.8" y="8.8" width="6.2" height="6.2" rx="1.2"/>
+      </svg>
+    </button>
+  </div>
+</div>
 <p class="dim">NAS 에 새 슬라이드가 올라오면 자동으로 가져와 검출까지 돌립니다.
   자동 처리가 끝나야 검토가 열립니다.</p>
 
@@ -23,7 +54,8 @@
     사진을 올리면 자동으로 들어옵니다.</div>
 {% else %}
 
-<div class="scroll">
+<div class="dsview" id="dsview">
+<div class="scroll asTable">
 <table class="dslist">
   <thead>
     <tr>
@@ -105,5 +137,70 @@
   </tfoot>
 </table>
 </div>
+
+{% comment %} 카드 판 — 슬라이드 하나씩 훑어볼 때. 표와 같은 값을 보인다. {% endcomment %}
+<div class="cards asCards">
+{% for d in datasets %}
+  <div class="card">
+    <h3><a href="{% url 'dataset' d.slug %}">{{ d.label }}</a></h3>
+    <div class="dsmeta">
+      {% if d.site %}{{ d.site }}{% endif %}{% if d.core %} · {{ d.core }}{% endif %}{% if d.depth_cm %} · {{ d.depth_cm|floatformat:"-1" }} cm{% endif %}
+      {% if d.um_per_pixel %}<span class="mono">· {{ d.um_per_pixel|floatformat:4 }} µm/px</span>{% endif %}
+      {% if d.state != "done" %}<span class="dsstate" title="{{ d.state_note }}">{{ d.state }}</span>{% endif %}
+      <a class="dsedit" href="{% url 'dataset_edit' d.slug %}">속성 편집</a>
+    </div>
+    {% if d.description %}<div class="dsdesc">{{ d.description }}</div>{% endif %}
+    {% if d.missing_dir %}
+      <div class="dswarn">이미지 디렉토리를 찾을 수 없다: <code class="mono">{{ d.image_dir }}</code></div>
+    {% endif %}
+    <div class="stat-row">
+      <div class="stat"><b>{{ d.n_images }}</b><span>사진</span></div>
+      <div class="stat"><b>{{ d.n_groups }}</b><span>시야</span></div>
+      <div class="stat"><b>{{ d.mean_size }}</b><span>평균 장수</span></div>
+      <div class="stat"><b>{{ d.singletons }}</b><span>싱글턴</span></div>
+    </div>
+    <div class="stat-row cardstats2">
+      {% if d.mean_detected is not None %}
+        <div class="stat"><b>{{ d.n_detected }}</b><span>검출</span></div>
+        <div class="stat"><b>{{ d.mean_detected }}{% if d.detected_groups < d.n_groups %}<span class="dim">*</span>{% endif %}</b><span>시야당</span></div>
+        <div class="stat"><b>{{ d.n_rod }}</b><span>봉상</span></div>
+        <div class="stat"><b>{{ d.n_round }}</b><span>원형</span></div>
+        <div class="stat"><b>{{ d.reviewed_groups }}<span class="dim" style="font-size:13px">/{{ d.n_groups }}</span></b><span>검토</span></div>
+      {% else %}
+        <span class="dim nodet">검출 결과 없음</span>
+      {% endif %}
+    </div>
+    {% if d.mean_detected is not None and d.detected_groups < d.n_groups %}
+      <div class="dsnote">{{ d.n_groups }}개 시야 중 {{ d.detected_groups }}개만 검출됨 — 시야당은 그 시야들 기준</div>
+    {% endif %}
+  </div>
+{% endfor %}
+</div>
+</div>
+
+<script>
+(function () {
+  // 고른 방식을 기억한다. 매번 고르게 하면 도구가 아니라 일거리가 된다.
+  var KEY = 'diatom.dsview', box = document.getElementById('dsview'),
+      bar = document.getElementById('viewtoggle');
+  function apply(v) {
+    box.classList.toggle('showCards', v === 'cards');
+    bar.querySelectorAll('button').forEach(function (b) {
+      var on = b.dataset.view === v;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+  var saved;
+  try { saved = localStorage.getItem(KEY); } catch (e) { saved = null; }
+  apply(saved === 'cards' ? 'cards' : 'table');
+  bar.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-view]');
+    if (!b) return;
+    apply(b.dataset.view);
+    try { localStorage.setItem(KEY, b.dataset.view); } catch (err) { /* 사생활 모드 */ }
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}
