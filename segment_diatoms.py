@@ -483,15 +483,36 @@ def rel(p) -> str:
         return str(p)
 
 
-def find_viewpoint(stem: str):
+def find_viewpoint(stem: str, slide=None):
     """파일 이름으로 시야를 찾는다.
 
     합성본은 `<tag>_focused`, 싱글턴은 프레임 이름(`Snap-21171`)이다.
+
+    **`slide` 를 반드시 함께 준다.** 프레임 이름은 카메라가 매기는 일련번호라
+    슬라이드 사이에서 겹친다 — 같은 날 이어서 찍으면 번호대가 이어지기 때문이다.
+    실제로 `260803` 의 두 슬라이드에서 **143종이 겹쳤고**, 이름만으로 찾다가
+    한 슬라이드의 싱글턴 12개가 전부 다른 슬라이드의 시야로 풀렸다. 그쪽은 이미
+    검출이 끝나 있어 "이미 검출함" 으로 건너뛰었고, **파이프라인이 매분 헛돌며
+    슬라이드가 영영 `done` 이 되지 않았다.**
+
+    순서가 반대였다면 더 나빴다 — 검출이 엉뚱한 슬라이드의 시야에 저장됐을 것이다.
     """
     if stem.endswith("_focused"):
         tag = stem[: -len("_focused")]
-        return Viewpoint.objects.filter(tag=tag).first(), "stack", None
-    fr = Frame.objects.filter(name=stem).select_related("viewpoint").first()
+        q = Viewpoint.objects.filter(tag=tag)
+        if slide is not None:
+            q = q.filter(slide=slide)
+        return q.first(), "stack", None
+    q = Frame.objects.filter(name=stem).select_related("viewpoint")
+    if slide is not None:
+        q = q.filter(slide=slide)
+    elif q.count() > 1:
+        # 슬라이드를 모르는데 이름이 겹치면 아무거나 고르지 않는다.
+        # 조용히 틀리는 것보다 안 하는 것이 낫다.
+        print(f"  {stem}: 이름이 여러 슬라이드에 걸쳐 있다 — 어느 것인지 "
+              f"정할 수 없어 건너뛴다 (--slide 를 줄 것)", file=sys.stderr)
+        return None, None, None
+    fr = q.first()
     if fr and fr.viewpoint:
         return fr.viewpoint, "frame", fr
     return None, None, None
@@ -573,7 +594,7 @@ def mark_done_if_complete(slide) -> bool:
 
 
 def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float,
-                   keep_current: bool = False):
+                   keep_current: bool = False, slide=None):
     """검출 결과를 새 Detection 으로 쌓고 교정을 다시 맺는다.
 
     **통째로 한 트랜잭션이다.** `is_current` 를 옮기는 것과 교정을 다시 맺는 것이
@@ -591,7 +612,7 @@ def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float,
     돌려주는 값: (Detection, 개체 수, 재바인딩 방법별 개수)
     """
     stem = img_path.stem
-    vp, target, frame = find_viewpoint(stem)
+    vp, target, frame = find_viewpoint(stem, slide)
     if vp is None:
         return None, 0, None
 
@@ -868,6 +889,31 @@ def main():
         files = sorted(inp.glob("*.jpg")) if inp.is_dir() else [inp]
     else:
         raise SystemExit("--slide <slug> 또는 이미지 경로 중 하나가 필요하다")
+
+    # **어느 슬라이드인지 못 박는다.** 프레임 이름은 슬라이드 사이에서 겹치므로
+    # (같은 날 이어 찍으면 번호대가 이어진다) 이름만으로 시야를 찾으면 남의
+    # 슬라이드로 풀린다. 경로로 들어온 경우에도 폴더로 슬라이드를 되찾는다.
+    slide_obj = locals().get("slide")
+    if slide_obj is None and args.input and not args.no_db:
+        from viewer.models import Slide                             # noqa: PLC0415
+        root = Path(settings.DATA_ROOT)
+        probe = Path(args.input)
+        rel = str(probe if probe.is_dir() else probe.parent)
+        try:
+            rel = str((probe if probe.is_dir() else probe.parent)
+                      .resolve().relative_to(root.resolve()))
+        except ValueError:
+            rel = ""
+        if rel:
+            slide_obj = Slide.objects.filter(image_dir=rel).first()
+        if slide_obj is None:
+            # 합성본 디렉토리(stacked/)처럼 슬라이드 폴더가 아닌 경우가 있다.
+            # 그때는 이름으로 찾되, 겹치면 find_viewpoint 가 건너뛴다.
+            print("어느 슬라이드인지 경로로 정하지 못했다 — 이름으로 찾는다. "
+                  "프레임 이름이 겹치면 건너뛴다 (--slide 를 주는 편이 안전하다)",
+                  file=sys.stderr)
+        else:
+            print(f"경로로 슬라이드를 정했다: {slide_obj.slug}", file=sys.stderr)
     if args.limit:
         files = files[: args.limit]
 
@@ -906,7 +952,7 @@ def main():
     elif not args.no_db and not args.force:
         keep, n_rev_skip, n_done_skip = [], 0, 0
         for f in files:
-            vp, _, _ = find_viewpoint(f.stem)
+            vp, _, _ = find_viewpoint(f.stem, slide_obj)
             if vp is None:
                 keep.append(f)
                 continue
@@ -927,6 +973,16 @@ def main():
         files = keep
         if not files:
             print("검출할 것이 없다.", file=sys.stderr)
+            # **열어 둔 실행을 닫는다.** 여기로 빠져나가면서 Run 을 안 닫아서,
+            # 폴러가 매분 부르는 동안 `running` 이 하나씩 쌓였다(#96~#101).
+            # 다음 실행의 close_stale 이 `failed` 로 닫으니 "실패한 실행" 이
+            # 끝없이 늘어나 이력의 뜻이 흐려진다 — 실패한 것이 아니라 할 일이
+            # 없었을 뿐이다.
+            if not args.no_db and "run" in dir():
+                run.status = "done"
+                run.counts = {"detections": 0, "note": "검출할 것이 없었다"}
+                run.finished_at = timezone.now()
+                run.save(update_fields=["status", "counts", "finished_at"])
             # 다 끝나 있으면 상태를 열어 준다 — 앞 실행이 여기서 끊겼을 수 있다
             if args.slide:
                 from viewer.models import Slide                     # noqa: PLC0415
@@ -960,7 +1016,8 @@ def main():
             if args.no_db:
                 continue
             det, nc, stat = save_detection(payload, f, run, args.rebind_iou,
-                                           keep_current=args.keep_current)
+                                           keep_current=args.keep_current,
+                                           slide=slide_obj)
             if det is None:
                 # 조용히 넘기지 않는다 — 그룹핑과 DB 가 어긋났다는 뜻이다
                 missing.append(f.stem)
