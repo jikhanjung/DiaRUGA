@@ -906,14 +906,34 @@ def save_review(stem: str, done: bool, note: str, removed, accepted,
     if vp is None:
         return None
 
-    ViewpointReview.objects.update_or_create(
-        viewpoint=vp, defaults={"done": done, "note": note})
-
     removed, accepted = set(removed), set(accepted)
     keys = removed | accepted | set(labels) | set(notes)
     by_key = {c.mask_key: c for c in
               Candidate.objects.filter(detection__viewpoint=vp,
                                        detection__is_current=True)}
+
+    # **현재 검출에 없는 키는 받지 않는다.** 사람은 화면에 있는 것만 표시할 수
+    # 있고, 화면은 현재 검출을 그린다. 그 밖의 키가 섞여 오면 다른 검출을 보고
+    # 보낸 것이다 — 아래에서 `keys` 에 없는 행을 전부 지우므로, 그대로 두면
+    # **엉뚱한 화면의 클릭 한 번이 그 시야의 교정을 통째로 갈아치운다.**
+    #
+    # 실제로 그렇게 잃었다: 시험용 화면(/engine/)이 YOLO 검출을 그리고 있었는데
+    # 마스크를 클릭하자 그 키 하나만 담긴 POST 가 나갔고, 369cm g32 의 교정
+    # 37건이 지워졌다. CSS 로 도구를 감춘 것으로는 못 막는다.
+    #
+    # 이미 교정 행이 있는 키는 통과시킨다 — 재바인딩에서 고아가 된 것들이
+    # 그렇고, 그것들은 사람이 화면에서 지울 수 있어야 한다.
+    known = set(by_key) | set(ObjectReview.objects.filter(viewpoint=vp)
+                              .values_list("mask_key", flat=True))
+    unknown = keys - known
+    if unknown:
+        raise ValueError(
+            f"현재 검출에 없는 개체 {len(unknown)}개가 섞여 있다 — 저장하지 "
+            f"않았다. 다른 검출을 보고 있지 않은지 확인할 것 "
+            f"(예: {sorted(unknown)[:3]})")
+
+    ViewpointReview.objects.update_or_create(
+        viewpoint=vp, defaults={"done": done, "note": note})
     for key in keys:
         cand = by_key.get(key)
         obj, _ = ObjectReview.objects.get_or_create(

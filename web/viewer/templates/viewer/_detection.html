@@ -813,8 +813,17 @@
   // --- 저장 ----------------------------------------------------------------
   var saveTimer = null, savePending = false;
 
+  // **읽기 전용 화면에서는 아예 보내지 않는다.** CSS 로 도구를 감추는 것으로는
+  // 못 막는다 — 마스크 클릭 자체가 save() 를 부르고, 그 POST 는 그 시야의
+  // 교정을 통째로 갈아치운다. 실제로 /engine/ 에서 그렇게 37건을 잃었다.
+  var readOnly = document.getElementById('ro-' + uid) !== null;
+
   function postReview(keepalive) {
     savePending = false;
+    if (readOnly) {
+      saveState.textContent = '시험용 화면 — 저장하지 않습니다';
+      return Promise.resolve();
+    }
     // keepalive: 페이지를 떠나는 중에도 요청이 끊기지 않게 한다.
     return fetch(ROOT + '/review', {
       method: 'POST',

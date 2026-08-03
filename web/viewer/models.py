@@ -13,15 +13,51 @@
 """
 from django.db import models
 
+# 실행 종류. RunBatch 와 Run 이 함께 쓰므로 위로 뺀다.
+RUN_KIND = [(k, k) for k in
+            ("group", "stack", "detect", "refilter", "reconcile",
+             "ingest", "export")]
+
+
+class RunBatch(models.Model):
+    """한 번의 작업을 묶는다. `Run` 은 슬라이드마다 하나씩 생긴다.
+
+    파이프라인은 **슬라이드 단위로 돈다** — 폴러가 새 슬라이드 하나를 받으면
+    그것만 처리하기 때문이고, 그 단위가 맞다. 그런데 "전체를 한 번 훑었다" 는
+    작업은 그 실행 여럿으로 흩어져 남는다. 엔진을 견주려면 **그 한 번을 한
+    덩어리로** 볼 수 있어야 한다 (YOLO 전체 대 SAM2 전체).
+
+    `Run` 에 부모를 다는 대신 따로 둔 이유: 부모 `Run` 은 자기 `started_at`·
+    `counts` 를 갖게 되어 뜻이 겹친다. 묶음은 실행이 아니라 **이름표**다.
+    """
+
+    kind = models.CharField(max_length=16, choices=RUN_KIND)
+    # 사람이 고르는 이름. "yolo-v1seg" 처럼 무엇을 돌렸는지가 드러나야 한다
+    label = models.CharField(max_length=120)
+    note = models.TextField(blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+        constraints = [models.UniqueConstraint(fields=["kind", "label"],
+                                               name="uniq_batch_label")]
+
+    def __str__(self):
+        return f"{self.label} ({self.kind})"
+
 
 class Run(models.Model):
     """실행 이력. 지금까지 아무 데도 없어서 stack_report.json 이 덮어써졌다."""
 
-    KIND = [(k, k) for k in
-            ("group", "stack", "detect", "refilter", "reconcile", "ingest", "export")]
+    KIND = RUN_KIND
     STATUS = [(s, s) for s in ("running", "done", "failed")]
 
     kind = models.CharField(max_length=16, choices=KIND)
+    # 여러 슬라이드에 걸친 한 번의 작업을 묶는 이름표. 비어 있어도 된다 —
+    # 폴러가 슬라이드 하나만 처리하는 평소 실행에는 묶을 것이 없다.
+    batch = models.ForeignKey("RunBatch", null=True, blank=True,
+                              on_delete=models.SET_NULL, related_name="runs")
     slide = models.ForeignKey("Slide", null=True, blank=True,
                               on_delete=models.SET_NULL, related_name="runs")
     started_at = models.DateTimeField(auto_now_add=True)

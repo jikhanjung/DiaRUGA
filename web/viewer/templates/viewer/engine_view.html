@@ -47,6 +47,11 @@
 
 {% if base_det %}
   {% comment %} 캐러셀이 프레임을 바꿀 때 쓸 프레임별 검출 {% endcomment %}
+  {% comment %}
+    이 표식이 있으면 _detection.html 이 저장을 아예 보내지 않는다.
+    도구를 CSS 로 감추는 것만으로는 못 막는다 — 마스크 클릭이 save() 를 부른다.
+  {% endcomment %}
+  <span id="ro-eng" hidden></span>
   <script type="application/json" id="shotdet-eng">{{ shot_dets|json_dumps }}</script>
   {% include "viewer/_detection.html" with det=base_det base=base_rel uid="eng" title=base_name %}
 {% else %}

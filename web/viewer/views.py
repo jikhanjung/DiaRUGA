@@ -842,8 +842,13 @@ def save_review(request):
     if not isinstance(payload.get("note", ""), (str, type(None))):
         return HttpResponseBadRequest("bad note")
 
-    saved = data.save_review(stem, done=done, note=note, removed=removed,
-                             accepted=accepted, labels=labels, notes=notes)
+    try:
+        saved = data.save_review(stem, done=done, note=note, removed=removed,
+                                 accepted=accepted, labels=labels, notes=notes)
+    except ValueError as e:
+        # 현재 검출에 없는 키가 섞여 왔다. 아무것도 바꾸지 않고 돌려보낸다 —
+        # 그대로 두면 그 시야의 교정이 통째로 지워진다 (data.save_review 주석).
+        return JsonResponse({"ok": False, "error": str(e)}, status=409)
     if saved is None:
         return HttpResponseBadRequest("unknown stem")
     return JsonResponse({"ok": True, "done": done, "note": bool(note), **saved})
