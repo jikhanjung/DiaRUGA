@@ -25,6 +25,7 @@ import argparse
 import contextlib
 import fcntl
 import json
+import math
 import os
 import socket
 import subprocess
@@ -170,19 +171,54 @@ class YoloGenerator:
         return out
 
 
-def shape_metrics(seg):
+def shape_metrics(seg, bbox=None):
     """
     마스크 하나의 형태 지표. 측정 불가면 None.
 
     원형도(circularity)는 신장비에 지배되므로 '테두리 매끈함' 으로 쓸 수 없다.
     신장비 6인 봉상은 윤곽이 완벽해도 0.37 이다. 매끈함은 convexity 로 잰다.
+
+    **개체가 있는 자리만 훑는다.** 마스크는 이미지 전체 크기(2752×2208, 6백만
+    화소)로 오는데 개체는 중앙값 169 px 다. 예전에는 개체 하나마다 전체 배열을
+    네댓 번 훑어서 프레임 시간의 대부분이 여기 들었다.
+
+    **그러면서 값은 한 자리도 달라지지 않아야 한다.** `judge` 가 이 값들로
+    판정하므로 달라지면 지금까지의 검출·문턱 이력과 어긋난다. 그래서 윤곽만
+    잘라서 찾고, **찾은 뒤 곧바로 원래 좌표로 되돌려** 나머지 계산을 옛날과
+    똑같은 좌표에서 한다 — `fitEllipse` 는 float32 라 좌표가 조금만 달라도
+    결과가 미세하게 바뀌고, `int(round(cx))` 가 그 차이를 1 픽셀로 증폭한다
+    (실측: 3,000개 중 1,011개의 `ellipse_iou` 가 중앙 1.6% 달라졌다).
+
+    `bbox` 를 주면 그것으로 자른다. 안 주면 마스크를 훑어 찾는데, 그 훑기가
+    아끼려던 비용만큼 든다 — 부르는 쪽은 이미 bbox 를 갖고 있다.
     """
-    # SAM 마스크가 비연속 뷰로 올 때가 있어 cv2 가 거부한다.
-    m = np.ascontiguousarray(seg.astype(np.uint8))
+    H, W = seg.shape[:2]
+    if bbox is not None:
+        bx, by, bw, bh = (int(v) for v in bbox)
+        x0, y0, x1, y1 = bx, by, bx + bw - 1, by + bh - 1
+    else:
+        ys, xs = np.nonzero(seg)
+        if len(xs) == 0:
+            return None
+        x0, x1 = int(xs.min()), int(xs.max())
+        y0, y1 = int(ys.min()), int(ys.max())
+    x0, y0 = max(0, x0), max(0, y0)
+    x1, y1 = min(W - 1, x1), min(H - 1, y1)
+    if x1 < x0 or y1 < y0:
+        return None
+
+    # 윤곽을 찾을 창. 1 화소 여유를 두되 이미지 밖으로는 안 나간다 — 옛 코드는
+    # 이미지 전체를 봤으므로 가장자리에 닿은 개체의 윤곽도 그때와 같아야 한다.
+    cx0, cy0 = max(0, x0 - 1), max(0, y0 - 1)
+    cx1, cy1 = min(W - 1, x1 + 1), min(H - 1, y1 + 1)
+    m = np.ascontiguousarray(seg[cy0:cy1 + 1, cx0:cx1 + 1].astype(np.uint8))
     cnts, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if not cnts:
         return None
     c = max(cnts, key=cv2.contourArea)
+    # 여기서 원래 좌표로 되돌린다. 이 아래는 옛 코드와 글자 그대로 같다.
+    c = c + np.array([[[cx0, cy0]]], dtype=c.dtype)
+
     area = cv2.contourArea(c)
     if area < 20 or len(c) < 5:
         return None
@@ -201,12 +237,26 @@ def shape_metrics(seg):
 
     # 적합 타원과의 IoU — 봉상(길쭉한 타원)과 원형(이심률 0)을 한 지표로 묶는다.
     # OpenCV 5 는 RotatedRect 축약형을 안 받아서 인자를 풀어 쓴다.
-    canvas = np.zeros(m.shape, dtype=np.uint8)
-    cv2.ellipse(canvas, (int(round(cx)), int(round(cy))),
+    #
+    # 캔버스는 **마스크와 타원을 모두 덮는 만큼만** 잡고 이미지 밖으로는 안
+    # 나간다. 그 바깥은 마스크도 타원도 0 이라 교집합·합집합에 아무것도 더하지
+    # 않는다 — 이미지 전체에 그리던 옛 결과와 정확히 같다. 휜 봉상에 맞춘
+    # 타원은 마스크를 크게 벗어나므로 그 몫을 축정렬 외접 상자로 정확히 구한다.
+    ra, rb = d1 / 2, d2 / 2
+    th = math.radians(ang)
+    ex = math.hypot(ra * math.cos(th), rb * math.sin(th))
+    ey = math.hypot(ra * math.sin(th), rb * math.cos(th))
+    ix0 = max(0, min(x0, int(math.floor(cx - ex)) - 2))
+    iy0 = max(0, min(y0, int(math.floor(cy - ey)) - 2))
+    ix1 = min(W - 1, max(x1, int(math.ceil(cx + ex)) + 2))
+    iy1 = min(H - 1, max(y1, int(math.ceil(cy + ey)) + 2))
+    sub = np.ascontiguousarray(seg[iy0:iy1 + 1, ix0:ix1 + 1].astype(np.uint8))
+    canvas = np.zeros(sub.shape, dtype=np.uint8)
+    cv2.ellipse(canvas, (int(round(cx)) - ix0, int(round(cy)) - iy0),
                 (int(round(d1 / 2)), int(round(d2 / 2))),
                 float(ang), 0.0, 360.0, 1, -1)
-    inter = int(np.logical_and(m, canvas).sum())
-    union = int(np.logical_or(m, canvas).sum())
+    inter = int(np.logical_and(sub, canvas).sum())
+    union = int(np.logical_or(sub, canvas).sum())
 
     return {
         "circularity": round(float(4 * np.pi * area / max(peri**2, 1e-9)), 3),
@@ -340,7 +390,9 @@ def masks_to_records(masks, um_per_px=DEFAULT_UM_PER_PIXEL, gray=None,
 
         # 형태·텍스처 지표를 여기서 전부 계산해 JSON 에 남긴다.
         # 그래야 문턱을 바꿀 때 SAM2 를 다시 돌리지 않고 refilter.py 로 끝난다.
-        sm = shape_metrics(seg)
+        # bbox 를 넘겨 준다 — 안 주면 마스크를 다시 훑느라 아끼려던
+        # 비용이 그대로 든다
+        sm = shape_metrics(seg, (x, y, w, h))
         if sm is None:
             rec["shape_ok"] = False
             continue
