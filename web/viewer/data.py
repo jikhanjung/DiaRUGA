@@ -15,7 +15,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import (Case, CharField, Count, Exists, F, OuterRef,
+                              Q, Subquery, Value, When)
 
 from . import antarctica
 from .models import (Candidate, ClassDef, Detection, Frame, ObjectReview,
@@ -478,11 +479,63 @@ def stack_for(tag: str) -> dict | None:
 
 
 # --- 집계 -------------------------------------------------------------------
+def _summary_by_sql(slide: Slide) -> dict:
+    """집계를 SQL 로 낸다. 개체 dict 를 만들지 않는다.
+
+    **왜 따로 두는가.** 목록 화면은 개수 열 몇 개만 쓰는데, 예전에는 슬라이드마다
+    모든 시야의 검출 dict 를 통째로 만들었다 — 개체 34,219개를 폴리곤(9 MB)까지
+    파이썬으로 올렸다. 목록 한 장에 1.2초가 걸렸고 슬라이드가 늘면 선형으로 는다.
+
+    **판정 규칙은 `_apply_review` 와 같아야 한다.** 다르면 목록과 상세 화면의
+    숫자가 어긋나고, 그 숫자가 보고서에 실린다. 아래 세 줄이 그 규칙이다:
+
+      통과분 중 사람이 지운 것을 뺀다 + 탈락분 중 사람이 되살린 것을 더한다
+      분류는 사람이 지정한 것이 먼저, 되살린 것은 신장비로 짐작, 나머지는 자동 판정
+      "사람지정" 은 통과분만 센다
+    """
+    reviews = ObjectReview.objects.filter(
+        viewpoint=OuterRef("detection__viewpoint"), mask_key=OuterRef("mask_key"))
+    cands = (Candidate.objects
+             .filter(detection__viewpoint__slide=slide, detection__is_current=True)
+             .annotate(
+                 gone=Exists(reviews.filter(removed=True)),
+                 back=Exists(reviews.filter(accepted=True)),
+                 user_cls=Subquery(reviews.exclude(label="").values("label")[:1]),
+             ))
+    # 화면에 남는 개체: 통과분에서 지운 것을 빼고, 탈락분에서 되살린 것을 더한다
+    kept = Q(passed=True, gone=False) | Q(passed=False, back=True)
+
+    # 표시 분류. _guess_cls 와 같은 경계값이어야 한다.
+    guess = Case(When(elongation__lt=1.4, then=Value("round")),
+                 When(elongation__gte=2.0, elongation__lte=20.0, then=Value("rod")),
+                 default=Value(""), output_field=CharField())
+    eff = Case(
+        When(~Q(user_cls=None) & ~Q(user_cls=""), then=F("user_cls")),
+        When(passed=False, then=guess),          # 되살린 것 = 수동
+        default=F("cls"), output_field=CharField())
+
+    per_cls = {r["key"]: 0 for r in _class_rows()}
+    agg = {k: Count("id", filter=kept & Q(eff_cls=k)) for k in per_cls}
+    row = cands.annotate(eff_cls=eff).aggregate(
+        n_detected=Count("id", filter=kept),
+        n_auto=Count("id", filter=Q(passed=True)),
+        n_labeled=Count("id", filter=kept & ~Q(user_cls=None) & ~Q(user_cls="")),
+        **agg)
+    per_cls = {k: row[k] for k in per_cls}
+
+    # 검출이 돈 시야 수 — 평균의 분모다
+    detected_groups = (Detection.objects
+                       .filter(viewpoint__slide=slide, is_current=True).count())
+    return {"per_cls": per_cls, "n_detected": row["n_detected"],
+            "n_auto": row["n_auto"], "n_labeled": row["n_labeled"],
+            "detected_groups": detected_groups}
+
+
 def _slide_summary(slide: Slide, details: list | None = None) -> dict:
     """목록 화면의 집계.
 
     details 를 넘기면 그것을 쓴다 — dataset_detail 이 이미 시야를 다 훑었으므로
-    두 번 계산하지 않는다.
+    두 번 계산하지 않는다. 없으면 SQL 로 센다(`_summary_by_sql`).
     """
     vps = Viewpoint.objects.filter(slide=slide)
     n_groups = vps.count()
@@ -490,24 +543,23 @@ def _slide_summary(slide: Slide, details: list | None = None) -> dict:
     n_img = sum(sizes)
 
     if details is None:
-        details = []
-        for vp in vps.prefetch_related("detections__candidates",
-                                       "object_reviews"):
-            det = detection_for_viewpoint(vp)
-            if det:
-                details.append(det)
-
-    per_cls = {r["key"]: 0 for r in _class_rows()}
-    counts, n_auto, n_detected, n_labeled = [], 0, 0, 0
-    for det in details:
-        counts.append(det["n_candidates"])
-        n_detected += det["n_candidates"]
-        n_auto += det["n_auto"]
-        # 분류 지정은 **통과분만** 센다 — 탭 머리의 "사람지정" 과 같은 정의여야
-        # 화면끼리 어긋나지 않는다(지웠다가 분류가 남은 개체가 있다).
-        n_labeled += det["counts"].get("labeled", 0)
-        for k in per_cls:
-            per_cls[k] += det["counts"].get(k, 0)
+        r = _summary_by_sql(slide)
+        per_cls = r["per_cls"]
+        n_detected, n_auto = r["n_detected"], r["n_auto"]
+        n_labeled, n_counts = r["n_labeled"], r["detected_groups"]
+    else:
+        per_cls = {k["key"]: 0 for k in _class_rows()}
+        n_detected = n_auto = n_labeled = 0
+        for det in details:
+            n_detected += det["n_candidates"]
+            n_auto += det["n_auto"]
+            # 분류 지정은 **통과분만** 센다 — 탭 머리의 "사람지정" 과 같은 정의여야
+            # 화면끼리 어긋나지 않는다(지웠다가 분류가 남은 개체가 있다).
+            n_labeled += det["counts"].get("labeled", 0)
+            for k in per_cls:
+                per_cls[k] += det["counts"].get(k, 0)
+        n_counts = len(details)
+    counts = [None] * n_counts     # 개수만 쓴다
 
     rv = ObjectReview.objects.filter(viewpoint__slide=slide)
     agg = rv.aggregate(
