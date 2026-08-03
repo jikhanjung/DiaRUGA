@@ -43,3 +43,9 @@ tools/*.geojson
 # YOLO 학습 자료 꾸러미 — /data3/diatom/datasets 에 있고 export_yolo.py 로
 # 언제든 다시 만든다 (판마다 344 MB)
 datasets/
+
+# 학습 산출물 — 가중치·그래프·예측 그림 (판마다 40~180 MB).
+# 자료 꾸러미와 이 devlog 로 언제든 다시 만든다.
+runs/
+# 사전학습 가중치 — ultralytics 가 없으면 받아 온다
+yolo11*.pt

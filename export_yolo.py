@@ -290,6 +290,8 @@ def main():
                                             "n_objects": len(lines)})
 
         # data.yaml 은 상대경로로 쓴다. 절대경로면 RTX 8000 으로 옮긴 뒤 안 맞는다.
+        # 단 ultralytics 는 path 를 yaml 위치가 아니라 실행 디렉토리 기준으로
+        # 푼다 — 학습은 꾸러미 디렉토리 안에서 실행해야 한다.
         val_line = "val: images/val\n"
         if plan["val_slide"]:
             # ultralytics 는 val 에 목록을 받지만, 두 검증을 따로 보고 싶으므로
