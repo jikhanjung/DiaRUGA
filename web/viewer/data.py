@@ -340,6 +340,59 @@ def _polar_xy(lat: float, lon: float) -> tuple[float, float]:
     return rho * math.sin(lam) / 1000, -rho * math.cos(lam) / 1000
 
 
+def slide_label(slug: str) -> str | None:
+    """머리글에 쓸 이름만. 없으면 None.
+
+    `dataset_detail()` 은 시야를 전부 훑어 0.45초가 든다 — 이름 한 줄 때문에
+    그것을 부르면 안 된다. 실제로 계측 표와 크롭 화면이 그러고 있었다.
+    """
+    return Slide.objects.filter(slug=slug).values_list("name", flat=True).first()
+
+
+def candidate_rows(slug: str) -> list[dict]:
+    """데이터셋 전체의 검출 개체를 한 목록으로. **시야를 한 번만 훑는다.**
+
+    예전에는 뷰가 `dataset_detail()` 로 시야 74개를 훑은 뒤, 그룹마다 다시
+    `group_detail()` 을 불러 같은 것을 또 만들었다 — 0.45초 + 0.67초. 뒤의 것이
+    통째로 군더더기였다.
+
+    `image_rel` 은 검출에 적힌 경로가 아니라 뷰어가 실제로 찾아낸 파일의
+    상대경로다 — 크롭 요청이 그 경로로 이미지를 다시 열기 때문에, 검출 기록이
+    절대경로인 경우에도 어긋나지 않아야 한다.
+    """
+    slide = Slide.objects.filter(slug=slug).first()
+    if slide is None:
+        return []
+
+    rows = []
+    for vp in _viewpoints_of(slide):
+        cur = next((d for d in vp.detections.all() if d.is_current), None)
+        det = detection_for_viewpoint(vp)
+        if det is None:
+            continue
+        st = getattr(vp, "stack", None)
+        # 합성본 검출이 있으면 그쪽을, 없으면 각 프레임 검출을 훑는다.
+        if st and cur and cur.target == "stack":
+            sources = [(Path(st.focused_path).stem, det, st.focused_path)]
+        else:
+            sources = [(f["name"], det, f["rel"])
+                       for f in _frames(vp, det,
+                                        cur.frame_id if cur else None)
+                       if f["detection"]]
+        for stem, d, image_rel in sources:
+            for c in d["candidates"]:
+                rows.append({
+                    "group_id": vp.idx,
+                    "stem": stem,
+                    "overlay_rel": d.get("overlay_rel"),
+                    "image_rel": image_rel,
+                    "reviewed": d.get("review_done"),
+                    "um_per_pixel": d.get("um_per_pixel"),
+                    **c,
+                })
+    return rows
+
+
 def scales_by_slide() -> dict:
     """슬라이드마다의 µm/px. 대물렌즈를 바꿔 찍으면 슬라이드마다 다르다.
 

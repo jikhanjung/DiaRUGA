@@ -166,66 +166,51 @@ def dataset_edit(request, slug):
     })
 
 
-def _candidate_rows(slug, ds):
-    """데이터셋 전체의 검출 개체를 한 목록으로 모은다.
-
-    `image_rel` 은 검출 JSON 에 적힌 경로가 아니라 뷰어가 실제로 찾아낸
-    파일의 상대경로다 — 크롭 요청이 그 경로로 이미지를 다시 열기 때문에,
-    JSON 이 절대경로로 기록된 경우에도 어긋나지 않아야 한다.
-    """
-    rows = []
-    for g in ds["groups"]:
-        detail = data.group_detail(slug, g["id"])
-        # 합성본 검출이 있으면 그쪽을, 없으면 각 프레임 검출을 훑는다.
-        sources = []
-        if detail["stack"] and detail["stack"]["detection"]:
-            sources.append((detail["stack"]["stem"],
-                            detail["stack"]["detection"],
-                            detail["stack"]["focused_rel"]))
-        else:
-            sources += [
-                (f["name"], f["detection"], f["rel"])
-                for f in detail["frames"] if f["detection"]
-            ]
-        for stem, det, image_rel in sources:
-            for c in det["candidates"]:
-                rows.append(
-                    {
-                        "group_id": g["id"],
-                        "stem": stem,
-                        "overlay_rel": det.get("overlay_rel"),
-                        "image_rel": image_rel,
-                        "reviewed": det.get("review_done"),
-                        "um_per_pixel": det.get("um_per_pixel"),
-                        **c,
-                    }
-                )
-    return rows
+# 표 한 장에 몇 줄까지 낼 것인가. 369cm 슬라이드가 1,166줄이라 전부 내면
+# HTML 이 371 KB 가 된다 — 화면에서 그만큼을 한 번에 훑을 일도 없다.
+DETECT_PER_PAGE = 300
 
 
 def detections(request, slug):
     """데이터셋 전체에서 검출된 후보를 한 표로 모아 크기 분포를 본다."""
-    ds = data.dataset_detail(slug)
-    if ds is None:
+    label = data.slide_label(slug)
+    if label is None:
         raise Http404(f"unknown dataset: {slug}")
 
-    rows = _candidate_rows(slug, ds)
+    rows = data.candidate_rows(slug)
     rows.sort(key=lambda r: -r["long_side_um"])
-    sizes = [r["long_side_um"] for r in rows]
+
+    # **요약은 전부를 기준으로 낸다.** 보고 있는 쪽만 세면 페이지를 넘길 때마다
+    # 중앙값이 달라져서, 그 값이 무엇의 중앙값인지 알 수 없게 된다.
+    sizes = sorted(r["long_side_um"] for r in rows)
     summary = None
     if sizes:
-        ordered = sorted(sizes)
         summary = {
             "n": len(sizes),
-            "min": round(ordered[0], 1),
-            "median": round(ordered[len(ordered) // 2], 1),
-            "max": round(ordered[-1], 1),
-            "mean": round(sum(ordered) / len(ordered), 1),
+            "min": round(sizes[0], 1),
+            "median": round(sizes[len(sizes) // 2], 1),
+            "max": round(sizes[-1], 1),
+            "mean": round(sum(sizes) / len(sizes), 1),
         }
+
+    total = len(rows)
+    try:
+        offset = max(0, int(request.GET.get("offset", 0)))
+    except ValueError:
+        offset = 0
+    page = rows[offset:offset + DETECT_PER_PAGE]
+
     return render(
         request,
         "viewer/detections.html",
-        {"slug": slug, "label": ds["label"], "rows": rows, "summary": summary},
+        {"slug": slug, "label": label, "rows": page, "summary": summary,
+         "total": total,
+         "shown_from": offset + 1 if page else 0,
+         "shown_to": offset + len(page),
+         "prev_url": (f"?offset={max(0, offset - DETECT_PER_PAGE)}"
+                      if offset else None),
+         "next_url": (f"?offset={offset + DETECT_PER_PAGE}"
+                      if offset + DETECT_PER_PAGE < total else None)},
     )
 
 
@@ -239,11 +224,11 @@ def crops(request, slug):
     훑을 수 있어야 한다. 크기 내림차순이라 의심스러운 것(작고 밋밋한 것)이
     뒤쪽에 모인다.
     """
-    ds = data.dataset_detail(slug)
-    if ds is None:
+    label = data.slide_label(slug)
+    if label is None:
         raise Http404(f"unknown dataset: {slug}")
 
-    rows = _candidate_rows(slug, ds)
+    rows = data.candidate_rows(slug)
     cls = request.GET.get("cls") or ""
     if cls in data.CLASSES:
         rows = [r for r in rows if r.get("cls") == cls]
@@ -291,7 +276,7 @@ def crops(request, slug):
         "viewer/crops.html",
         {
             "slug": slug,
-            "label": ds["label"],
+            "label": label,
             "rows": page,
             "cls": cls,
             "upright": upright,

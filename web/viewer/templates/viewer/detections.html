@@ -1,17 +1,15 @@
 {% extends "viewer/base.html" %}
 {% load viewer_extras %}
 {% block title %}{{ label }} 검출 — 규조류 뷰어{% endblock %}
-{% block subtitle %}{{ label }} · 검출 목록{% endblock %}
+{% block subtitle %}{{ label }} · 검출 목록 ·
+  {{ total }}개{% if shown_to %} 중 {{ shown_from }}~{{ shown_to }}{% endif %}{% endblock %}
 
 {% block content %}
 <div class="crumb"><a href="{% url 'index' %}">데이터셋</a> / <a href="{% url 'dataset' slug %}">{{ label }}</a> / 검출</div>
 <h2>검출 후보</h2>
 
 {% if not rows %}
-  <div class="note">
-    아직 검출 결과가 없다. <code class="mono">segment_diatoms.py</code> 를 돌리고
-    산출물을 <code class="mono">out/</code> 에 두면 여기 모인다.
-  </div>
+  <div class="note">아직 검출 결과가 없습니다.</div>
 {% else %}
   <div class="stat-row" style="margin-bottom:16px">
     <div class="stat"><b>{{ summary.n }}</b><span>후보</span></div>
@@ -42,5 +40,19 @@
     </tbody>
   </table>
   </div>
+
+  {% comment %}
+    표를 나눠 낸다. 위의 요약(최소·중앙값·최대)은 **전부를 기준으로** 낸 값이라
+    페이지를 넘겨도 변하지 않는다 — 보고 있는 쪽만 세면 그 값이 무엇의 중앙값인지
+    알 수 없게 된다.
+  {% endcomment %}
+  {% if prev_url or next_url %}
+  <div class="croptools" style="margin-top:14px">
+    {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 이전</a>{% endif %}
+    {% if next_url %}<a class="chip" href="{{ next_url }}">다음 →</a>{% endif %}
+    <span class="dim">{{ total }}개 중 {{ shown_from }}~{{ shown_to }} ·
+      요약은 전체 기준입니다</span>
+  </div>
+  {% endif %}
 {% endif %}
 {% endblock %}
