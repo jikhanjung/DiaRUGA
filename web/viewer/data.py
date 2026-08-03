@@ -1153,14 +1153,44 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
                .order_by("idx").values_list("idx", flat=True))
     pos = ids.index(gid)
     st = getattr(vp, "stack", None)
+
+    # **한 화면에서 캐러셀로 갈아 본다.** 프레임마다 화면을 따로 그리면 세로로
+    # 늘어서서 견줄 수가 없다 — 같은 자리에서 프레임만 바뀌어야 "이 규조각이
+    # 어느 초점면에서 잡혔나" 가 보인다. 판 하나를 그리고 나머지는 캐러셀이
+    # 갈아 끼울 자료로 넘긴다.
+    def _shot(d):
+        c = d["counts"]
+        parts = [f"{k} {c[k]}" for k in ("rod", "round", "rod_frag",
+                                         "round_frag", "eucampia") if c.get(k)]
+        return {
+            "candidates": d["candidates"],
+            "rejected": d["rejected"],
+            "summary": (f"후보 {d['n_candidates']}개"
+                        + (f" ({', '.join(parts)})" if parts else "")
+                        + f" · 원시 {d['n_raw_masks']}"
+                        + (f" → 크기통과 {d['n_sized']}" if d['n_sized'] else "")
+                        + f" · 탈락 {len(d['rejected'])}개"),
+        }
+
+    shots = {f["name"]: _shot(f["detection"]) for f in frames if f["detection"]}
+    first = next((f for f in frames if f["detection"]), None)
+    # 개체가 가장 많은 프레임에서 시작한다 — 빈 프레임이 먼저 열리면 검출이
+    # 아무것도 없는 줄 알게 된다.
+    best = max((f for f in frames if f["detection"]),
+               key=lambda f: len(f["detection"]["candidates"]), default=first)
     return {
         "slug": slug, "label": slide.name, "id": gid, "tag": vp.tag,
         "run_id": run_id,
         "frames": frames,
         "stack": (_stack_dict(st, engine_detection(stack_det))
                   if st and stack_det else None),
+        "base_rel": best["rel"] if best else None,
+        "base_det": best["detection"] if best else None,
+        "base_name": best["name"] if best else None,
+        "shot_dets": shots,
         "n_objects": sum(len(f["detection"]["candidates"])
                          for f in frames if f["detection"]),
+        "n_frames_with_det": len(shots),
         "prev_id": ids[pos - 1] if pos > 0 else None,
         "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
     }

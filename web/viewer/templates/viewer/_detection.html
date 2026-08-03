@@ -378,6 +378,26 @@
     hoverSeq++;
     if (shots[current]) paint(shots[current]);
   }
+  // 프레임마다 검출이 따로 있는 화면(/engine/)에서는 사진과 함께 개체도 바꾼다.
+  // 자료가 없으면 undefined 라 아래 swapDet 이 곧장 빠져나간다 — 검토 화면은
+  // 지금까지와 똑같이 돈다.
+  var shotDets = null;
+  try {
+    var sdEl = document.getElementById('shotdet-' + uid);
+    if (sdEl) shotDets = JSON.parse(sdEl.textContent || 'null');
+  } catch (e) { shotDets = null; }
+
+  function swapDet(s) {
+    if (!shotDets || !s || !s.dataset.detkey) return;
+    var d = shotDets[s.dataset.detkey];
+    if (!d) return;
+    cands = (d.candidates || []).slice();
+    rejects = (d.rejected || []).slice();
+    var meta = document.querySelector('#tabs-' + uid + ' .tabmeta');
+    if (meta) meta.textContent = d.summary || '';
+    build();
+  }
+
   function commit(i, scroll) {
     if (i < 0 || i >= shots.length) return;
     if (shots[current]) shots[current].classList.remove('on');
@@ -386,6 +406,7 @@
     s.classList.add('on');
     hoverSeq++;
     paint(s);
+    swapDet(s);
     committedSrc = s.dataset.view;
     if (scroll) {
       var r = s.getBoundingClientRect(), sr = strip.getBoundingClientRect();

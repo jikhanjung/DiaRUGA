@@ -32,6 +32,10 @@
           data-title="{{ f.name }}"
           data-note="선명도 {{ f.sharpness }}{% if f.is_sharpest %} · 그룹 내 최선{% endif %}"
           data-raw="1"
+          {# 캐러셀이 프레임을 바꿀 때 그 프레임의 검출로 갈아 끼우는 열쇠.
+             검출이 프레임마다 따로 있는 화면(/engine/)에서만 쓰인다 — 없으면
+             아무 일도 일어나지 않으므로 검토 화면은 그대로다 #}
+          data-detkey="{{ f.name }}"
           {% if f.rel == base %}data-current="1"{% endif %}>
     <img loading="lazy" src="{% thumb f.rel 220 %}" alt="{{ f.name }}">
     <span class="cap">{{ f.name|cut:"Snap-" }}{% if f.is_sharpest %} ★{% endif %}</span>
