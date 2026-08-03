@@ -35,3 +35,6 @@ web/.thumbcache/
 
 # devlog 는 .md 로만 둔다. docx 변환은 docs/ 의 보고서에만 한다.
 devlog/*.docx
+
+# 지도 자료 원본 — tools/README.md 의 명령으로 언제든 받는다 (1.6 MB)
+tools/ne_50m_land.geojson

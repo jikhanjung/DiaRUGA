@@ -43,6 +43,14 @@
         <rect x="8.8" y="8.8" width="6.2" height="6.2" rx="1.2"/>
       </svg>
     </button>
+    <button type="button" data-view="map" title="지도로 보기 — 어느 해역의 시료인지"
+            aria-label="지도로 보기">
+      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M1.4 8h13.2M8 1.4a10 10 0 0 1 0 13.2M8 1.4a10 10 0 0 0 0 13.2"
+              fill="none" stroke="currentColor" stroke-width="1.1"/>
+      </svg>
+    </button>
   </div>
 </div>
 <p class="dim">NAS 에 새 슬라이드가 올라오면 자동으로 가져와 검출까지 돌립니다.
@@ -138,6 +146,9 @@
 </table>
 </div>
 
+{% comment %} 지도 판 — 어느 해역의 시료인지. {% endcomment %}
+<div class="asMap">{% include "viewer/_map.html" %}</div>
+
 {% comment %} 카드 판 — 슬라이드 하나씩 훑어볼 때. 표와 같은 값을 보인다. {% endcomment %}
 <div class="cards asCards">
 {% for d in datasets %}
@@ -185,6 +196,7 @@
       bar = document.getElementById('viewtoggle');
   function apply(v) {
     box.classList.toggle('showCards', v === 'cards');
+    box.classList.toggle('showMap', v === 'map');
     bar.querySelectorAll('button').forEach(function (b) {
       var on = b.dataset.view === v;
       b.classList.toggle('on', on);
@@ -193,7 +205,7 @@
   }
   var saved;
   try { saved = localStorage.getItem(KEY); } catch (e) { saved = null; }
-  apply(saved === 'cards' ? 'cards' : 'table');
+  apply(saved === 'cards' || saved === 'map' ? saved : 'table');
   bar.addEventListener('click', function (e) {
     var b = e.target.closest('button[data-view]');
     if (!b) return;

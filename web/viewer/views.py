@@ -13,7 +13,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import data, thresholds as th
+from . import antarctica, data, thresholds as th
 from .models import Detection, Run, Slide, ThresholdSet
 
 import sys
@@ -45,8 +45,24 @@ THRESHOLD_FIELDS = [
 
 def index(request):
     rows = data.datasets()
-    return render(request, "viewer/index.html",
-                  {"datasets": rows, "totals": data.datasets_total(rows)})
+    pts = data.map_points()
+    return render(request, "viewer/index.html", {
+        "datasets": rows,
+        "totals": data.datasets_total(rows),
+        # 지도는 세 번째 보기 방식이다. 해안선이 10 KB 뿐이라 늘 함께 보낸다 —
+        # 따로 요청하게 만들면 전환이 즉시 되지 않는다.
+        "antmap": {
+            "land": antarctica.LAND,
+            "boundary": antarctica.BOUNDARY_KM,
+            "lat_circles": antarctica.LAT_CIRCLES,
+            "boundary_label": antarctica.BOUNDARY_LABEL,
+            "lon_labels": antarctica.LON_LABELS,
+            "lon_spokes": antarctica.LON_SPOKES,
+            "sea_labels": antarctica.SEA_LABELS,
+            "points": pts,
+            "any_approx": any(not q["exact"] for q in pts),
+        },
+    })
 
 
 def dataset(request, slug):

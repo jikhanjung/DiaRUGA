@@ -17,8 +17,9 @@ from pathlib import Path
 from django.conf import settings
 from django.db.models import Count, Q
 
+from . import antarctica
 from .models import (Candidate, ClassDef, Detection, Frame, ObjectReview,
-                     Slide, Stack, Viewpoint, ViewpointReview)
+                     Site, Slide, Stack, Viewpoint, ViewpointReview)
 
 # --- 분류 정의 -------------------------------------------------------------
 # ClassDef 테이블이 원본이다. 다만 매 요청마다 읽을 값이 아니라(거의 바뀌지 않고
@@ -251,6 +252,91 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
         "overlay_rel": _rel(overlay) if overlay.exists() else None,
         "source_dir": "out",
     }
+
+
+def map_points() -> list[dict]:
+    """지도에 찍을 지역별 묶음. 슬라이드가 아니라 **지역 단위**다.
+
+    같은 코어의 깊이별 슬라이드는 좌표가 같으므로 겹쳐 찍으면 하나로 보인다.
+    지역으로 묶고 그 안에 슬라이드를 세는 편이 지도에서 읽힌다.
+
+    좌표는 `Site.lat/lon` 이 원칙이고, 비어 있으면 해역 대략값으로 물러난다.
+    **어느 쪽인지 반드시 함께 낸다** — 대략값을 실측처럼 보이게 두면 안 된다.
+    """
+    from .antarctica import APPROX_SITES
+
+    out = []
+    for site in Site.objects.prefetch_related("cores__slides"):
+        slides = [sl for c in site.cores.all() for sl in c.slides.all()]
+        if not slides:
+            continue
+        # 코드는 <지역><연도> 꼴이다 (RS23 · WAP13 · AM22). 뒤의 숫자를 떼고 찾는다.
+        base = re.sub(r"\d+$", "", site.code).upper()
+        approx = APPROX_SITES.get(base)
+        if site.lat is not None and site.lon is not None:
+            lat, lon, exact, note = site.lat, site.lon, True, ""
+        elif approx:
+            lat, lon, exact, note = approx[0], approx[1], False, approx[2]
+        else:
+            continue                    # 어디인지 짐작할 수도 없으면 안 찍는다
+        x, y = _polar_xy(lat, lon)
+
+        # 코어 아래에 슬라이드를 매단다. 깊이순이다 — 같은 코어에서 깊이에 따른
+        # 변화를 보는 것이 이 시료의 목적이라 그 순서로 읽혀야 한다.
+        cores = []
+        for core in sorted(site.cores.all(), key=lambda c: c.code):
+            rows = sorted(core.slides.all(),
+                          key=lambda sl: (sl.depth_cm is None, sl.depth_cm or 0))
+            if not rows:
+                continue
+            cores.append({
+                "code": core.code,
+                "n_slides": len(rows),
+                "slides": [{
+                    "slug": sl.slug,
+                    "label": sl.name,
+                    "depth_cm": sl.depth_cm,
+                    "state": sl.state,
+                    "n_viewpoints": sl.viewpoints.count(),
+                    "reviewed": ViewpointReview.objects.filter(
+                        viewpoint__slide=sl, done=True).count(),
+                } for sl in rows],
+            })
+
+        out.append({
+            "code": site.code,
+            "label": site.region or site.name or site.code,
+            "x": round(x, 1), "y": round(y, 1),
+            "exact": exact, "approx_note": note,
+            "n_slides": len(slides),
+            "n_viewpoints": sum(s.viewpoints.count() for s in slides),
+            "cores": cores,
+            "core_codes": [c["code"] for c in cores],
+            "slugs": [s.slug for s in slides],
+        })
+    return out
+
+
+def _polar_xy(lat: float, lon: float) -> tuple[float, float]:
+    """EPSG:3031 로 투영해 SVG 좌표(km)로. antarctica.py 와 같은 식이어야 한다.
+
+    거기서는 굽는 시점에 계산했고 여기서는 요청마다 계산한다 — 점 몇 개뿐이라
+    미리 굽는 값어치가 없다. 대신 **식이 갈라지면 지도와 마커가 어긋나므로**
+    상수를 여기 한 번 더 적지 않고 antarctica 에서 가져온다.
+    """
+    import math
+
+    a, e = antarctica.WGS84_A, antarctica.WGS84_E
+
+    def t(phi):
+        s = e * math.sin(phi)
+        return math.tan(math.pi / 4 + phi / 2) / (((1 + s) / (1 - s)) ** (e / 2))
+
+    phi_c = math.radians(-71.0)
+    mc = math.cos(phi_c) / math.sqrt(1 - e * e * math.sin(phi_c) ** 2)
+    rho = a * mc * t(math.radians(lat)) / t(phi_c)
+    lam = math.radians(lon)
+    return rho * math.sin(lam) / 1000, -rho * math.cos(lam) / 1000
 
 
 def scales_by_slide() -> dict:
