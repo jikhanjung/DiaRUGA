@@ -53,7 +53,11 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "[::1]",
     "172.16.116.98",    # 이 서버의 사내망 주소
-    "paleo-server",
+    "paleo-server",     # 이 머신의 hostname
+    # 형제 서비스들이 쓰는 이름. nginx 의 phyloserver 블록이
+    # `server_name 172.16.116.98 paleolab` 이고 /diatom/ 이 그 안에 얹혀 있어,
+    # 여기 없으면 이름으로 들어온 요청만 400 이 된다.
+    "paleolab",
 ]
 ALLOWED_HOSTS += [h.strip() for h in os.environ.get("DIATOM_HOSTS", "").split(",") if h.strip()]
 
