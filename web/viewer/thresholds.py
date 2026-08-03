@@ -149,8 +149,27 @@ def preview(values: dict, pool: dict) -> dict:
     }
 
 
+def class_counts_from(per_det: dict) -> dict:
+    """`preview()` 결과에서 분류별 개수를 센다. **판정을 다시 걸지 않는다.**
+
+    예전에는 `class_counts(values, pool)` 이 전체를 다시 판정했다 — `preview()` 가
+    방금 한 일을 똑같이 한 번 더 한 것이다. 프로파일에 `judge.apply` 가 시야
+    수의 **두 배**로 찍혀서 드러났다(검출 74개에 148번).
+
+    `preview` 가 이미 `verdict`(개체 키 → 분류)를 들고 있으므로 그것을 센다.
+    통과분만 분류가 붙고 탈락분은 None 이라 그대로 세면 된다.
+    """
+    out = {}
+    for r in per_det.values():
+        for cls in r["verdict"].values():
+            if cls is None:
+                continue
+            out[cls] = out.get(cls, 0) + 1
+    return out
+
+
 def class_counts(values: dict, pool: dict) -> dict:
-    """새 문턱에서의 분류별 개수."""
+    """새 문턱에서의 분류별 개수. 판정 결과가 없을 때만 쓴다 — 전체를 다시 센다."""
     th = judge.Thresholds(**values)
     out = {}
     for recs in pool.values():

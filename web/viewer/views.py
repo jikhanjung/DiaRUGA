@@ -454,16 +454,16 @@ def threshold_page(request, slug=None):
     없으면 적용하고 나서 시야를 하나씩 확인해야 한다 — 그래서 이 화면은 **영향받는
     시야를 영향 큰 순으로** 늘어놓는다. 영향 없는 시야는 볼 이유가 없다.
     """
-    ds = data.dataset_detail(slug) if slug else None
-    if slug and ds is None:
+    # 이름만 있으면 된다. dataset_detail() 은 시야를 전부 훑어 0.46초가 든다.
+    label = data.slide_label(slug) if slug else None
+    if slug and label is None:
         raise Http404(f"unknown dataset: {slug}")
     # 배율이 다르면 텍스처 문턱을 같이 걸 수 없다 (devlog 013). 전역 적용 화면에서
     # 미리 알린다 — 적용하고 나서 한쪽이 무너진 것을 발견하면 되돌리기가 번거롭다.
     scales = data.scales_by_slide()
     return render(request, "viewer/thresholds.html", {
         "slug": slug or "",
-        "label": ds["label"] if ds else "전체",
-        "datasets": data.datasets(),
+        "label": label or "전체",
         "fields": THRESHOLD_FIELDS,
         "current": th.current_values(slug),
         "defaults": dict(judge.DEFAULTS),
@@ -531,7 +531,8 @@ def threshold_preview(request):
         "ok": True,
         "values": values,
         "total": result["total"],
-        "classes": th.class_counts(values, pool),
+        # preview 가 낸 판정을 다시 세기만 한다 — 두 번 판정하지 않는다
+        "classes": th.class_counts_from(result["per_det"]),
         "rows": shown,
         "n_rows": len(rows),
         "n_touched": len(touched),

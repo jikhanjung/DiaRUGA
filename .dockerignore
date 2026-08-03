@@ -42,3 +42,6 @@ devlog/
 
 # groups_*.json 은 제외하지 않는다 — git 이 추적하는 그룹핑 결과이고
 # run_batch.sh 가 읽는다. P02 6단계에서 DB 로 들어가면 사라진다
+
+# 컨테이너 안에서는 ../devdocs 가 없어 끊어진 링크가 된다
+.guides
