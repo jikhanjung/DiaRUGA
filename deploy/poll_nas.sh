@@ -54,7 +54,16 @@ SCAN_JSON="$LOG_DIR/last_scan.json"
 SCAN_OUT=$(mktemp); trap 'rm -f "$SCAN_OUT"' EXIT
 if ! run "$T_SCAN" python scan_nas.py --stable-min "$STABLE_MIN" \
         --json "$SCAN_JSON" >"$SCAN_OUT" 2>&1; then
-    say "정찰 실패 — NAS 가 내려갔는가"
+    # **원인을 짐작해서 적지 않는다.** 예전에는 무조건 "NAS 가 내려갔는가" 라고
+    # 적었는데, 실제로는 compose 가 없는 이미지 태그를 가리키고 있었다. 엉뚱한
+    # 진단이 로그에 4시간 반 동안 524번 쌓였고 그동안 아무도 원인을 몰랐다.
+    if grep -qi "manifest unknown\|not found: manifest\|pull access denied" "$SCAN_OUT"; then
+        say "정찰 실패 — 파이프라인 이미지를 못 찾는다 (.env 의 PIPELINE_TAG 를 볼 것)"
+    elif grep -qi "no such file\|Stale file handle\|Input/output error\|/nfs" "$SCAN_OUT"; then
+        say "정찰 실패 — NAS 를 못 읽는다"
+    else
+        say "정찰 실패"
+    fi
     sed 's/^/    /' "$SCAN_OUT" >>"$LOG"
     exit 1
 fi

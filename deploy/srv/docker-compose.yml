@@ -45,7 +45,12 @@ services:
 
   pipeline:
     <<: *common
-    image: honestjung/diatom-pipeline:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
+    # **판이 web 과 따로 논다.** 처음에는 둘 다 IMAGE_TAG 를 썼는데, 파이프라인
+    # 이미지(6.92 GB)는 거의 안 바뀌고 뷰어는 자주 바뀐다. 뷰어 판을 올릴 때마다
+    # 없는 파이프라인 태그를 가리키게 되어 **폴러가 4시간 반 동안 멈췄다**
+    # (v0.1.1 로 올린 순간부터 524번 실패). 그때 로그는 "NAS 가 내려갔는가" 라고
+    # 적었다 — 원인과 전혀 다른 말이라 더 늦게 알았다.
+    image: honestjung/diatom-pipeline:${PIPELINE_TAG:?PIPELINE_TAG 를 .env 에 넣을 것}
     profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
     volumes:
       - /srv/diatom/db:/srv/diatom/db
