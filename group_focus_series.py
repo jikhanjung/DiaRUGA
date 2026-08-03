@@ -88,15 +88,33 @@ def rel(p) -> str:
         return str(p)
 
 
-def separability(corrs, groups):
+def separability(corrs, groups, thresh):
     """임계값이 이 슬라이드에서 의미가 있는가.
 
-    그룹 **안**의 최소 상관과 그룹 **경계**의 최대 상관 사이가 벌어져 있어야
-    "0.55 이상이면 같은 시야" 라는 규칙이 성립한다. 붙어 있으면 임계값이 분포
-    한가운데를 자르고 있다는 뜻이고, 그때는 **조용히 잘못 묶인다** (P01 §1).
+    "0.55 이상이면 같은 시야" 라는 규칙은 **그룹 안 상관과 경계 상관이 겹치지
+    않을 때만** 성립한다. 겹치면 임계값을 어디에 두든 잘못 묶이는 쌍이 생긴다.
 
-    RS23 에서는 0.35 이하 아니면 0.936 이상으로 깨끗하게 갈렸다. 116cm 는 47그룹 중
-    26개가 단독인데, 촬영을 덜 한 것인지 임계값이 안 맞는 것인지 아직 모른다.
+    처음에는 `min(그룹안) - max(경계)` 를 재고 그 값이 작으면 미심쩍다고 봤다.
+    **틀린 기준이었다.** 최솟값·최댓값은 꼬리라서 표본이 많을수록 나빠진다 —
+    실측에서 그룹 쌍이 1개뿐인 슬라이드가 만점(0.9957)을 받고, 34개인 슬라이드가
+    최악 하나 때문에 걸렸다. 그런데 그 슬라이드는 사람이 확인하니 **정상이었다.**
+
+        AM22 25cm 그룹 안 34쌍: 0.594 0.623 0.629 0.723 | 0.986 … 0.998
+                   경계 25쌍:  … 0.475 0.494
+                               └ 0.494~0.594 사이는 완전히 비어 있다
+
+    겹치는 쌍이 하나도 없다. 분포는 깨끗하게 양분돼 있었고 내가 양 끝만 빼서
+    "여유 0.1" 이라 부른 것이다.
+
+    그래서 판정과 정보를 가른다.
+
+    - **겹침**(`overlap`) — 경계 상관이 그룹 안 상관보다 높은 쌍이 실제로 있는가.
+      있으면 임계값 문제가 맞다. 이것만 사람을 부른다
+    - **여유**(`margin`) — 임계값에서 양쪽으로 얼마나 떨어져 있나. 좁아도 겹치지
+      않으면 정상이다. 기록만 한다
+
+    표본이 너무 적으면(`within_n` 이 한 자리) 어느 쪽도 말할 수 없다 — 그것도
+    그대로 알린다. 모르는 것을 통과로 처리하지 않는다.
     """
     inner, edge = [], []
     for g in groups:
@@ -106,13 +124,25 @@ def separability(corrs, groups):
         last = g[-1]
         if last < len(corrs):          # 마지막 그룹의 끝은 경계가 아니다
             edge.append(corrs[last])
+
+    out = {"within_n": len(inner), "between_n": len(edge)}
+    if not inner or not edge:
+        return {**out, "within_min": None, "between_max": None,
+                "gap": None, "overlap": None, "margin": None}
+
+    lo, hi = min(inner), max(edge)
+    # 겹치는 쌍: 그룹 안인데 어떤 경계보다 낮은 것 + 경계인데 어떤 그룹 안보다 높은 것.
+    # 0 이면 임계값을 두 무리 사이 어디에 둬도 결과가 같다.
+    overlap = sum(1 for v in inner if v < hi) + sum(1 for v in edge if v > lo)
     return {
-        "within_min": round(min(inner), 4) if inner else None,
-        "within_n": len(inner),
-        "between_max": round(max(edge), 4) if edge else None,
-        "between_n": len(edge),
-        "gap": (round(min(inner) - max(edge), 4)
-                if inner and edge else None),
+        **out,
+        "within_min": round(lo, 4),
+        "between_max": round(hi, 4),
+        "gap": round(lo - hi, 4),          # 이력 비교용으로 계속 남긴다
+        "overlap": overlap,
+        # 임계값을 이만큼 움직여도 그룹이 안 바뀐다. 음수면 임계값이 무리 안을
+        # 자르고 있다는 뜻이라 겹침이 없어도 위태롭다.
+        "margin": round(min(thresh - hi, lo - thresh), 4),
     }
 
 
@@ -224,17 +254,10 @@ def main():
     ap.add_argument("--blur", type=float, default=2.0)
     ap.add_argument("--max-gap-sec", type=float, default=0.0,
                     help=">0 이면 이 시간 이상 벌어진 경우 상관계수와 무관하게 분리")
-    # 실측 4개 슬라이드: 0.100 · 0.554 · 0.623 · 0.664. 정상인 셋은 0.55 이상이고
-    # 하나만 0.100 이다. 0.2 로 두면 그 하나가 걸리고 나머지는 여유 있게 통과한다.
-    # 뜻으로 보면 "임계값을 ±0.1 움직여도 그룹이 안 바뀌는가" 다.
-    ap.add_argument("--min-gap", type=float, default=0.2,
-                    help="그룹 안 최소 상관과 경계 최대 상관의 최소 여유. "
-                         "이보다 좁으면 임계값이 분포 한가운데를 자르는 것이다")
-    # 같은 시야로 묶인 사진끼리도 이만큼은 닮아야 한다. 실측에서 정상은
-    # 0.90~0.99 인데 미심쩍은 슬라이드 하나가 0.594 였다 — 여유와 별개 신호다.
-    ap.add_argument("--min-within", type=float, default=0.8,
-                    help="그룹 안 최소 상관의 하한. 이보다 낮으면 같은 시야가 "
-                         "아닌 사진이 한 그룹에 들어갔을 수 있다")
+    # 여유(margin)로는 판정하지 않는다 — 좁아도 겹치지 않으면 정상이다.
+    # 실측: 여유 0.05 짜리 슬라이드를 사람이 확인하니 그룹핑이 맞았다.
+    ap.add_argument("--min-pairs", type=int, default=5,
+                    help="그룹 안 쌍이 이보다 적으면 묶임을 검증할 수 없다고 본다")
     ap.add_argument("--force", action="store_true",
                     help="이미 검출·교정이 있는 슬라이드도 다시 묶는다 (아래를 읽을 것)")
     ap.add_argument("--dry-run", action="store_true",
@@ -308,24 +331,32 @@ def main():
               f"best={best} span={span}s")
 
     # 임계값이 이 슬라이드에서 의미가 있는가 (P01 §1)
-    sep = separability(corrs, groups)
+    sep = separability(corrs, groups, args.corr_thresh)
     singles = sum(1 for g in groups if len(g) == 1)
-    print(f"\n상관계수 — 그룹 안 최소 {sep['within_min']} · "
-          f"경계 최대 {sep['between_max']} · 여유 {sep['gap']}")
-    print(f"단독 그룹 {singles}/{len(groups)}개")
+    print(f"\n상관계수 — 그룹 안 {sep['within_min']} 이상({sep['within_n']}쌍) · "
+          f"경계 {sep['between_max']} 이하({sep['between_n']}쌍)")
+    print(f"  겹치는 쌍 {sep['overlap']}개 · 임계값 여유 {sep['margin']} · "
+          f"단독 그룹 {singles}/{len(groups)}개")
 
     why = []
-    if sep["gap"] is not None and sep["gap"] < args.min_gap:
-        why.append(f"여유가 좁다 ({sep['gap']} < {args.min_gap}) — "
-                   f"임계값 {args.corr_thresh} 을 조금만 움직여도 그룹이 바뀐다")
-    if sep["within_min"] is not None and sep["within_min"] < args.min_within:
-        why.append(f"그룹 안 최소 상관이 낮다 ({sep['within_min']} < {args.min_within}) "
-                   f"— 같은 시야가 아닌 사진이 한 그룹에 들어갔을 수 있다")
+    if sep["overlap"]:
+        why.append(f"두 무리가 겹친다 (쌍 {sep['overlap']}개) — 임계값을 어디에 둬도 "
+                   f"잘못 묶이는 쌍이 생긴다")
+    elif sep["margin"] is not None and sep["margin"] < 0:
+        why.append(f"임계값 {args.corr_thresh} 이 무리 안을 자르고 있다 "
+                   f"(그룹 안 최소 {sep['within_min']} · 경계 최대 {sep['between_max']})")
+    elif sep["within_n"] < args.min_pairs and sep["within_n"] > 0:
+        why.append(f"판단할 표본이 모자란다 (그룹 안 쌍 {sep['within_n']}개) — "
+                   f"대부분 단독 촬영이라 묶임을 검증할 수 없다")
     suspect = bool(why)
     if suspect:
-        print("\n** 그룹핑이 미심쩍다. 사람이 봐야 한다.", file=sys.stderr)
+        print("\n** 그룹핑을 사람이 확인해야 한다.", file=sys.stderr)
         for w in why:
             print(f"   - {w}", file=sys.stderr)
+    elif sep["margin"] is not None and sep["margin"] < 0.05:
+        # 겹치지 않으면 정상이다. 여유가 적은 것은 정보로만 알린다.
+        print(f"\n(참고) 임계값 여유가 {sep['margin']} 로 좁다. "
+              f"겹치는 쌍은 없어 결과는 정상이다.", file=sys.stderr)
 
     if args.out:
         Path(args.out).write_text(json.dumps(out, indent=2), encoding="utf-8")
@@ -343,7 +374,7 @@ def main():
             # 자동으로 넘기지 않는다. 잘못 묶인 시야 위에 쌓은 검출과 교정은
             # 나중에 되돌리기가 훨씬 비싸다 (P01 §1).
             slide.state = "failed"
-            slide.state_note = ("그룹핑이 미심쩍다 — " + " · ".join(why) +
+            slide.state_note = ("그룹핑 확인 필요 — " + " · ".join(why) +
                                 f" (단독 그룹 {singles}/{len(groups)})")
             slide.save(update_fields=["state", "state_note"])
     except Exception as e:
