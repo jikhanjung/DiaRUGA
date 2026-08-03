@@ -57,7 +57,21 @@ trap 'rm -f "$FLAG"' EXIT
 say "유지보수 모드"
 
 # 4) 내린다. 쓰는 쪽이 빠져야 WAL 이 본체로 정리된다.
-docker compose down
+#
+# **`down` 이 아니라 `stop web` 이다.** `down` 은 이 compose 프로젝트의 컨테이너와
+# 네트워크를 통째로 걷어 가는데, 그 안에는 폴러가 띄운 일회성 파이프라인
+# 컨테이너도 들어 있다 — 뷰어를 올리는 일이 몇십 분짜리 합성·검출을 죽인다.
+# 실제로 새 슬라이드 3장이 들어오던 중에 그럴 뻔했다.
+#
+# 파이프라인은 DB 를 열어 두고 쓰지만, 그쪽이 WAL 을 정리하는 것을 막지는
+# 않는다 — 스냅샷은 `backup_db.py` 가 sqlite 백업 API 로 뜨므로 다른 쓰는
+# 쪽이 있어도 온전한 사본이 나온다.
+docker compose stop web
+docker compose rm -f web >/dev/null 2>&1 || true
+RUNNING_PIPE=$(docker compose ps -q pipeline 2>/dev/null | wc -l)
+if [ "$RUNNING_PIPE" -gt 0 ] || docker ps --format '{{.Names}}' | grep -q 'pipeline-run'; then
+    say "파이프라인이 도는 중이다 — 건드리지 않는다"
+fi
 
 # 5) 배포 전 스냅샷. 새 판의 마이그레이션이 DB 를 건드렸을 때 돌아올 지점이다.
 #    backup_db.py 를 쓴다 — cp 는 WAL 때문에 불완전한 사본이 된다.
