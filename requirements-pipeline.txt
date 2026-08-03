@@ -27,3 +27,8 @@ iopath==0.1.10
 numpy==2.4.4
 opencv-python-headless==5.0.0.93
 tqdm==4.70.0
+
+# YOLO 검출 백엔드 (--backend yolo). torch·opencv 는 위에 이미 있다.
+# **GUI 판 opencv-python 을 함께 끌고 온다** — 이미지의 headless 판을 가려
+# libxcb.so.1 로 죽으므로 Dockerfile 에서 걷어낸다.
+ultralytics==8.4.7

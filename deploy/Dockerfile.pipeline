@@ -37,9 +37,16 @@ ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
     REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 # 의존성을 코드보다 먼저. requirements-pipeline.txt 가 -web 을 안에서 부른다.
+#
+# **설치 뒤 opencv-python 을 걷어낸다.** ultralytics 가 GUI 판을 의존성으로
+# 끌고 오는데, 이 슬림 이미지에는 libxcb 가 없어 headless 판을 가리는 순간
+# `ImportError: libxcb.so.1` 로 죽는다. 걷어낸 뒤 import 로 확인까지 한다 —
+# 빌드가 조용히 성공하고 실행에서 죽는 것이 가장 나쁘다.
 COPY requirements-web.txt requirements-pipeline.txt ./
 RUN pip install -r requirements-pipeline.txt \
       --extra-index-url https://download.pytorch.org/whl/cu126 \
+ && pip uninstall -y opencv-python \
+ && python -c "import cv2; print('cv2', cv2.__version__)" \
  && apt-get purge -y git && apt-get autoremove -y
 
 # SAM2 가중치는 HuggingFace 에서 받는다 (segment_diatoms.py:57 build_sam2_hf).

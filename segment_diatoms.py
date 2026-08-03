@@ -98,12 +98,76 @@ def load_generator(backend: str, device: str, args):
             box_nms_thresh=0.8,
             min_mask_region_area=0,
         )
+    if backend == "yolo":
+        return YoloGenerator(args.weights, device, conf=args.yolo_conf,
+                             imgsz=args.yolo_imgsz, iou=args.yolo_nms_iou)
     if backend == "sam3":
         raise SystemExit(
             "sam3 백엔드는 HF gated 접근 권한(HF_TOKEN)이 필요합니다. "
             "huggingface.co/facebook/sam3 에서 승인 후 재시도하세요."
         )
     raise SystemExit(f"unknown backend: {backend}")
+
+
+class YoloGenerator:
+    """학습한 YOLO-seg 를 SAM2AutomaticMaskGenerator 와 같은 모양으로 감싼다.
+
+    `generate(arr)` 가 SAM2 와 같은 dict 목록을 내면 뒤의 파이프라인
+    (`masks_to_records` → `filter_records` → `judge`)이 그대로 돈다. **엔진을
+    갈아도 지표 계산과 판정이 한 곳에 남는다** — 텍스처·신장률을 YOLO 쪽에서
+    따로 세면 두 엔진의 숫자를 견줄 수 없게 된다.
+
+    SAM2 의 `predicted_iou`·`stability_score` 자리에는 YOLO 의 `conf` 를 넣는다.
+    `judge.py` 는 이 둘을 안 쓰므로 판정에는 영향이 없고, 기록으로 남아
+    나중에 conf 별로 다시 거를 수 있다(`refilter.py` 와 같은 갈래).
+
+    **`conf` 를 낮게 두고 뽑는 것이 기본이다.** 운영점은 슬라이드마다 다르고
+    (devlog 025 §8), 낮게 뽑아 두면 DB 에서 다시 고를 수 있다.
+    """
+
+    def __init__(self, weights: str, device: str, conf: float, imgsz: int,
+                 iou: float):
+        from ultralytics import YOLO                          # noqa: PLC0415
+
+        if not Path(weights).exists():
+            raise SystemExit(f"가중치가 없다: {weights}")
+        self.model = YOLO(weights)
+        self.device = 0 if device == "cuda" else "cpu"
+        self.conf, self.imgsz, self.iou = conf, imgsz, iou
+
+    def generate(self, arr):
+        r = self.model.predict(arr, imgsz=self.imgsz, conf=self.conf,
+                               iou=self.iou, device=self.device,
+                               verbose=False, retina_masks=True)[0]
+        if r.masks is None:
+            return []
+        h, w = arr.shape[:2]
+        out = []
+        confs = r.boxes.conf.tolist()
+        for i, m in enumerate(r.masks.data.cpu().numpy()):
+            # retina_masks=True 면 원본 크기지만, 확인 없이 믿지 않는다
+            if m.shape != (h, w):
+                m = cv2.resize(m.astype(np.float32), (w, h),
+                               interpolation=cv2.INTER_NEAREST)
+            seg = m > 0.5
+            area = int(seg.sum())
+            if area == 0:
+                continue
+            ys, xs = np.nonzero(seg)
+            x0, x1 = int(xs.min()), int(xs.max())
+            y0, y1 = int(ys.min()), int(ys.max())
+            c = round(float(confs[i]), 4)
+            out.append({
+                "segmentation": seg,
+                # **상자를 마스크에서 다시 뽑는다.** YOLO 의 상자와 마스크는
+                # 따로 예측되어 미세하게 어긋난다. SAM2 쪽은 마스크가 곧 상자라
+                # 여기서 맞춰 두어야 두 엔진의 기하가 같은 뜻이 된다
+                "bbox": [x0, y0, x1 - x0 + 1, y1 - y0 + 1],
+                "area": area,
+                "predicted_iou": c,
+                "stability_score": c,
+            })
+        return out
 
 
 def shape_metrics(seg):
@@ -456,11 +520,21 @@ def mark_done_if_complete(slide) -> bool:
     return True
 
 
-def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float):
+def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float,
+                   keep_current: bool = False):
     """검출 결과를 새 Detection 으로 쌓고 교정을 다시 맺는다.
 
     **통째로 한 트랜잭션이다.** `is_current` 를 옮기는 것과 교정을 다시 맺는 것이
     갈라지면, 그 사이에 뷰어를 연 사람은 "교정이 하나도 안 붙은 새 검출"을 본다.
+
+    `keep_current=True` 면 **`is_current` 를 옮기지 않고 재바인딩도 하지 않는다.**
+    새 검출은 `is_current=False` 로 쌓이기만 한다. 뷰어(`data.py`)는 current 인
+    것만 보므로 화면도 교정도 그대로다 — 다른 엔진을 같은 시야에서 나란히
+    재 보려고 둔 길이다(P01 §3).
+
+    **이것이 없으면 실험 한 번이 교정 2,400건을 흔든다.** 엔진이 다르면
+    `mask_key`(bbox 문자열)가 거의 전부 어긋나 재바인딩이 orphan 을 쏟아내고,
+    되돌리려면 또 한 번 뒤집어야 한다.
 
     돌려주는 값: (Detection, 개체 수, 재바인딩 방법별 개수)
     """
@@ -507,6 +581,10 @@ def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float):
         Candidate.objects.bulk_create(rows, batch_size=2000)
 
         # 여기부터가 한 덩어리여야 하는 부분이다
+        if keep_current:
+            # 쌓아만 둔다. 지금 것을 건드리지 않으므로 재바인딩도 하지 않는다.
+            return det, len(rows), None
+
         old = list(vp.detections.filter(is_current=True))
         Detection.objects.filter(pk__in=[d.pk for d in old]).update(
             is_current=False, superseded_by=det)
@@ -635,7 +713,22 @@ def main():
                     help="사람이 교정한 시야도 다시 검출한다 (아래 설명을 읽을 것)")
     ap.add_argument("--all-bodies", action="store_true",
                     help="떨어진 조각까지 마스크로 인정한다 (2026-07-31 이전 방식)")
-    ap.add_argument("--backend", default="sam2", choices=["sam2", "sam3"])
+    ap.add_argument("--backend", default="sam2",
+                    choices=["sam2", "sam3", "yolo"])
+    ap.add_argument("--weights",
+                    default="runs/segment/11m-v1seg-1280/weights/best.pt",
+                    help="--backend yolo 일 때 쓸 가중치. 옆의 PROVENANCE.md 에 "
+                         "무엇으로 학습했고 문턱을 얼마로 써야 하는지가 있다")
+    # 낮게 뽑아 DB 에 넣고, 고르는 것은 나중에 한다. 운영점이 슬라이드마다
+    # 다르다는 것을 devlog 025 §8 이 실측했다.
+    ap.add_argument("--yolo-conf", type=float, default=0.01,
+                    help="YOLO 신뢰도 하한 (기본 0.01 — 낮게 뽑아 둔다)")
+    ap.add_argument("--yolo-imgsz", type=int, default=1280,
+                    help="학습과 같아야 한다 (기본 1280)")
+    ap.add_argument("--yolo-nms-iou", type=float, default=0.7)
+    ap.add_argument("--keep-current", action="store_true",
+                    help="새 검출을 is_current 로 올리지 않는다. 뷰어와 교정을 "
+                         "건드리지 않고 다른 엔진을 나란히 재 볼 때 쓴다")
     ap.add_argument("--scale", type=float, default=0.5,
                     help="처리 전 리사이즈 배율 (VRAM 절약)")
     ap.add_argument("--um-per-pixel", type=float, default=None,
@@ -675,6 +768,14 @@ def main():
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    # **YOLO 는 학습과 같은 해상도로 봐야 한다.** --scale 기본값이 0.5 라
+    # 그대로 두면 이미지가 절반이 되고, imgsz=1280 이 거의 축소를 안 해
+    # 개체가 학습 때보다 2배 크게 보인다. 조용히 성적만 떨어진다 —
+    # 배율을 잘못 믿어 통과율이 1.6% 로 주저앉았던 일이 있다(devlog 015).
+    if args.backend == "yolo" and args.scale != 1.0:
+        raise SystemExit(
+            f"--backend yolo 는 --scale 1.0 이어야 한다 (지금 {args.scale}). "
+            f"가중치는 원본 해상도에 imgsz={args.yolo_imgsz} 로 학습했다")
     print(f"device={device} backend={args.backend}", file=sys.stderr)
 
     if args.slide:
@@ -736,7 +837,14 @@ def main():
     # (실측: 67건 중 exact 26 · iou 40 · 고아 1). 전수 검토를 마친 시야에서 그것이
     # 실수로 일어나면 안 된다. 특히 2026-07-31 부터 연결 성분 처리가 바뀌어
     # bbox 가 조여지므로, 옛 자료를 다시 돌리면 키가 대량으로 흔들린다.
-    if not args.no_db and not args.force:
+    # **--keep-current 면 이 관문이 필요 없다.** 관문이 있는 이유는 재검출이
+    # is_current 를 옮기고 교정을 다시 맺기 때문인데, keep-current 는 둘 다 안
+    # 한다 — 쌓아만 둔다. 여기서 걸러 버리면 검토를 마친 264 시야가 전부
+    # 빠져 나가 정작 견주고 싶은 자리가 하나도 안 남는다.
+    if args.keep_current:
+        print("--keep-current: 새 검출을 is_current 로 올리지 않는다. "
+              "뷰어와 교정은 그대로다", file=sys.stderr)
+    elif not args.no_db and not args.force:
         keep, n_rev_skip, n_done_skip = [], 0, 0
         for f in files:
             vp, _, _ = find_viewpoint(f.stem)
@@ -792,7 +900,8 @@ def main():
                 continue
             if args.no_db:
                 continue
-            det, nc, stat = save_detection(payload, f, run, args.rebind_iou)
+            det, nc, stat = save_detection(payload, f, run, args.rebind_iou,
+                                           keep_current=args.keep_current)
             if det is None:
                 # 조용히 넘기지 않는다 — 그룹핑과 DB 가 어긋났다는 뜻이다
                 missing.append(f.stem)
@@ -801,7 +910,9 @@ def main():
                 continue
             n_det += 1
             n_cand += nc
-            bind += stat
+            # --keep-current 면 재바인딩을 안 하므로 stat 이 None 이다
+            if stat:
+                bind += stat
             touched.add(det.viewpoint.slide_id)
             if stat and (stat["iou"] or stat["orphan"]):
                 # 고아는 손실이 아니지만(geom 이 남는다) 뷰어가 못 그린다.
@@ -830,13 +941,21 @@ def main():
             run.status = "failed"
             run.error = f"OOM {n_oom}건 — 검출된 것이 없다"
         run.save()
-        # 슬라이드 하나가 다 끝났으면 검토를 연다
+        # 슬라이드 하나가 다 끝났으면 검토를 연다.
+        #
+        # **--keep-current 면 손대지 않는다.** 나란히 재 보는 실험은 "자동 처리"
+        # 가 아니다. 여기서 상태를 옮기면 `failed`(그룹핑이 미심쩍은 것)나
+        # `processing` 인 슬라이드가 실험 한 번에 `done` 이 되어 검토가 열린다 —
+        # 반쯤 처리된 것을 사람이 보게 되는 바로 그 사고다(P01 §1).
         from viewer.models import Slide                             # noqa: PLC0415
-        for sl in Slide.objects.filter(pk__in=touched):
-            if mark_done_if_complete(sl):
-                print(f"  {sl.slug}: 자동 처리 완료 — 검토를 연다")
-            else:
-                print(f"  {sl.slug}: {sl.state} — {sl.state_note}")
+        if args.keep_current:
+            print("  --keep-current: 슬라이드 상태를 건드리지 않는다")
+        else:
+            for sl in Slide.objects.filter(pk__in=touched):
+                if mark_done_if_complete(sl):
+                    print(f"  {sl.slug}: 자동 처리 완료 — 검토를 연다")
+                else:
+                    print(f"  {sl.slug}: {sl.state} — {sl.state_note}")
 
         print(f"\n검출 {n_det}개 · 개체 {n_cand}개 · Run #{run.pk}")
         if bind:
