@@ -1,3 +1,11 @@
+{% comment %}
+  지도 옆 범례와 지역 → 코어 → 슬라이드 목록. 권역과 무관하게 같다.
+
+  **바깥의 mapwrap 은 여기서 닫지 않는다.** `_map.html` 이 연 것은
+  `_map.html` 이 닫는다 — 원래 한 파일이던 것을 가르면서 닫는 </div> 가
+  양쪽에 남아 .dsview 가 일찍 닫혔고, 카드 판이 그 바깥으로 밀려나
+  표 아래에 늘 함께 보였다.
+{% endcomment %}
   <div class="maplegend">
     <div class="mapnote">
       {% if antmap.kind == "kr" %}
@@ -50,4 +58,3 @@
     {% endfor %}
     </ul>
   </div>
-</div>
