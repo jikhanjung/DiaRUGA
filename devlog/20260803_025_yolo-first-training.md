@@ -169,7 +169,13 @@ judge = passed=True                                        ← 지금 파이프�
 상자가 아닌 윤곽 위에서 다시 세울 수 있다.
 
 추론은 시야당 36.7 ms(detect 27.3 ms). 둘 다 SAM2 의 23초 앞에서는 같은 값이다.
-가중치는 seg 180 MB, detect 41 MB — 배포 때 의식해야 하는 차이다.
+가중치는 seg 45 MB, detect 41 MB — **배포에 의미 있는 차이가 아니다.**
+
+> 처음에 이 자리에 "seg 180 MB" 라고 적었다. 틀렸다. **학습 도중의 체크포인트는
+> optimizer 상태를 안고 있어 180 MB 이고, ultralytics 가 학습 끝에 그것을 떼낸다**
+> (`strip_optimizer`). 학습이 도는 중에 파일 크기를 본 것을 그대로 적은 실수다.
+> 그 숫자로 "배포 때 의식해야 하는 4배 차이" 라는 판단까지 붙였는데, 실제로는
+> 10% 차이라 의식할 것이 없다.
 
 **seg 를 기본으로 삼는다.**
 
@@ -409,7 +415,8 @@ judge 통과 = 검토 화면       25.1 /시야     ← 사람이 실제로 보�
 
 산출물:
 
-- `runs/segment/11m-v1seg-1280/weights/best.pt` (180 MB) ← 기본
+- `runs/segment/11m-v1seg-1280/weights/best.pt` (45 MB) ← 기본.
+  `sha256 d9e20a26…` · paleoserver `~/projects/diatom/` 아래 같은 경로에 사본
 - `runs/detect/11m-v1-1280/weights/best.pt` (41 MB)
 - 평가: `*-valslide/` 아래. `runs/` 는 저장소에 넣지 않는다(430 MB, 재생성 가능)
 - `pr_sweep.py` — conf 훑기. 저장소에 둔다(§8 의 숫자를 다시 만드는 것이 이것뿐이라)
