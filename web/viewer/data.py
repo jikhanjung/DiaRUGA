@@ -19,7 +19,7 @@ from django.db.models import (Case, CharField, Count, Exists, F, OuterRef,
                               Q, Subquery, Value, When)
 
 from . import antarctica, korea
-from .models import (Candidate, ClassDef, Detection, Frame, ObjectReview,
+from .models import (Candidate, ClassDef, Detection, Frame, ObjectReview, Run,
                      Site, Slide, Stack, Viewpoint, ViewpointReview)
 
 # --- 분류 정의 -------------------------------------------------------------
@@ -1074,3 +1074,111 @@ def safe_image_path(rel: str) -> Path | None:
         if target.is_relative_to(base):
             return target
     return None
+
+
+# --- 다른 엔진 결과 보기 (시험용) ---------------------------------------------
+def engine_runs() -> list[dict]:
+    """`is_current` 가 아닌 검출을 남긴 실행들. 백엔드별로 묶어 낸다.
+
+    지금 화면(뷰어)은 `is_current=True` 인 것만 본다. 나란히 쌓아 둔 다른 엔진의
+    결과는 **어디에도 안 보인다** — 그것을 보려고 만든 목록이다.
+    """
+    out = []
+    for r in (Run.objects.filter(kind="detect").order_by("-started_at")
+              .prefetch_related("detections")):
+        dets = [d for d in r.detections.all() if not d.is_current]
+        if not dets:
+            continue
+        n_cand = Candidate.objects.filter(detection__in=dets).count()
+        slides = sorted({d.viewpoint.slide.slug for d in dets if d.viewpoint})
+        out.append({
+            "id": r.pk,
+            "backend": (r.params or {}).get("backend", "?"),
+            "started_at": r.started_at,
+            "status": r.status,
+            "params": r.params or {},
+            "n_detections": len(dets),
+            "n_candidates": n_cand,
+            "slides": slides,
+        })
+    return out
+
+
+def engine_detection(det: Detection) -> dict:
+    """`is_current` 가 아닌 검출 하나를 화면이 쓰는 dict 로.
+
+    **교정을 얹지 않는다.** 교정은 `mask_key`(bbox 문자열)로 붙는데 엔진이 다르면
+    거의 전부 어긋난다. 억지로 얹으면 "사람이 지운 것" 이 엉뚱한 개체에 붙어
+    보이게 된다. 이 화면의 목적은 **엔진이 무엇을 냈는가** 를 그대로 보는 것이다.
+
+    `_apply_review` 에 빈 교정을 넘겨 같은 dict 모양을 얻는다 — 모양을 여기서
+    다시 만들면 `_detection.html` 이 기대하는 칸이 하나라도 빠질 때 조용히
+    깨진다.
+    """
+    return _apply_review(det, {}, None)
+
+
+def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
+    """시험 화면 한 장. `group_detail` 과 같은 모양이되 검출만 갈아 끼운다.
+
+    YOLO 는 **프레임마다** 검출을 낸다(합성본이 아니라 원본을 본다). 그래서
+    프레임 하나하나에 각자의 검출이 붙는다 — `group_detail` 이 싱글턴에 쓰던
+    길과 같다.
+    """
+    slide = Slide.objects.filter(slug=slug).first()
+    if slide is None:
+        return None
+    vp = _viewpoints_of(slide).filter(idx=gid).first()
+    if vp is None:
+        return None
+
+    dets = [d for d in vp.detections.all()
+            if d.run_id == run_id and not d.is_current]
+    by_frame = {d.frame_id: d for d in dets if d.target == "frame"}
+    stack_det = next((d for d in dets if d.target == "stack"), None)
+
+    frames = []
+    for f in vp.frames.all():
+        d = by_frame.get(f.id)
+        frames.append({
+            "name": f.name,
+            "sharpness": f.sharpness,
+            "is_sharpest": f.is_sharpest,
+            "rel": f.path,
+            "exists": (Path(settings.DATA_ROOT) / f.path).exists(),
+            "detection": engine_detection(d) if d else None,
+        })
+
+    ids = list(Viewpoint.objects.filter(slide=slide)
+               .order_by("idx").values_list("idx", flat=True))
+    pos = ids.index(gid)
+    st = getattr(vp, "stack", None)
+    return {
+        "slug": slug, "label": slide.name, "id": gid, "tag": vp.tag,
+        "run_id": run_id,
+        "frames": frames,
+        "stack": (_stack_dict(st, engine_detection(stack_det))
+                  if st and stack_det else None),
+        "n_objects": sum(len(f["detection"]["candidates"])
+                         for f in frames if f["detection"]),
+        "prev_id": ids[pos - 1] if pos > 0 else None,
+        "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
+    }
+
+
+def engine_viewpoints(run_id: int) -> list[dict]:
+    """실행 하나가 건드린 시야 목록. 어디부터 볼지 고르는 화면에 쓴다."""
+    rows = {}
+    for d in (Detection.objects.filter(run_id=run_id, is_current=False)
+              .select_related("viewpoint__slide")
+              .annotate(n=Count("candidates"))):
+        vp = d.viewpoint
+        if vp is None:
+            continue
+        k = (vp.slide.slug, vp.idx)
+        r = rows.setdefault(k, {"slug": vp.slide.slug, "label": vp.slide.name,
+                                "idx": vp.idx, "tag": vp.tag,
+                                "n_detections": 0, "n_objects": 0})
+        r["n_detections"] += 1
+        r["n_objects"] += d.n
+    return [rows[k] for k in sorted(rows)]

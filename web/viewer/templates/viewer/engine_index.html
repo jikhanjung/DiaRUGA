@@ -1,0 +1,44 @@
+{% extends "viewer/base.html" %}
+{% comment %}
+  시험용 화면 — 나란히 쌓아 둔 다른 엔진의 검출을 본다.
+
+  뷰어는 `is_current=True` 인 것만 보므로, `--keep-current` 로 넣은 결과는
+  여기 말고는 볼 곳이 없다. **읽기 전용이다.**
+{% endcomment %}
+{% block content %}
+<div class="pagehead">
+  <h2>엔진 비교 <span class="dim" style="font-size:14px;font-weight:400">시험용</span></h2>
+</div>
+<p class="dim">현재 검출로 올리지 않고 쌓아 둔 실행입니다. 검토 화면과 교정에는
+  영향을 주지 않습니다.</p>
+
+{% if not runs %}
+  <div class="note">쌓아 둔 실행이 없습니다.
+    <code class="mono">segment_diatoms.py … --backend yolo --keep-current</code>
+    로 만듭니다.</div>
+{% else %}
+<div class="scroll">
+<table class="dslist">
+  <thead><tr>
+    <th>실행</th><th>엔진</th><th>시각</th><th>검출</th><th>개체</th>
+    <th>슬라이드</th><th>설정</th>
+  </tr></thead>
+  <tbody>
+  {% for r in runs %}
+    <tr>
+      <td class="dsname"><a href="{% url 'engine_run' r.id %}">#{{ r.id }}</a></td>
+      <td><b>{{ r.backend }}</b>
+        {% if r.status != "done" %}<span class="dsstate">{{ r.status }}</span>{% endif %}</td>
+      <td class="dim">{{ r.started_at|date:"m-d H:i" }}</td>
+      <td>{{ r.n_detections }}</td>
+      <td>{{ r.n_candidates }}</td>
+      <td class="dim">{{ r.slides|join:", " }}</td>
+      <td class="mono dim" style="font-size:12px">
+        {% for k, v in r.params.items %}{{ k }}={{ v }} {% endfor %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

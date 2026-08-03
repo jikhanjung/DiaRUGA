@@ -1,0 +1,57 @@
+{% extends "viewer/base.html" %}
+{% comment %}
+  시험용 — 다른 엔진의 검출을 프레임마다 본다.
+
+  `group.html` 과 같은 화면을 쓴다. 없앨 것은 화면이 아니라 **도구**다:
+  여기서 저장하면 교정이 현재 검출(SAM2)에 엉뚱하게 얹힌다. 교정은
+  mask_key(bbox 문자열)로 붙는데 엔진이 다르면 거의 전부 어긋나기 때문이다.
+{% endcomment %}
+{% block content %}
+<style>
+  /* 도구를 통째로 잠근다. 사진과 마스크는 그대로 본다 */
+  .tools, .donebar, .layers, .notebox { display: none; }
+  .enghead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .engwarn {
+    border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px;
+    margin: 8px 0 14px; font-size: 13px;
+  }
+  .engwarn b { color: var(--warn); }
+</style>
+
+<div class="pagehead enghead">
+  <h2><a href="{% url 'engine_run' run_id %}" class="thlink">← 실행 #{{ run_id }}</a>
+    {{ label }} <span class="dim" style="font-size:14px;font-weight:400">g{{ id }}</span></h2>
+  <span class="dim mono">{{ tag }}</span>
+  <span style="margin-left:auto">
+    {% if prev_id is not None %}<a href="{% url 'engine_view' run_id slug prev_id %}">← 이전</a>{% endif %}
+    {% if next_id is not None %}<a href="{% url 'engine_view' run_id slug next_id %}" style="margin-left:10px">다음 →</a>{% endif %}
+  </span>
+</div>
+
+<div class="engwarn">
+  <b>시험용 화면입니다 — 저장되지 않습니다.</b>
+  <span class="dim">{{ backend }} 검출을 그대로 보여 줍니다. 사람의 교정은 얹지
+  않았습니다(엔진이 다르면 개체가 서로 대응하지 않습니다). 검토 화면과 통계는
+  여전히 SAM2 결과를 씁니다.</span>
+  <div class="dim mono" style="font-size:12px;margin-top:4px">
+    {% for k, v in run_params.items %}{{ k }}={{ v }} {% endfor %}
+  </div>
+</div>
+
+{% comment %}
+  YOLO 는 합성본이 아니라 **원본 프레임**을 본다. 그래서 시야 하나에 검출이
+  여럿이고, 프레임마다 따로 그린다. 합성본에 돌린 실행이면 그쪽을 먼저 낸다.
+{% endcomment %}
+{% if stack and stack.detection %}
+  {% include "viewer/_detection.html" with det=stack.detection base=stack.focused_rel uid="stack" title="합성본" %}
+{% endif %}
+
+{% for f in frames %}{% if f.detection %}
+  {% include "viewer/_detection.html" with det=f.detection base=f.rel uid=forloop.counter title=f.name %}
+{% endif %}{% endfor %}
+
+{% if n_objects == 0 %}
+  <div class="note">이 시야에서는 개체가 나오지 않았습니다
+    (문턱을 통과한 것이 없습니다).</div>
+{% endif %}
+{% endblock %}

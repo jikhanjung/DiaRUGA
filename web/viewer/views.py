@@ -102,6 +102,39 @@ def _map_ctx(area: str, pts: list) -> dict:
     }
 
 
+# --- 시험용: 다른 엔진의 결과 보기 -------------------------------------------
+#
+# 뷰어는 `is_current=True` 인 검출만 본다. 나란히 쌓아 둔 다른 엔진의 결과는
+# 어디에도 안 보이므로 이 길로만 볼 수 있다.
+#
+# **읽기 전용이다.** 교정을 저장하지 않는다 — 교정은 mask_key 로 붙는데 엔진이
+# 다르면 거의 전부 어긋나고, 여기서 저장하면 현재 검출에 엉뚱하게 얹힌다.
+def engine_index(request):
+    return render(request, "viewer/engine_index.html",
+                  {"runs": data.engine_runs()})
+
+
+def engine_run(request, run_id):
+    run = Run.objects.filter(pk=run_id).first()
+    if run is None:
+        raise Http404(f"unknown run: {run_id}")
+    return render(request, "viewer/engine_run.html", {
+        "run": run,
+        "backend": (run.params or {}).get("backend", "?"),
+        "rows": data.engine_viewpoints(run_id),
+    })
+
+
+def engine_view(request, run_id, slug, gid):
+    ctx = data.engine_viewpoints and data.engine_viewpoint(slug, gid, run_id)
+    if ctx is None:
+        raise Http404(f"unknown: {slug}/{gid} in run {run_id}")
+    run = Run.objects.filter(pk=run_id).first()
+    ctx["backend"] = (run.params or {}).get("backend", "?") if run else "?"
+    ctx["run_params"] = (run.params or {}) if run else {}
+    return render(request, "viewer/engine_view.html", ctx)
+
+
 def dataset(request, slug):
     ctx = data.dataset_detail(slug)
     if ctx is None:
