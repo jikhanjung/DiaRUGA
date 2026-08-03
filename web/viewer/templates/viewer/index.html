@@ -33,6 +33,12 @@
          title="{{ t.label }} 시료 {{ t.n }}건">{{ t.label }}<span class="n">{{ t.n }}</span></a>
     {% endfor %}
   </div>
+  {% comment %}
+    권역 갈래는 자료가 없어도 남긴다 — 그것이 다른 권역으로 건너가는 길이다.
+    반면 보기 방식은 바꿀 화면이 있을 때만 낸다. 눌러도 아무 일이 없는 버튼은
+    "눌렀는데 안 되네" 로 읽힌다.
+  {% endcomment %}
+  {% if datasets %}
   <div class="viewtoggle" id="viewtoggle" role="group" aria-label="보기 방식">
     <button type="button" data-view="table" title="표로 보기 — 같은 항목이 세로로 맞아 비교하기 좋습니다"
             aria-label="표로 보기">
@@ -63,6 +69,7 @@
       </svg>
     </button>
   </div>
+  {% endif %}
 </div>
 <p class="dim">NAS 에 새 슬라이드가 올라오면 자동으로 가져와 검출까지 돌립니다.
   자동 처리가 끝나야 검토가 열립니다.</p>
