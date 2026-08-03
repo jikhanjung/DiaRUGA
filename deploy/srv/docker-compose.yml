@@ -3,8 +3,12 @@
 #   sudo cp deploy/srv/docker-compose.yml /srv/diatom/
 #   cd /srv/diatom && docker compose up -d web
 #
-# 이 파일은 **빌드하지 않는다.** 이미 구워진 이미지를 참조만 한다.
+# 이 파일은 **빌드하지 않는다.** 레지스트리에 올라간 이미지를 참조만 한다.
 # 이미지를 굽는 것은 저장소의 deploy/docker-compose.yml 이다 (phyloserver 와 같은 갈래).
+#
+# **판을 못 박는다** (`:latest` 가 아니라 `:v0.1.0`). latest 는 언제 무엇으로
+# 바뀌었는지 알 수 없어서, 되돌려야 할 때 무엇으로 되돌릴지 모른다.
+# 올릴 때는 이 줄의 판만 바꾸고 `docker compose up -d` 한다.
 #
 # 컨테이너 안팎의 경로를 같게 두었다. 파이프라인 스크립트가 파일 경로를 인자로
 # 받으므로, 같은 명령을 호스트와 컨테이너 사이에 그대로 옮겨 쓸 수 있다.
@@ -24,7 +28,7 @@ x-common: &common
 services:
   web:
     <<: *common
-    image: diatom-base:latest
+    image: honestjung/diatom:v0.1.0
     entrypoint: ["/app/deploy/entrypoint-web.sh"]
     ports:
       # 루프백에만 붙인다. 바깥으로 나가는 문은 nginx 하나뿐이다
@@ -34,7 +38,7 @@ services:
 
   pipeline:
     <<: *common
-    image: diatom-pipeline:latest
+    image: honestjung/diatom-pipeline:v0.1.0
     profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
     volumes:
       - /srv/diatom/db:/srv/diatom/db

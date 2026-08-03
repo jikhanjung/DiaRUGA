@@ -3,6 +3,13 @@
 #   docker compose -f deploy/docker-compose.yml build          # 둘 다
 #   docker compose -f deploy/docker-compose.yml build web      # 뷰어만 (빠르다)
 #
+# 판을 올릴 때는 태그를 주고 굽고 밀어 올린다:
+#   DIATOM_TAG=v0.1.1 docker compose -f deploy/docker-compose.yml build
+#   DIATOM_TAG=v0.1.1 docker compose -f deploy/docker-compose.yml push
+#
+# 이름을 레지스트리 형태로 두는 이유: 굽고 나서 따로 `docker tag` 하는 단계가
+# 있으면 그 단계를 잊는다. 굽는 순간 이미 올릴 수 있는 이름이어야 한다.
+#
 # **운영은 이 파일로 하지 않는다.** 배포는 /srv/diatom/docker-compose.yml 이다
 # (phyloserver 와 같은 갈래 — 저장소는 굽고, /srv/<앱>/ 은 돌린다):
 #
@@ -36,7 +43,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.base
-    image: diatom-base:latest
+    image: honestjung/diatom:${DIATOM_TAG:-latest}
     entrypoint: ["/app/deploy/entrypoint-web.sh"]
     ports:
       - "127.0.0.1:8090:9090"
@@ -46,7 +53,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.pipeline
-    image: diatom-pipeline:latest
+    image: honestjung/diatom-pipeline:${DIATOM_TAG:-latest}
     profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
     volumes:
       - /srv/diatom/db:/srv/diatom/db
