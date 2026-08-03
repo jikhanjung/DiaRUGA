@@ -28,7 +28,13 @@ numpy==2.4.4
 opencv-python-headless==5.0.0.93
 tqdm==4.70.0
 
-# YOLO 검출 백엔드 (--backend yolo). torch·opencv 는 위에 이미 있다.
-# **GUI 판 opencv-python 을 함께 끌고 온다** — 이미지의 headless 판을 가려
-# libxcb.so.1 로 죽으므로 Dockerfile 에서 걷어낸다.
-ultralytics==8.4.7
+# YOLO 검출 백엔드(--backend yolo)는 **아직 이미지에 안 넣는다.**
+#
+# `ultralytics==8.4.7` 을 넣었더니 여기 고정된 판들과 맞물리지 않아 pip 가
+# ResolutionImpossible 로 죽는다. 그 빌드 실패가 급한 고침(프레임 이름 충돌,
+# devlog 031)의 배포까지 막아서 일단 뺐다.
+#
+# 넣을 때 함께 봐야 할 것:
+#   - GUI 판 opencv-python 을 의존성으로 끌고 온다. 이 슬림 이미지에는 libxcb 가
+#     없어 headless 판을 가리는 순간 ImportError 로 죽는다 (Dockerfile 이 걷어낸다)
+#   - 어느 고정 판과 부딪히는지 `pip install --dry-run` 으로 먼저 확인할 것
