@@ -38,21 +38,36 @@ ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
 
 # 의존성을 코드보다 먼저. requirements-pipeline.txt 가 -web 을 안에서 부른다.
 #
-# 설치 뒤 `import cv2` 로 확인한다 — 빌드가 조용히 성공하고 실행에서 죽는 것이
-# 가장 나쁘다. (ultralytics 를 넣을 때는 GUI 판 opencv-python 이 headless 판을
-# 가리므로 `pip uninstall -y opencv-python` 을 함께 넣어야 한다. 지금은
-# ultralytics 를 안 넣는다 — requirements-pipeline.txt 참고)
+# **YOLO 쪽은 `--no-deps` 로 따로 넣는다.** 함께 넣으면 pip 가 torch 를 내리려
+# 하고(ultralytics 의 `torch<2.10` 상한) 고정과 부딪혀 죽는다. 그 상한은
+# 보수적인 것이라 torch 2.13 에서 실측으로 확인했다 — requirements-yolo.txt 참고.
+#
+# 설치 뒤 `import` 로 확인한다. 빌드가 조용히 성공하고 실행에서 죽는 것이
+# 가장 나쁘다 — 실제로 GUI 판 opencv 가 headless 판을 가려 libxcb 로 죽은 적이 있다.
+#
+# **확인 뒤 /tmp 를 치운다.** 그 import 는 root 로 돌아서 `/tmp/Ultralytics` 를
+# root 소유로 만들어 놓는데, 컨테이너는 1000:1000 으로 돌므로 실행마다
+# `Permission denied` 를 뱉는다. 죽지는 않지만 로그가 더러워져 진짜 문제를 가린다.
 COPY requirements-web.txt requirements-pipeline.txt ./
+COPY requirements-yolo.txt ./
 RUN pip install -r requirements-pipeline.txt \
       --extra-index-url https://download.pytorch.org/whl/cu126 \
- && python -c "import cv2; print('cv2', cv2.__version__)" \
+ && pip install --no-deps -r requirements-yolo.txt \
+ && python -c "import cv2, torch, ultralytics; \
+      print('cv2', cv2.__version__, '· torch', torch.__version__, \
+            '· ultralytics', ultralytics.__version__)" \
+ && rm -rf /tmp/Ultralytics /tmp/.ultralytics /tmp/.cache \
  && apt-get purge -y git && apt-get autoremove -y
 
 # SAM2 가중치는 HuggingFace 에서 받는다 (segment_diatoms.py:57 build_sam2_hf).
 # 실행마다 다시 받지 않도록 볼륨으로 물린다 — compose 참고.
 ENV HF_HOME=/hf \
     HOME=/tmp \
-    XDG_CACHE_HOME=/tmp/.cache
+    XDG_CACHE_HOME=/tmp/.cache \
+    # ultralytics 는 설정·캐시를 여기 쓴다. 안 잡으면 /app 아래를 시도했다가
+    # uid 1000 이 못 써서 실행마다 오류를 뱉는다 (죽지는 않지만 로그가 더러워지고,
+    # 진짜 문제를 가린다).
+    YOLO_CONFIG_DIR=/tmp/.ultralytics
 
 # 코드는 마지막. 여기만 바뀌면 위 층들은 캐시가 그대로 산다.
 COPY . .
