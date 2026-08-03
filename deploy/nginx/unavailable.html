@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="10">
+<title>연결할 수 없습니다 — 규조류 뷰어</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100vh; display: flex;
+    align-items: center; justify-content: center;
+    font: 15px/1.7 ui-sans-serif, system-ui, "Noto Sans KR", sans-serif;
+    background: #0f1115; color: #e6e9ef;
+  }
+  @media (prefers-color-scheme: light) {
+    body { background: #f6f7f9; color: #1a1d23; }
+    .box { background: #fff; border-color: #e0e3e9; }
+    .dim { color: #6b7280; }
+    code { background: #f0f1f4; }
+  }
+  .box {
+    max-width: 440px; margin: 20px; padding: 26px 28px;
+    background: #171a21; border: 1px solid #262b36; border-radius: 12px;
+  }
+  h1 { margin: 0 0 10px; font-size: 17px; }
+  p { margin: 0 0 8px; }
+  .dim { color: #8b93a3; font-size: 13px; }
+  code {
+    font-family: ui-monospace, Menlo, monospace; font-size: 12.5px;
+    background: #0e0e11; padding: 1px 5px; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>뷰어에 연결할 수 없습니다</h1>
+    <p>서버는 살아 있는데 뷰어가 응답하지 않습니다.</p>
+    <p class="dim">배포 중이라면 잠시 뒤 돌아옵니다 — 이 페이지가 10초마다 다시
+       시도합니다. 몇 분이 지나도 그대로면 뷰어가 멈춘 것입니다.</p>
+    <p class="dim">확인: <code>cd /srv/diatom &amp;&amp; docker compose ps</code></p>
+  </div>
+</body>
+</html>

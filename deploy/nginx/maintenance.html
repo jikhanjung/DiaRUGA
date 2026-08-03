@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 컨테이너를 갈아 끼우는 데 보통 5초, 길어도 30초다. 5초마다 다시 시도한다.
+     사람이 새로고침을 누르게 두면 언제 끝났는지 몰라 계속 누르게 된다. -->
+<meta http-equiv="refresh" content="5">
+<title>점검 중 — 규조류 뷰어</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100vh; display: flex;
+    align-items: center; justify-content: center;
+    font: 15px/1.7 ui-sans-serif, system-ui, "Noto Sans KR", sans-serif;
+    background: #0f1115; color: #e6e9ef;
+  }
+  @media (prefers-color-scheme: light) {
+    body { background: #f6f7f9; color: #1a1d23; }
+    .box { background: #fff; border-color: #e0e3e9; }
+    .dim { color: #6b7280; }
+  }
+  .box {
+    max-width: 420px; margin: 20px; padding: 26px 28px;
+    background: #171a21; border: 1px solid #262b36; border-radius: 12px;
+  }
+  h1 { margin: 0 0 10px; font-size: 17px; }
+  p { margin: 0 0 8px; }
+  .dim { color: #8b93a3; font-size: 13px; }
+  .dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: #ffb454; margin-right: 7px; vertical-align: middle;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1><span class="dot"></span>시스템 점검 중입니다</h1>
+    <p>뷰어를 새 판으로 바꾸고 있습니다. 보통 10초 안에 끝납니다.</p>
+    <p class="dim">이 페이지는 5초마다 스스로 다시 시도합니다 —
+       그대로 두시면 끝나는 대로 화면이 돌아옵니다.</p>
+    <p class="dim">검토하시던 내용은 저장된 것까지 그대로 남아 있습니다.</p>
+  </div>
+</body>
+</html>
