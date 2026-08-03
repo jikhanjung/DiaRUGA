@@ -13,7 +13,7 @@
   슬라이드에도 반영된다. 그래서 몇 개가 함께 바뀌는지 미리 보여 준다.
 {% endcomment %}
 
-{% if saved %}<div class="okbar">저장했습니다.</div>{% endif %}
+{% if saved %}<div class="okbar">저장했습니다.{% if made %} {{ made }}{% endif %}</div>{% endif %}
 {% if errors %}<div class="errbar">{% for e in errors %}{{ e }}<br>{% endfor %}</div>{% endif %}
 
 <form method="post" class="propform">
@@ -49,7 +49,12 @@
 
   <section>
     <h3>코어 <span class="dim">{{ core_code }}</span></h3>
-    <p class="dim">같은 코어를 쓰는 슬라이드 <b>{{ n_slides_core }}</b>개에 함께 반영됩니다.</p>
+    {% if no_core %}
+      <p class="dim">이 슬라이드에는 <b>코어가 붙어 있지 않습니다.</b> 아래에 코어
+        코드를 넣으면 위 지역 아래에 새로 만들어 붙입니다.</p>
+    {% else %}
+      <p class="dim">같은 코어를 쓰는 슬라이드 <b>{{ n_slides_core }}</b>개에 함께 반영됩니다.</p>
+    {% endif %}
     <label>코어 코드
       <input type="text" name="core_code" value="{{ core.code }}" maxlength="32">
       <span class="hint">폴더 이름의 가운데 토막입니다. 예: GC03</span></label>
@@ -79,7 +84,14 @@
 
   <section>
     <h3>지역 <span class="dim">{{ site_code }}</span></h3>
-    <p class="dim">같은 지역을 쓰는 슬라이드 <b>{{ n_slides_site }}</b>개에 함께 반영됩니다.</p>
+    {% if no_site %}
+      <p class="dim">이 슬라이드에는 <b>지역이 붙어 있지 않습니다</b> — 폴더 이름이
+        <code class="mono">&lt;지역&gt;-&lt;코어&gt; &lt;깊이&gt;cm</code> 꼴이 아니면
+        파이프라인이 못 붙입니다. 아래에 지역 코드를 넣으면 새로 만들어 붙입니다.
+        <b>이미 있는 코드를 넣으면 그 지역에 붙습니다.</b></p>
+    {% else %}
+      <p class="dim">같은 지역을 쓰는 슬라이드 <b>{{ n_slides_site }}</b>개에 함께 반영됩니다.</p>
+    {% endif %}
     <label>지역 코드
       <input type="text" name="site_code" value="{{ site.code }}" maxlength="32">
       <span class="hint">폴더 이름의 앞 토막입니다. 예: RS23</span></label>

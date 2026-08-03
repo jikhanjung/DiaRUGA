@@ -14,7 +14,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import antarctica, data, korea, thresholds as th
-from .models import Detection, Run, Site, Slide, ThresholdSet
+from .models import (Core, Detection, Run, Site, Slide,  # noqa: E501
+                     ThresholdSet)
 
 import sys
 from pathlib import Path
@@ -188,6 +189,26 @@ def dataset_edit(request, slug):
     errors, saved = [], False
     if request.method == "POST":
         p = request.POST
+        # **없으면 만든다.** 폴더 이름이 `<지역>-<코어> <깊이>cm` 꼴이 아니면
+        # 파이프라인이 코어를 못 붙인다(실제로 `BP09-0901` 이 그랬다). 그런
+        # 슬라이드는 어느 권역 탭에도 안 나오는데, 여기서 지역을 만들 수 없으면
+        # 영영 붙일 길이 없다 — 안내문이 "속성 편집에서 지정하면" 이라고 적어
+        # 놓고 실제로는 안 되는 상태였다.
+        #
+        # **같은 코드가 이미 있으면 그것에 붙인다.** 새로 만들면 unique 로 죽고,
+        # 무엇보다 같은 지역이 둘로 갈라진다.
+        site_code = (p.get("site_code") or "").strip()
+        core_code = (p.get("core_code") or "").strip()
+        made_site = made_core = False
+        if site is None and site_code:
+            site = Site.objects.filter(code=site_code).first()
+            if site is None:
+                site, made_site = Site(code=site_code), True
+        if core is None and core_code and site is not None:
+            core = (Core.objects.filter(site=site, code=core_code).first()
+                    if site.pk else None)
+            if core is None:
+                core, made_core = Core(site=site, code=core_code), True
         try:
             slide.name = (p.get("slide_name") or slide.name).strip()
             slide.depth_cm = _num(p.get("depth_cm"))
@@ -225,11 +246,24 @@ def dataset_edit(request, slug):
                     if site:
                         site.save()
                     if core:
+                        # 새로 만든 지역이면 이제야 pk 가 생긴다
+                        core.site = site
                         core.save()
+                    # 코어가 없던 슬라이드를 이제 매단다
+                    if core and slide.core_id != core.pk:
+                        slide.core = core
                     slide.save()
                 saved = True
+                if made_site or made_core:
+                    made = " · ".join(
+                        x for x in (f"지역 {site.code}" if made_site else "",
+                                    f"코어 {core.code}" if made_core else "") if x)
+                    messages_made = f"{made} 을(를) 새로 만들어 붙였습니다."
+                else:
+                    messages_made = ""
             except IntegrityError as e:
                 errors.append(f"같은 코드가 이미 있습니다: {e}")
+                messages_made = ""
 
     scales = data.scales_by_slide()
     return render(request, "viewer/dataset_edit.html", {
@@ -249,6 +283,11 @@ def dataset_edit(request, slug):
         "um_per_pixel": scales.get(slug),
         "errors": errors,
         "saved": saved,
+        "made": locals().get("messages_made", ""),
+        # 지역·코어가 아직 없으면 화면이 그렇게 말해야 한다 — 빈 칸만 보이면
+        # "고치는 곳" 으로 읽히지 "만드는 곳" 으로는 안 읽힌다.
+        "no_site": site is None,
+        "no_core": core is None,
     })
 
 
