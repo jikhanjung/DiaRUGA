@@ -1,0 +1,59 @@
+{% comment %}
+  남한 지도 — EPSG:5179 (Korea 2000 / Unified CS, "UTM-K").
+  중앙자오선 127.5°E, 원점 38°N. 국내 공간정보의 표준 좌표계다.
+
+  해안선은 `korea.py` 에 미리 투영해 구워 뒀다(`tools/build_map_kr.py`).
+  좌표 단위는 **m** 이다 — 남극 지도(km)와 다르다. viewBox 가 그렇게 구워졌다.
+
+  마커 크기를 `scale()` 로 키우는 이유: 단위가 m 이라 남극 지도의 반지름 70을
+  그대로 쓰면 70 m, 즉 화면에서 0.1 px 이 된다. 남극 지도와 **같은 눈에 보이는
+  크기**가 되도록 viewBox 폭의 비로 키운다.
+{% endcomment %}
+<svg class="antmap krmap" viewBox="{{ antmap.viewbox }}" role="img"
+     aria-label="남한 지도 위의 시료 위치">
+  <rect class="ocean" x="{{ antmap.vb.0 }}" y="{{ antmap.vb.1 }}"
+        width="{{ antmap.vb.2 }}" height="{{ antmap.vb.3 }}"/>
+
+  {# 육지. 획 굵기가 독도를 점으로 만든다 — 줄이면 독도가 사라진다 #}
+  <path class="land" d="{{ antmap.land }}"/>
+
+  {# 눈금 글자. 격자선을 그으면 지도가 작아 해안선을 덮는다 #}
+  <g class="ktick">
+    {% for label, x, y in antmap.lat_ticks %}
+      <text x="{{ x }}" y="{{ y }}" text-anchor="start">{{ label }}</text>
+    {% endfor %}
+    {% for label, x, y in antmap.lon_ticks %}
+      <text x="{{ x }}" y="{{ y }}" text-anchor="middle">{{ label }}</text>
+    {% endfor %}
+  </g>
+
+  {# 바다 이름. 마커보다 아래에 깔아 겹쳐도 마커가 읽히게 한다 #}
+  <g class="sealabel">
+    {% for name, x, y in antmap.sea_labels %}<text x="{{ x }}" y="{{ y }}">{{ name }}</text>{% endfor %}
+  </g>
+
+  {# 축척 막대. 왼쪽 아래 #}
+  <g class="kscale" transform="translate({{ antmap.scale_x }},{{ antmap.scale_y }})">
+    <line x1="0" y1="0" x2="{{ antmap.scale_bar }}" y2="0"/>
+    <line x1="0" y1="-6000" x2="0" y2="6000"/>
+    <line x1="{{ antmap.scale_bar }}" y1="-6000" x2="{{ antmap.scale_bar }}" y2="6000"/>
+    <text x="{{ antmap.scale_mid }}" y="-12000" text-anchor="middle">{{ antmap.scale_label }}</text>
+  </g>
+
+  {# 시료 위치 #}
+  <g class="sites">
+    {% for p in antmap.points %}
+    <a href="{% url 'dataset' p.slugs.0 %}">
+      <g class="site{% if not p.exact %} approx{% endif %}"
+         transform="translate({{ p.x }},{{ p.y }}) scale({{ antmap.mark }})">
+        {% if not p.exact %}<circle class="halo" r="260"/>{% endif %}
+        <circle class="dot" r="70"/>
+        <text class="tag" y="-150">{{ p.code }}</text>
+        <text class="sub" y="-150" dy="115">시야 {{ p.n_viewpoints }}</text>
+        <title>{{ p.label }} · {{ p.core_codes|join:", " }} · 슬라이드 {{ p.n_slides }}장 · 시야 {{ p.n_viewpoints }}개
+{% if p.exact %}실측 좌표{% else %}대략 위치 ({{ p.approx_note }}) — 정확한 좌표가 아직 없습니다{% endif %}</title>
+      </g>
+    </a>
+    {% endfor %}
+  </g>
+</svg>

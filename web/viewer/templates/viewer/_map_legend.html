@@ -1,0 +1,53 @@
+  <div class="maplegend">
+    <div class="mapnote">
+      {% if antmap.kind == "kr" %}
+        <b>EPSG:5179</b> · 횡메르카토르(UTM-K) · 국가 경계 Natural Earth 1:10m
+      {% else %}
+        <b>EPSG:3031</b> · 남극점 중심 극구면투영 · 해안선 Natural Earth 1:50m
+      {% endif %}
+    </div>
+    {% if antmap.any_approx %}
+{% comment %}
+      한 줄이면 된다. 나머지는 마커에 마우스를 올리면 나오고, 옅은 원과 주황
+      마커가 이미 "이건 실측이 아니다" 를 말한다.
+    {% endcomment %}
+    <div class="mapwarn"><b>표시된 위치는 대략값입니다.</b></div>
+    {% endif %}
+{% comment %}
+      지역 → 코어 → 슬라이드. 깊이순이다 — 같은 코어에서 깊이에 따른 변화를
+      보는 것이 이 시료의 목적이라 그 순서로 읽혀야 한다.
+    {% endcomment %}
+    <ul class="maptree">
+    {% for p in antmap.points %}
+      <li class="msite">
+        <div class="mhead">
+          <span class="mdot{% if not p.exact %} approx{% endif %}"></span>
+          <b>{{ p.code }}</b>
+          <span class="dim">{{ p.label }}{% if not p.exact %} · {{ p.approx_note }}{% endif %}</span>
+        </div>
+        <ul>
+        {% for c in p.cores %}
+          <li class="mcore">
+            <div class="mhead"><span class="mono">{{ c.code }}</span>
+              <span class="dim">슬라이드 {{ c.n_slides }}장</span></div>
+            <ul>
+            {% for sl in c.slides %}
+              <li class="mslide">
+                <a href="{% url 'dataset' sl.slug %}">
+                  {% if sl.depth_cm %}{{ sl.depth_cm|floatformat:"-1" }} cm{% else %}<span class="dim">깊이 미상</span>{% endif %}
+                </a>
+                <span class="dim vp">시야 {{ sl.n_viewpoints }}</span>
+                {% if sl.state != "done" %}<span class="dsstate rev">{{ sl.state }}</span>
+                {% elif sl.reviewed == sl.n_viewpoints %}<span class="mdone rev" title="검토를 마쳤습니다">완료</span>
+                {% else %}<span class="dim rev" title="검토를 마친 시야">{{ sl.reviewed }}/{{ sl.n_viewpoints }}</span>{% endif %}
+              </li>
+            {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
+        </ul>
+      </li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>

@@ -36,8 +36,9 @@ web/.thumbcache/
 # devlog 는 .md 로만 둔다. docx 변환은 docs/ 의 보고서에만 한다.
 devlog/*.docx
 
-# 지도 자료 원본 — tools/README.md 의 명령으로 언제든 받는다 (1.6 MB)
-tools/ne_50m_land.geojson
+# 지도 자료 원본 — tools/README.md 의 명령으로 언제든 받는다
+# (남극 1.6 MB · 한국 13 MB)
+tools/*.geojson
 
 # YOLO 학습 자료 꾸러미 — /data3/diatom/datasets 에 있고 export_yolo.py 로
 # 언제든 다시 만든다 (판마다 344 MB)

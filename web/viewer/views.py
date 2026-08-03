@@ -13,8 +13,8 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import antarctica, data, thresholds as th
-from .models import Detection, Run, Slide, ThresholdSet
+from . import antarctica, data, korea, thresholds as th
+from .models import Detection, Run, Site, Slide, ThresholdSet
 
 import sys
 from pathlib import Path
@@ -44,25 +44,62 @@ THRESHOLD_FIELDS = [
 
 
 def index(request):
-    rows = data.datasets()
-    pts = data.map_points()
+    # 권역(한국·남극)은 `?area=` 로 고른다. 고르는 일을 data.area_tabs() 에 맡겨
+    # 없는 값이 들어와도 빈 화면이 되지 않게 한다.
+    area = data.area_tabs(request.GET.get("area"))
+    rows = data.datasets(area["selected"])
+    pts = data.map_points(area["selected"])
     return render(request, "viewer/index.html", {
         "datasets": rows,
+        "area": area,
         "totals": data.datasets_total(rows),
-        # 지도는 세 번째 보기 방식이다. 해안선이 10 KB 뿐이라 늘 함께 보낸다 —
+        # 지도는 세 번째 보기 방식이다. 해안선이 10~27 KB 뿐이라 늘 함께 보낸다 —
         # 따로 요청하게 만들면 전환이 즉시 되지 않는다.
-        "antmap": {
-            "land": antarctica.LAND,
-            "boundary": antarctica.BOUNDARY_KM,
-            "lat_circles": antarctica.LAT_CIRCLES,
-            "boundary_label": antarctica.BOUNDARY_LABEL,
-            "lon_labels": antarctica.LON_LABELS,
-            "lon_spokes": antarctica.LON_SPOKES,
-            "sea_labels": antarctica.SEA_LABELS,
-            "points": pts,
-            "any_approx": any(not q["exact"] for q in pts),
-        },
+        "antmap": _map_ctx(area["selected"], pts),
     })
+
+
+def _map_ctx(area: str, pts: list) -> dict:
+    """권역에 맞는 지도 상수. 이름이 `antmap` 인 것은 남극만 있던 때의 흔적이다.
+
+    **투영이 다르면 좌표 단위도 다르다** — 남극은 km, 한국은 m 다. 마커 그림은
+    남극 기준(반지름 70)으로 그려져 있어서, 한국 지도에서는 같은 눈에 보이는
+    크기가 되도록 `mark` 배율로 키운다. 이 값을 잘못 주면 마커가 안 보이거나
+    지도를 덮는다.
+    """
+    common = {"points": pts, "any_approx": any(not q["exact"] for q in pts)}
+    if area == "kr":
+        x, y, w, h = korea.VIEWBOX
+        return {
+            **common, "kind": "kr",
+            "land": korea.LAND,
+            "viewbox": f"{x} {y} {w} {h}",
+            "vb": korea.VIEWBOX,
+            "sea_labels": korea.SEA_LABELS,
+            # 눈금은 한 축만 자료로 갖고 있다. 나머지는 여기서 viewBox 안쪽으로
+            # 붙인다 — 위경도로 자리를 잡으면 지도 밖으로 잘려 나간다.
+            "lat_ticks": [(lab, x + round(w * 0.035), ty)
+                          for lab, ty in korea.LAT_TICKS],
+            "lon_ticks": [(lab, tx, y + h - round(h * 0.025))
+                          for lab, tx in korea.LON_TICKS],
+            # 남극 지도의 viewBox 폭이 7600(km)이다. 그 비로 마커를 키운다.
+            "mark": round(w / 7600, 1),
+            "scale_bar": korea.SCALE_BAR_M,
+            "scale_mid": korea.SCALE_BAR_M // 2,
+            "scale_label": korea.SCALE_BAR_LABEL,
+            "scale_x": x + round(w * 0.06),
+            "scale_y": y + h - round(h * 0.06),
+        }
+    return {
+        **common, "kind": "ant",
+        "land": antarctica.LAND,
+        "boundary": antarctica.BOUNDARY_KM,
+        "lat_circles": antarctica.LAT_CIRCLES,
+        "boundary_label": antarctica.BOUNDARY_LABEL,
+        "lon_labels": antarctica.LON_LABELS,
+        "lon_spokes": antarctica.LON_SPOKES,
+        "sea_labels": antarctica.SEA_LABELS,
+    }
 
 
 def dataset(request, slug):
@@ -126,6 +163,11 @@ def dataset_edit(request, slug):
                 site.code = (p.get("site_code") or site.code).strip()
                 site.name = (p.get("site_name") or "").strip()
                 site.region = (p.get("site_region") or "").strip()
+                # 목록·지도를 가르는 값이라 아무 문자열이나 들어오면 안 된다.
+                # 모르는 값이 오면 조용히 바꾸지 않고 그대로 둔다.
+                a = (p.get("site_area") or "").strip()
+                if a in dict(Site.AREA):
+                    site.area = a
                 site.lat = _num(p.get("site_lat"))
                 site.lon = _num(p.get("site_lon"))
                 site.note = (p.get("site_note") or "").strip()
@@ -160,6 +202,7 @@ def dataset_edit(request, slug):
                           if site else 0),
         "n_viewpoints": slide.viewpoints.count(),
         "n_frames": slide.frames.count(),
+        "site_areas": Site.AREA,
         "um_per_pixel": scales.get(slug),
         "errors": errors,
         "saved": saved,

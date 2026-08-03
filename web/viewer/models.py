@@ -46,10 +46,18 @@ class Site(models.Model):
     """채취 지역. 폴더명의 앞 토막(RS23, WAP13)이다.
 
     지역 코드의 정식 명칭은 사람이 채운다 — 코드만으로는 단정할 수 없다.
+
+    **`area` 와 `region` 은 다른 칸이다.** `region` 은 이미 "로스해"·"Bigo Bay"
+    같은 세부 지명으로 채워져 있어서, 목록을 가르는 상위 칸을 거기에 겸할 수 없다.
+    `area` 가 그 위 단계다 — 지금은 남극과 한국 둘뿐이다.
     """
+
+    AREA = [("kr", "한국"), ("ant", "남극")]
 
     code = models.CharField(max_length=32, unique=True)     # RS23
     name = models.CharField(max_length=200, blank=True)     # 사람이 채운다
+    # 목록을 가르는 상위 구분. 기본이 남극인 것은 지금 자료가 전부 남극이라서다
+    area = models.CharField(max_length=8, choices=AREA, default="ant")
     region = models.CharField(max_length=200, blank=True)   # 로스해 / 웨델해 …
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)

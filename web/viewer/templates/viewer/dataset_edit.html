@@ -83,6 +83,14 @@
     <label>지역 코드
       <input type="text" name="site_code" value="{{ site.code }}" maxlength="32">
       <span class="hint">폴더 이름의 앞 토막입니다. 예: RS23</span></label>
+    <label>권역
+      <select name="site_area">
+        {% for key, label in site_areas %}
+          <option value="{{ key }}" {% if site.area == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <span class="hint">데이터셋 목록을 가르는 상위 구분입니다. 지도도 이것에
+        따라 남극 지도와 남한 지도로 갈립니다.</span></label>
     <label>이름
       <input type="text" name="site_name" value="{{ site.name }}" maxlength="200"
              placeholder="Ross Sea 2023">

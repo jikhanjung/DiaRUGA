@@ -22,6 +22,17 @@
 {% endcomment %}
 <div class="pagehead">
   <h2>데이터셋 <a href="{% url 'thresholds_all' %}" class="thlink">문턱 조정 →</a></h2>
+  {% comment %}
+    권역 갈래는 서버가 거른다 — 표의 합계 줄과 지도 마커까지 함께 맞아야 하는데,
+    화면에서 줄만 감추면 합계가 안 맞는다. 링크라 즐겨찾기도 된다.
+  {% endcomment %}
+  <div class="areatabs" role="group" aria-label="권역">
+    {% for t in area.tabs %}
+      <a href="?area={{ t.key }}" class="{% if t.on %}on{% endif %}"
+         {% if t.on %}aria-current="true"{% endif %}
+         title="{{ t.label }} 시료 {{ t.n }}건">{{ t.label }}<span class="n">{{ t.n }}</span></a>
+    {% endfor %}
+  </div>
   <div class="viewtoggle" id="viewtoggle" role="group" aria-label="보기 방식">
     <button type="button" data-view="table" title="표로 보기 — 같은 항목이 세로로 맞아 비교하기 좋습니다"
             aria-label="표로 보기">
@@ -56,10 +67,19 @@
 <p class="dim">NAS 에 새 슬라이드가 올라오면 자동으로 가져와 검출까지 돌립니다.
   자동 처리가 끝나야 검토가 열립니다.</p>
 
+{% if area.orphans %}
+  <div class="note">권역이 정해지지 않은 슬라이드가 {{ area.orphans }}개 있습니다 —
+    지역(Site)이 붙어 있지 않아 어느 탭에도 나오지 않습니다.
+    속성 편집에서 지역을 지정하면 목록에 들어옵니다.</div>
+{% endif %}
+
 {% if not datasets %}
-  <div class="note">아직 슬라이드가 없습니다.
+  <div class="note">
+    {% for t in area.tabs %}{% if t.on %}{{ t.label }}{% endif %}{% endfor %}
+    시료는 아직 없습니다.
     NAS 의 <code class="mono">DiatomPhotos/&lt;촬영일&gt;/&lt;슬라이드&gt;/</code> 에
-    사진을 올리면 자동으로 들어옵니다.</div>
+    사진을 올리면 자동으로 들어옵니다. 슬라이드의 지역(Site) 권역이 속성 편집에서
+    정해집니다.</div>
 {% else %}
 
 <div class="dsview" id="dsview">

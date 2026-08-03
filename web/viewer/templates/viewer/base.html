@@ -290,8 +290,26 @@
   }
   .pagehead h2 { margin: 0; }
   .pagehead .thlink { font-size: 13px; font-weight: 400; margin-left: 10px; }
+  /* 권역 갈래. 가운데에 둔다 — 좌우 auto 여백이 h2 와 보기방식 사이에 밀어 넣는다.
+     보기방식(우상단)과 같은 껍데기를 써서 같은 종류의 도구로 읽히게 한다. */
+  .areatabs {
+    margin: 0 auto; display: flex; gap: 2px; padding: 2px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .areatabs a {
+    display: flex; align-items: center; gap: 6px; padding: 3px 14px;
+    border-radius: 6px; color: var(--dim); text-decoration: none;
+    font-size: 13px; font-weight: 600; white-space: nowrap;
+  }
+  .areatabs a:hover { color: var(--fg); background: var(--bg); }
+  .areatabs a.on { background: var(--accent); color: #fff; }
+  /* 건수를 함께 보인다 — 빈 탭인지 눌러 보기 전에 알 수 있어야 한다 */
+  .areatabs .n {
+    font-size: 11px; font-weight: 500; opacity: .75;
+    font-variant-numeric: tabular-nums;
+  }
   .viewtoggle {
-    margin-left: auto; display: flex; gap: 2px; padding: 2px;
+    margin-left: 0; display: flex; gap: 2px; padding: 2px;
     background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
   }
   .viewtoggle button {
@@ -345,6 +363,19 @@
   }
   .antmap a:hover .dot { stroke: var(--accent); }
   .antmap a { text-decoration: none; }
+
+  /* --- 남한 지도 (EPSG:5179) --- */
+  /* `.antmap` 을 함께 걸어 마커·판형을 그대로 쓴다. 여기서는 **단위가 달라서
+     달라지는 것만** 덮는다 — 남극은 km, 한국은 m 라 글자와 획을 약 90배로
+     키워야 같은 크기로 보인다. 마커는 SVG 쪽에서 scale() 로 처리한다. */
+  .krmap .land {
+    /* 이 굵기가 독도(가로 200 m)를 화면의 점으로 만든다. 줄이면 사라진다 */
+    stroke-width: 1400;
+  }
+  .krmap .sealabel text { font-size: 13000px; }
+  .krmap .ktick text { fill: var(--dim); font-size: 11000px; opacity: .8; }
+  .krmap .kscale line { stroke: var(--dim); stroke-width: 1600; opacity: .9; }
+  .krmap .kscale text { fill: var(--dim); font-size: 11000px; }
 
   /* 트리는 짧은 줄뿐이라 넓을 이유가 없다. 남는 폭은 지도가 가져간다. */
   .maplegend { flex: 0 1 270px; min-width: 230px; font-size: 12.5px; }

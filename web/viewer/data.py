@@ -18,7 +18,7 @@ from django.conf import settings
 from django.db.models import (Case, CharField, Count, Exists, F, OuterRef,
                               Q, Subquery, Value, When)
 
-from . import antarctica
+from . import antarctica, korea
 from .models import (Candidate, ClassDef, Detection, Frame, ObjectReview,
                      Site, Slide, Stack, Viewpoint, ViewpointReview)
 
@@ -255,7 +255,7 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
     }
 
 
-def map_points() -> list[dict]:
+def map_points(area: str | None = None) -> list[dict]:
     """지도에 찍을 지역별 묶음. 슬라이드가 아니라 **지역 단위**다.
 
     같은 코어의 깊이별 슬라이드는 좌표가 같으므로 겹쳐 찍으면 하나로 보인다.
@@ -263,24 +263,33 @@ def map_points() -> list[dict]:
 
     좌표는 `Site.lat/lon` 이 원칙이고, 비어 있으면 해역 대략값으로 물러난다.
     **어느 쪽인지 반드시 함께 낸다** — 대략값을 실측처럼 보이게 두면 안 된다.
-    """
-    from .antarctica import APPROX_SITES
 
+    **권역마다 투영이 다르다.** 남극은 EPSG:3031(극구면), 한국은 EPSG:5179
+    (횡메르카토르)다. 마커를 엉뚱한 투영으로 찍으면 지도와 어긋나므로 권역에
+    맞는 것을 고른다 — 그래서 `area` 는 거르기용이 아니라 **투영을 정하는 값**이다.
+    """
+    area = area or "ant"
+    if area == "kr":
+        approx_sites, project = korea.APPROX_SITES, _korea_xy
+    else:
+        approx_sites, project = antarctica.APPROX_SITES, _polar_xy
+
+    sites = Site.objects.filter(area=area).prefetch_related("cores__slides")
     out = []
-    for site in Site.objects.prefetch_related("cores__slides"):
+    for site in sites:
         slides = [sl for c in site.cores.all() for sl in c.slides.all()]
         if not slides:
             continue
         # 코드는 <지역><연도> 꼴이다 (RS23 · WAP13 · AM22). 뒤의 숫자를 떼고 찾는다.
         base = re.sub(r"\d+$", "", site.code).upper()
-        approx = APPROX_SITES.get(base)
+        approx = approx_sites.get(base)
         if site.lat is not None and site.lon is not None:
             lat, lon, exact, note = site.lat, site.lon, True, ""
         elif approx:
             lat, lon, exact, note = approx[0], approx[1], False, approx[2]
         else:
             continue                    # 어디인지 짐작할 수도 없으면 안 찍는다
-        x, y = _polar_xy(lat, lon)
+        x, y = project(lat, lon)
 
         # 코어 아래에 슬라이드를 매단다. 깊이순이다 — 같은 코어에서 깊이에 따른
         # 변화를 보는 것이 이 시료의 목적이라 그 순서로 읽혀야 한다.
@@ -338,6 +347,47 @@ def _polar_xy(lat: float, lon: float) -> tuple[float, float]:
     rho = a * mc * t(math.radians(lat)) / t(phi_c)
     lam = math.radians(lon)
     return rho * math.sin(lam) / 1000, -rho * math.cos(lam) / 1000
+
+
+def _korea_xy(lat: float, lon: float) -> tuple[float, float]:
+    """EPSG:5179 로 투영해 SVG 좌표(m)로. korea.py 를 구운 식과 같아야 한다.
+
+    `tools/proj_kr.py` 의 `fwd()` 를 그대로 옮긴 것이다. 원본은 거기이고
+    검산(`python3 tools/proj_kr.py`)도 거기 있다 — **고칠 일이 생기면 두 곳을
+    함께 고쳐야 한다.** 지도는 굽는 시점에, 마커는 요청마다 계산하므로 식이
+    갈라지면 마커가 육지를 벗어난다.
+
+    단위가 남극(km)과 다르게 m 인 것은 `korea.py` 의 viewBox 가 m 이라서다.
+    """
+    import math
+
+    a, f = 6378137.0, 1 / 298.257222101
+    e2 = 2 * f - f * f
+    ep2 = e2 / (1 - e2)
+    lat0, lon0, k0 = math.radians(38.0), math.radians(127.5), 0.9996
+    fe, fn = 1_000_000.0, 2_000_000.0
+
+    def arc(phi):
+        return a * ((1 - e2 / 4 - 3 * e2**2 / 64 - 5 * e2**3 / 256) * phi
+                    - (3 * e2 / 8 + 3 * e2**2 / 32 + 45 * e2**3 / 1024)
+                    * math.sin(2 * phi)
+                    + (15 * e2**2 / 256 + 45 * e2**3 / 1024) * math.sin(4 * phi)
+                    - (35 * e2**3 / 3072) * math.sin(6 * phi))
+
+    phi, lam = math.radians(lat), math.radians(lon)
+    sp, cp, tp = math.sin(phi), math.cos(phi), math.tan(phi)
+    n = a / math.sqrt(1 - e2 * sp * sp)
+    t_, c = tp * tp, ep2 * cp * cp
+    aa = (lam - lon0) * cp
+
+    x = fe + k0 * n * (aa + (1 - t_ + c) * aa**3 / 6
+                       + (5 - 18 * t_ + t_ * t_ + 72 * c - 58 * ep2)
+                       * aa**5 / 120)
+    y = fn + k0 * (arc(phi) - arc(lat0) + n * tp
+                   * (aa**2 / 2 + (5 - t_ + 9 * c + 4 * c * c) * aa**4 / 24
+                      + (61 - 58 * t_ + t_ * t_ + 600 * c - 330 * ep2)
+                      * aa**6 / 720))
+    return x, -y                    # SVG 는 y 가 아래로 자란다
 
 
 def slide_label(slug: str) -> str | None:
@@ -646,7 +696,7 @@ def _slide_summary(slide: Slide, details: list | None = None) -> dict:
     }
 
 
-def datasets() -> list[dict]:
+def datasets(area: str | None = None) -> list[dict]:
     # groups_*.json 은 파이프라인에서 빠졌다(P02 7단계). 목록에 파일 이름 대신
     # 시료가 무엇인지와 어떤 배율로 찍혔는지를 보인다 — 그쪽이 화면에서 쓸모 있다.
     scales = scales_by_slide()
@@ -656,6 +706,8 @@ def datasets() -> list[dict]:
     # 지역·코어가 아직 안 붙은 슬라이드도 있어서 빈 값이 섞여도 죽지 않게 둔다.
     slides = (Slide.objects.select_related("core", "core__site")
               .order_by("core__site__code", "core__code", "depth_cm", "name"))
+    if area:
+        slides = slides.filter(core__site__area=area)
     for slide in slides:
         core = slide.core
         site = core.site if core else None
@@ -676,6 +728,33 @@ def datasets() -> list[dict]:
             **_slide_summary(slide),
         })
     return out
+
+
+def area_tabs(selected: str | None = None) -> dict:
+    """목록 위의 [한국|남극] 갈래. 각 권역의 슬라이드 수와 고른 것을 낸다.
+
+    **고른 값을 여기서 정한다.** 화면이 `?area=` 를 그대로 믿으면 없는 값이
+    들어왔을 때 빈 목록이 나오고, 왜 비었는지가 화면에 안 보인다.
+
+    기본값은 "자료가 있는 첫 권역" 이다. 지금은 전부 남극이라 남극이 되지만,
+    한국 자료만 들어온 상태에서 빈 남극 탭이 열리는 일도 없다.
+    """
+    counts = dict(Slide.objects.filter(core__site__isnull=False)
+                  .values_list("core__site__area")
+                  .annotate(n=Count("id")))
+    tabs = [{"key": k, "label": v, "n": counts.get(k, 0)} for k, v in Site.AREA]
+    keys = [t["key"] for t in tabs]
+    if selected not in keys:
+        selected = next((t["key"] for t in tabs if t["n"]), keys[0])
+    for t in tabs:
+        t["on"] = t["key"] == selected
+    return {
+        "tabs": tabs,
+        "selected": selected,
+        # 권역을 물을 곳이 없는 슬라이드. 갈래를 넣으면 어느 탭에도 안 나오므로
+        # 세어서 화면에 알린다 — 조용히 사라지는 것이 가장 알아채기 어렵다.
+        "orphans": Slide.objects.filter(core__site__isnull=True).count(),
+    }
 
 
 def datasets_total(rows: list[dict]) -> dict:
