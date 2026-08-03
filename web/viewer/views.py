@@ -48,14 +48,19 @@ def index(request):
     # 없는 값이 들어와도 빈 화면이 되지 않게 한다.
     area = data.area_tabs(request.GET.get("area"))
     rows = data.datasets(area["selected"])
-    pts = data.map_points(area["selected"])
+    # **"전체" 에는 지도가 없다.** 투영이 권역마다 다르므로(남극 EPSG:3031 ·
+    # 한국 EPSG:5179) 섞인 것을 한 지도에 올릴 수가 없다. 억지로 하나를 고르면
+    # 다른 권역의 시료가 조용히 빠지거나 엉뚱한 자리에 찍힌다.
+    show_map = not area["is_all"]
     return render(request, "viewer/index.html", {
         "datasets": rows,
         "area": area,
+        "show_map": show_map,
         "totals": data.datasets_total(rows),
         # 지도는 세 번째 보기 방식이다. 해안선이 10~27 KB 뿐이라 늘 함께 보낸다 —
         # 따로 요청하게 만들면 전환이 즉시 되지 않는다.
-        "antmap": _map_ctx(area["selected"], pts),
+        "antmap": (_map_ctx(area["selected"], data.map_points(area["selected"]))
+                   if show_map else None),
     })
 
 

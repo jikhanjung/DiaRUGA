@@ -706,7 +706,8 @@ def datasets(area: str | None = None) -> list[dict]:
     # 지역·코어가 아직 안 붙은 슬라이드도 있어서 빈 값이 섞여도 죽지 않게 둔다.
     slides = (Slide.objects.select_related("core", "core__site")
               .order_by("core__site__code", "core__code", "depth_cm", "name"))
-    if area:
+    # "전체" 는 거르지 않는다 — 지역이 안 붙은 슬라이드도 여기서는 보여야 한다.
+    if area and area != AREA_ALL:
         slides = slides.filter(core__site__area=area)
     for slide in slides:
         core = slide.core
@@ -730,29 +731,42 @@ def datasets(area: str | None = None) -> list[dict]:
     return out
 
 
+# "전체" 는 권역이 아니라 **거르지 않는다**는 뜻이다. `Site.area` 에 넣지 않는
+# 이유가 그것이다 — 슬라이드가 "전체 권역" 에 속할 수는 없다.
+AREA_ALL = "all"
+
+
 def area_tabs(selected: str | None = None) -> dict:
-    """목록 위의 [한국|남극] 갈래. 각 권역의 슬라이드 수와 고른 것을 낸다.
+    """목록 위의 [한국|남극|전체] 갈래. 각 권역의 슬라이드 수와 고른 것을 낸다.
 
     **고른 값을 여기서 정한다.** 화면이 `?area=` 를 그대로 믿으면 없는 값이
     들어왔을 때 빈 목록이 나오고, 왜 비었는지가 화면에 안 보인다.
 
     기본값은 "자료가 있는 첫 권역" 이다. 지금은 전부 남극이라 남극이 되지만,
     한국 자료만 들어온 상태에서 빈 남극 탭이 열리는 일도 없다.
+
+    **`전체` 는 지역(Site)이 안 붙은 슬라이드까지 담는다.** 그것이 이 탭이
+    있어야 하는 이유다 — 새로 반입된 슬라이드는 지역이 정해지기 전까지 한국에도
+    남극에도 없어서, 있다는 것만 알리고 열어 볼 길이 없었다.
     """
     counts = dict(Slide.objects.filter(core__site__isnull=False)
                   .values_list("core__site__area")
                   .annotate(n=Count("id")))
     tabs = [{"key": k, "label": v, "n": counts.get(k, 0)} for k, v in Site.AREA]
+    tabs.append({"key": AREA_ALL, "label": "전체",
+                 "n": Slide.objects.count()})
     keys = [t["key"] for t in tabs]
     if selected not in keys:
-        selected = next((t["key"] for t in tabs if t["n"]), keys[0])
+        selected = next((t["key"] for t in tabs if t["n"]), AREA_ALL)
     for t in tabs:
         t["on"] = t["key"] == selected
     return {
         "tabs": tabs,
         "selected": selected,
-        # 권역을 물을 곳이 없는 슬라이드. 갈래를 넣으면 어느 탭에도 안 나오므로
-        # 세어서 화면에 알린다 — 조용히 사라지는 것이 가장 알아채기 어렵다.
+        "is_all": selected == AREA_ALL,
+        # 권역을 물을 곳이 없는 슬라이드. 한국·남극 어느 탭에도 안 나오므로
+        # 세어서 알리고 **전체 탭으로 가는 길을 함께 준다** — 알리기만 하고
+        # 갈 곳이 없으면 안내가 아니라 막다른 길이다.
         "orphans": Slide.objects.filter(core__site__isnull=True).count(),
     }
 

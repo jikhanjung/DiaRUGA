@@ -92,8 +92,15 @@ class Site(models.Model):
 
     code = models.CharField(max_length=32, unique=True)     # RS23
     name = models.CharField(max_length=200, blank=True)     # 사람이 채운다
-    # 목록을 가르는 상위 구분. 기본이 남극인 것은 지금 자료가 전부 남극이라서다
-    area = models.CharField(max_length=8, choices=AREA, default="ant")
+    # 목록을 가르는 상위 구분. 기본이 남극인 것은 지금 자료가 전부 남극이라서다.
+    #
+    # **`db_default` 를 함께 준다.** `default` 는 파이썬 쪽이라 이 모델을 아는
+    # 코드에만 붙는다. 이 DB 는 뷰어 이미지와 파이프라인 이미지가 함께 쓰는데
+    # 판이 따로 돌아서, 파이프라인이 옛 코드일 때 `Site` 를 새로 만들면 이 칸을
+    # 아예 안 보내고 `NOT NULL constraint failed` 로 죽는다 — 실제로 NAS 반입이
+    # 그렇게 막혔다(BP09-0901). DB 가 스스로 채우게 두면 옛 코드도 그대로 돈다.
+    area = models.CharField(max_length=8, choices=AREA,
+                            default="ant", db_default="ant")
     region = models.CharField(max_length=200, blank=True)   # 로스해 / 웨델해 …
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)

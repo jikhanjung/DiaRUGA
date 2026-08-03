@@ -60,6 +60,11 @@
         <rect x="8.8" y="8.8" width="6.2" height="6.2" rx="1.2"/>
       </svg>
     </button>
+    {% comment %}
+      "전체" 에는 지도가 없다 — 권역마다 투영이 달라 한 지도에 못 올린다.
+      버튼을 남겨 두면 눌러도 아무 일이 없다.
+    {% endcomment %}
+    {% if show_map %}
     <button type="button" data-view="map" title="지도로 보기 — 어느 해역의 시료인지"
             aria-label="지도로 보기">
       <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
@@ -68,16 +73,22 @@
               fill="none" stroke="currentColor" stroke-width="1.1"/>
       </svg>
     </button>
+    {% endif %}
   </div>
   {% endif %}
 </div>
 <p class="dim">NAS 에 새 슬라이드가 올라오면 자동으로 가져와 검출까지 돌립니다.
   자동 처리가 끝나야 검토가 열립니다.</p>
 
-{% if area.orphans %}
+{% comment %}
+  알리기만 하고 갈 곳이 없으면 안내가 아니라 막다른 길이다. "전체" 로 가는
+  길을 함께 준다 — 거기에는 지역이 안 붙은 슬라이드도 나온다.
+{% endcomment %}
+{% if area.orphans and not area.is_all %}
   <div class="note">권역이 정해지지 않은 슬라이드가 {{ area.orphans }}개 있습니다 —
-    지역(Site)이 붙어 있지 않아 어느 탭에도 나오지 않습니다.
-    속성 편집에서 지역을 지정하면 목록에 들어옵니다.</div>
+    지역(Site)이 붙어 있지 않아 한국·남극 어느 탭에도 나오지 않습니다.
+    <a href="?area=all"><b>전체</b>에서 보실 수 있고</a>, 속성 편집에서 지역을
+    지정하면 해당 권역 탭에 들어옵니다.</div>
 {% endif %}
 
 {% if not datasets %}
@@ -173,8 +184,8 @@
 </table>
 </div>
 
-{% comment %} 지도 판 — 어느 해역의 시료인지. {% endcomment %}
-<div class="asMap">{% include "viewer/_map.html" %}</div>
+{% comment %} 지도 판 — 어느 해역의 시료인지. "전체" 에는 없다. {% endcomment %}
+{% if show_map %}<div class="asMap">{% include "viewer/_map.html" %}</div>{% endif %}
 
 {% comment %} 카드 판 — 슬라이드 하나씩 훑어볼 때. 표와 같은 값을 보인다. {% endcomment %}
 <div class="cards asCards">
