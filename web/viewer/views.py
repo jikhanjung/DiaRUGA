@@ -120,6 +120,9 @@ def engine_run(request, run_id):
         raise Http404(f"unknown run: {run_id}")
     return render(request, "viewer/engine_run.html", {
         "run": run,
+        "title": run.batch.label if run.batch_id else f"실행 #{run.pk}",
+        "note": run.batch.note if run.batch_id else "",
+        "n_runs": len(data.engine_run_ids(run_id)),
         "backend": (run.params or {}).get("backend", "?"),
         "rows": data.engine_viewpoints(run_id),
     })
@@ -129,9 +132,11 @@ def engine_view(request, run_id, slug, gid):
     ctx = data.engine_viewpoints and data.engine_viewpoint(slug, gid, run_id)
     if ctx is None:
         raise Http404(f"unknown: {slug}/{gid} in run {run_id}")
-    run = Run.objects.filter(pk=run_id).first()
+    run = Run.objects.filter(pk=run_id).select_related("batch").first()
     ctx["backend"] = (run.params or {}).get("backend", "?") if run else "?"
     ctx["run_params"] = (run.params or {}) if run else {}
+    ctx["batch_label"] = (run.batch.label if run and run.batch_id
+                          else f"실행 #{run_id}")
     return render(request, "viewer/engine_view.html", ctx)
 
 

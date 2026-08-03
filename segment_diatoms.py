@@ -726,6 +726,12 @@ def main():
     ap.add_argument("--yolo-imgsz", type=int, default=1280,
                     help="학습과 같아야 한다 (기본 1280)")
     ap.add_argument("--yolo-nms-iou", type=float, default=0.7)
+    ap.add_argument("--batch", default="",
+                    help="여러 슬라이드에 걸친 한 번의 작업을 묶는 이름표. "
+                         "슬라이드마다 명령을 나눠 불러도 같은 이름이면 "
+                         "한 덩어리로 남는다 (예: yolo-v1seg-frames)")
+    ap.add_argument("--batch-note", default="",
+                    help="묶음을 만들 때 함께 남길 메모 (왜 돌렸는가)")
     ap.add_argument("--keep-current", action="store_true",
                     help="새 검출을 is_current 로 올리지 않는다. 뷰어와 교정을 "
                          "건드리지 않고 다른 엔진을 나란히 재 볼 때 쓴다")
@@ -823,7 +829,8 @@ def main():
     run = None
     if not args.no_db:
         run = runlog.start(
-        "detect",
+            "detect",
+            batch_label=args.batch, batch_note=args.batch_note,
             params={"backend": args.backend, "scale": args.scale,
                     "points_per_side": args.points_per_side,
                     "min_um": args.min_um, "max_um": args.max_um,

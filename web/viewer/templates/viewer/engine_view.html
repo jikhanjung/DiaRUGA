@@ -25,7 +25,7 @@
 </style>
 
 <div class="pagehead enghead">
-  <h2><a href="{% url 'engine_run' run_id %}" class="thlink">← 실행 #{{ run_id }}</a>
+  <h2><a href="{% url 'engine_run' run_id %}" class="thlink">← {{ batch_label }}</a>
     {{ label }} <span class="dim" style="font-size:14px;font-weight:400">g{{ id }}</span></h2>
   <span class="dim mono">{{ tag }}</span>
   <span class="dim">프레임 {{ n_frames_with_det }}장 · 개체 합계 {{ n_objects }}</span>

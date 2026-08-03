@@ -37,11 +37,33 @@ def close_stale(kind: str, older_than_min: float = 5.0) -> int:
     return len(stale)
 
 
-def start(kind: str, **fields):
-    """새 실행을 연다. 옛 것을 먼저 치운다."""
+def batch(kind: str, label: str, note: str = ""):
+    """이름으로 묶음을 찾거나 만든다. 같은 이름이면 같은 묶음이다.
+
+    파이프라인은 슬라이드 단위로 돌기 때문에 "전체를 한 번 훑었다" 는 작업이
+    실행 여럿으로 흩어진다. 명령을 슬라이드마다 나눠 부르더라도 같은 이름표를
+    주면 한 덩어리로 남는다.
+    """
+    from viewer.models import RunBatch                  # noqa: PLC0415
+
+    obj, made = RunBatch.objects.get_or_create(
+        kind=kind, label=label, defaults={"note": note})
+    if made:
+        print(f"  묶음 '{label}' 을 새로 만들었다")
+    return obj
+
+
+def start(kind: str, batch_label: str = "", batch_note: str = "", **fields):
+    """새 실행을 연다. 옛 것을 먼저 치운다.
+
+    `batch_label` 을 주면 그 이름의 묶음에 매단다 — 여러 슬라이드에 걸친 한 번의
+    작업을 나중에 한 덩어리로 보기 위해서다.
+    """
     from viewer.models import Run                       # noqa: PLC0415
 
     n = close_stale(kind)
     if n:
         print(f"  끝나지 않은 {kind} 실행 {n}개를 닫았다")
+    if batch_label:
+        fields["batch"] = batch(kind, batch_label, batch_note)
     return Run.objects.create(kind=kind, status="running", **fields)

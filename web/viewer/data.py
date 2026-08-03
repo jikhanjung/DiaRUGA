@@ -1098,29 +1098,62 @@ def safe_image_path(rel: str) -> Path | None:
 
 # --- 다른 엔진 결과 보기 (시험용) ---------------------------------------------
 def engine_runs() -> list[dict]:
-    """`is_current` 가 아닌 검출을 남긴 실행들. 백엔드별로 묶어 낸다.
+    """쌓아 둔(= `is_current` 가 아닌) 검출을 **묶음 단위로** 낸다.
 
-    지금 화면(뷰어)은 `is_current=True` 인 것만 본다. 나란히 쌓아 둔 다른 엔진의
-    결과는 **어디에도 안 보인다** — 그것을 보려고 만든 목록이다.
+    뷰어는 `is_current=True` 인 것만 본다. 나란히 쌓아 둔 다른 엔진의 결과는
+    **어디에도 안 보인다** — 그것을 보려고 만든 목록이다.
+
+    파이프라인이 슬라이드마다 도는 탓에 한 번의 작업이 실행 여럿으로 흩어진다.
+    묶음(`RunBatch`)이 있으면 그것으로 묶고, 없으면 실행 하나를 묶음처럼 낸다.
+
+    **세는 것은 쌓인 검출뿐이다.** 이미 현재로 올라간 것은 검토 화면에서 보이므로
+    여기서 세지 않는다. 다만 그 수를 `n_current` 로 함께 내야 "이 묶음이 처리한
+    전부" 로 잘못 읽지 않는다 — SAM2 묶음은 대부분이 현재로 올라가 있다.
     """
-    out = []
-    for r in (Run.objects.filter(kind="detect").order_by("-started_at")
-              .prefetch_related("detections")):
-        dets = [d for d in r.detections.all() if not d.is_current]
-        if not dets:
-            continue
-        n_cand = Candidate.objects.filter(detection__in=dets).count()
-        slides = sorted({d.viewpoint.slide.slug for d in dets if d.viewpoint})
-        out.append({
-            "id": r.pk,
+    stacked = (Detection.objects.filter(is_current=False, run__kind="detect")
+               .select_related("run__batch", "viewpoint__slide"))
+    groups = {}
+    for d in stacked:
+        r = d.run
+        key = ("b", r.batch_id) if r.batch_id else ("r", r.pk)
+        g = groups.setdefault(key, {
+            "is_batch": bool(r.batch_id),
+            "label": r.batch.label if r.batch_id else f"실행 #{r.pk}",
+            "note": r.batch.note if r.batch_id else "",
             "backend": (r.params or {}).get("backend", "?"),
-            "started_at": r.started_at,
-            "status": r.status,
             "params": r.params or {},
-            "n_detections": len(dets),
-            "n_candidates": n_cand,
-            "slides": slides,
+            "link_run": r.pk,
+            "n_detections": 0, "slides": set(), "run_ids": set(),
         })
+        g["n_detections"] += 1
+        g["run_ids"].add(r.pk)
+        if d.viewpoint:
+            g["slides"].add(d.viewpoint.slide.slug)
+
+    out = []
+    for (kind, ident), g in groups.items():
+        # **실행 수는 묶음 전체로 센다.** 쌓인 검출이 있는 실행만 세면 묶음이
+        # 실제보다 작아 보인다 (SAM2 묶음은 11건 중 6건에만 쌓인 것이 있다).
+        if g["is_batch"]:
+            runs = Run.objects.filter(batch_id=ident)
+            g["n_runs"] = runs.count()
+            all_ids = list(runs.values_list("pk", flat=True))
+            g["started_at"] = runs.order_by("started_at").first().started_at
+        else:
+            g["n_runs"] = 1
+            all_ids = [ident]
+            g["started_at"] = Run.objects.get(pk=ident).started_at
+        g["n_current"] = Detection.objects.filter(
+            run_id__in=all_ids, is_current=True).count()
+        g["n_candidates"] = Candidate.objects.filter(
+            detection__run_id__in=all_ids, detection__is_current=False).count()
+        g["slides"] = sorted(g["slides"])
+        g["n_slides"] = len(g["slides"])
+        g["run_ids"] = sorted(g["run_ids"])
+        g["status"] = ", ".join(sorted(set(
+            Run.objects.filter(pk__in=all_ids).values_list("status", flat=True))))
+        out.append(g)
+    out.sort(key=lambda g: g["started_at"], reverse=True)
     return out
 
 
@@ -1152,8 +1185,12 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
     if vp is None:
         return None
 
+    # 묶음이면 형제 실행까지 본다 — 한 슬라이드가 한 실행이라 시야를 열면
+    # 그 시야를 만든 실행은 하나뿐이지만, 주소의 실행 번호가 다른 슬라이드
+    # 것일 수 있다.
+    ids = set(engine_run_ids(run_id))
     dets = [d for d in vp.detections.all()
-            if d.run_id == run_id and not d.is_current]
+            if d.run_id in ids and not d.is_current]
     by_frame = {d.frame_id: d for d in dets if d.target == "frame"}
     stack_det = next((d for d in dets if d.target == "stack"), None)
 
@@ -1216,10 +1253,26 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
     }
 
 
+def engine_run_ids(run_id: int) -> list[int]:
+    """실행 하나가 묶음에 속하면 그 묶음의 실행 전부를, 아니면 자기만.
+
+    화면은 묶음을 하나처럼 다룬다. 주소에는 실행 번호가 들어가지만, 그 실행이
+    묶여 있으면 형제들까지 함께 보여야 "전체를 한 번 훑은 것" 이 한 화면에 온다.
+    """
+    r = Run.objects.filter(pk=run_id).select_related("batch").first()
+    if r is None:
+        return []
+    if r.batch_id:
+        return list(Run.objects.filter(batch_id=r.batch_id)
+                    .values_list("pk", flat=True))
+    return [r.pk]
+
+
 def engine_viewpoints(run_id: int) -> list[dict]:
-    """실행 하나가 건드린 시야 목록. 어디부터 볼지 고르는 화면에 쓴다."""
+    """실행(또는 그 묶음)이 건드린 시야 목록. 어디부터 볼지 고르는 화면에 쓴다."""
     rows = {}
-    for d in (Detection.objects.filter(run_id=run_id, is_current=False)
+    for d in (Detection.objects.filter(run_id__in=engine_run_ids(run_id),
+                                       is_current=False)
               .select_related("viewpoint__slide")
               .annotate(n=Count("candidates"))):
         vp = d.viewpoint

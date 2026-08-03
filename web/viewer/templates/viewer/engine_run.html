@@ -2,8 +2,9 @@
 {% block content %}
 <div class="pagehead">
   <h2><a href="{% url 'engine_index' %}" class="thlink">← 엔진 비교</a>
-    실행 #{{ run.pk }} <span class="dim" style="font-size:14px;font-weight:400">{{ backend }}</span></h2>
+    {{ title }} <span class="dim" style="font-size:14px;font-weight:400">{{ backend }} · 실행 {{ n_runs }}건</span></h2>
 </div>
+{% if note %}<p class="dim">{{ note }}</p>{% endif %}
 <p class="dim">시야를 고르면 프레임마다의 검출을 봅니다.
   YOLO 는 합성본이 아니라 <b>원본 프레임</b>을 보므로 시야 하나에 검출이 여럿입니다.</p>
 
