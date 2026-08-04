@@ -69,5 +69,10 @@ ENV HF_HOME=/hf \
     # 진짜 문제를 가린다).
     YOLO_CONFIG_DIR=/tmp/.ultralytics
 
+# ultralytics 는 `$YOLO_CONFIG_DIR/Ultralytics` 가 **쓸 수 있는지 미리 본다.**
+# 부모가 없으면 못 쓴다고 판단해 /tmp/Ultralytics 로 물러나며 경고를 뱉는다 —
+# 매 실행 로그에 한 줄씩 쌓여 진짜 문제를 가린다. 미리 만들어 둔다.
+RUN mkdir -p /tmp/.ultralytics/Ultralytics && chmod -R 777 /tmp/.ultralytics
+
 # 코드는 마지막. 여기만 바뀌면 위 층들은 캐시가 그대로 산다.
 COPY . .
