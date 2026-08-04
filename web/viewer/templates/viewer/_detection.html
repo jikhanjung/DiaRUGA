@@ -109,8 +109,11 @@
   <button type="button" class="navbtn" data-nav="pshot" title="이전 사진 (←)">&lsaquo;</button>
 
   <div class="strip" id="strip-{{ uid }}"
-       {% if prev_id is not None %}data-prev="{% url 'group' slug prev_id %}?shot=last" data-prev-id="{{ prev_id }}"{% endif %}
-       {% if next_id is not None %}data-next="{% url 'group' slug next_id %}" data-next-id="{{ next_id }}"{% endif %}>
+       {# 어디로 갈지는 화면이 정한다. 검토 화면은 /d/, 검출 화면은 /engine/ 안에
+          머문다 — 여기에 주소를 박아 두었더니 /engine/ 에서 "다음 시야" 를 누를
+          때마다 검토 화면으로 튀어나갔다 #}
+       {% if prev_url %}data-prev="{{ prev_url }}?shot=last" data-prev-id="{{ prev_id }}"{% endif %}
+       {% if next_url %}data-next="{{ next_url }}" data-next-id="{{ next_id }}"{% endif %}>
     {% include "viewer/_shots.html" %}
   </div>
 
@@ -371,12 +374,18 @@
     if (!s) return;
     var seq = ++hoverSeq;
     preload(s.dataset.view, function () {
-      if (seq === hoverSeq) paint(s, false);   // 그 사이 다른 데로 옮겨갔으면 버린다
+      // 그 사이 다른 데로 옮겨갔으면 버린다
+      if (seq !== hoverSeq) return;
+      paint(s, false);
+      // **사진과 개체는 함께 간다.** 프레임마다 검출이 다른 화면(/engine/)에서
+      // 그림만 갈면, 이 프레임 사진 위에 옆 프레임의 마스크가 얹힌 것을 보게
+      // 된다 — 그 자리에 없는 개체를 있다고 읽는다.
+      swapDet(s);
     });
   }
   function unpreview() {
     hoverSeq++;
-    if (shots[current]) paint(shots[current]);
+    if (shots[current]) { paint(shots[current]); swapDet(shots[current]); }
   }
   // 프레임마다 검출이 따로 있는 화면(/engine/)에서는 사진과 함께 개체도 바꾼다.
   // 자료가 없으면 undefined 라 아래 swapDet 이 곧장 빠져나간다 — 검토 화면은
@@ -388,9 +397,11 @@
   } catch (e) { shotDets = null; }
 
   function swapDet(s) {
-    if (!shotDets || !s || !s.dataset.detkey) return;
-    var d = shotDets[s.dataset.detkey];
-    if (!d) return;
+    if (!shotDets || !s) return;      // 검토 화면은 여기서 끝난다 (지금까지 그대로)
+    var d = s.dataset.detkey ? shotDets[s.dataset.detkey] : null;
+    // 검출이 없는 판(깊이 맵 등)으로 가면 **비운다.** 그냥 두면 옛 마스크가
+    // 남아 엉뚱한 그림 위에 얹힌다.
+    if (!d) d = { candidates: [], rejected: [], summary: '이 판에는 검출이 없습니다' };
     cands = (d.candidates || []).slice();
     rejects = (d.rejected || []).slice();
     var meta = document.querySelector('#tabs-' + uid + ' .tabmeta');

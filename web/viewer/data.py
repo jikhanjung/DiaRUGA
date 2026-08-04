@@ -15,6 +15,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from django.conf import settings
+from django.urls import reverse
 from django.db.models import (Case, CharField, Count, Exists, F, OuterRef,
                               Q, Subquery, Value, When)
 
@@ -909,6 +910,10 @@ def group_detail(slug: str, gid: int) -> dict | None:
                   if st else None),
         "prev_id": ids[pos - 1] if pos > 0 else None,
         "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
+        "prev_url": (reverse("group", args=[slug, ids[pos - 1]])
+                     if pos > 0 else None),
+        "next_url": (reverse("group", args=[slug, ids[pos + 1]])
+                     if pos < len(ids) - 1 else None),
         # 자동 처리가 안 끝났으면 검토를 막는다 (P01 §1). 저장도 서버에서 거절한다.
         "review_blocked": review_blocked(slide),
     }
@@ -1311,6 +1316,12 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
         "has_stack_det": stack is not None,
         "prev_id": ids[pos - 1] if pos > 0 else None,
         "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
+        # **이 화면 안에 머문다.** 사진 띠의 시야 이동 단추가 검토 화면 주소를
+        # 박아 두고 있어서, 여기서 "다음 시야" 를 누르면 /d/ 로 튀어나갔다.
+        "prev_url": (reverse("engine_view", args=[run_id, slug, ids[pos - 1]])
+                     if pos > 0 else None),
+        "next_url": (reverse("engine_view", args=[run_id, slug, ids[pos + 1]])
+                     if pos < len(ids) - 1 else None),
     }
 
 
