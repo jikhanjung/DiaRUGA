@@ -16,10 +16,26 @@
 {% if saved %}<div class="okbar">저장했습니다.{% if made %} {{ made }}{% endif %}</div>{% endif %}
 {% if errors %}<div class="errbar">{% for e in errors %}{{ e }}<br>{% endfor %}</div>{% endif %}
 
-<form method="post" class="propform">
+{% comment %}
+  세 칸(슬라이드·코어·지역)을 탭으로 나눈다. **폼은 하나 그대로다** — 탭은
+  보이고 안 보이고만 가르고, 저장은 어느 탭에 있든 세 칸을 함께 보낸다.
+  칸을 폼 셋으로 쪼개면 지역을 고치려다 슬라이드에 적어 둔 것이 날아간다.
+
+  자바스크립트가 없으면 셋 다 펼쳐진 예전 모습이 된다 — `.tabbed` 를 JS 가
+  붙이고, 감추는 규칙은 그 클래스 아래에만 있다.
+{% endcomment %}
+<form method="post" class="propform" id="propform">
   {% csrf_token %}
 
-  <section>
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="slide" class="on">슬라이드</button>
+    <button type="button" role="tab" data-tab="core">코어
+      <span class="dim">{{ core_code }}</span></button>
+    <button type="button" role="tab" data-tab="site">지역
+      <span class="dim">{{ site_code }}</span></button>
+  </nav>
+
+  <section data-pane="slide">
     <h3>슬라이드</h3>
     <p class="dim">이 슬라이드 하나에만 해당합니다.</p>
     <label>이름
@@ -54,7 +70,7 @@
     </div>
   </section>
 
-  <section>
+  <section data-pane="core">
     <h3>코어 <span class="dim">{{ core_code }}</span></h3>
     {% if no_core %}
       <p class="dim">이 슬라이드에는 <b>코어가 붙어 있지 않습니다.</b> 아래에 코어
@@ -89,7 +105,7 @@
       <textarea name="core_note" rows="2">{{ core.note }}</textarea></label>
   </section>
 
-  <section>
+  <section data-pane="site">
     <h3>지역 <span class="dim">{{ site_code }}</span></h3>
     {% if no_site %}
       <p class="dim">이 슬라이드에는 <b>지역이 붙어 있지 않습니다</b> — 폴더 이름이
@@ -141,8 +157,52 @@
   </div>
 </form>
 
+<script>
+(function () {
+  var form = document.getElementById('propform');
+  var tabs = [].slice.call(form.querySelectorAll('.tabs button'));
+  var panes = [].slice.call(form.querySelectorAll('section[data-pane]'));
+  // JS 가 있을 때만 감춘다 — 없으면 셋 다 보이는 예전 화면 그대로다
+  form.classList.add('tabbed');
+
+  function show(name) {
+    var hit = false;
+    panes.forEach(function (p) {
+      var on = p.dataset.pane === name;
+      p.classList.toggle('on', on);
+      hit = hit || on;
+    });
+    if (!hit) { return show('slide'); }
+    tabs.forEach(function (b) { b.classList.toggle('on', b.dataset.tab === name); });
+    // 주소에 남긴다 — 새로 고침이나 저장 뒤에도 보던 칸으로 돌아온다
+    if (history.replaceState) {
+      history.replaceState(null, '', '#' + name);
+    }
+  }
+
+  tabs.forEach(function (b) {
+    b.addEventListener('click', function () { show(b.dataset.tab); });
+  });
+  show((location.hash || '#slide').slice(1));
+})();
+</script>
+
 <style>
   .propform { max-width: 720px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+  .tabs button {
+    font: inherit; font-size: 13px; padding: 7px 15px; cursor: pointer;
+    background: transparent; color: var(--dim); border: 1px solid transparent;
+    border-bottom: none; border-radius: 8px 8px 0 0;
+  }
+  .tabs button:hover { color: inherit; }
+  .tabs button.on {
+    background: var(--panel); color: inherit; border-color: var(--line);
+    position: relative; z-index: 1;
+  }
+  /* 탭이 붙은 칸은 위 모서리를 탭에 내준다 */
+  .propform.tabbed section { border-top-left-radius: 0; }
+  .propform.tabbed section[data-pane]:not(.on) { display: none; }
   .propform section {
     border: 1px solid var(--line); border-radius: 9px;
     padding: 14px 16px 16px; margin-bottom: 14px; background: var(--panel);

@@ -9,6 +9,8 @@
           data-full="{% full stack.focused_rel %}"
           data-title="합성본"
           data-note="그룹 전체에서 초점 맞은 영역만 모았다"
+          {# 합성본에도 검출이 붙는 화면(/engine/ 의 SAM2)에서만 채워진다 #}
+          {% if stack.detkey %}data-detkey="{{ stack.detkey }}"{% endif %}
           {% if stack.focused_rel == base %}data-current="1"{% endif %}>
     <img loading="lazy" src="{% thumb stack.focused_rel 220 %}" alt="합성본">
     <span class="cap">합성본</span>

@@ -22,18 +22,50 @@
     margin: 8px 0 12px; font-size: 13px;
   }
   .engwarn b { color: var(--warn); }
+  /* 묶음 고르기 — 같은 시야를 그대로 두고 엔진만 바꾼다 */
+  .bpick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+           margin: 0 0 10px; font-size: 12.5px; }
+  .bpick a, .bpick span.on {
+    display: inline-block; padding: 3px 11px; border-radius: 999px;
+    border: 1px solid var(--line); text-decoration: none; color: inherit;
+    background: var(--panel);
+  }
+  .bpick a:hover { border-color: var(--accent); }
+  .bpick span.on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .bpick .n { color: var(--dim); font-weight: 400; margin-left: 4px; }
 </style>
 
 <div class="pagehead enghead">
   <h2><a href="{% url 'engine_run' run_id %}" class="thlink">← {{ batch_label }}</a>
     {{ label }} <span class="dim" style="font-size:14px;font-weight:400">g{{ id }}</span></h2>
   <span class="dim mono">{{ tag }}</span>
-  <span class="dim">프레임 {{ n_frames_with_det }}장 · 개체 합계 {{ n_objects }}</span>
+  <span class="dim">{% if n_frames_with_det %}프레임 {{ n_frames_with_det }}장{% endif %}{% if has_stack_det %}{% if n_frames_with_det %} · {% endif %}합성본{% endif %} · 개체 합계 {{ n_objects }}</span>
   <span style="margin-left:auto">
     {% if prev_id is not None %}<a href="{% url 'engine_view' run_id slug prev_id %}">← 이전</a>{% endif %}
     {% if next_id is not None %}<a href="{% url 'engine_view' run_id slug next_id %}" style="margin-left:10px">다음 →</a>{% endif %}
   </span>
 </div>
+
+{% comment %}
+  묶음을 바꿔도 **시야는 그대로 둔다** — 목록으로 나갔다 들어오면 어디를 보고
+  있었는지 잃는다. 견주기는 같은 자리를 번갈아 보는 일이다.
+
+  이 시야에 검출이 없는 묶음은 아예 나오지 않는다. 눌렀더니 "검출이 없습니다"
+  만 나오는 칸을 만들지 않기 위해서다.
+{% endcomment %}
+{% if batches|length > 1 %}
+<div class="bpick">
+  <span class="dim">묶음</span>
+  {% for b in batches %}
+    {% if b.on %}
+      <span class="on">{{ b.label }}<span class="n">{{ b.n }}</span></span>
+    {% else %}
+      <a href="{% url 'engine_view' b.run_id slug id %}"
+         title="{{ b.backend }}">{{ b.label }}<span class="n">{{ b.n }}</span></a>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 
 <div class="engwarn">
   <b>시험용 화면입니다 — 저장되지 않습니다.</b>

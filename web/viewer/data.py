@@ -1115,20 +1115,41 @@ def safe_image_path(rel: str) -> Path | None:
 
 
 # --- 다른 엔진 결과 보기 (시험용) ---------------------------------------------
-def engine_runs() -> list[dict]:
-    """쌓아 둔(= `is_current` 가 아닌) 검출을 **묶음 단위로** 낸다.
+def _engine_pick(dets):
+    """한 시야에 쌓인 검출들 중 **화면이 그릴 것 하나씩** 고른다.
 
-    뷰어는 `is_current=True` 인 것만 본다. 나란히 쌓아 둔 다른 엔진의 결과는
-    **어디에도 안 보인다** — 그것을 보려고 만든 목록이다.
+    같은 자리에 검출이 여럿 남을 수 있다. 두 가지 경로로 그렇게 된다:
+
+    - 빠진 프레임만 다시 돌려도 `--keep-current` 는 이미 있는 것 위에 또 쌓는다
+    - 첫 시도가 실패해 다시 돌린 것이 그대로 남아 있다 (SAM2 #37 → #39)
+
+    **현재로 올라간 것, 그 다음 나중 것**을 고른다. 아무 것이나 고르면 화면과
+    묶음 칸의 개수가 어긋나고 — 실제로 그렇게 어긋났다 — 첫 시도의 죽은 결과가
+    그 묶음의 성적표인 것처럼 보인다.
+    """
+    by_frame, stack_det = {}, None
+    for d in sorted(dets, key=lambda d: (d.is_current, d.pk)):
+        if d.target == "frame":
+            by_frame[d.frame_id] = d
+        elif d.target == "stack":
+            stack_det = d
+    return by_frame, stack_det
+
+
+def engine_runs() -> list[dict]:
+    """검출을 **묶음 단위로** 낸다.
+
+    검토 화면은 `is_current=True` 인 것만 본다. 나란히 쌓아 둔 다른 엔진의
+    결과는 **어디에도 안 보인다** — 그것을 보려고 만든 목록이다.
 
     파이프라인이 슬라이드마다 도는 탓에 한 번의 작업이 실행 여럿으로 흩어진다.
     묶음(`RunBatch`)이 있으면 그것으로 묶고, 없으면 실행 하나를 묶음처럼 낸다.
 
-    **세는 것은 쌓인 검출뿐이다.** 이미 현재로 올라간 것은 검토 화면에서 보이므로
-    여기서 세지 않는다. 다만 그 수를 `n_current` 로 함께 내야 "이 묶음이 처리한
-    전부" 로 잘못 읽지 않는다 — SAM2 묶음은 대부분이 현재로 올라가 있다.
+    **묶음이 낸 것 전부를 센다.** 한때는 쌓인 것만 셌다 — 현재 검출은 검토
+    화면에서 본다는 뜻이었는데, SAM2 묶음은 대부분이 현재로 올라가 있어서 그
+    묶음이 거의 빈 것처럼 보였다. 현재로 올라간 수는 `n_current` 로 따로 낸다.
     """
-    stacked = (Detection.objects.filter(is_current=False, run__kind="detect")
+    stacked = (Detection.objects.filter(run__kind="detect")
                .select_related("run__batch", "viewpoint__slide"))
     groups = {}
     for d in stacked:
@@ -1164,7 +1185,7 @@ def engine_runs() -> list[dict]:
         g["n_current"] = Detection.objects.filter(
             run_id__in=all_ids, is_current=True).count()
         g["n_candidates"] = Candidate.objects.filter(
-            detection__run_id__in=all_ids, detection__is_current=False).count()
+            detection__run_id__in=all_ids).count()
         g["slides"] = sorted(g["slides"])
         g["n_slides"] = len(g["slides"])
         g["run_ids"] = sorted(g["run_ids"])
@@ -1206,11 +1227,19 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
     # 묶음이면 형제 실행까지 본다 — 한 슬라이드가 한 실행이라 시야를 열면
     # 그 시야를 만든 실행은 하나뿐이지만, 주소의 실행 번호가 다른 슬라이드
     # 것일 수 있다.
+    # **현재 검출도 함께 본다.** 예전에는 쌓아 둔 것만 봤다 — 검토 화면과
+    # 겹치지 않게 하려는 뜻이었다. 그런데 SAM2 묶음은 결과의 대부분이 현재로
+    # 올라가 있어서, 묶음을 고를 수 있게 되자 "SAM2 칸을 눌렀는데 아무것도
+    # 없다" 가 됐다. 견주려면 그 묶음이 **실제로 낸 것**을 봐야 한다.
+    # 이 화면은 읽기 전용이고 교정을 얹지 않으므로 검토 화면을 건드리지 않는다.
     ids = set(engine_run_ids(run_id))
-    dets = [d for d in vp.detections.all()
-            if d.run_id in ids and not d.is_current]
-    by_frame = {d.frame_id: d for d in dets if d.target == "frame"}
-    stack_det = next((d for d in dets if d.target == "stack"), None)
+    by_frame, stack_det = _engine_pick(
+        [d for d in vp.detections.all() if d.run_id in ids])
+
+    # **엔진마다 검출을 다는 자리가 다르다.** SAM2 는 합성본 한 장에만 달고,
+    # YOLO 는 프레임마다 + 합성본에도 단다. 프레임만 보면 SAM2 묶음은 통째로
+    # 빈 화면이 된다 — 묶음을 고를 수 있게 된 뒤로는 사람이 그 빈 화면을 직접
+    # 누르게 된다.
 
     frames = []
     for f in vp.frames.all():
@@ -1249,28 +1278,43 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
                         + f" · 탈락 {len(d['rejected'])}개"),
         }
 
-    shots = {f["name"]: _shot(f["detection"]) for f in frames if f["detection"]}
-    first = next((f for f in frames if f["detection"]), None)
-    # 개체가 가장 많은 프레임에서 시작한다 — 빈 프레임이 먼저 열리면 검출이
+    stack = (_stack_dict(st, engine_detection(stack_det))
+             if st and stack_det else None)
+    if stack:
+        stack["detkey"] = STACK_KEY
+
+    # 캐러셀이 갈아 끼울 판들. 합성본도 프레임과 같은 자격으로 넣는다.
+    pool = [{"key": f["name"], "rel": f["rel"], "det": f["detection"]}
+            for f in frames if f["detection"]]
+    if stack:
+        pool.append({"key": STACK_KEY, "rel": stack["focused_rel"],
+                     "det": stack["detection"]})
+
+    shots = {p["key"]: _shot(p["det"]) for p in pool}
+    # 개체가 가장 많은 판에서 시작한다 — 빈 프레임이 먼저 열리면 검출이
     # 아무것도 없는 줄 알게 된다.
-    best = max((f for f in frames if f["detection"]),
-               key=lambda f: len(f["detection"]["candidates"]), default=first)
+    best = max(pool, key=lambda p: len(p["det"]["candidates"]), default=None)
     return {
         "slug": slug, "label": slide.name, "id": gid, "tag": vp.tag,
         "run_id": run_id,
         "frames": frames,
-        "stack": (_stack_dict(st, engine_detection(stack_det))
-                  if st and stack_det else None),
+        "stack": stack,
         "base_rel": best["rel"] if best else None,
-        "base_det": best["detection"] if best else None,
-        "base_name": best["name"] if best else None,
+        "base_det": best["det"] if best else None,
+        "base_name": (("합성본" if best["key"] == STACK_KEY else best["key"])
+                      if best else None),
         "shot_dets": shots,
-        "n_objects": sum(len(f["detection"]["candidates"])
-                         for f in frames if f["detection"]),
-        "n_frames_with_det": len(shots),
+        "n_objects": sum(len(p["det"]["candidates"]) for p in pool),
+        "n_frames_with_det": sum(1 for p in pool if p["key"] != STACK_KEY),
+        "has_stack_det": stack is not None,
         "prev_id": ids[pos - 1] if pos > 0 else None,
         "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
     }
+
+
+# 캐러셀에서 합성본을 가리키는 열쇠. 프레임 이름(`Snap-…`)과 겹칠 수 없어야
+# 한다 — 겹치면 프레임을 눌렀는데 합성본 검출이 얹힌다.
+STACK_KEY = "__stack__"
 
 
 def engine_run_ids(run_id: int) -> list[int]:
@@ -1289,19 +1333,70 @@ def engine_run_ids(run_id: int) -> list[int]:
 
 
 def engine_viewpoints(run_id: int) -> list[dict]:
-    """실행(또는 그 묶음)이 건드린 시야 목록. 어디부터 볼지 고르는 화면에 쓴다."""
-    rows = {}
-    for d in (Detection.objects.filter(run_id__in=engine_run_ids(run_id),
-                                       is_current=False)
+    """실행(또는 그 묶음)이 건드린 시야 목록. 어디부터 볼지 고르는 화면에 쓴다.
+
+    수는 `_engine_pick` 으로 고른 것만 센다 — 같은 자리에 쌓인 것을 다 더하면
+    목록이 시야 화면보다 커 보인다.
+    """
+    ids = engine_run_ids(run_id)
+    per = defaultdict(list)
+    for d in (Detection.objects.filter(run_id__in=ids, viewpoint__isnull=False)
               .select_related("viewpoint__slide")
-              .annotate(n=Count("candidates"))):
-        vp = d.viewpoint
-        if vp is None:
+              .annotate(n=Count("candidates", filter=Q(candidates__passed=True)))):
+        per[d.viewpoint].append(d)
+
+    rows = []
+    for vp, dets in per.items():
+        by_frame, stack_det = _engine_pick(dets)
+        picked = list(by_frame.values()) + ([stack_det] if stack_det else [])
+        rows.append({"slug": vp.slide.slug, "label": vp.slide.name,
+                     "idx": vp.idx, "tag": vp.tag,
+                     "n_detections": len(picked),
+                     "n_objects": sum(d.n for d in picked)})
+    return sorted(rows, key=lambda r: (r["slug"], r["idx"]))
+
+
+def batches_for_viewpoint(slug: str, gid: int, run_id: int) -> list[dict]:
+    """이 시야에 쌓여 있는 묶음들. 검출 화면에서 갈아 끼우는 데 쓴다.
+
+    **같은 시야를 보면서 엔진을 바꿀 수 있어야 한다.** 목록으로 나갔다가 다른
+    묶음으로 들어오면 어느 시야를 보고 있었는지 잃는다 — 견주기는 같은 자리를
+    번갈아 보는 일이다.
+
+    주소에는 실행 번호가 들어가지만 화면은 묶음 단위로 다루므로, 각 묶음에서
+    **아무 실행 하나**를 대표로 준다(`engine_run_ids` 가 형제까지 편다).
+
+    칸마다 개체 합계를 함께 준다. 눌러 보기 전에 "여기서는 몇 개를 잡았나" 를
+    견주는 것이 이 화면의 목적이고, 그 수가 묶음을 고르는 근거이기 때문이다.
+    """
+    vp = (Viewpoint.objects.filter(slide__slug=slug, idx=gid)
+          .prefetch_related("detections__run__batch").first())
+    if vp is None:
+        return []
+    here = set(engine_run_ids(run_id))
+
+    per = defaultdict(list)
+    for d in vp.detections.all():
+        if d.run_id is None:
             continue
-        k = (vp.slide.slug, vp.idx)
-        r = rows.setdefault(k, {"slug": vp.slide.slug, "label": vp.slide.name,
-                                "idx": vp.idx, "tag": vp.tag,
-                                "n_detections": 0, "n_objects": 0})
-        r["n_detections"] += 1
-        r["n_objects"] += d.n
-    return [rows[k] for k in sorted(rows)]
+        r = d.run
+        per[("b", r.batch_id) if r.batch_id else ("r", r.pk)].append(d)
+
+    # **화면이 세는 것과 같은 것을 센다.** 화면은 문턱을 통과한 것만 그리므로
+    # 칸이 원시 개수를 보이면 눌러 보고 "아까 그 수가 아닌데" 가 된다. 교정은
+    # 얹지 않는 화면이라 `passed` 하나로 갈린다(`_apply_review`).
+    out = []
+    for key, dets in per.items():
+        by_frame, stack_det = _engine_pick(dets)
+        picked = list(by_frame.values()) + ([stack_det] if stack_det else [])
+        rep = next((d for d in picked if d.run_id in here), picked[0])
+        out.append({
+            "label": (rep.run.batch.label if rep.run.batch_id
+                      else f"실행 #{rep.run_id}"),
+            "backend": (rep.run.params or {}).get("backend", "?"),
+            "run_id": rep.run_id,
+            "on": any(d.run_id in here for d in picked),
+            "n": Candidate.objects.filter(
+                detection__in=picked, passed=True).count(),
+        })
+    return sorted(out, key=lambda g: g["label"])
