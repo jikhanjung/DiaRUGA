@@ -66,30 +66,71 @@ SAM2 는 합성본 한 장에만 달고, YOLO 는 프레임마다 + 합성본에
 지우는 것은 지우는 것이라 `--apply` 는 사본을 뜬 뒤에 돌렸고, `check_db.py` 로
 확인했다.
 
-## DB 를 만지는 문을 하나로 (`dbtool` · `dbrun.sh`)
+## DB 를 만지는 문을 하나로 (`dbtool` · `dbrun.sh` · `dbsync.sh`)
 
 사용자가 겪은 것: **컨테이너 안팎에서 번갈아 DB 작업을 하면 깨지곤 한다.**
 
 원인이 "안/밖" 자체는 아니다 — 어느 쪽이든 같은 ext4 파일이고 SQLite 잠금은
-정상으로 작동한다. 이 저장소가 실제로 당한 것은 둘이다.
+정상으로 작동한다. 이 저장소가 실제로 당한 것은 둘이고, 둘 다 **환경이 두 벌**
+이어서 생겼다.
 
 - **코드 판이 어긋났다.** 컨테이너의 낡은 `models.py` 가 `Site.area` 를 몰라
   NAS 반입이 죽었다 (→ `db_default`)
 - **소유자가 바뀌었다.** root 로 돈 컨테이너가 `diatom.db` 를 가져가 호스트
   스크립트가 못 쓰게 됐다 (→ `user: "1000:1000"`)
 
-둘 다 "환경이 두 벌" 이어서 생긴다. 그러니 문을 하나로 두자는 판단이 맞다.
+### 첫 판은 틀렸다 — 저장소를 `/app` 에 덮어 물렸다
 
-```bash
-deploy/host/dbrun.sh check_db.py
-deploy/host/dbrun.sh backup_db.py --note before-refilter
-deploy/host/dbrun.sh prune_detections.py --apply
+처음에는 저장소를 `/app` 에 물렸다. 새 스크립트를 쓸 때마다 7 GB 이미지를 다시
+굽지 않으려는 뜻이었는데, **그러면 컨테이너가 배포된 코드가 아니라 편집 중인
+작업 트리로 DB 를 만진다.** 막으려던 "환경이 두 벌" 을 이름만 바꿔 다시 만든
+꼴이다. 작업 트리의 `models.py` 가 아직 마이그레이션하지 않은 칼럼을 들고 있으면
+그대로 프로덕션 DB 에 닿는다.
+
+### 고친 판 — `/app` 은 이미지 것, 스크립트만 밖에서
+
+```
+/app                     이미지 안. Django·모델 — 뷰어 컨테이너가 쓰는 그것
+/srv/diatom/scripts      밖에서 물린다. 스크립트 파일뿐 (읽기 전용)
+DIATOM_APP=/app          스크립트가 Django 를 어디서 찾을지
 ```
 
-**저장소를 `/app` 에 덮어 물린다.** 이미지 안의 코드가 아니라 지금 작업 트리를
-돌린다 — 그러지 않으면 스크립트를 하나 쓸 때마다 7 GB 이미지를 다시 구워야
-한다. 파이썬과 라이브러리는 이미지의 것이다. 무거운 파이프라인이 아니라 뷰어
-이미지를 쓴다(torch 가 필요 없다).
+```bash
+deploy/host/dbsync.sh check_db.py     # 저장소 → /srv/diatom/scripts
+deploy/host/dbrun.sh  check_db.py     # 컨테이너 안에서 돈다
+deploy/host/dbsync.sh --list          # 옮겨 둔 것이 저장소와 어긋났는가
+```
+
+**옮겨 놓은 것만 돌아간다.** 저장소에서 고친 것이 곧바로 프로덕션 DB 에 닿지
+않는다 — `docker-compose.yml` 을 `/srv` 로 복사해 쓰는 것과 같은 갈래다.
+저장소는 만들고, `/srv` 는 돌린다. 어긋나면 `dbrun.sh` 가 알리되 막지는 않는다
+(일부러 옛 판을 돌리는 일이 있고, 무엇이 도는지만 알면 된다).
+
+확인:
+
+```
+django    5.2.16 /usr/local/lib/python3.12/site-packages/django/__init__.py
+models    /app/web/viewer/models.py
+DB        /srv/diatom/db/diatom.db
+저장소가 물려 있나: False
+```
+
+**딸려 오는 제약이 하나 있다.** `/app` 은 `IMAGE_TAG` 가 가리키는 판이라, 아직
+배포하지 않은 모델 변경이 필요한 스크립트는 여기서 못 돈다. 조용히 어긋나는
+것보다 낫다 — 그러라고 이렇게 둔 것이다.
+
+### 스크립트가 저장소 밖에서도 Django 를 찾게
+
+부트스트랩이 `Path(__file__).parent / "web"` 이라 스크립트를 옮기면 깨졌다.
+`django.setup()` 을 하는 12개 전부를 고쳤다.
+
+```python
+APP = Path(os.environ.get("DIATOM_APP") or Path(__file__).resolve().parent)
+```
+
+저장소에서 그냥 돌리면 예전과 같다. 덤으로 `verify_db.py` 의 버그가 하나
+드러났다 — 뒤쪽에서 `ROOT / "web"` 을 넣고 있었는데 `ROOT` 는 저장소가 아니라
+`DATA_ROOT`(`/data3/diatom`) 였다.
 
 ## 데이터셋 속성 페이지를 탭으로
 
