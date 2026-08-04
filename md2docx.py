@@ -9,15 +9,23 @@ pandoc 없이 python-docx 만으로 동작한다. 이 저장소의 보고서가 
     문단                    [링크 텍스트](주소)
     - / * / 1. 목록 (중첩)  > 인용
     | 표 | (GFM 파이프)     ``` 코드 블록
-    ---  가로줄
+    ---  가로줄            ![대체글](그림.png)  그림
+    ```mermaid``` 블록은 **그림으로 구워 넣는다** (mmdc 가 있을 때).
+    ASCII 로 그린 그림은 docx 에서 깨진다 — 고정폭 글꼴이라도 한글과 罫線의
+    폭이 맞지 않는다. 그래서 도표는 mermaid 로 쓰고 여기서 굽는다.
 
 사용:
     python md2docx.py docs/보고서.md
     python md2docx.py docs/ -o build/       # 디렉토리 전체
 """
 import argparse
+import hashlib
+import json
+import os
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from docx import Document
@@ -25,7 +33,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Pt, RGBColor
+from docx.shared import Cm, Pt, RGBColor
 
 # 한글이 섞이므로 본문은 한글 글꼴, 코드는 고정폭으로 둔다.
 BODY_FONT = "맑은 고딕"
@@ -38,6 +46,23 @@ RE_FENCE = re.compile(r"^\s*```+\s*(\w*)\s*$")
 RE_LIST = re.compile(r"^(\s*)([-*+]|\d+[.)])\s+(.*)$")
 RE_QUOTE = re.compile(r"^\s*>\s?(.*)$")
 RE_TABLE_SEP = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$")
+RE_IMAGE = re.compile(r"^\s*!\[(?P<alt>[^\]]*)\]\((?P<src>[^)\s]+)\)\s*$")
+
+# A4 세로에서 본문이 쓸 수 있는 폭·높이 (297×210 에서 여백 2.54 cm 씩을 뺀 값보다
+# 조금 작게). 그림이 이보다 크면 줄인다 — 폭만 맞추면 세로로 긴 도표가 페이지를
+# 넘어가 잘린다.
+#
+# **높이를 너무 짜게 잡지 않는다.** 세로로 긴 도표는 높이로 갇히는데, 그러면 폭이
+# 함께 줄어 글자가 작아진다. 21 cm 로 뒀더니 ER 도표 하나가 5.9pt 였다.
+MAX_W_CM, MAX_H_CM = 15.5, 23.5
+
+# mermaid 를 그림으로 굽는다. 없으면 코드 블록으로 떨어진다 — 변환이 실패하는
+# 것보다 낫다. 굽는 데 헤드리스 크롬이 필요해서 어느 장비에나 있지는 않다.
+#
+#   npm i @mermaid-js/mermaid-cli && MMDC=$(pwd)/node_modules/.bin/mmdc python md2docx.py …
+MMDC = os.environ.get("MMDC") or "mmdc"
+# 구운 그림을 두는 곳. 원본이 같으면 다시 굽지 않는다(해시로 가른다).
+ASSET_DIR = os.environ.get("MD2DOCX_ASSETS", "assets")
 
 # 인라인: 코드 -> 링크 -> 굵게 -> 기울임 순으로 잘라 낸다.
 # 코드를 먼저 처리해야 `**` 가 코드 안에 있을 때 굵게로 오인하지 않는다.
@@ -145,6 +170,59 @@ def add_code(doc, lines):
     _shade_paragraph(par, "F4F5F7")
 
 
+def add_image(doc, path: Path, alt: str = ""):
+    """그림 한 장. 폭과 높이 **둘 다** 본문 안에 들어오게 줄인다."""
+    from PIL import Image                                      # noqa: PLC0415
+    with Image.open(path) as im:
+        w_px, h_px = im.size
+    w, h = MAX_W_CM, MAX_W_CM * h_px / w_px
+    if h > MAX_H_CM:
+        h, w = MAX_H_CM, MAX_H_CM * w_px / h_px
+    par = doc.add_paragraph()
+    par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    par.add_run().add_picture(str(path), width=Cm(w), height=Cm(h))
+    if alt:
+        cap = doc.add_paragraph()
+        cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r = cap.add_run(alt)
+        r.font.size = Pt(9)
+        r.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+
+
+def render_mermaid(src: str, base_dir: Path) -> Path | None:
+    """mermaid 원문을 PNG 로. 못 구우면 None 을 낸다.
+
+    **원본이 같으면 다시 굽지 않는다.** 헤드리스 크롬을 띄우는 데 몇 초가 걸려서,
+    문서를 한 줄 고칠 때마다 도표를 전부 다시 구우면 변환이 느려진다.
+    """
+    out_dir = base_dir / ASSET_DIR
+    out = out_dir / f"mermaid-{hashlib.sha1(src.encode()).hexdigest()[:12]}.png"
+    if out.exists():
+        return out
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as td:
+        mmd = Path(td) / "d.mmd"
+        mmd.write_text(src, encoding="utf-8")
+        # 컨테이너·CI 에서는 크롬 샌드박스를 못 쓴다. 우리가 만든 파일만 그리므로
+        # 여기서는 꺼도 된다.
+        cfg = Path(td) / "p.json"
+        cfg.write_text(json.dumps({"args": ["--no-sandbox",
+                                            "--disable-setuid-sandbox",
+                                            "--disable-dev-shm-usage"]}))
+        cmd = [MMDC, "-p", str(cfg), "-i", str(mmd), "-o", str(out),
+               "-b", "white", "-s", "3"]     # -s 3: 인쇄해도 글자가 뭉개지지 않게
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+            print(f"  mermaid 를 못 구웠다 ({e.__class__.__name__}) — 코드로 남긴다",
+                  file=sys.stderr)
+            return None
+        if r.returncode != 0 or not out.exists():
+            print(f"  mermaid 를 못 구웠다: {r.stderr.strip()[:200]}", file=sys.stderr)
+            return None
+    return out
+
+
 def _shade_paragraph(par, hex_color):
     ppr = par._p.get_or_add_pPr()
     shd = OxmlElement("w:shd")
@@ -174,16 +252,33 @@ def convert(md_path: Path, out_path: Path):
     while i < n:
         line = lines[i]
 
-        # 코드 블록
+        # 코드 블록 — mermaid 면 그림으로 굽는다
         m = RE_FENCE.match(line)
         if m:
+            lang = (m.group(1) or "").lower()
             buf = []
             i += 1
             while i < n and not RE_FENCE.match(lines[i]):
                 buf.append(lines[i])
                 i += 1
             i += 1
-            add_code(doc, buf)
+            png = (render_mermaid("\n".join(buf), md_path.parent)
+                   if lang == "mermaid" else None)
+            if png:
+                add_image(doc, png)
+            else:
+                add_code(doc, buf)
+            continue
+
+        # 그림
+        m = RE_IMAGE.match(line)
+        if m:
+            src = (md_path.parent / m.group("src")).resolve()
+            if src.exists():
+                add_image(doc, src, m.group("alt"))
+            else:
+                print(f"  그림이 없다: {m.group('src')}", file=sys.stderr)
+            i += 1
             continue
 
         # 표 — 다음 줄이 구분선이면 표로 본다

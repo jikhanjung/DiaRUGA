@@ -72,26 +72,42 @@ sqlite 백업 API 로 뜨고, 검증을 통과한 뒤에야 제 이름을 준다
 
 ## 2. 전체 그림
 
-```
-Site ──< Core ──< Slide ──< Viewpoint ──< Frame
- 지역      코어     슬라이드    시야         사진
-                      │          │
-                      │          ├── Stack (1:1)          합성본
-                      │          ├── ViewpointReview (1:1) 시야 검토 상태
-                      │          ├── ObjectReview  ────┐   개체 교정 (재생성 불가)
-                      │          └── Detection ──< Candidate
-                      │                 │              ▲
-                      │                 │              └── mask_key 로 느슨히 매인다
-                      └── Run >── RunBatch                  (FK 가 아니다)
+```mermaid
+flowchart LR
+    Site[Site<br/>지역] --> Core[Core<br/>코어] --> Slide[Slide<br/>슬라이드]
+    Slide --> VP[Viewpoint<br/>시야] --> Frame[Frame<br/>사진]
+    VP --> Stack[Stack<br/>합성본 1:1]
+    VP --> Det[Detection<br/>is_current] --> Cand[Candidate<br/>개체]
+    VP --> VR[ViewpointReview<br/>시야 검토 1:1]
+    VP --> OR[ObjectReview<br/>개체 교정]
+    Cand -. "mask_key 로 느슨히" .-> OR
+    Cand -. "cls 문자열" .-> CD[ClassDef<br/>분류 정의]
+    RB[RunBatch<br/>이름표] --> Run[Run<br/>실행]
+    Run -.-> Det
+    Run -.-> Stack
+    Run -.-> VP
+    TS[ThresholdSet<br/>판정 문턱] -.-> Det
+    ST[Setting<br/>key-value]
 
-     ThresholdSet ──> Detection      판정 문턱
-     ClassDef                        분류 정의 (round/rod/…)
-     Setting                         그 밖의 설정 key-value
+    classDef stem fill:#e8f0fe,stroke:#4285f4,stroke-width:2px
+    classDef human fill:#fce8e6,stroke:#ea4335,stroke-width:2px
+    classDef det fill:#e6f4ea,stroke:#34a853
+    classDef side fill:#f8f9fa,stroke:#9aa0a6,color:#5f6368
+    class Site,Core,Slide,VP,Frame stem
+    class OR,VR human
+    class Det,Cand,Stack det
+    class RB,Run,TS,CD,ST side
 ```
+
+**파랑**이 줄기(시료 계통), **초록**이 검출, **빨강**이 사람의 교정, **회색**이
+설정과 이력이다. 실선은 소유(FK — 지우면 따라 지워진다), 점선은 참조이거나 FK 가
+아예 아닌 것이다.
 
 굵은 줄기는 **지역 → 코어 → 슬라이드 → 시야 → 사진**이다. 폴더 이름
-`RS23-GC03 71cm` 를 통짜 문자열로 두지 않고 갈라 담은 결과이고, 그래야 "같은
+`RS23-GC03 71cm` 을 통짜 문자열로 두지 않고 갈라 담은 결과이고, 그래야 "같은
 코어에서 깊이에 따른 군집 변화" 나 "지역별 차이" 를 질의할 수 있다.
+
+관계 하나하나(방향·필수 여부·`on_delete`)는 [ERD 문서](20260804_db-erd.md)에 있다.
 
 ---
 
@@ -345,9 +361,16 @@ INSERT 하면 운영 DB 에만 있고 새로 만든 DB(시험·복구)에는 없
 
 ### `Slide.state`
 
-```
-pending ──> copying ──> processing ──> done
-                            └────────> failed
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> pending : NAS 에서 새 폴더를 봤다
+    pending --> copying : 복사 시작
+    copying --> processing : 파이프라인
+    processing --> done
+    processing --> failed : 그룹핑을 못 믿겠다
+    failed --> processing : 사람이 손보고 다시
+    done --> [*]
 ```
 
 NAS 에서 새 폴더를 발견하면 `pending`, 복사 중 `copying`, 파이프라인이 도는 동안
@@ -359,13 +382,20 @@ NAS 에서 새 폴더를 발견하면 `pending`, 복사 중 `copying`, 파이프
 
 ### `Detection.is_current`
 
+```mermaid
+flowchart TB
+    A["후보 bulk_create<br/>(길다 — 수만 행)"] --> B{"--keep-current ?"}
+    B -- "예: 나란히 쌓아 둔다" --> Z["끝. is_current 는 그대로"]
+    B -- 아니오 --> C["옛 is_current 내리기<br/>새 is_current 올리기<br/>교정 재바인딩 (exact → IoU → orphan)"]
+    C --> Z2[끝]
+
+    classDef tx1 fill:#e8f0fe,stroke:#4285f4
+    classDef tx2 fill:#fef7e0,stroke:#f9ab00,stroke-width:2px
+    class A tx1
+    class C tx2
 ```
-새 검출 저장
-  ├─ 후보 bulk_create              ← 첫 트랜잭션 (길다)
-  └─ 옛 is_current 내리기
-     새 is_current 올리기          ← 두 번째 (짧고 원자적이어야 한다)
-     교정 재바인딩 (exact → IoU → orphan)
-```
+
+**파랑이 첫 트랜잭션, 주황이 두 번째다.**
 
 가운데가 끊기면 뷰어가 "교정이 붙지 않은 새 검출" 을 보여준다. 그래서 그 부분은
 반드시 한 덩어리다. `--keep-current` 를 주면 첫 트랜잭션만 하고 끝낸다 — 다른
