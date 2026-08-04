@@ -1,0 +1,43 @@
+{% comment %}
+  DiaRUGA 표시. 원본은 `docs/assets/logo/diaruga_logo_centric_bold.svg` 다.
+
+  **왜 원본을 그대로 안 쓰는가.** 원본의 워드마크는 `<text font-family="Montserrat">`
+  다. 이 서버에는 Montserrat 이 없고 사내망이라 웹폰트를 받아 올 수도 없다 —
+  그대로 두면 **기기마다 다른 글꼴로 나온다.** 그래서 글자는 SVG 에서 빼고
+  HTML 로 쓴다(`base.html` 의 h1). 여기 남는 것은 규조 마크뿐이다.
+
+  **색은 `currentColor` 다.** 원본은 `#7dd3fc` 로 박혀 있는데, 그러면 밝은
+  테마에서 흰 바탕에 옅은 하늘색이 되어 안 보인다. 부모의 색을 물려받게 두면
+  테마가 알아서 맞춘다.
+
+  파일로 두지 않고 심는 이유: 이 배포에는 정적 파일을 내보내는 길이 없다
+  (`STATIC_ROOT` 도 nginx 의 static 자리도 없다). 1 KB 라 심는 편이 맞다.
+
+  쓰임: {% include "viewer/_logo.html" %}  — 크기는 CSS(.logomark)가 정한다
+{% endcomment %}
+<svg class="logomark" viewBox="-64 -64 128 128" aria-hidden="true" focusable="false"
+     fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">
+  {% comment %}
+    센트릭 규조 — 두 겹 테두리와 방사 늑골 16개. 작게 줄여도 "규조" 로 읽히는
+    것은 이 방사 무늬라 개수를 줄이지 않았다. 대신 원본(3)보다 선을 굵게
+    준다 — 680 폭에 그린 선을 24 px 로 줄이면 사라진다.
+  {% endcomment %}
+  <circle r="58"/>
+  <circle r="44"/>
+  <line x1="0" y1="-58" x2="0" y2="-44"/>
+  <line x1="41" y1="-41" x2="31" y2="-31"/>
+  <line x1="58" y1="0" x2="44" y2="0"/>
+  <line x1="41" y1="41" x2="31" y2="31"/>
+  <line x1="0" y1="58" x2="0" y2="44"/>
+  <line x1="-41" y1="41" x2="-31" y2="31"/>
+  <line x1="-58" y1="0" x2="-44" y2="0"/>
+  <line x1="-41" y1="-41" x2="-31" y2="-31"/>
+  <line x1="20" y1="-54" x2="15" y2="-42"/>
+  <line x1="54" y1="-20" x2="42" y2="-15"/>
+  <line x1="54" y1="20" x2="42" y2="15"/>
+  <line x1="20" y1="54" x2="15" y2="42"/>
+  <line x1="-20" y1="54" x2="-15" y2="42"/>
+  <line x1="-54" y1="20" x2="-42" y2="15"/>
+  <line x1="-54" y1="-20" x2="-42" y2="-15"/>
+  <line x1="-20" y1="-54" x2="-15" y2="-42"/>
+</svg>

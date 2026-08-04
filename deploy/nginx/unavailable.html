@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="10">
-<title>연결할 수 없습니다 — 규조류 뷰어</title>
+<title>연결할 수 없습니다 — DiaRUGA</title>
 <style>
   :root { color-scheme: light dark; }
   body {
@@ -30,10 +30,34 @@
     font-family: ui-monospace, Menlo, monospace; font-size: 12.5px;
     background: #0e0e11; padding: 1px 5px; border-radius: 4px;
   }
+  /* DiaRUGA 표시. Django 템플릿을 못 쓰는 자리라(nginx 가 그냥 파일로 낸다)
+     `viewer/_logo.html` 의 마크를 그대로 옮겨 적었다 — 로고를 고치면 여기도
+     같이 고쳐야 한다. 표기는 `DiaRUGA` 하나뿐이고 대소문자를 뭉개지 않는다. */
+  .brand {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px; color: #5ac8fa;
+  }
+  .brand .logomark { width: 26px; height: 26px; flex: 0 0 auto; display: block; }
+  .brand .wordmark { font-size: 15px; font-weight: 750; letter-spacing: .3px; }
 </style>
 </head>
 <body>
   <div class="box">
+    <div class="brand">
+      <svg class="logomark" viewBox="-64 -64 128 128" aria-hidden="true"
+           fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">
+        <circle r="58"/><circle r="44"/>
+        <line x1="0" y1="-58" x2="0" y2="-44"/><line x1="41" y1="-41" x2="31" y2="-31"/>
+        <line x1="58" y1="0" x2="44" y2="0"/><line x1="41" y1="41" x2="31" y2="31"/>
+        <line x1="0" y1="58" x2="0" y2="44"/><line x1="-41" y1="41" x2="-31" y2="31"/>
+        <line x1="-58" y1="0" x2="-44" y2="0"/><line x1="-41" y1="-41" x2="-31" y2="-31"/>
+        <line x1="20" y1="-54" x2="15" y2="-42"/><line x1="54" y1="-20" x2="42" y2="-15"/>
+        <line x1="54" y1="20" x2="42" y2="15"/><line x1="20" y1="54" x2="15" y2="42"/>
+        <line x1="-20" y1="54" x2="-15" y2="42"/><line x1="-54" y1="20" x2="-42" y2="15"/>
+        <line x1="-54" y1="-20" x2="-42" y2="-15"/><line x1="-20" y1="-54" x2="-15" y2="-42"/>
+      </svg>
+      <span class="wordmark">DiaRUGA</span>
+    </div>
     <h1>뷰어에 연결할 수 없습니다</h1>
     <p>서버는 살아 있는데 뷰어가 응답하지 않습니다.</p>
     <p class="dim">배포 중이라면 잠시 뒤 돌아옵니다 — 이 페이지가 10초마다 다시
