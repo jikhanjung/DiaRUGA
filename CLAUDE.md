@@ -63,8 +63,12 @@ docker compose -f deploy/docker-compose.yml build web
 python check_db.py
 python check_db.py --slide rs23 -v
 
-# 큰 작업 전에는 반드시
+# 큰 작업 전에는 반드시 (시간별 cron 이 따로 돌지만, 이름표가 붙은 지점이 필요하다)
 python backup_db.py --note before-refilter
+
+# 배포한 것이 실제로 사는지 — 판·행 수·안전망까지 본다 (200 은 "떴다" 일 뿐이다)
+/srv/diatom/bin/smoke.sh
+python db_sentinel.py show          # 백업이 세운 무결성 깃발이 있는가
 
 # 문턱만 바꿔 다시 거른다 (SAM2 재실행 없음, 밀리초)
 python refilter.py --dry-run
@@ -108,6 +112,13 @@ P02 6단계가 진행 중이다(`refilter.py` 끝, `focus_stack.py` 다음).
 - **캐시된 dict 를 고치지 말 것.** `detection_for()` 가 후보를 복사한 뒤 교정을
   얹는 이유다 — 원본을 고치면 교정을 되돌려도 옛 상태가 따라붙는다
 - **`cp diatom.db` 금지.** WAL 이라 불완전한 사본이 나온다. `backup_db.py` 를 쓸 것
+- **`/healthz` 의 `degraded` 는 503 이 아니라 200 이다.** 503 으로 바꾸면
+  `deploy.sh` 의 기동 게이트가 200 을 기다리다 **배포가 스스로 멈춘다** —
+  "백업이 깨졌다" 는 신호가 배포를 못 끝내게 만드는 꼴이다. 배포를 세우는 판단은
+  `smoke.sh` 가 `status != ok` 로 한다 (034)
+- **백업 사본은 검증을 통과한 뒤에 제 이름을 받는다.** 뜨는 중에는 `.part` 다.
+  반쯤 쓴 파일이 `diatom_*.db` 라는 이름을 달면 정리 glob 에 걸려 **가장 새
+  파일로 살아남고 멀쩡한 사본을 밀어낸다** (034)
 - **`import_json.py` 를 아무 때나 돌리지 말 것.** 멱등이지만 `Candidate` 를 지우고
   다시 만든다. DB 에서만 한 교정이 있는데 옛 JSON 을 넣으면 JSON 쪽으로 되돌아간다
 - **`verify_db.py` 는 임포트하면 `ImportError` 다.** 본문이 전부 최상위에 있어

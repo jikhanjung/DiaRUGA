@@ -81,14 +81,22 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 
 ## 운영
 
-- [ ] **`sync_backup_nas.py` 를 cron 에** — 지금은 수동이다. NAS 가 `hard`
-      마운트라 cron 에서는 `timeout` 으로 감쌀 것
+- [x] **백업 lane 을 cron 에** — 시간별 `backup_db.py`(:20, `--keep 48`) ·
+      일별 `sync_backup_nas.py`(04:40, `timeout 600`, `--keep 720`). 신선도
+      게이트도 켰다(`DIATOM_BACKUP_MAX_AGE_H=3`) (034)
+- [ ] **손으로 뜬 스냅샷과 시간별 스냅샷을 갈라 두기** — 지금은 같은 이름 규칙으로
+      같은 통에 있어 로테이션이 사람이 고른 복구 지점을 밀어낼 수 있다 (034)
 - [ ] **저장소 `backup/` 정리** — 머신 이전 때 쓴 스냅샷·DB 사본 3.4 GB.
       `/` 가 80% 다 (`/data3` 는 9%)
 - [ ] **배율이 다른 슬라이드를 `state="failed"` 로 세우기** — 지금은 경고만 찍고
       40x 로 계산하고 넘어간다 (devlog 015)
-- [ ] **`/healthz` 가 백업·무결성 상태를 보게** — `.guides` §2 의 sentinel (016)
+- [x] **`/healthz` 가 백업·무결성 상태를 보게** — `db_sentinel.py` 가 DB 옆에
+      깃발을 세우고 `/healthz` 가 `degraded`(200)로 낸다 (034)
 - [ ] **표준 deploy 동사 5개** (preflight/deploy/seed/smoke/rollback) — 016
+  - [x] `deploy` (019) · `smoke` (034)
+  - [ ] `rollback` · `preflight` · `seed`("(none)" 선언)
+- [ ] **`backup_db.py` 를 cron 에** — 그것이 붙어야 `/healthz` 의 신선도 게이트
+      (`DIATOM_BACKUP_MAX_AGE_H`)를 켤 수 있다. 지금은 꺼 둔 채로 넣어 뒀다 (034)
 - [ ] **뷰어 인증** — 80 으로 나오면서 노출 면이 넓어졌다.
       `diatom-subpath.conf` 에 `auth_basic` 을 걸면 된다 (018)
 

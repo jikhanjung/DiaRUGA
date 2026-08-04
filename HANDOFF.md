@@ -348,8 +348,39 @@ python sync_backup_nas.py --keep 30          # 검증된 것만 NAS 로, 수신 
 파일 스냅샷만 소비한다. NAS 가 안 붙었으면 거부한다(`/proc/mounts` 확인). 검증
 실패 시 **정리를 건너뛴다** — 지난 성공 사본이 유일한 안전망일 수 있다.
 
-**아직 cron 에 걸지 않았다.** NAS 가 `hard` 마운트라 cron 에서는 `timeout` 으로
-감쌀 것.
+**cron 에 걸려 있다** (034). 세 track 이 다 있다 — 배포 전 스냅샷(`deploy.sh`, 20개)
+· 시간별 · 일별 오프사이트.
+
+```cron
+20 * * * *  backup_db.py --keep 48                     → logs/backup.log
+40 4 * * *  timeout 600 sync_backup_nas.py --keep 720   → logs/nas-sync.log
+```
+
+**유지 개수는 관계다** (`.guides/web/data-safety.md` §6): `개수 × 주기 ≥ 오프사이트
+간격`. 48 × 1h ≥ 24h (2배 여유 — 손으로 뜬 스냅샷이 NAS 로 건너가기 전에 밀려나지
+않게). NAS 의 720 은 **30일 × 24** 다 — 시간별이 되면서 옛 값 30 은 "30일" 이 아니라
+"30시간" 이 되어 버렸다. **주기를 바꾸면 이 값을 같이 봐야 한다.**
+
+**실패하면 셋을 다 한다** (034). 정리를 건너뛰고, `.corrupt` 로 증거를 남기고,
+DB 옆에 `INTEGRITY_FAIL` 깃발을 세운다. `/healthz` 가 그 깃발을 읽어 `degraded` 를
+내고 `smoke.sh` 가 배포를 세운다 — 로그에만 적으면 읽는 사람이 없는 동안 안전망은
+꺼져 있는 것과 같다.
+
+```bash
+python db_sentinel.py show                   # 지금 선 깃발
+python db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손으로 내린다
+```
+
+### 9.6.1 smoke
+
+```bash
+/srv/diatom/bin/smoke.sh            # .env 의 IMAGE_TAG 를 기대값으로
+/srv/diatom/bin/smoke.sh v0.2.0
+```
+
+`/healthz` 200 · `status=ok` · 판 일치 · **행 수 > 0** · nginx 경유 200 을 본다.
+`deploy.sh` 가 마지막에 부르고, 따로도 돌린다. **200 만으로는 판이 갈렸는지도, 빈
+DB 를 물었는지도 모른다** — 둘 다 형제 프로젝트가 실제로 당한 것이다.
 
 ### 9.7 NAS 자동 수집이 돈다
 
@@ -375,8 +406,9 @@ python sync_backup_nas.py --keep 30          # 검증된 것만 NAS 로, 수신 
 - **뷰어에 인증이 없다.** 80 으로 나오면서 노출 면이 넓어졌다(랜딩 페이지에 카드도
   걸렸다). 필요해지면 `diatom-subpath.conf` 에 `auth_basic` 을 걸면 된다 —
   Django 를 건드릴 필요가 없다
-- 표준 deploy 동사 5개(preflight/deploy/seed/smoke/rollback)가 없다 (016)
-- `/healthz` 가 백업·무결성 상태를 보지 않는다 (016 §2 sentinel)
+- 표준 deploy 동사 5개 중 셋이 없다 — `rollback`·`preflight`·`seed` (016)
+- **034 의 것이 아직 안 떴다.** 뜬 판은 `v0.1.19` 라 `/healthz` 가 평문 `ok` 를
+  낸다. 판을 굽고 올려야 무결성 깃발·`smoke` 가 실제로 돈다
 
 ---
 
