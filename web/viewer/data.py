@@ -33,8 +33,12 @@ def _class_rows():
     global _classes
     if _classes is None:
         _classes = list(ClassDef.objects.filter(active=True)
-                        .values("key", "label", "badge", "color",
-                                "is_taxon", "counted", "sort_order"))
+                        .values("key", "label", "short", "badge", "color",
+                                "hotkey", "is_taxon", "counted", "sort_order"))
+        # 약칭이 비면 전체 이름으로 메운다. **읽는 쪽마다 이 판단을 되풀이하지
+        # 않게 여기서 한 번만 한다** — 한 곳이라도 빠뜨리면 그 화면만 빈칸이 된다.
+        for r in _classes:
+            r["short"] = r["short"] or r["label"]
     return _classes
 
 
@@ -46,9 +50,36 @@ def invalidate_classes():
 
 def class_list() -> list[dict]:
     """분류 목록. 템플릿·클라이언트가 메뉴를 만들 때 쓴다."""
-    return [{"key": r["key"], "label": r["label"], "badge": r["badge"],
-             "color": r["color"], "taxon": r["is_taxon"]}
+    return [{"key": r["key"], "label": r["label"], "short": r["short"],
+             "badge": r["badge"], "color": r["color"], "taxon": r["is_taxon"],
+             "hotkey": r["hotkey"]}
             for r in _class_rows()]
+
+
+def hotkey_groups() -> dict:
+    """단축키 하나가 도는 분류들. 검토 화면의 안내 한 줄이 이것으로 그려진다.
+
+    같은 키를 나눠 가진 분류는 누를 때마다 차례로 돈다(표 순서). 그래서 묶음의
+    첫 분류가 "한 번 누르면 되는 것" 이고 나머지가 "더 누르면 나오는 것" 이다.
+
+    **안내를 손으로 적지 않는 이유.** 분류를 더하면서 안내만 옛 목록으로 남는
+    일이 이미 두 번 있었다(038 의 개수 줄, 목록의 분류 열). 키를 안 준 분류는
+    안내에도 안 나온다 — 그것이 곧 "아직 안 배정했다" 는 표시다.
+    """
+    order, groups = [], {}
+    for r in _class_rows():
+        hot = (r["hotkey"] or "").strip()
+        if not hot:
+            continue
+        if hot not in groups:
+            order.append(hot)
+            groups[hot] = []
+        groups[hot].append({"key": r["key"], "label": r["label"],
+                            "short": r["short"]})
+    rows = [{"hotkey": h, "classes": groups[h]} for h in order]
+    # `cycles` 는 "다시 누르면 넘어간다" 는 설명을 낼지 정한다. 도는 묶음이
+    # 하나도 없으면 그 설명은 가리킬 것이 없다.
+    return {"groups": rows, "cycles": any(len(g["classes"]) > 1 for g in rows)}
 
 
 def counted_classes() -> list[dict]:
@@ -61,7 +92,7 @@ def counted_classes() -> list[dict]:
     목록 표의 **열 머리**도 이 목록으로 만든다 — 슬라이드마다 0인 분류를 빼면
     줄마다 열 수가 달라져 세로로 안 맞는다. 비교하려고 표로 만든 화면이다.
     """
-    return [{"key": r["key"], "label": r["label"]}
+    return [{"key": r["key"], "label": r["label"], "short": r["short"]}
             for r in _class_rows() if r["counted"]]
 
 
@@ -76,6 +107,10 @@ def _labels():
     return _LabelMap((r["key"], r["label"]) for r in _class_rows())
 
 
+def _shorts():
+    return _LabelMap((r["key"], r["short"]) for r in _class_rows())
+
+
 def _badges():
     return _LabelMap((r["key"], r["badge"]) for r in _class_rows())
 
@@ -84,6 +119,8 @@ def __getattr__(name):
     """CLASS_LABELS 같은 모듈 수준 이름을 유지한다(템플릿태그가 그렇게 쓴다)."""
     if name == "CLASS_LABELS":
         return _labels()
+    if name == "CLASS_SHORT":
+        return _shorts()
     if name == "CLASS_BADGE":
         return _badges()
     if name == "CLASSES":
@@ -243,7 +280,7 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
     # 그래서 Chaetoceros 를 표에 넣어도 이 줄에만 안 나왔다. 표가 정하게 바꾼다.
     # 0 인 분류는 뺀다. 여기는 표가 아니라 한 줄이라 자리를 맞출 것이 없고,
     # 짧을수록 읽힌다.
-    order = ([(r["key"], r["label"]) for r in _class_rows()]
+    order = ([(r["key"], r["short"]) for r in _class_rows()]
              + [("manual", "수동"), ("labeled", "사람지정")])
     counts_list = [{"key": k, "label": lb, "n": counts[k]}
                    for k, lb in order if counts.get(k)]

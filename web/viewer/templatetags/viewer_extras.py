@@ -68,6 +68,13 @@ def cls_label(value):
 
 
 @register.filter
+def cls_short(value):
+    """분류 키 -> 약칭. 자리가 좁은 곳에서 쓴다 (없으면 전체 이름)."""
+    from viewer import data
+    return data.CLASS_SHORT.get(value, "")
+
+
+@register.filter
 def cls_badge(value):
     from viewer import data
     return data.CLASS_BADGE.get(value, "")
@@ -78,6 +85,13 @@ def class_list():
     """분류 목록. {% class_list as classes %} 로 받아 쓴다."""
     from viewer import data
     return data.class_list()
+
+
+@register.simple_tag
+def hotkey_groups():
+    """단축키 안내용. {% hotkey_groups as hotkeys %} 로 받아 쓴다."""
+    from viewer import data
+    return data.hotkey_groups()
 
 
 @register.simple_tag

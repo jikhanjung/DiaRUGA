@@ -135,6 +135,20 @@
   드래그 = 범위 선택 · <b>선택 위에서 우클릭 = 오검출 삭제</b> ·
   <b>빈 곳 클릭 = 그 자리의 탈락 후보 펼쳐 보기</b>
 </p>
+{% comment %}
+  단축키 안내. 목록을 여기 적지 않는다 — 분류를 더하면서 안내만 옛 목록으로
+  남는 일이 이미 두 번 있었다. ClassDef 의 hotkey 가 그린다. 키를 안 준 분류는
+  여기 안 나오고, 그것이 곧 "아직 배정 안 했다" 는 표시다.
+  읽기 전용 화면(/engine/)에서는 키가 안 듣는다 — 안내도 내지 않는다.
+{% endcomment %}
+{% hotkey_groups as hk %}
+{% if hk.groups %}
+<p class="dim keyhint" id="keyhint-{{ uid }}" style="font-size:11.5px;margin:2px 2px 0">
+  <b>단축키</b> — 개체를 고르고
+  {% for h in hk.groups %}<kbd>{{ h.hotkey|upper }}</kbd>&nbsp;{% for c in h.classes %}{% if not forloop.first %} → {% endif %}<span title="{{ c.label }}">{{ c.short }}</span>{% endfor %}{% if not forloop.last %} · {% endif %}{% endfor %}{% if hk.cycles %}
+  <span class="dim">(→ 는 같은 키를 다시 누르면 넘어간다는 뜻)</span>{% endif %}
+</p>
+{% endif %}
 </section>
 
 <script type="application/json" id="cand-{{ uid }}">{{ det.candidates|json_dumps }}</script>
@@ -194,14 +208,20 @@
   function num(v, d) { return (v === undefined || v === null) ? '—' : (d ? (+v).toFixed(d) : v); }
   // 분류 정의는 서버(data.CLASS_LABELS)에서 온다 — 양쪽에 적어 두면 어긋난다.
   var CLASS_DEFS = JSON.parse(document.getElementById('cls-' + uid).textContent || '[]');
-  var CLS_KO = {};
-  CLASS_DEFS.forEach(function (d) { CLS_KO[d.key] = d.label; });
+  // 이름이 둘이다. **자리가 좁은 곳은 약칭**(개체 줄·코멘트 목록 — 한 줄에
+  // 번호·분류·장축이 함께 들어간다), **말풍선은 전체 이름**이다. 말풍선은
+  // 자리가 넉넉하고, 거기서까지 줄이면 무엇을 보는지가 흐려진다.
+  var CLS_KO = {}, CLS_FULL = {};
+  CLASS_DEFS.forEach(function (d) {
+    CLS_KO[d.key] = d.short || d.label;
+    CLS_FULL[d.key] = d.label;
+  });
   function clsName(c) { return CLS_KO[c.cls] || '미분류'; }
   function tipHtml(c) {
-    return '<b>#' + c.id + ' · ' + clsName(c) +
+    return '<b>#' + c.id + ' · ' + (CLS_FULL[c.cls] || '미분류') +
       (c.cls_user ? ' · 사람 지정' : '') + (c.manual ? ' · 수동복구' : '') + '</b>' +
       (c.cls_user && c.cls_auto ? '<div class="dim">자동 판정: ' +
-        (CLS_KO[c.cls_auto] || '미분류') + '</div>' : '') +
+        (CLS_FULL[c.cls_auto] || '미분류') + '</div>' : '') +
       (c.note ? '<div style="margin:3px 0;white-space:pre-wrap">📝 ' + c.note + '</div>' : '') +
       (c.reject ? '<div class="dim">탈락사유: ' + c.reject + '</div>' : '') +
       '<table>' +
@@ -907,6 +927,60 @@
     build();
     save();
   }
+
+  // --- 분류 단축키 ----------------------------------------------------------
+  // 개체를 고르고 키를 누르면 그 분류가 된다. 우클릭 메뉴로 같은 일을 할 수
+  // 있지만, 시야 하나에 개체가 수십이라 메뉴를 여닫는 왕복이 곧 검토 속도다.
+  //
+  // **같은 키를 나눠 가진 분류는 누를 때마다 돈다** (원형 → 원형 파편 → 원형).
+  // 손가락을 옮기지 않고 누른 횟수로 온전한 것과 깨진 것을 가른다 — 색을
+  // 그렇게 묶었으니(039) 조작도 같은 모양이어야 한다.
+  //
+  // 키 배정은 ClassDef.hotkey 다. 여기에 목록을 적지 않는다 — 분류를 더하면서
+  // 이 자리만 옛 목록으로 남는 일이 이미 두 번 있었다.
+  var HOTKEYS = {};
+  CLASS_DEFS.forEach(function (d) {
+    var h = (d.hotkey || '').toLowerCase();
+    if (!h) return;
+    (HOTKEYS[h] = HOTKEYS[h] || []).push(d);
+  });
+
+  var keyhint = document.getElementById('keyhint-' + uid);
+  // 읽기 전용 화면(/engine/)에서는 키가 안 듣는다. 안내가 남아 있으면 눌러
+  // 보고 "안 되네" 가 된다 — 있는 기능인 줄 알고 헤매는 쪽이 더 나쁘다.
+  if (keyhint && readOnly) keyhint.hidden = true;
+
+  document.addEventListener('keydown', function (e) {
+    if (readOnly) return;
+    // Ctrl/⌘/Alt 조합은 다른 것들이 쓴다 (Ctrl+Z, Ctrl+화살표)
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    if (window.__diatomActive !== uid) return;
+    if (ask) return;                    // 확인 창이 떠 있으면 그쪽이 먼저다
+    var t = document.activeElement;
+    if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    var ring = HOTKEYS[(e.key || '').toLowerCase()];
+    if (!ring || !ring.length) return;
+
+    // 지운 개체는 뺀다 — 우클릭 메뉴의 live 와 같은 규칙이어야 한다.
+    var live = Array.from(sel).filter(function (i) {
+      return cands[i] && !removed.has(keyOf(cands[i]));
+    });
+    e.preventDefault();
+    if (!live.length) {
+      saveState.textContent = '개체를 먼저 고르세요 (클릭 · 드래그 범위 선택)';
+      return;
+    }
+    // 고른 것이 **전부** 지금 ring[n] 이면 다음 것으로 넘어간다. 섞여 있으면
+    // 처음 것으로 모은다 — 여럿을 고른 채 눌렀을 때 결과가 한 가지여야 한다.
+    var at = -1;
+    for (var n = 0; n < ring.length; n++) {
+      var all = live.every(function (i) { return cands[i].cls === ring[n].key; });
+      if (all) { at = n; break; }
+    }
+    var next = ring[(at + 1) % ring.length];
+    setLabel(live, next.key);
+    saveState.textContent = next.label + ' 로 지정 — ' + live.length + '개';
+  });
 
   // --- 코멘트 ---------------------------------------------------------------
   var notesBox = document.getElementById('notes-' + uid);
@@ -1614,7 +1688,7 @@
   {% for c in det.candidates %}
     <tr>
       <td>{{ c.id }}</td>
-      <td>{% if c.cls %}<span class="badge {{ c.cls|cls_badge }}">{{ c.cls|cls_label }}</span>
+      <td>{% if c.cls %}<span class="badge {{ c.cls|cls_badge }}" title="{{ c.cls|cls_label }}">{{ c.cls|cls_short }}</span>
           {% else %}<span class="dim">—</span>{% endif %}{% if c.cls_user %} <span class="badge">사람</span>{% endif %}{% if c.manual %} <span class="badge warn">수동</span>{% endif %}</td>
       <td style="text-align:left; white-space:pre-wrap; max-width:260px">{{ c.note|default:"" }}</td>
       <td class="mono dim">{{ c.center_xy.0 }}, {{ c.center_xy.1 }}</td>

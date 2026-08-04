@@ -197,6 +197,21 @@ def check_classes(slug=None):
     report("사람이 지정한 분류가 ClassDef 에 있다", len(bad2), len(lab),
            f"정의되지 않은 분류: {list(bad2)}")
 
+    # 분류를 더하면서 단축키를 안 준 것. 예외가 나지 않고 그냥 **그 분류만
+    # 메뉴로만 지정된다** — 시야 하나를 훑는 속도가 분류마다 달라지고, 왜
+    # 느린지는 화면에 안 보인다. 검토 화면의 안내에도 안 나온다.
+    active = list(ClassDef.objects.filter(active=True)
+                  .values("key", "hotkey", "color"))
+    nokey = [c["key"] for c in active if not (c["hotkey"] or "").strip()]
+    report("활성 분류에 단축키가 있다", len(nokey), len(active),
+           f"단축키 없음: {nokey}")
+
+    # 색이 비면 마스크가 투명하게 그려진다 — "지정은 되는데 화면에서 안 보이는"
+    # 상태다. 색이 CSS 에도 있어야 하는 것은 아직 기계로 못 본다(TODO).
+    nocolor = [c["key"] for c in active if not (c["color"] or "").strip()]
+    report("활성 분류에 색이 있다", len(nocolor), len(active),
+           f"색 없음: {nocolor}")
+
 
 # --- 5. 뼈대가 성한가 --------------------------------------------------------
 def check_skeleton(slug=None):

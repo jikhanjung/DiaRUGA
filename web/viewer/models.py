@@ -324,10 +324,29 @@ class ClassDef(models.Model):
 
     표로 두면 분류를 더할 때 배포가 필요 없다 — Eucampia 를 넣은 것이 코드
     수정이었는데, 속은 계속 늘어난다.
+
+    **분류를 더할 때 채울 것.** 하나라도 비면 예외는 안 나고 그 분류만 화면에서
+    조용히 다르게 굴러간다 — Chaetoceros 를 넣으며 실제로 겪은 것들이다(038·040):
+
+        label       전체 이름
+        short       약칭. 자리가 좁은 곳에서 쓴다. 비면 label 을 쓴다
+        badge       배지 CSS 클래스. `base.html` 에 `.badge.<badge>` 규칙이 있어야 한다
+        color       "R,G,B". **`base.html` 의 CSS 도 함께 고쳐야 한다** — 색은
+                    아직 표에서 뿜어내지 않는다. 비면 마스크가 투명해진다
+        hotkey      검토 화면 단축키. 비면 그 분류만 메뉴로만 지정된다
+        counted     개체 수로 세는가 (파편은 False)
+        is_taxon    형태가 아니라 분류학으로 알아본 것인가 (메뉴에서 줄로 갈린다)
+        sort_order  열·메뉴·단축키 순환의 차례
+
+    `check_db.py` 의 "4. 분류" 가 hotkey·color 가 빈 것을 잡는다.
     """
 
     key = models.CharField(max_length=32, unique=True)
     label = models.CharField(max_length=64)
+    # 자리가 좁은 곳에서 쓰는 약칭. 비어 있으면 `label` 을 그대로 쓴다.
+    # 속명은 길다 — `Chaetoceros` 하나가 목록 표의 열 하나를 두 배로 넓힌다.
+    # **뜻이 달라지는 자리에는 쓰지 않는다**: 분류를 고르는 메뉴는 전체 이름이다.
+    short = models.CharField(max_length=16, blank=True)
     badge = models.CharField(max_length=16, blank=True)
     color = models.CharField(max_length=24, blank=True)   # "255,110,190"
     # 형태 칸과 분류학 칸은 성격이 다르다 — 메뉴에서 줄을 그어 나눈다
@@ -337,6 +356,11 @@ class ClassDef(models.Model):
     # 참인 분류만 더한 값이다(미분류는 분류 자체가 없어 애초에 빠진다).
     # 기본값이 True 인 것은 새 속을 넣으면 세는 것이 보통이기 때문이다.
     counted = models.BooleanField(default=True)
+    # 검토 화면의 단축키. **분류를 더할 때 여기도 채운다** — 안 채우면 그 분류만
+    # 메뉴로만 지정할 수 있어, 시야 하나를 훑는 속도가 분류마다 달라진다.
+    # 같은 키를 나눠 가지면 순환한다: q → 원형 → 원형 파편 → 원형 …
+    # 순환 차례는 `sort_order` 다. 화살표·Ctrl+Z·Esc 는 이미 쓰고 있으니 피한다.
+    hotkey = models.CharField(max_length=8, blank=True)
     sort_order = models.IntegerField(default=0)
     active = models.BooleanField(default=True)
 

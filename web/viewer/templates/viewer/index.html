@@ -127,9 +127,9 @@
         뺀다. 열은 ClassDef 가 정하므로 분류를 더해도 여기를 고칠 일이 없고,
         옆에 분류별 칸이 함께 있어 합이 맞는지 그 자리에서 보인다.
       {% endcomment %}
-      <th title="{% for c in count_classes %}{{ c.label }}{% if not forloop.last %}·{% endif %}{% endfor %} 만 셉니다 (파편·미분류 제외)">검출</th>
+      <th title="{% for c in count_classes %}{{ c.label }}{% if not forloop.last %}·{% endif %}{% endfor %}만 셉니다 (파편·미분류 제외)">검출</th>
       <th>시야당</th>
-      {% for c in count_classes %}<th>{{ c.label }}</th>{% endfor %}
+      {% for c in count_classes %}<th title="{{ c.label }}">{{ c.short }}</th>{% endfor %}
       <th class="revcol">검토</th>
       <th></th>
     </tr>
@@ -221,7 +221,7 @@
       {% if d.mean_counted is not None %}
         <div class="stat" title="검출 개체 {{ d.n_detected }}개 중 세는 분류"><b>{{ d.n_counted }}</b><span>검출</span></div>
         <div class="stat"><b>{{ d.mean_counted }}{% if d.detected_groups < d.n_groups %}<span class="dim">*</span>{% endif %}</b><span>시야당</span></div>
-        {% for c in d.counted %}<div class="stat"><b>{{ c.n }}</b><span>{{ c.label }}</span></div>{% endfor %}
+        {% for c in d.counted %}<div class="stat" title="{{ c.label }}"><b>{{ c.n }}</b><span>{{ c.short }}</span></div>{% endfor %}
         <div class="stat"><b>{{ d.reviewed_groups }}<span class="dim" style="font-size:13px">/{{ d.n_groups }}</span></b><span>검토</span></div>
       {% else %}
         <span class="dim nodet">검출 결과 없음</span>
