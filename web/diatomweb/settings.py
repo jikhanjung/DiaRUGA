@@ -171,10 +171,16 @@ BACKUP_DIR = Path(os.environ.get("DIATOM_BACKUP_DIR", PROJECT_ROOT / "backup"))
 
 # 가장 새 스냅샷이 이보다 오래면 degraded (data-safety.md §4 의 신선도 게이트).
 #
-# **기본은 꺼 둔다.** 아직 backup_db.py 가 cron 에 없어서(devlog 009) 사람이
-# 큰 작업 전에 손으로 돌린다 — 켜 두면 늘 울리고, 늘 울리는 경보는 안 보게 된다.
-# 시간별 track 을 cron 에 걸 때 `.env` 에 DIATOM_BACKUP_MAX_AGE_H=26 한 줄이면
-# 켜진다. 그때까지 /healthz 는 나이를 **알려만** 준다.
+# **배포에서는 3 으로 켜져 있다** (cron 이 매시 :20 에 뜬다 — 034). 두 번 연달아
+# 걸러야 울린다. 잡는 것은 둘이다 — 시간별 백업이 멈췄거나, 무결성 게이트가
+# 채택을 막고 있거나. **배포와 무관하게 도는 신호**라 "배포가 뜸하면 탐지도
+# 뜸해지는" 구멍을 메운다.
+#
+# **기본은 꺼 둔다.** cron 이 없는 장비(개발 체크아웃)에서 켜면 늘 울리고,
+# 늘 울리는 경보는 안 보게 된다. 그때 /healthz 는 나이를 **알려만** 준다.
+#
+# 위의 BACKUP_DIR 은 자동 스냅샷만 있는 윗단이다 — 손으로 뜬 것은 manual/ 로
+# 갈라져 있어 여기 안 걸린다. 사람이 뜬 사본이 섞이면 죽은 cron 을 가린다.
 try:
     BACKUP_MAX_AGE_H = float(os.environ.get("DIATOM_BACKUP_MAX_AGE_H", "") or 0) or None
 except ValueError:

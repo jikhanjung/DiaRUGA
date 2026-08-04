@@ -93,8 +93,10 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       켰다(`DIATOM_BACKUP_MAX_AGE_H=3`) (034)
 - [x] **손으로 뜬 스냅샷과 시간별 스냅샷을 갈라 두기** — `backup/manual/` 로
       갈랐다. 로테이션·NAS 대상 밖이다 (034)
-- [ ] **NAS 의 `manual/` 43개를 어떻게 할지** — 정책상 수동은 오프사이트로 안
-      가는데, 정책을 정하기 전에 옮겨 둔 것이 남아 있다 (1.4 GB) (034)
+- [x] **NAS 의 `manual/` 정리** — 지웠다(1.3 GB). 43개가 전부 로컬
+      `backup/manual/` 에 있는 것을 확인한 뒤에. 수동은 오프사이트로 안 간다 (034)
+- [x] **사진도 오프사이트로** — `photos_YYYYMMDD.tar`, 일주일 rolling.
+      압축하지 않는다(JPEG 이라 5%) — 묶는 목적이 파일 하나이지 용량이 아니다 (034)
 - [ ] **저장소 `backup/` 정리** — 머신 이전 때 쓴 스냅샷·DB 사본 3.4 GB.
       `/` 가 80% 다 (`/data3` 는 9%)
 - [ ] **배율이 다른 슬라이드를 `state="failed"` 로 세우기** — 지금은 경고만 찍고
@@ -104,8 +106,9 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 - [ ] **표준 deploy 동사 5개** (preflight/deploy/seed/smoke/rollback) — 016
   - [x] `deploy` (019) · `smoke` (034)
   - [ ] `rollback` · `preflight` · `seed`("(none)" 선언)
-- [ ] **`backup_db.py` 를 cron 에** — 그것이 붙어야 `/healthz` 의 신선도 게이트
-      (`DIATOM_BACKUP_MAX_AGE_H`)를 켤 수 있다. 지금은 꺼 둔 채로 넣어 뒀다 (034)
+- [ ] **계단식 보관의 첫 실삭제를 확인** — NAS 사본이 아직 전부 오늘 것이라
+      지울 것이 없었다. 로직은 가짜 이름 366개로만 봤다(→ 24개). 7일 경계를
+      넘는 **8월 11일** 에 `logs/nas-sync.log` 를 볼 것 (034)
 - [ ] **뷰어 인증** — 80 으로 나오면서 노출 면이 넓어졌다.
       `diatom-subpath.conf` 에 `auth_basic` 을 걸면 된다 (018)
 

@@ -89,6 +89,14 @@ deploy/host/dbrun.sh  refilter.py --round-texture-min 2000
 `db_sentinel.py` · `judge.py` · `batch_runs.py` · `prune_detections.py`.
 없는 것을 부르면 `dbrun.sh` 가 **무엇을 옮기라고 알려 준다.**
 
+**예외가 하나 있다 — 백업 cron 은 호스트 venv 로 돈다.** 규약이 막으려는 두 사고
+(낡은 `models.py` · root 소유자)는 Django 를 거치는 코드에서 났는데,
+`backup_db.py` 는 Django 를 임포트하지 않고 원본을 **읽기 전용**으로 열어
+sqlite3 백업 API 만 쓴다 — 두 벌의 환경이 생기지 않는다. 그리고 이쪽이 더
+중요하다: **시간별 안전망이 Docker 가 성한지에 매달리면 안 된다.** 이미지가
+안 받아지거나 데몬이 죽은 날에 백업까지 같이 멈추는 것이 규약이 지키려던 것보다
+비싸다. 손으로 뜰 때(`--note`)는 규약대로 `dbrun.sh` 로 간다.
+
 ### 뷰어·배포
 
 ```bash

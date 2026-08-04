@@ -29,6 +29,7 @@ import tempfile
 from pathlib import Path
 
 from docx import Document
+from docx.enum.section import WD_ORIENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
@@ -48,13 +49,31 @@ RE_QUOTE = re.compile(r"^\s*>\s?(.*)$")
 RE_TABLE_SEP = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$")
 RE_IMAGE = re.compile(r"^\s*!\[(?P<alt>[^\]]*)\]\((?P<src>[^)\s]+)\)\s*$")
 
-# A4 세로에서 본문이 쓸 수 있는 폭·높이 (297×210 에서 여백 2.54 cm 씩을 뺀 값보다
-# 조금 작게). 그림이 이보다 크면 줄인다 — 폭만 맞추면 세로로 긴 도표가 페이지를
-# 넘어가 잘린다.
+# 용지. ERD 처럼 도표만 있는 문서는 A3 가로로 뽑으면 글자가 세 배로 커진다.
+PAPERS = {"a4": (21.0, 29.7), "a3": (29.7, 42.0), "letter": (21.59, 27.94)}
+MARGIN_CM = 2.0
+
+# 그림이 쓸 수 있는 폭·높이. 용지에서 여백을 빼고, 거기서 조금 더 뺀다.
+# 그림이 이보다 크면 줄인다 — 폭만 맞추면 세로로 긴 도표가 페이지를 넘어가 잘린다.
 #
 # **높이를 너무 짜게 잡지 않는다.** 세로로 긴 도표는 높이로 갇히는데, 그러면 폭이
-# 함께 줄어 글자가 작아진다. 21 cm 로 뒀더니 ER 도표 하나가 5.9pt 였다.
+# 함께 줄어 글자가 작아진다. A4 에서 21 cm 로 뒀더니 ER 도표가 5.9pt 였다.
 MAX_W_CM, MAX_H_CM = 15.5, 23.5
+
+
+def set_paper(doc, paper: str, landscape: bool):
+    """용지를 정하고, 그림이 쓸 수 있는 넓이를 거기 맞춰 다시 잡는다."""
+    global MAX_W_CM, MAX_H_CM
+    w, h = PAPERS[paper.lower()]
+    if landscape:
+        w, h = h, w
+    sec = doc.sections[0]
+    sec.page_width, sec.page_height = Cm(w), Cm(h)
+    sec.orientation = (WD_ORIENT.LANDSCAPE if landscape else WD_ORIENT.PORTRAIT)
+    for side in ("left", "right", "top", "bottom"):
+        setattr(sec, f"{side}_margin", Cm(MARGIN_CM))
+    MAX_W_CM = w - 2 * MARGIN_CM - 0.5
+    MAX_H_CM = h - 2 * MARGIN_CM - 0.5
 
 # mermaid 를 그림으로 굽는다. 없으면 코드 블록으로 떨어진다 — 변환이 실패하는
 # 것보다 낫다. 굽는 데 헤드리스 크롬이 필요해서 어느 장비에나 있지는 않다.
@@ -231,9 +250,10 @@ def _shade_paragraph(par, hex_color):
     ppr.append(shd)
 
 
-def convert(md_path: Path, out_path: Path):
+def convert(md_path: Path, out_path: Path, paper="a4", landscape=False):
     lines = md_path.read_text(encoding="utf-8").splitlines()
     doc = Document()
+    set_paper(doc, paper, landscape)
 
     # 기본 스타일. 한글이 적용되려면 eastAsia 글꼴을 따로 지정해야 한다.
     style = doc.styles["Normal"]
@@ -376,6 +396,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("target", help=".md 파일 또는 디렉토리")
     ap.add_argument("-o", "--out", help="출력 파일 또는 디렉토리 (기본: 원본과 같은 자리)")
+    ap.add_argument("--paper", default="a4", choices=sorted(PAPERS),
+                    help="용지 (기본 a4). 도표만 있는 문서는 a3 가 낫다")
+    ap.add_argument("--landscape", action="store_true", help="가로로")
     args = ap.parse_args()
 
     target = Path(args.target)
@@ -396,7 +419,7 @@ def main():
             dest = out / f.with_suffix(".docx").name
         else:
             dest = f.with_suffix(".docx")
-        convert(f, dest)
+        convert(f, dest, args.paper, args.landscape)
         print(f"{f} -> {dest}  ({dest.stat().st_size // 1024} KB)")
 
 
