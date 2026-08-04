@@ -224,7 +224,14 @@ def main():
         # **자동만 굴린다** (AUTO_GLOB 주석). 손으로 뜬 것은 작업 중에 되돌릴
         # 지점이라, 24시간이 지났다고 로테이션이 걷어 가면 정작 필요할 때 없다.
         # 그것은 일이 끝나고 사람이 지운다.
-        old = sorted(OUT.glob(AUTO_GLOB))[: -args.keep] if args.keep else []
+        #
+        # 다만 `--flat` 은 "이 디렉토리는 이 종류 전용이다" 는 뜻이다(배포 전
+        # 스냅샷의 pre_deploy/). 거기서는 꼬리말이 붙은 것도 굴려야 한다 —
+        # AUTO_GLOB 은 꼬리말 없는 이름만 잡아서 **--keep 을 줘도 아무것도 안
+        # 걷혔고, 배포마다 한 장씩 무한히 쌓였다** (24장까지 갔다).
+        # `.part`·`.corrupt` 는 `.db` 로 끝나지 않아 이 glob 에 안 걸린다.
+        pat = "diatom_*.db" if args.flat else AUTO_GLOB
+        old = sorted(OUT.glob(pat))[: -args.keep] if args.keep else []
         for p in old:
             p.unlink()
         if old:

@@ -351,8 +351,8 @@ python sync_backup_nas.py --keep 30          # 검증된 것만 NAS 로, 수신 
 **cron 에 걸려 있다** (034).
 
 ```cron
-20 * * * *  backup_db.py --keep 24                              → logs/backup.log
-40 4 * * *  timeout 600 sync_backup_nas.py --newest-only --prune → logs/nas-sync.log
+20 * * * *  backup_db.py --keep 24                                       → logs/backup.log
+40 4 * * *  timeout 1800 sync_backup_nas.py --newest-only --prune --photos → logs/nas-sync.log
 ```
 
 **디렉토리가 종류를 가른다.** 이름 규칙으로도 가를 수 있지만 정리 glob 을 한 번
@@ -371,6 +371,18 @@ python sync_backup_nas.py --keep 30          # 검증된 것만 NAS 로, 수신 
 
 **수동 스냅샷은 NAS 로 안 간다.** 작업 중에 되돌릴 지점이지 보관물이 아니라서,
 일이 잘 끝나면 지워도 되는 물건이다. 로테이션도 안 건드리므로 사람이 지운다.
+
+**사진도 같은 일별 실행에서 간다** — `photos_YYYYMMDD.tar`, **일주일 rolling**
+(`/nfs/temp-share/diatom/photos/`). 지금 4.0 GB 에 40초다.
+
+- **압축하지 않는다.** 3.65 GB 가 JPEG 이라 안 줄어든다 — 슬라이드 하나로 재 보니
+  440 MB → 419 MB(5%)이고 그마저 XML 177 MB 몫이다. 묶는 목적은 *파일 하나로* 지
+  용량이 아니다
+- **DB 와 실패를 갈라 둔다.** 사진이 실패해도 `INTEGRITY_FAIL` 깃발은 안 선다.
+  깃발은 "DB 사본을 믿을 수 없다" 는 뜻이고, 사진은 NAS 에 원본이 따로 있다
+- **언제 이 판단이 뒤집히나**: 매일 드는 비용이 전량에 비례한다. 사진이 수십 GB 가
+  되면 가이드 §9 대로 하드링크 스냅샷 트리로 옮길 것. NAS 가 하드링크를 받는 것은
+  확인해 뒀다(rsync 3.2.7 · `--link-dest` 로 같은 inode)
 
 **실패하면 셋을 다 한다** (034). 정리를 건너뛰고, `.corrupt` 로 증거를 남기고,
 DB 옆에 `INTEGRITY_FAIL` 깃발을 세운다. `/healthz` 가 그 깃발을 읽어 `degraded` 를

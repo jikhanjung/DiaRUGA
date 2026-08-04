@@ -25,6 +25,13 @@ x-common: &common
   # 못 쓰게 된다. 교정이 재생성 불가라 이건 양보할 수 없다.
   user: "1000:1000"
   env_file: [.env]
+  environment:
+    # **시간대를 호스트에 맞춘다.** 컨테이너 기본은 UTC 라, 그 안에서 뜬 사본
+    # 이름이 KST 이름과 아홉 시간 어긋난 채 한 디렉토리에 섞인다. 정리 규칙이
+    # 이름순 정렬(`sorted(glob)[:-keep]`)이라 그러면 **가장 새 사본을 지우고
+    # 옛것을 남긴다.** 로그 시각이 호스트와 어긋나는 것도 함께 사라진다.
+    TZ: Asia/Seoul
+
   volumes:
     # DB 가 있는 곳. **파일이 아니라 디렉토리째로** 물린다 — WAL 이 만드는
     # -wal·-shm 형제가 컨테이너 안쪽에 생기면 호스트와 WAL 을 공유하지 못한다.
@@ -96,6 +103,9 @@ services:
     entrypoint: ["python"]
     working_dir: /srv/diatom/scripts
     environment:
+      # `<<: *common` 의 environment 를 통째로 덮으므로 TZ 를 여기 다시 적는다.
+      # 빠뜨리면 이 컨테이너만 UTC 로 돌아 사본 이름이 어긋난다.
+      TZ: Asia/Seoul
       DIATOM_APP: /app
     volumes:
       - /srv/diatom/db:/srv/diatom/db

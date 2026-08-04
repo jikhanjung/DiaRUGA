@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""검증된 DB 스냅샷을 NAS 로 밀어 둔다 (오프사이트 track).
+"""검증된 DB 스냅샷과 사진을 NAS 로 밀어 둔다 (오프사이트 track).
 
-    python sync_backup_nas.py --newest-only --prune   # 일별 cron 이 쓰는 것
-    python sync_backup_nas.py --dry-run --prune       # 보낼 것·지울 것만 보인다
-    python sync_backup_nas.py                         # NAS 에 없는 것을 전부
+    python sync_backup_nas.py --newest-only --prune --photos   # 일별 cron
+    python sync_backup_nas.py --dry-run --prune --photos       # 무엇을 할지만
+    python sync_backup_nas.py                                  # 밀린 DB 사본 전부
+
+두 갈래가 한 스크립트에 있지만 **성격이 다르다.** DB 사본이 깨지면 깃발을 세워
+`/healthz` 까지 알리고, 사진은 종료코드로만 알린다 — 사진은 NAS 에 원본이 따로
+있다(애초에 거기서 받아 온 것이다). 사진 이야기는 `sync_photos` 머리말에 있다.
 
 **하루에 하나만 건너간다** (`--newest-only`). 로컬은 시간별로 뜨지만 오프사이트는
 일별 track 이다 — 시간 단위 복구는 로컬의 24시간 rolling 이 맡고, 이쪽은 가장 오래
@@ -40,8 +44,9 @@
 **cron 에서는 `timeout` 으로 감쌀 것.** NAS 가 `hard` 마운트라 내려가면 접근하는
 프로세스가 무한 대기한다.
 
-    40 4 * * * timeout 600 /home/paleoadmin/venv/diatom/bin/python \
-        /home/paleoadmin/projects/diatom/sync_backup_nas.py --newest-only --prune \
+    40 4 * * * timeout 1800 /home/paleoadmin/venv/diatom/bin/python \
+        /home/paleoadmin/projects/diatom/sync_backup_nas.py \
+        --newest-only --prune --photos \
         >> /data3/diatom/logs/nas-sync.log 2>&1
 """
 import argparse
