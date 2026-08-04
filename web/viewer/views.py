@@ -61,6 +61,9 @@ def index(request):
         "area": area,
         "show_map": show_map,
         "totals": data.datasets_total(rows),
+        # 표의 분류 열. 줄이 아니라 여기서 정한다 — 슬라이드마다 0인 분류를
+        # 빼면 열 수가 달라져 세로로 안 맞는다.
+        "count_classes": data.counted_classes(),
         # 지도는 세 번째 보기 방식이다. 해안선이 10~27 KB 뿐이라 늘 함께 보낸다 —
         # 따로 요청하게 만들면 전환이 즉시 되지 않는다.
         "antmap": (_map_ctx(area["selected"], data.map_points(area["selected"]))

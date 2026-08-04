@@ -34,7 +34,7 @@ def _class_rows():
     if _classes is None:
         _classes = list(ClassDef.objects.filter(active=True)
                         .values("key", "label", "badge", "color",
-                                "is_taxon", "sort_order"))
+                                "is_taxon", "counted", "sort_order"))
     return _classes
 
 
@@ -49,6 +49,20 @@ def class_list() -> list[dict]:
     return [{"key": r["key"], "label": r["label"], "badge": r["badge"],
              "color": r["color"], "taxon": r["is_taxon"]}
             for r in _class_rows()]
+
+
+def counted_classes() -> list[dict]:
+    """개체 수로 세는 분류. 목록 화면의 "검출" 칸이 더하는 것이 이것이다.
+
+    **여기 없는 것은 파편과 미분류다.** 파편은 `ClassDef.counted=False` 로 꺼져
+    있고, 미분류는 분류가 없어 애초에 어느 칸에도 들어가지 않는다. 둘 다 개체
+    하나로 세면 밀도가 부풀기 때문에 뺀다.
+
+    목록 표의 **열 머리**도 이 목록으로 만든다 — 슬라이드마다 0인 분류를 빼면
+    줄마다 열 수가 달라져 세로로 안 맞는다. 비교하려고 표로 만든 화면이다.
+    """
+    return [{"key": r["key"], "label": r["label"]}
+            for r in _class_rows() if r["counted"]]
 
 
 class _LabelMap(dict):
@@ -675,6 +689,10 @@ def _slide_summary(slide: Slide, details: list | None = None) -> dict:
 
     class_counts = [{"key": k, "label": _labels()[k], "n": v}
                     for k, v in per_cls.items() if v]
+    # 세는 분류만 더한 값. 파편·미분류가 빠진다 (counted_classes 머리말).
+    # 0 인 분류도 자리를 남긴다 — 목록 표의 열이 줄마다 같아야 세로로 맞는다.
+    counted = [{**c, "n": per_cls.get(c["key"], 0)} for c in counted_classes()]
+    n_counted = sum(c["n"] for c in counted)
     return {
         "n_groups": n_groups,
         "n_images": n_img,
@@ -685,8 +703,11 @@ def _slide_summary(slide: Slide, details: list | None = None) -> dict:
         "n_auto": n_auto,
         "n_detected": n_detected,
         "mean_detected": (round(n_detected / len(counts), 1) if counts else None),
-        "n_rod": per_cls.get("rod", 0),
-        "n_round": per_cls.get("round", 0),
+        # 목록 화면이 쓰는 값. 시야당도 같은 분자로 낸다 — 분자가 다르면
+        # "검출 ÷ 시야" 가 "시야당" 과 안 맞아 어느 쪽이 틀렸는지 알 수 없다.
+        "n_counted": n_counted,
+        "mean_counted": (round(n_counted / len(counts), 1) if counts else None),
+        "counted": counted,
         "class_counts": class_counts,
         "n_removed": agg["removed"],
         "n_accepted": agg["accepted"],
@@ -777,13 +798,21 @@ def area_tabs(selected: str | None = None) -> dict:
 def datasets_total(rows: list[dict]) -> dict:
     """목록 표의 합계 줄.
 
-    합칠 수 있는 것만 합친다. 평균(`mean_size`·`mean_detected`)은 분모가 슬라이드마다
+    합칠 수 있는 것만 합친다. 평균(`mean_size`·`mean_counted`)은 분모가 슬라이드마다
     달라서 다시 더할 수 없고, 배율은 슬라이드마다 다를 수 있다(devlog 015·017) —
     합계 칸을 비워 두는 편이 그럴듯한 숫자를 놓는 것보다 낫다.
     """
-    keys = ("n_images", "n_groups", "n_detected", "n_rod", "n_round",
+    keys = ("n_images", "n_groups", "n_detected", "n_counted",
             "reviewed_groups")
-    return {k: sum(r.get(k) or 0 for r in rows) for k in keys}
+    total = {k: sum(r.get(k) or 0 for r in rows) for k in keys}
+    # 분류별 합계도 열 순서 그대로 — 표의 열과 하나씩 맞아야 한다.
+    per = {c["key"]: 0 for c in counted_classes()}
+    for r in rows:
+        for c in r.get("counted") or []:
+            if c["key"] in per:
+                per[c["key"]] += c["n"]
+    total["counted"] = [{**c, "n": per[c["key"]]} for c in counted_classes()]
+    return total
 
 
 def _viewpoints_of(slide: Slide):

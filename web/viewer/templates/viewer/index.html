@@ -118,10 +118,14 @@
       <th>시야</th>
       <th>평균 장수</th>
       <th>싱글턴</th>
-      <th>검출</th>
+      {% comment %}
+        "검출" 은 세는 분류만 더한 값이다 — 파편과 미분류는 개체가 아니라서
+        뺀다. 열은 ClassDef 가 정하므로 분류를 더해도 여기를 고칠 일이 없고,
+        옆에 분류별 칸이 함께 있어 합이 맞는지 그 자리에서 보인다.
+      {% endcomment %}
+      <th title="{% for c in count_classes %}{{ c.label }}{% if not forloop.last %}·{% endif %}{% endfor %} 만 셉니다 (파편·미분류 제외)">검출</th>
       <th>시야당</th>
-      <th>봉상</th>
-      <th>원형</th>
+      {% for c in count_classes %}<th>{{ c.label }}</th>{% endfor %}
       <th class="revcol">검토</th>
       <th></th>
     </tr>
@@ -146,19 +150,18 @@
       <td>{{ d.n_groups }}</td>
       <td>{{ d.mean_size }}</td>
       <td>{{ d.singletons }}</td>
-      {% if d.mean_detected is not None %}
-        <td>{{ d.n_detected }}</td>
+      {% if d.mean_counted is not None %}
+        <td title="검출 개체 {{ d.n_detected }}개 중 세는 분류">{{ d.n_counted }}</td>
         {% comment %}
           검출이 시야 전부에 돌지 않았으면 평균의 분모가 다르다. 숫자만 놓으면
           같은 뜻으로 읽히므로 그 자리에서 표시한다.
         {% endcomment %}
         <td{% if d.detected_groups < d.n_groups %} class="partial" title="{{ d.n_groups }}개 시야 중 {{ d.detected_groups }}개만 검출됨 — 평균은 그 시야들 기준"{% endif %}>
-          {{ d.mean_detected }}{% if d.detected_groups < d.n_groups %}<span class="dim">*</span>{% endif %}
+          {{ d.mean_counted }}{% if d.detected_groups < d.n_groups %}<span class="dim">*</span>{% endif %}
         </td>
-        <td>{{ d.n_rod }}</td>
-        <td>{{ d.n_round }}</td>
+        {% for c in d.counted %}<td>{{ c.n }}</td>{% endfor %}
       {% else %}
-        <td colspan="4" class="dim nodet">검출 결과 없음</td>
+        <td colspan="{{ count_classes|length|add:2 }}" class="dim nodet">검출 결과 없음</td>
       {% endif %}
       <td class="revcol">
         <div class="revnum">{{ d.reviewed_groups }}<span class="dim">/{{ d.n_groups }}</span></div>
@@ -175,10 +178,9 @@
       <td>{{ totals.n_images }}</td>
       <td>{{ totals.n_groups }}</td>
       <td colspan="2"></td>
-      <td>{{ totals.n_detected }}</td>
+      <td>{{ totals.n_counted }}</td>
       <td></td>
-      <td>{{ totals.n_rod }}</td>
-      <td>{{ totals.n_round }}</td>
+      {% for c in totals.counted %}<td>{{ c.n }}</td>{% endfor %}
       <td class="revcol">
         <div class="revnum">{{ totals.reviewed_groups }}<span class="dim">/{{ totals.n_groups }}</span></div>
         <div class="bar"><i style="width:{% widthratio totals.reviewed_groups totals.n_groups 100 %}%"></i></div>
@@ -214,17 +216,16 @@
       <div class="stat"><b>{{ d.singletons }}</b><span>싱글턴</span></div>
     </div>
     <div class="stat-row cardstats2">
-      {% if d.mean_detected is not None %}
-        <div class="stat"><b>{{ d.n_detected }}</b><span>검출</span></div>
-        <div class="stat"><b>{{ d.mean_detected }}{% if d.detected_groups < d.n_groups %}<span class="dim">*</span>{% endif %}</b><span>시야당</span></div>
-        <div class="stat"><b>{{ d.n_rod }}</b><span>봉상</span></div>
-        <div class="stat"><b>{{ d.n_round }}</b><span>원형</span></div>
+      {% if d.mean_counted is not None %}
+        <div class="stat" title="검출 개체 {{ d.n_detected }}개 중 세는 분류"><b>{{ d.n_counted }}</b><span>검출</span></div>
+        <div class="stat"><b>{{ d.mean_counted }}{% if d.detected_groups < d.n_groups %}<span class="dim">*</span>{% endif %}</b><span>시야당</span></div>
+        {% for c in d.counted %}<div class="stat"><b>{{ c.n }}</b><span>{{ c.label }}</span></div>{% endfor %}
         <div class="stat"><b>{{ d.reviewed_groups }}<span class="dim" style="font-size:13px">/{{ d.n_groups }}</span></b><span>검토</span></div>
       {% else %}
         <span class="dim nodet">검출 결과 없음</span>
       {% endif %}
     </div>
-    {% if d.mean_detected is not None and d.detected_groups < d.n_groups %}
+    {% if d.mean_counted is not None and d.detected_groups < d.n_groups %}
       <div class="dsnote">{{ d.n_groups }}개 시야 중 {{ d.detected_groups }}개만 검출됨 — 시야당은 그 시야들 기준</div>
     {% endif %}
   </div>

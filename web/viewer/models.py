@@ -332,6 +332,11 @@ class ClassDef(models.Model):
     color = models.CharField(max_length=24, blank=True)   # "255,110,190"
     # 형태 칸과 분류학 칸은 성격이 다르다 — 메뉴에서 줄을 그어 나눈다
     is_taxon = models.BooleanField(default=False)
+    # 개체 수로 세는가. 파편은 개체가 아니다 — 깨진 조각 하나를 규조 한 개로
+    # 세면 밀도가 부풀고, 그 숫자가 보고서에 실린다. 목록의 "검출" 칸은 이것이
+    # 참인 분류만 더한 값이다(미분류는 분류 자체가 없어 애초에 빠진다).
+    # 기본값이 True 인 것은 새 속을 넣으면 세는 것이 보통이기 때문이다.
+    counted = models.BooleanField(default=True)
     sort_order = models.IntegerField(default=0)
     active = models.BooleanField(default=True)
 
