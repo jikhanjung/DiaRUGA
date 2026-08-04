@@ -33,6 +33,10 @@ LOG_DIR=/data3/diatom/logs
 LOCK=/tmp/diatom-poll.lock
 STABLE_MIN="${STABLE_MIN:-5}"   # 이만큼(분) 폴더가 안 변해야 가져온다
 PPB="${PPB:-16}"                # points-per-batch — 이 장비(3060 Ti 8 GB) 기준
+# 자동 처리한 검출을 묶는 이름표. 폴러는 슬라이드를 하나씩 처리하므로 "전체를
+# 한 번 훑었다" 가 실행 여럿으로 흩어진다 — 같은 이름을 계속 주면 한 덩어리로
+# 남는다(devlog 028). 이름을 바꾸면 그 시점부터 새 묶음이 생긴다.
+DETECT_BATCH="${DETECT_BATCH:-sam2-전수}"
 # NAS 가 hard 마운트라 내려가면 무한 대기한다. 단계마다 상한을 건다.
 T_SCAN=600                      # 10분
 T_INGEST=3600                   # 1시간 — 슬라이드 하나가 1.4 GB 다
@@ -121,7 +125,9 @@ echo "$TODO" | while IFS=$'\t' read -r slug state image_dir; do
     fi
     if ! run "$T_PIPE" python segment_diatoms.py --slide "$slug" \
             --scale 1.0 --points-per-side 48 --points-per-batch "$PPB" \
-            --min-um 10 --max-um 150 >>"$LOG" 2>&1; then
+            --min-um 10 --max-um 150 --batch "$DETECT_BATCH" \
+            --batch-note "SAM2.1 로 슬라이드 전체를 처리한 묶음. 폴러가 자동으로 붙인다 — 새 슬라이드가 들어올 때마다 여기 쌓인다." \
+            >>"$LOG" 2>&1; then
         say "$slug: 검출 실패"
         continue
     fi
