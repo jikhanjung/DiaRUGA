@@ -136,6 +136,11 @@ class YoloGenerator:
         self.device = 0 if device == "cuda" else "cpu"
         self.conf, self.imgsz, self.iou = conf, imgsz, iou
 
+    # 마스크를 잘라 올 때 상자 둘레에 두는 여유(화소). 마스크는 상자보다 조금
+    # 넘칠 수 있다 — 상자와 마스크가 따로 예측되기 때문이다. 넉넉히 잡고,
+    # 그래도 잘린 낌새가 보이면 전체로 물러난다.
+    PAD = 24
+
     def generate(self, arr):
         r = self.model.predict(arr, imgsz=self.imgsz, conf=self.conf,
                                iou=self.iou, device=self.device,
@@ -145,18 +150,50 @@ class YoloGenerator:
         h, w = arr.shape[:2]
         out = []
         confs = r.boxes.conf.tolist()
-        for i, m in enumerate(r.masks.data.cpu().numpy()):
-            # retina_masks=True 면 원본 크기지만, 확인 없이 믿지 않는다
-            if m.shape != (h, w):
-                m = cv2.resize(m.astype(np.float32), (w, h),
+        # **상자만큼만 CPU 로 가져온다.** 마스크는 (N, 2208, 2752) 로 오는데
+        # 개체는 그 안의 한 조각이다. 통째로 numpy 로 옮겨 `> 0.5`·`nonzero` 를
+        # 하면 개체마다 6백만 화소를 세 번 훑는다 — 실측 15 ms/개체였다.
+        boxes = r.boxes.xyxy.round().to(int).tolist()
+        data = r.masks.data
+        for i in range(len(data)):
+            bx0, by0, bx1, by1 = boxes[i]
+            cx0, cy0 = max(0, bx0 - self.PAD), max(0, by0 - self.PAD)
+            cx1, cy1 = min(w - 1, bx1 + self.PAD), min(h - 1, by1 + self.PAD)
+            mt = data[i]
+            if mt.shape != (h, w):
+                # retina_masks=True 면 원본 크기지만, 확인 없이 믿지 않는다
+                m = cv2.resize(mt.cpu().numpy().astype(np.float32), (w, h),
                                interpolation=cv2.INTER_NEAREST)
-            seg = m > 0.5
-            area = int(seg.sum())
+                sub = m[cy0:cy1 + 1, cx0:cx1 + 1] > 0.5
+            else:
+                sub = (mt[cy0:cy1 + 1, cx0:cx1 + 1] > 0.5).cpu().numpy()
+            if not sub.any():
+                continue
+            sy, sx = np.nonzero(sub)
+            # 잘린 창의 테두리에 닿으면 마스크가 더 뻗어 있을 수 있다.
+            # 그때만 전체를 본다 — 답이 달라지면 안 되므로 물러나는 쪽을 고른다.
+            touches = (sx.min() == 0 or sy.min() == 0
+                       or sx.max() == sub.shape[1] - 1
+                       or sy.max() == sub.shape[0] - 1)
+            if touches and (cx0 > 0 or cy0 > 0 or cx1 < w - 1 or cy1 < h - 1):
+                m = (mt.cpu().numpy() if mt.shape == (h, w)
+                     else cv2.resize(mt.cpu().numpy().astype(np.float32), (w, h),
+                                     interpolation=cv2.INTER_NEAREST))
+                seg = m > 0.5
+                ys, xs = np.nonzero(seg)
+                if len(xs) == 0:
+                    continue
+                x0, x1 = int(xs.min()), int(xs.max())
+                y0, y1 = int(ys.min()), int(ys.max())
+                area = int(seg.sum())
+            else:
+                seg = np.zeros((h, w), dtype=bool)
+                seg[cy0:cy1 + 1, cx0:cx1 + 1] = sub
+                x0, x1 = int(sx.min()) + cx0, int(sx.max()) + cx0
+                y0, y1 = int(sy.min()) + cy0, int(sy.max()) + cy0
+                area = int(sub.sum())
             if area == 0:
                 continue
-            ys, xs = np.nonzero(seg)
-            x0, x1 = int(xs.min()), int(xs.max())
-            y0, y1 = int(ys.min()), int(ys.max())
             c = round(float(confs[i]), 4)
             out.append({
                 "segmentation": seg,
@@ -315,7 +352,7 @@ def texture_score(gray, seg, bbox, um_per_px):
     return float(vals.max() / med)
 
 
-def largest_body(seg):
+def largest_body(seg, bbox=None):
     """마스크에서 **가장 큰 연결 성분 하나만** 남긴다.
 
     후처리를 껐으므로(`apply_postprocessing=False`, `min_mask_region_area=0`)
@@ -332,16 +369,44 @@ def largest_body(seg):
 
     여기서 본체만 남기면 두 갈래가 같은 것을 보게 된다.
 
+    `bbox` 를 주면 그 안에서만 찾는다. 안 주면 마스크를 훑어 찾는데, **그 훑기가
+    아끼려던 비용만큼 든다** — 부르는 쪽은 이미 bbox 를 갖고 있다.
+
     돌려주는 값: (본체 마스크, (x,y,w,h), 면적, 성분 수). 빈 마스크면 None.
     """
-    n, labels, stats, _ = cv2.connectedComponentsWithStats(
-        seg.astype(np.uint8), connectivity=8)
+    # **개체가 있는 자리에서만 찾는다.** 마스크는 이미지 전체 크기(2752×2208,
+    # 6백만 화소)로 오는데 개체는 그 안의 0.3% 다. 전체에서 연결 성분을 찾으면
+    # 개체당 수십 ms 가 든다 — 실측으로 지표 계산 37 ms/개체의 대부분이 여기였다.
+    #
+    # 잘라도 답은 같다. 연결 성분은 **국소적**이라 bbox 밖의 배경이 결과에
+    # 영향을 주지 않는다. 다만 돌려주는 마스크는 **전체 좌표**여야 한다 —
+    # 부르는 쪽이 `seg[y:y+h, x:x+w]` 처럼 이미지 좌표로 자른다.
+    if bbox is not None:
+        bx, by, bw, bh = (int(v) for v in bbox)
+        x0, y0 = max(0, bx), max(0, by)
+        x1 = min(seg.shape[1] - 1, bx + bw - 1)
+        y1 = min(seg.shape[0] - 1, by + bh - 1)
+        if x1 < x0 or y1 < y0:
+            return None
+    else:
+        # bbox 를 안 주면 여기서 찾는데, **그 훑기가 아끼려던 비용만큼 든다.**
+        # 실측으로 이 한 줄이 개체당 35 ms 였다 — 부르는 쪽은 이미 갖고 있다.
+        ys, xs = np.nonzero(seg)
+        if len(xs) == 0:
+            return None
+        x0, x1 = int(xs.min()), int(xs.max())
+        y0, y1 = int(ys.min()), int(ys.max())
+    sub = np.ascontiguousarray(seg[y0:y1 + 1, x0:x1 + 1].astype(np.uint8))
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(sub, connectivity=8)
     if n <= 1:                      # 0 번은 배경이다
         return None
     idx = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
-    box = (int(stats[idx, cv2.CC_STAT_LEFT]), int(stats[idx, cv2.CC_STAT_TOP]),
+    box = (int(stats[idx, cv2.CC_STAT_LEFT]) + x0,
+           int(stats[idx, cv2.CC_STAT_TOP]) + y0,
            int(stats[idx, cv2.CC_STAT_WIDTH]), int(stats[idx, cv2.CC_STAT_HEIGHT]))
-    return labels == idx, box, int(stats[idx, cv2.CC_STAT_AREA]), n - 1
+    body = np.zeros(seg.shape, dtype=bool)
+    body[y0:y1 + 1, x0:x1 + 1] = (labels == idx)
+    return body, box, int(stats[idx, cv2.CC_STAT_AREA]), n - 1
 
 
 def masks_to_records(masks, um_per_px=DEFAULT_UM_PER_PIXEL, gray=None,
@@ -361,7 +426,8 @@ def masks_to_records(masks, um_per_px=DEFAULT_UM_PER_PIXEL, gray=None,
         seg = m["segmentation"]
 
         if keep_largest_body:
-            body = largest_body(seg)
+            # bbox 를 넘겨 준다 — 안 주면 마스크를 다시 훑는다
+            body = largest_body(seg, (x, y, w, h))
             if body is None:
                 continue                       # 빈 마스크
             seg, (x, y, w, h), area_px, n_bodies = body
