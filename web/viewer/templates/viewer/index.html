@@ -117,7 +117,11 @@
       <th>사진</th>
       <th>시야</th>
       <th>평균 장수</th>
-      <th>싱글턴</th>
+      {% comment %}
+        싱글턴은 뺐다. 초점 시리즈가 덜 찍혔는가는 촬영을 손볼 때 보는 값이지
+        슬라이드끼리 견줄 값이 아니다 — 상세 화면에 남아 있고, 10개가 넘으면
+        거기서 경고까지 뜬다. 표에서는 그 자리를 분류 칸에 내준다.
+      {% endcomment %}
       {% comment %}
         "검출" 은 세는 분류만 더한 값이다 — 파편과 미분류는 개체가 아니라서
         뺀다. 열은 ClassDef 가 정하므로 분류를 더해도 여기를 고칠 일이 없고,
@@ -149,7 +153,6 @@
       <td>{{ d.n_images }}</td>
       <td>{{ d.n_groups }}</td>
       <td>{{ d.mean_size }}</td>
-      <td>{{ d.singletons }}</td>
       {% if d.mean_counted is not None %}
         <td title="검출 개체 {{ d.n_detected }}개 중 세는 분류">{{ d.n_counted }}</td>
         {% comment %}
@@ -177,7 +180,7 @@
       <td colspan="3"></td>
       <td>{{ totals.n_images }}</td>
       <td>{{ totals.n_groups }}</td>
-      <td colspan="2"></td>
+      <td></td>
       <td>{{ totals.n_counted }}</td>
       <td></td>
       {% for c in totals.counted %}<td>{{ c.n }}</td>{% endfor %}
@@ -213,7 +216,6 @@
       <div class="stat"><b>{{ d.n_images }}</b><span>사진</span></div>
       <div class="stat"><b>{{ d.n_groups }}</b><span>시야</span></div>
       <div class="stat"><b>{{ d.mean_size }}</b><span>평균 장수</span></div>
-      <div class="stat"><b>{{ d.singletons }}</b><span>싱글턴</span></div>
     </div>
     <div class="stat-row cardstats2">
       {% if d.mean_counted is not None %}
