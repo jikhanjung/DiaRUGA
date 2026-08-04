@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """검증된 DB 스냅샷을 NAS 로 밀어 둔다 (오프사이트 track).
 
-    python sync_backup_nas.py                  # 새 스냅샷만
+    python sync_backup_nas.py                   # NAS 에 없는 것을 전부
+    python sync_backup_nas.py --newest-only     # 가장 새 것 하나만 (일별 cron)
     python sync_backup_nas.py --keep 30         # NAS 사본을 30개로 유지
     python sync_backup_nas.py --dry-run
+
+**하루에 하나만 건너간다** (cron 은 `--newest-only`). 로컬은 시간별로 뜨지만
+오프사이트는 일별 track 이다 — 시간 단위 복구는 로컬이 맡고 이쪽은 가장 오래 남는
+사본을 든다. 밀린 것을 다 보내면 `--keep` 이 개수 기준이라 보존 **기간**이 짧아진다:
+시간별 스냅샷이 그대로 올라가면 30개가 30일이 아니라 30시간이 된다.
+
+손으로 뜬 `--note` 스냅샷을 오프사이트에 남기려면 그때 **손으로 한 번 돌린다**
+(플래그 없이 부르면 밀린 것을 전부 보낸다). 일별 cron 은 그것을 기다려 주지 않는다.
 
 **왜 필요한가.** 이 장비는 개발·운영·백업을 겸한다. `backup_db.py` 의 사본은
 전부 `/data3` 안이라 디스크 한 장이 죽으면 사람의 교정 2,400여 건이 같이 간다
@@ -30,9 +39,9 @@
 **cron 에서는 `timeout` 으로 감쌀 것.** NAS 가 `hard` 마운트라 내려가면 접근하는
 프로세스가 무한 대기한다.
 
-    0 4 * * * timeout 600 /home/paleoadmin/venv/diatom/bin/python \
-        /home/paleoadmin/projects/diatom/sync_backup_nas.py --keep 30 \
-        >> /data3/diatom/backup/nas-sync.log 2>&1
+    40 4 * * * timeout 600 /home/paleoadmin/venv/diatom/bin/python \
+        /home/paleoadmin/projects/diatom/sync_backup_nas.py --newest-only --keep 30 \
+        >> /data3/diatom/logs/nas-sync.log 2>&1
 """
 import argparse
 import os
@@ -131,10 +140,15 @@ def main():
                                           "/nfs/temp-share/diatom/backup"))
     # 유지 개수는 조율한 숫자가 아니라 관계다 (data-safety.md §6):
     #   로컬 유지 개수 x 주기 >= 오프사이트 간격.
-    # 지금은 오프사이트가 하루 간격이므로 30 이면 한 달치가 남는다.
-    # 값을 늘리는 것은 무손실이다 — 늘려도 지워지는 것이 없다.
+    # 오프사이트가 하루 간격이고 --newest-only 로 **하루 하나**가 건너가므로,
+    # 30 은 곧 30일이다. 값을 늘리는 것은 무손실이다 — 늘려도 지워지는 것이 없다.
+    #
+    # **--newest-only 를 빼면 이 값의 뜻이 바뀐다.** 시간별 스냅샷이 그대로
+    # 올라가므로 30 이 30일이 아니라 30시간이 된다.
     ap.add_argument("--keep", type=int, default=0,
                     help="NAS 사본을 최근 N개로 (0 이면 안 지운다)")
+    ap.add_argument("--newest-only", action="store_true",
+                    help="가장 새 스냅샷 하나만 보낸다 (일별 cron 이 쓴다)")
     ap.add_argument("--stale-hours", type=float, default=26.0,
                     help="가장 새 로컬 스냅샷이 이보다 오래면 경고 (0 이면 끔)")
     ap.add_argument("--dry-run", action="store_true")
@@ -166,7 +180,20 @@ def main():
         nas.mkdir(parents=True, exist_ok=True)
 
     have = {p.name for p in nas.glob("diatom_*.db")} if nas.is_dir() else set()
-    todo = [p for p in snaps if p.name not in have]
+
+    if args.newest_only:
+        # **하루에 하나만 건너간다.** 로컬은 시간별로 뜨지만 오프사이트는 일별
+        # track 이다 — 시간 단위 복구는 로컬이 맡고, 이쪽은 가장 오래 남는 사본을
+        # 든다(data-safety.md §1 의 세 갈래).
+        #
+        # 밀린 것을 따라잡지 않는 것이 요점이다. 다 보내면 NAS 의 --keep 이 개수
+        # 기준이라 보존 기간이 그만큼 짧아진다 — 30개가 30일이 아니라 30시간이 된다.
+        #
+        # 가장 새 것이 이미 가 있으면 할 일이 없다. **더 옛것으로 물러서지
+        # 않는다** — 그러면 매번 하나씩 옛 사본을 실어 나르게 된다.
+        todo = [] if snaps[-1].name in have else [snaps[-1]]
+    else:
+        todo = [p for p in snaps if p.name not in have]
 
     if not todo:
         print(f"NAS 가 최신이다 — 사본 {len(have)}개 ({nas})")

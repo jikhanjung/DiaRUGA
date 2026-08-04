@@ -24,6 +24,7 @@ DB 로 옮기면서 달라진 것 (P02 6단계):
 import argparse
 import contextlib
 import fcntl
+import gc
 import json
 import math
 import os
@@ -1111,18 +1112,42 @@ def main():
     stack_ctx.enter_context(gpu)
     gen = load_generator(args.backend, device, args)
     scale_log = ScaleLog()
-    n_det = n_cand = n_oom = 0
+    n_det = n_cand = n_oom = n_oom_retry = 0
     bind = Counter()
     missing = []
     touched = set()
     try:
         for f in files:
+            payload = oom_first = None
             try:
                 payload = process(f, gen, args, out_dir, scale_log)
             except torch.cuda.OutOfMemoryError:
+                oom_first = True
+
+            # **재시도는 `except` 블록 밖에서 한다.** 그 안에서는 파이썬이
+            # 역추적을 쥐고 있고, 역추적은 실패한 호출의 지역변수를 —— 즉 방금
+            # 자리를 못 찾은 **그 큰 GPU 텐서들을** —— 살려 둔다. 참조가 남아
+            # 있으면 `empty_cache()` 가 아무것도 못 비운다.
+            #
+            # 실제로 그래서 재시도가 소용없었다: 다시 시도할 때 남은 자리가
+            # 0.9 GB 였는데 필요한 것은 2.4 GB 였다. 혼자 돌리면 6.05 GiB 로
+            # 들어가는 프레임인데도 그랬다.
+            if oom_first:
+                gc.collect()
+                torch.cuda.empty_cache()
+                try:
+                    payload = process(f, gen, args, out_dir, scale_log)
+                    n_oom_retry += 1
+                    print(f"  OOM 뒤 비우고 다시 해서 성공: {f.name}", file=sys.stderr)
+                except torch.cuda.OutOfMemoryError:
+                    payload = None
+            if payload is None:
                 # 조용히 넘기면 "검출 0개 · done" 으로 끝나 성공처럼 보인다
-                print(f"OOM on {f.name} — --points-per-batch 를 낮추세요 "
+                print(f"OOM on {f.name} (다시 해도 실패) — YOLO 면 검출이 너무 "
+                      f"많아 retina 마스크가 다 안 들어간다. SAM2 면 "
+                      f"--points-per-batch 를 낮추세요 "
                       f"(지금 {args.points_per_batch})", file=sys.stderr)
+                gc.collect()
                 torch.cuda.empty_cache()
                 n_oom += 1
                 continue
@@ -1165,6 +1190,7 @@ def main():
         run.finished_at = timezone.now()
         run.counts = {"detections": n_det, "candidates": n_cand,
                       "missing_viewpoint": len(missing), "oom": n_oom,
+                      "oom_retry_ok": n_oom_retry,
                       **dict(bind)}
         # 전부 OOM 으로 죽었는데 done 으로 남으면 성공한 줄 안다
         # **하나라도 건너뛰었으면 done 이 아니다.** 예전에는 검출이 하나라도
