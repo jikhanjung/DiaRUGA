@@ -30,7 +30,7 @@
           data-view="{% thumb f.rel 1600 %}"
           data-full="{% full f.rel %}"
           data-title="{{ f.name }}"
-          data-note="선명도 {{ f.sharpness }}{% if f.is_sharpest %} · 그룹 내 최선{% endif %}"
+          data-note="선명도 {{ f.sharpness }}{% if f.is_sharpest %} · 그룹 내 최선{% endif %}{% if f.acquired_at %} · 촬영 {{ f.acquired_at|date:'Y-m-d H:i' }}{% endif %}{% if f.created_at %} · 반입 {{ f.created_at|date:'Y-m-d H:i' }}{% endif %}"
           data-raw="1"
           {# 캐러셀이 프레임을 바꿀 때 그 프레임의 검출로 갈아 끼우는 열쇠.
              검출이 프레임마다 따로 있는 화면(/engine/)에서만 쓰인다 — 없으면

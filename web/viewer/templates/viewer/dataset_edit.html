@@ -44,6 +44,13 @@
       <span>상태</span><code class="mono">{{ slide.state }}{% if slide.state_note %} · {{ slide.state_note }}{% endif %}</code>
       {% if um_per_pixel %}<span>배율</span><code class="mono">{{ um_per_pixel|floatformat:6 }} µm/px</code>{% endif %}
       <span>시야 / 사진</span><code class="mono">{{ n_viewpoints }} / {{ n_frames }}</code>
+      {% comment %}
+        반입 이력을 되짚을 때 필요하다. 수정 시각이 비어 있으면 "이 칸이 생긴
+        뒤로 손댄 적이 없다" 는 뜻이다 — 지난 일을 지어내지 않는다.
+      {% endcomment %}
+      <span>반입</span><code class="mono">{{ slide.created_at|date:"Y-m-d H:i" }}</code>
+      <span>수정</span><code class="mono">{% if slide.updated_at %}{{ slide.updated_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}</code>
+      {% if slide.processed_at %}<span>자동 처리 완료</span><code class="mono">{{ slide.processed_at|date:"Y-m-d H:i" }}</code>{% endif %}
     </div>
   </section>
 

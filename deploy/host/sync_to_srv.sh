@@ -40,7 +40,7 @@ copy() {
 echo "$REPO → $SRV"
 copy deploy/srv/docker-compose.yml docker-compose.yml
 mkdir -p "$SRV/bin"
-for f in deploy.sh; do
+for f in deploy.sh smoke.sh; do
     copy "deploy/host/$f" "bin/$f"
     chmod +x "$SRV/bin/$f"
 done

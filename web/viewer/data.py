@@ -859,6 +859,10 @@ def _frames(vp: Viewpoint, det: dict | None, frame_det_id) -> list[dict]:
     for f in frames:
         out.append({
             "name": f.name,
+            # 촬영 시각은 사진에 딸린 XML 이, 반입 시각은 우리 시스템이 안다.
+            # 둘은 다른 것이고 되짚을 때 둘 다 필요하다.
+            "acquired_at": f.acquired_at,
+            "created_at": f.created_at,
             "sharpness": f.sharpness,
             # 그룹 내 최고 선명도 대비 비율 — 막대 길이로 쓴다.
             "sharp_pct": (round(100 * f.sharpness / top)
@@ -1213,6 +1217,8 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
         d = by_frame.get(f.id)
         frames.append({
             "name": f.name,
+            "acquired_at": f.acquired_at,
+            "created_at": f.created_at,
             "sharpness": f.sharpness,
             "is_sharpest": f.is_sharpest,
             "rel": f.path,

@@ -174,6 +174,10 @@ class Slide(models.Model):
     copied_at = models.DateTimeField(null=True, blank=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # 마지막으로 이 행이 바뀐 때. 사람이 속성을 고쳤는지, 파이프라인이 상태를
+    # 옮겼는지를 구분하지는 못한다 — "언제 마지막으로 손댔나" 만 답한다.
+    # **이 칸이 생기기 전의 행은 비어 있다.** 지난 일을 지어내지 않는다.
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     class Meta:
         # 코어 안에서는 깊이순 — 깊이에 따른 변화를 볼 때 그 순서가 자연스럽다
@@ -233,6 +237,11 @@ class Frame(models.Model):
     sharpness = models.FloatField(null=True, blank=True)
     is_sharpest = models.BooleanField(default=False)
     seq = models.IntegerField(default=0)        # 폴더 안 순서
+    # 이 행이 DB 에 들어온 때. **촬영 시각(`acquired_at`)과 다르다** — 그쪽은
+    # 사진에 딸린 XML 이 알려 주는 것이고, 이쪽은 우리 시스템이 받은 때다.
+    # 반입 이력을 되짚을 때 필요하다.
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     # 광학계 정보는 전 사진 동일하고 지금 쓰는 곳이 없다. 칼럼 20개를 미리
     # 만들면 대부분 비므로 필요해질 때 여기 담는다.
     meta = models.JSONField(default=dict, blank=True)

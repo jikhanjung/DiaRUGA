@@ -13,6 +13,7 @@
 #   5. 배포 전 스냅샷         새 판이 DB 를 건드렸을 때 돌아올 지점
 #   6. 올리고 health 게이트   200 이 안 나오면 실패로 끝낸다
 #   7. 플래그 해제            trap 이라 중간에 죽어도 풀린다
+#   8. smoke                  판·자료·안전망까지 본다 — 200 은 "떴다" 일 뿐이다
 #
 # **이 머신은 개발·운영·백업을 겸한다.** 가이드는 빌드를 prod 밖에서 하라고
 # 하지만 여기서는 성립하지 않는다(devlog 016). 그래서 이 스크립트는 빌드하지
@@ -98,14 +99,43 @@ for i in $(seq 1 30); do
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$HEALTH" || true)
     if [ "$code" = "200" ]; then
         say "정상 ($((i * 2))초)"
+        # 점검 안내를 여기서 내린다. smoke 가 nginx 를 거치는 길도 보는데, 깃발이
+        # 서 있으면 그 길이 503 이라 정작 확인할 것을 못 본다. trap 은 그대로 둔다
+        # — 아래에서 죽어도 풀리게.
+        rm -f "$FLAG"
         docker compose ps --format '  {{.Name}}  {{.Image}}  {{.Status}}'
-        say "=== 끝 ==="
-        exit 0
+        break
     fi
     sleep 2
 done
 
-say "실패 — $HEALTH 가 200 을 안 낸다. 되돌리려면:" >&2
-say "  $0 $PREV --no-pull" >&2
-docker compose logs --tail 30 "$SERVICE" >&2
+if [ "${code:-}" != "200" ]; then
+    say "실패 — $HEALTH 가 200 을 안 낸다. 되돌리려면:" >&2
+    say "  $0 $PREV --no-pull" >&2
+    docker compose logs --tail 30 "$SERVICE" >&2
+    exit 1
+fi
+
+# 7) smoke (.guides/web/README.md 의 표준 동사).
+#
+# **기동 게이트만으로는 모자란다.** 200 은 "떴다" 는 뜻일 뿐이다. 판이 실제로
+# 갈렸는지, DB 를 제대로 물었는지(빈 DB 를 물어도 200 은 나온다), 백업이 무결성
+# 실패를 물고 있는지는 200 에 안 담긴다. `/healthz` 가 degraded 에 **200** 을 내는
+# 것도 그래서다 — 배포를 세우는 판단은 여기서 한다.
+SMOKE="${DIATOM_SMOKE:-$SRV/bin/smoke.sh}"
+if [ ! -x "$SMOKE" ]; then
+    say "smoke.sh 가 없다: $SMOKE — sync_to_srv.sh 를 돌렸는가?" >&2
+    say "=== 끝 (smoke 없이) ==="
+    exit 0
+fi
+
+if "$SMOKE" "$VER"; then
+    say "=== 끝 ==="
+    exit 0
+fi
+
+# **되돌리지 않는다.** 새 판은 떠 있고, 무엇이 걸렸는지는 사람이 봐야 한다
+# (.guides/web/deployment.md §9 — 손상에 반사적으로 롤백하지 말 것).
+say "smoke 가 실패했다. 새 판($VER)은 떠 있다 — 위 항목을 볼 것." >&2
+say "되돌리려면:  $0 $PREV --no-pull" >&2
 exit 1
