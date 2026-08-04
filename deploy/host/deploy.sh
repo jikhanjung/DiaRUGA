@@ -82,8 +82,11 @@ PY="${DIATOM_PY:-$HOME/venv/diatom/bin/python}"
 # -f 로 본다. -x 로 보면 실행 권한이 없는 것만으로 건너뛴다 — 실제로 그래서
 # 첫 배포에서 스냅샷 없이 지나갔다. 어차피 python 으로 부르므로 권한은 상관없다.
 if [ -f "$REPO/backup_db.py" ] && [ -x "$PY" ]; then
+    # --flat 을 준다. 꼬리말이 붙었지만 이건 사람이 뜬 것이 아니라 **배포가 뜨는
+    # 것**이고, 이미 전용 디렉토리(pre_deploy/)에 쓴다. 없으면 manual/ 로 새서
+    # --keep 20 이 아무것도 못 지우고 배포마다 한 장씩 무한히 쌓인다.
     DIATOM_BACKUP_DIR="$SNAP_DIR" "$PY" "$REPO/backup_db.py" \
-        --note "pre-deploy-$VER" --keep 20
+        --note "pre-deploy-$VER" --keep 20 --flat
 else
     # 스냅샷은 되돌아올 지점이다. 없이 진행하는 것은 사람이 정할 일이지
     # 스크립트가 조용히 넘길 일이 아니다.

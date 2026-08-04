@@ -81,11 +81,13 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 
 ## 운영
 
-- [x] **백업 lane 을 cron 에** — 시간별 `backup_db.py`(:20, `--keep 48`) ·
-      일별 `sync_backup_nas.py`(04:40, `timeout 600`, `--keep 720`). 신선도
-      게이트도 켰다(`DIATOM_BACKUP_MAX_AGE_H=3`) (034)
-- [ ] **손으로 뜬 스냅샷과 시간별 스냅샷을 갈라 두기** — 지금은 같은 이름 규칙으로
-      같은 통에 있어 로테이션이 사람이 고른 복구 지점을 밀어낼 수 있다 (034)
+- [x] **백업 lane 을 cron 에** — 시간별 `backup_db.py`(:20, `--keep 24`) ·
+      일별 `sync_backup_nas.py`(04:40, `--newest-only --prune`). 신선도 게이트도
+      켰다(`DIATOM_BACKUP_MAX_AGE_H=3`) (034)
+- [x] **손으로 뜬 스냅샷과 시간별 스냅샷을 갈라 두기** — `backup/manual/` 로
+      갈랐다. 로테이션·NAS 대상 밖이다 (034)
+- [ ] **NAS 의 `manual/` 43개를 어떻게 할지** — 정책상 수동은 오프사이트로 안
+      가는데, 정책을 정하기 전에 옮겨 둔 것이 남아 있다 (1.4 GB) (034)
 - [ ] **저장소 `backup/` 정리** — 머신 이전 때 쓴 스냅샷·DB 사본 3.4 GB.
       `/` 가 80% 다 (`/data3` 는 9%)
 - [ ] **배율이 다른 슬라이드를 `state="failed"` 로 세우기** — 지금은 경고만 찍고

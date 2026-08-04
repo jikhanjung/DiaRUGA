@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """검증된 DB 스냅샷을 NAS 로 밀어 둔다 (오프사이트 track).
 
-    python sync_backup_nas.py                   # NAS 에 없는 것을 전부
-    python sync_backup_nas.py --newest-only     # 가장 새 것 하나만 (일별 cron)
-    python sync_backup_nas.py --keep 30         # NAS 사본을 30개로 유지
-    python sync_backup_nas.py --dry-run
+    python sync_backup_nas.py --newest-only --prune   # 일별 cron 이 쓰는 것
+    python sync_backup_nas.py --dry-run --prune       # 보낼 것·지울 것만 보인다
+    python sync_backup_nas.py                         # NAS 에 없는 것을 전부
 
-**하루에 하나만 건너간다** (cron 은 `--newest-only`). 로컬은 시간별로 뜨지만
-오프사이트는 일별 track 이다 — 시간 단위 복구는 로컬이 맡고 이쪽은 가장 오래 남는
-사본을 든다. 밀린 것을 다 보내면 `--keep` 이 개수 기준이라 보존 **기간**이 짧아진다:
-시간별 스냅샷이 그대로 올라가면 30개가 30일이 아니라 30시간이 된다.
+**하루에 하나만 건너간다** (`--newest-only`). 로컬은 시간별로 뜨지만 오프사이트는
+일별 track 이다 — 시간 단위 복구는 로컬의 24시간 rolling 이 맡고, 이쪽은 가장 오래
+남는 사본을 든다. 밀린 것을 따라잡지 않는 것이 요점이다: 하루치가 스물네 장이 되면
+"하루에 하나" 를 전제로 한 계단식 보관이 무너진다.
 
-손으로 뜬 `--note` 스냅샷을 오프사이트에 남기려면 그때 **손으로 한 번 돌린다**
-(플래그 없이 부르면 밀린 것을 전부 보낸다). 일별 cron 은 그것을 기다려 주지 않는다.
+**손으로 뜬 스냅샷은 여기 오지 않는다.** `backup_db.py` 가 그것을 `backup/manual/`
+에 따로 쌓고, 이 스크립트는 윗단만 본다. 수동 스냅샷은 작업 중에 되돌릴 지점이지
+보관물이 아니라서, 일이 잘 끝나면 지워도 되는 물건이다 — 오프사이트로 나를 이유가
+없고, 섞이면 그날의 오프사이트 사본이 엉뚱한 것이 된다.
 
 **왜 필요한가.** 이 장비는 개발·운영·백업을 겸한다. `backup_db.py` 의 사본은
 전부 `/data3` 안이라 디스크 한 장이 죽으면 사람의 교정 2,400여 건이 같이 간다
@@ -40,20 +41,26 @@
 프로세스가 무한 대기한다.
 
     40 4 * * * timeout 600 /home/paleoadmin/venv/diatom/bin/python \
-        /home/paleoadmin/projects/diatom/sync_backup_nas.py --newest-only --keep 30 \
+        /home/paleoadmin/projects/diatom/sync_backup_nas.py --newest-only --prune \
         >> /data3/diatom/logs/nas-sync.log 2>&1
 """
 import argparse
 import os
+import re
 import shutil
 import sqlite3
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import db_sentinel
 
 ROOT = Path(__file__).resolve().parent
+
+# 계단식 보관의 경계 (plan_retention 참고). 값이 아니라 **정책**이라 여기 적는다.
+DAILY_DAYS = 7        # 이 안쪽은 전부 남긴다
+WEEKLY_DAYS = 30      # 여기까지는 주에 하나, 그 뒤로는 달에 하나
 
 # 이 표가 있으면 스키마가 살아 있다고 본다 — backup_db.py 와 같은 기준
 SMOKE_TABLE = "viewer_objectreview"
@@ -99,6 +106,69 @@ def is_real_mount(path: Path) -> bool:
     return False
 
 
+def stamp_of(name: str):
+    """`diatom_20260804_114433.db` → datetime. 못 읽으면 None.
+
+    **이름을 믿는다.** mtime 은 복사·이동으로 바뀌지만 이름은 뜬 시각 그대로다.
+    보관 정책이 나이로 판단하므로 이 차이가 실제로 갈린다 — NAS 로 건너간 사본은
+    전부 "옮긴 시각" 의 mtime 을 갖는다.
+    """
+    m = re.match(r"^diatom_(\d{8})_(\d{6})", name)
+    if not m:
+        return None
+    try:
+        return datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S")
+    except ValueError:
+        return None
+
+
+def plan_retention(paths, now):
+    """계단식 보관 — 나이에 따라 촘촘함을 달리한다. (남길 것, 지울 것).
+
+    | 나이 | 남기는 것 |
+    |---|---|
+    | 1주일 이내 | **전부** (하루 하나씩 들어오므로 곧 일 단위) |
+    | 1주일 ~ 한 달 | **주에 하나** |
+    | 한 달 이후 | **달에 하나** |
+
+    개수(`--keep N`)가 아니라 나이로 판단하는 이유: 개수는 주기가 바뀌면 뜻이
+    바뀐다. 실제로 이 스크립트의 `--keep 30` 은 "한 달" 이라고 정한 값이었는데,
+    로컬이 시간별이 되자 같은 30 이 30시간을 뜻하게 됐다. 나이로 적으면 주기와
+    무관하게 정책이 그대로 읽힌다.
+
+    구간마다 **가장 새 것**을 남긴다. 오래된 사본을 하나만 들 것이라면 그 구간의
+    끝 상태를 드는 편이 쓸모 있다.
+
+    이름에서 시각을 못 읽는 파일은 **남긴다.** 정리 코드가 모르는 파일을 지우게
+    두지 않는다 — 여기서 지워지는 것은 되돌릴 수 없다.
+    """
+    keep, drop = [], []
+    seen_week, seen_month = set(), set()
+    # 새것부터 본다. 그래야 각 구간에서 처음 만나는 것이 가장 새 것이다.
+    for p in sorted(paths, key=lambda q: q.name, reverse=True):
+        ts = stamp_of(p.name)
+        if ts is None:
+            keep.append(p)
+            continue
+        age_days = (now - ts).days
+        week, month = ts.isocalendar()[:2], (ts.year, ts.month)
+        if age_days <= DAILY_DAYS:
+            keeping = True
+        elif age_days <= WEEKLY_DAYS:
+            keeping = week not in seen_week
+        else:
+            keeping = month not in seen_month
+        if keeping:
+            keep.append(p)
+            # 남긴 것은 제 주·달을 채운다. 1주일 경계를 걸친 주에서 하루 단위로
+            # 이미 남긴 것이 있으면, 그 주의 더 옛것을 또 남기지 않는다.
+            seen_week.add(week)
+            seen_month.add(month)
+        else:
+            drop.append(p)
+    return keep, drop
+
+
 def verify(db_path: Path):
     """사본을 열어 무결성과 행 수를 본다. (ok, rows, error) 를 돌려준다."""
     try:
@@ -138,15 +208,9 @@ def main():
                                             str(ROOT / "backup")))
     ap.add_argument("--nas", default=_env("DIATOM_NAS_BACKUP_DIR",
                                           "/nfs/temp-share/diatom/backup"))
-    # 유지 개수는 조율한 숫자가 아니라 관계다 (data-safety.md §6):
-    #   로컬 유지 개수 x 주기 >= 오프사이트 간격.
-    # 오프사이트가 하루 간격이고 --newest-only 로 **하루 하나**가 건너가므로,
-    # 30 은 곧 30일이다. 값을 늘리는 것은 무손실이다 — 늘려도 지워지는 것이 없다.
-    #
-    # **--newest-only 를 빼면 이 값의 뜻이 바뀐다.** 시간별 스냅샷이 그대로
-    # 올라가므로 30 이 30일이 아니라 30시간이 된다.
-    ap.add_argument("--keep", type=int, default=0,
-                    help="NAS 사본을 최근 N개로 (0 이면 안 지운다)")
+    ap.add_argument("--prune", action="store_true",
+                    help=f"계단식 보관을 적용한다 ({DAILY_DAYS}일 이내 전부 · "
+                         f"{WEEKLY_DAYS}일까지 주 1개 · 그 뒤 달 1개)")
     ap.add_argument("--newest-only", action="store_true",
                     help="가장 새 스냅샷 하나만 보낸다 (일별 cron 이 쓴다)")
     ap.add_argument("--stale-hours", type=float, default=26.0,
@@ -179,6 +243,8 @@ def main():
     if not args.dry_run:
         nas.mkdir(parents=True, exist_ok=True)
 
+    # 윗단만 본다. 손으로 뜬 스냅샷은 애초에 로컬 `manual/` 에 있어 `snaps` 에
+    # 안 들어오므로(backup_db.py), 여기로 올라올 일이 없다.
     have = {p.name for p in nas.glob("diatom_*.db")} if nas.is_dir() else set()
 
     if args.newest_only:
@@ -186,8 +252,8 @@ def main():
         # track 이다 — 시간 단위 복구는 로컬이 맡고, 이쪽은 가장 오래 남는 사본을
         # 든다(data-safety.md §1 의 세 갈래).
         #
-        # 밀린 것을 따라잡지 않는 것이 요점이다. 다 보내면 NAS 의 --keep 이 개수
-        # 기준이라 보존 기간이 그만큼 짧아진다 — 30개가 30일이 아니라 30시간이 된다.
+        # 밀린 것을 따라잡지 않는 것이 요점이다. 다 보내면 하루치가 스물네 장이
+        # 되어 "하루에 하나" 라는 계단식 보관의 전제가 무너진다.
         #
         # 가장 새 것이 이미 가 있으면 할 일이 없다. **더 옛것으로 물러서지
         # 않는다** — 그러면 매번 하나씩 옛 사본을 실어 나르게 된다.
@@ -200,8 +266,10 @@ def main():
     elif args.dry_run:
         for p in todo:
             print(f"  보낼 것: {p.name}  {p.stat().st_size / 1e6:.1f} MB")
-        print(f"\ndry-run — {len(todo)}개. 보내지 않았다.")
-        return 0
+        print(f"dry-run — {len(todo)}개. 보내지 않았다.")
+        # 여기서 끝내지 않는다. 정리가 무엇을 지울지도 **보내기 전에** 보여야
+        # 한다 — dry-run 으로 확인하는 것 중 더 무서운 쪽이 그것이다.
+        todo = []
 
     sent = failed = 0
     for p in todo:
@@ -235,12 +303,20 @@ def main():
     if not args.dry_run and db_sentinel.clear(db, SOURCE):
         print("  지난 실패 깃발을 내렸다")
 
-    if args.keep and not args.dry_run:
-        # 정리는 이 스크립트만 한다 (§10). .corrupt 는 glob 에 안 걸려 남는다.
-        allc = sorted(nas.glob("diatom_*.db"))
-        for old in allc[:-args.keep]:
-            old.unlink()
-            print(f"  정리: {old.name}")
+    if args.prune:
+        # 정리는 이 스크립트만 한다 (§10). `.corrupt` 는 glob 에 안 걸려 남는다.
+        # glob 은 하위로 안 내려가므로 사람이 따로 둔 디렉토리도 안 건드린다.
+        _keep, drop = plan_retention(list(nas.glob("diatom_*.db")),
+                                     datetime.now())
+        for old in sorted(drop, key=lambda p: p.name):
+            age = (datetime.now() - (stamp_of(old.name) or datetime.now())).days
+            if args.dry_run:
+                print(f"  정리할 것: {old.name} ({age}일)")
+            else:
+                old.unlink()
+                print(f"  정리: {old.name} ({age}일)")
+        if not drop:
+            print("  정리할 것 없음")
 
     total = len(list(nas.glob("diatom_*.db")))
     print(f"\n보냄 {sent}개 · NAS 사본 {total}개 · {nas}")

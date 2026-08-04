@@ -348,18 +348,29 @@ python sync_backup_nas.py --keep 30          # 검증된 것만 NAS 로, 수신 
 파일 스냅샷만 소비한다. NAS 가 안 붙었으면 거부한다(`/proc/mounts` 확인). 검증
 실패 시 **정리를 건너뛴다** — 지난 성공 사본이 유일한 안전망일 수 있다.
 
-**cron 에 걸려 있다** (034). 세 track 이 다 있다 — 배포 전 스냅샷(`deploy.sh`, 20개)
-· 시간별 · 일별 오프사이트.
+**cron 에 걸려 있다** (034).
 
 ```cron
-20 * * * *  backup_db.py --keep 48                     → logs/backup.log
-40 4 * * *  timeout 600 sync_backup_nas.py --keep 720   → logs/nas-sync.log
+20 * * * *  backup_db.py --keep 24                              → logs/backup.log
+40 4 * * *  timeout 600 sync_backup_nas.py --newest-only --prune → logs/nas-sync.log
 ```
 
-**유지 개수는 관계다** (`.guides/web/data-safety.md` §6): `개수 × 주기 ≥ 오프사이트
-간격`. 48 × 1h ≥ 24h (2배 여유 — 손으로 뜬 스냅샷이 NAS 로 건너가기 전에 밀려나지
-않게). NAS 의 720 은 **30일 × 24** 다 — 시간별이 되면서 옛 값 30 은 "30일" 이 아니라
-"30시간" 이 되어 버렸다. **주기를 바꾸면 이 값을 같이 봐야 한다.**
+**디렉토리가 종류를 가른다.** 이름 규칙으로도 가를 수 있지만 정리 glob 을 한 번
+잘못 쓰면 섞인다 — 디렉토리는 glob 이 애초에 안 내려간다.
+
+```
+/data3/diatom/backup/            시간별 자동 — 24시간 rolling. 여기 것만 NAS 로 간다
+                     manual/     사람이 --note 로 뜬 것 — 로테이션·NAS 대상 밖
+                     pre_deploy/ deploy.sh 가 판 바꾸기 직전에 (20개)
+/nfs/temp-share/diatom/backup/   일별 오프사이트 — 계단식 보관
+```
+
+**NAS 는 계단식으로 보관한다** — 7일 이내 전부 · 30일까지 주 1개 · 그 뒤 달 1개.
+1년치가 24개로 줄어든다. **개수가 아니라 나이로 판단한다**: 개수는 주기가 바뀌면
+뜻이 바뀐다(옛 `--keep 30` 은 "한 달" 이었는데 로컬이 시간별이 되자 30시간이 됐다).
+
+**수동 스냅샷은 NAS 로 안 간다.** 작업 중에 되돌릴 지점이지 보관물이 아니라서,
+일이 잘 끝나면 지워도 되는 물건이다. 로테이션도 안 건드리므로 사람이 지운다.
 
 **실패하면 셋을 다 한다** (034). 정리를 건너뛰고, `.corrupt` 로 증거를 남기고,
 DB 옆에 `INTEGRITY_FAIL` 깃발을 세운다. `/healthz` 가 그 깃발을 읽어 `degraded` 를

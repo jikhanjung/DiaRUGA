@@ -39,6 +39,23 @@ ROOT = Path(__file__).resolve().parent
 # 깃발에 적히는 주인. sync_backup_nas.py 와 갈라야 서로의 실패를 안 지운다.
 SOURCE = "backup_db"
 
+# 자동(시간별) 스냅샷의 이름. `?` 가 자리를 고정하므로 `--note` 꼬리말이 붙은 것은
+# 여기 안 걸린다 — diatom_20260804_112852_before-refilter.db 는 글자가 더 많다.
+#
+# **로컬 정리는 이 구분을 쓰지 않는다.** 손으로 뜬 것은 작업 중에 되돌릴 지점이지
+# 보관물이 아니라서, 일이 잘 끝나면 없어져도 되는 물건이다. 로테이션이 알아서
+# 밀어내게 두는 편이 사람이 치우는 것을 기억할 필요가 없어 낫다.
+#
+# 구분이 필요한 곳은 둘이다.
+#   - **오프사이트**: 하루 하나만 건너간다. 그 하나는 자동이어야 한다 — 마침 그때
+#     사람이 뜬 것이 가장 새것이면 엉뚱한 것이 그날의 오프사이트 사본이 된다
+#   - **/healthz 신선도**: "시간별이 멈췄는가" 를 묻는 것이므로 자동만 봐야 한다.
+#     손으로 뜬 사본이 섞이면 죽은 cron 을 가린다
+#
+# 이름을 만드는 쪽에 둔 이유는, 쓰는 데마다 제 패턴을 들면 이름 규칙이 바뀔 때
+# 조용히 어긋나기 때문이다.
+AUTO_GLOB = "diatom_????????_??????.db"
+
 
 def _env(key, default):
     """환경변수 → .env → 기본값.
@@ -72,9 +89,12 @@ TABLES = ("slide", "viewpoint", "frame", "detection", "candidate",
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--note", default="", help="파일명 꼬리말")
+    ap.add_argument("--note", default="", help="파일명 꼬리말 (manual/ 로 간다)")
     ap.add_argument("--keep", type=int, default=0,
-                    help="최근 N개만 남긴다 (0 이면 안 지운다)")
+                    help="자동 스냅샷을 최근 N개만 남긴다 (0 이면 안 지운다)")
+    ap.add_argument("--flat", action="store_true",
+                    help="꼬리말이 있어도 manual/ 로 가르지 않는다 "
+                         "(배포 전 스냅샷처럼 이미 전용 디렉토리에 쓸 때)")
     ap.add_argument("--db", default=str(DB))
     args = ap.parse_args()
 
@@ -82,10 +102,22 @@ def main():
     if not src_path.exists():
         raise SystemExit(f"DB 가 없다: {src_path}")
 
-    OUT.mkdir(exist_ok=True)
+    # **손으로 뜬 것과 시간별 자동을 디렉토리로 가른다.**
+    #
+    #   backup/            시간별 자동 — 24시간 rolling. 여기 것만 NAS 로 간다
+    #   backup/manual/     사람이 --note 로 뜬 것 — 로테이션이 안 건드린다
+    #
+    # 이름 규칙(꼬리말 유무)으로도 가를 수 있지만 디렉토리가 낫다. 정리 glob 을
+    # 한 번 잘못 쓰는 순간 섞이는데, 디렉토리는 glob 이 애초에 안 내려간다.
+    #
+    # 수동 스냅샷은 **작업 중에 되돌릴 지점**이지 보관물이 아니다. 그래서 NAS 로
+    # 안 가고, 일이 잘 끝나면 사람이 지운다. 24시간 로테이션이 걷어 가게 두면
+    # 하루 넘는 작업에서 정작 필요할 때 없다.
+    dest = OUT / "manual" if (args.note and not args.flat) else OUT
+    dest.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d_%H%M%S")
     tail = f"_{args.note}" if args.note else ""
-    out = OUT / f"diatom_{stamp}{tail}.db"
+    out = dest / f"diatom_{stamp}{tail}.db"
     # **제 이름은 검증을 통과한 뒤에 준다.** 뜨는 중에는 `.part` 다.
     #
     # 뜨다 실패하면 반쯤 쓴 파일이 남는데, 그것이 `diatom_*.db` 라는 이름을 달고
@@ -170,6 +202,8 @@ def main():
         shown = out.relative_to(ROOT)
     except ValueError:
         shown = out
+    if dest != OUT:
+        print("  (수동 스냅샷 — manual/ 에 둔다. NAS 로 안 가고 로테이션도 안 건드린다)")
     print(f"{shown}  {mb:.1f} MB  integrity={ok}")
     print("  " + " · ".join(f"{t} {n}" for t, n in counts.items() if n is not None))
     if ok != "ok":
@@ -187,7 +221,10 @@ def main():
         print("  지난 실패 깃발을 내렸다")
 
     if args.keep:
-        old = sorted(OUT.glob("diatom_*.db"))[: -args.keep] if args.keep else []
+        # **자동만 굴린다** (AUTO_GLOB 주석). 손으로 뜬 것은 작업 중에 되돌릴
+        # 지점이라, 24시간이 지났다고 로테이션이 걷어 가면 정작 필요할 때 없다.
+        # 그것은 일이 끝나고 사람이 지운다.
+        old = sorted(OUT.glob(AUTO_GLOB))[: -args.keep] if args.keep else []
         for p in old:
             p.unlink()
         if old:

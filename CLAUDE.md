@@ -63,7 +63,8 @@ docker compose -f deploy/docker-compose.yml build web
 python check_db.py
 python check_db.py --slide rs23 -v
 
-# 큰 작업 전에는 반드시 (시간별 cron 이 따로 돌지만, 이름표가 붙은 지점이 필요하다)
+# 큰 작업 전에는 반드시. 시간별 cron 이 따로 돌지만 그건 24시간 rolling 이고,
+# 이건 backup/manual/ 에 따로 남아 로테이션이 안 건드린다. 일 끝나면 지우면 된다
 python backup_db.py --note before-refilter
 
 # 배포한 것이 실제로 사는지 — 판·행 수·안전망까지 본다 (200 은 "떴다" 일 뿐이다)
