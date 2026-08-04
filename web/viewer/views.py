@@ -11,11 +11,12 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.http import (FileResponse, Http404, HttpResponse,
                          HttpResponseBadRequest, JsonResponse)
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import antarctica, data, korea, thresholds as th
+from . import antarctica, data, korea, regroup, thresholds as th
 from .models import (Core, Detection, ObjectReview, Run, Site,  # noqa: E501
                      Slide, ThresholdSet, Viewpoint)
 
@@ -175,6 +176,51 @@ def group(request, slug, gid):
     ctx["engine_batches"] = bs
     ctx["engine_link"] = next((b for b in bs if not b["current"]), None)
     return render(request, "viewer/group.html", ctx)
+
+
+@require_POST
+def split_group(request, slug, gid):
+    """시야를 프레임 경계에서 가른다. **두 걸음이다 — 미리보기 다음에 확인.**
+
+    검토가 끝난 시야를 지우는 일이라(그 아래 검출·교정이 `CASCADE` 로 딸려 간다)
+    한 번의 눌림으로 끝나면 안 된다. 첫 POST 는 **무엇이 사라지는지 보여 주기만**
+    하고, `confirm=1` 이 실린 두 번째 POST 만 실제로 고친다.
+
+    **`/engine/` 에는 이 길이 없다.** 화면 조각을 `_detection.html`(엔진 화면과
+    공유한다)이 아니라 `group.html` 에만 두었고, 서버도 아래에서 다시 막는다 —
+    027 이 정확히 그 자리에서 났다: "읽기 전용" 이라 적어 놓고 CSS 로 버튼만
+    감췄더니 한 번의 클릭이 교정 37건을 지웠다. **화면에서 감추는 것은 막는 것이
+    아니다.**
+
+    처리 중인 슬라이드도 막는다. 파이프라인이 쓰는 중에 시야를 지우면 SQLite 가
+    잠기고(HANDOFF 3.8 — 그렇게 프레임 229장을 잃었다), 반쯤 처리된 상태 위에
+    재분할을 얹으면 무엇이 옳은 상태인지 알 수 없게 된다.
+    """
+    slide = Slide.objects.filter(slug=slug).first()
+    if slide is None:
+        raise Http404(f"unknown dataset: {slug}")
+    if data.review_blocked(slide):
+        return HttpResponse("자동 처리가 끝나기 전에는 시야를 가를 수 없습니다.",
+                            status=409)
+
+    cuts = [c for c in request.POST.getlist("after") if c.strip()]
+    ctx = {"slug": slug, "label": slide.name, "id": gid, "cuts": cuts,
+           "back_url": reverse("group", args=[slug, gid])}
+
+    if request.POST.get("confirm") == "1":
+        try:
+            r = regroup.apply_split(slide, cuts, source="viewer")
+        except ValueError as e:
+            ctx["preview"] = {"ok": False, "errors": [str(e)]}
+            return render(request, "viewer/regroup_confirm.html", ctx,
+                          status=400)
+        # 방금 만든 첫 조각으로 보낸다 — 사람이 한 일을 눈으로 확인해야 한다.
+        # 검출이 아직 없어 화면은 사진만 낸다 (stack.detection.preview_only).
+        return redirect("group", slug=slug, gid=r["first_idx"])
+
+    ctx["preview"] = regroup.preview(slide, cuts)
+    return render(request, "viewer/regroup_confirm.html", ctx,
+                  status=200 if ctx["preview"]["ok"] else 400)
 
 
 def _num(raw, cast=float):

@@ -75,4 +75,60 @@
 {% if not stack and not frames %}
   <div class="note">이 시야는 아직 합성하지 않았습니다.</div>
 {% endif %}
+
+{% comment %}
+  시야 가르기 — 초점 시리즈가 잘못 묶였을 때.
+
+  **여기(group.html)에 둔다. `_detection.html` 이 아니다.** 그 조각은 `/engine/`
+  (읽기 전용)과 공유하는데, 027 이 정확히 그 자리에서 났다 — "읽기 전용" 이라
+  적어 놓고 CSS 로 버튼만 감췄더니 한 번의 클릭이 교정 37건을 지웠다. 화면에
+  아예 없어야 하고, 서버(views.split_group)가 다시 막는다.
+
+  JS 를 쓰지 않는다. 이 머신에는 브라우저가 없어 이벤트 배선을 시험할 방법이
+  없고(HANDOFF 3.3), 그 종류의 고장은 사람이 눌러 보기 전까지 안 드러난다.
+  체크박스와 POST 만으로 되는 일에 배선을 만들 이유가 없다.
+
+  프레임이 하나뿐이면 낼 이유가 없고, 검토가 막힌 슬라이드에서도 감춘다.
+{% endcomment %}
+{% if frames|length > 1 and not review_blocked %}
+<details class="resplit">
+  <summary>시야 가르기</summary>
+  <div class="resplit-body">
+    <p>이 시야의 사진들이 <b>사실은 서로 다른 시야</b>라면 여기서 가릅니다.
+       초점만 바뀐 사진들은 배치가 같고, 스테이지가 움직였으면 그림이 달라집니다 —
+       위 캐러셀에서 넘겨 보며 견주십시오.</p>
+    <p class="warn">가른 시야의 <b>검출과 교정은 사라집니다.</b> 다시 검토해야 합니다.
+       다른 시야는 건드리지 않습니다.</p>
+    <form method="post" action="{% url 'split_group' slug id %}">
+      {% csrf_token %}
+      <ol class="cuts">
+        {% for f in frames %}
+        <li>
+          <span class="fname">{{ f.name|cut:"Snap-" }}{% if f.is_sharpest %} ★{% endif %}</span>
+          {% if not forloop.last %}
+          <label class="cut">
+            <input type="checkbox" name="after" value="{{ f.name }}">
+            여기서 가른다
+          </label>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+      <button type="submit">가르기 — 무엇이 사라지는지 먼저 봅니다</button>
+    </form>
+  </div>
+</details>
+<style>
+  .resplit { margin: 18px 0 0; border: 1px solid var(--line); border-radius: 6px; }
+  .resplit > summary { padding: 8px 12px; cursor: pointer; font-size: 13px; opacity: .8; }
+  .resplit-body { padding: 4px 14px 14px; max-width: 640px; }
+  .resplit p { font-size: 13px; line-height: 1.55; margin: 6px 0; }
+  .resplit p.warn { color: var(--warn); }
+  .cuts { list-style: none; margin: 12px 0; padding: 0; }
+  .cuts li { display: flex; align-items: center; gap: 12px; padding: 3px 0; }
+  .cuts .fname { font-family: ui-monospace, monospace; font-size: 13px; min-width: 84px; }
+  .cuts .cut { font-size: 12px; opacity: .75; cursor: pointer; }
+  .cuts .cut input { margin-right: 5px; }
+</style>
+{% endif %}
 {% endblock %}
