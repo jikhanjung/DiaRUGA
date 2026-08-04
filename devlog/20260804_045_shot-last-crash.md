@@ -1,0 +1,84 @@
+# 045 — `?shot=last` 가 JS 를 죽이고 있었다 (그리고 브라우저가 생겼다)
+
+2026-08-04. 사람이 말했다: "화살표로 그룹을 이동했을 때 버그가 있다. 프레임이
+4개인 그룹에서 1개인 그룹으로 넘어간 후, 페이지는 프레임이 여전히 4라고 생각하는
+것 같다." 좁혀 가며 두 번 더 알려 줬다 — **"일반 검출화면에서는 문제가 없다"**,
+**"`?shot=last` 가 붙은 경우에 문제가 생기는 것 같다"**. 둘 다 정확했다.
+
+## 1. 증상
+
+`/engine/` 에서 ← 로 이전 시야에 거슬러 오면 **개체가 하나도 안 그려진다.**
+사진과 캡션은 맞다. 그래서 "빈 시야" 로 읽힌다.
+
+```
+[?shot=last 붙은 g2]  선택=Snap-21176  도형=0        ← 서버는 후보 11개라고 한다
+    pageerror: Cannot read properties of undefined (reading 'forEach')
+```
+
+## 2. 원인 — 초기화 도중에 "다 만들어진 뒤에야 되는 일" 을 끼워 넣었다
+
+```js
+202:  var els = [];                    ← ?shot=last 블록보다 위
+501:  if (…/shot=last/…) commit(shots.length - 1, true);   ← build() 를 부른다
+667:  var polys = [];                  ← 아직 undefined
+708:  function build() {
+709:    els.forEach(…)                 ← 통과
+711:    polys.forEach(…)               ← **여기서 죽는다**
+```
+
+`commit()` → `swapDet()` → `build()` 인데, `build()` 는 파일 한참 아래에서
+만들어지는 `polys` 를 훑는다. **`var` 는 끌어올려지지만 값은 `undefined`** 라
+`polys.forEach` 가 TypeError 를 냈고, **예외가 IIFE 를 뚫고 나가면서 그 아래
+초기화가 통째로 안 돌았다.**
+
+## 3. 왜 검토 화면은 멀쩡했나
+
+`swapDet()` 의 첫 줄이다.
+
+```js
+if (!shotDets || !s) return;      // 검토 화면은 여기서 끝난다
+```
+
+검토 화면(`/d/`)은 프레임마다 검출이 따로 있지 않아 `shotDets` 가 없다. 그래서
+`build()` 를 **아예 안 부르고**, 예외도 안 난다. **엔진 화면에서만 나는 고장**이라
+오래 안 보였다. 사람이 "일반 검출화면은 괜찮다" 고 한 것이 이 갈래를 정확히
+짚은 것이었다.
+
+## 4. 고침
+
+`?shot=last` 처리를 IIFE 의 **맨 끝** — `applyTransform(); build(); renderNotes();`
+뒤로 옮겼다. 옮긴 자리에 왜 여기여야 하는지를 적어 두었다.
+
+## 5. 브라우저가 생겼다 — 이번에 그것으로 잡았다
+
+HANDOFF 3.3 이 "시험이 못 닿는 자리" 로 적어 둔 둘 중 하나가 **이벤트 배선**
+이었다. 이번 고장이 정확히 거기였다 — 렌더한 HTML 은 처음부터 옳았고
+(`data-current` 가 합성본에 제대로 붙어 있었다), 서버 쪽을 아무리 봐도 안 나왔다.
+**사람이 화면을 눌러 보고 알려 준 것을 코드로 좁히는 데 반나절이 갈 뻔했다.**
+
+```bash
+~/venv/diatom/bin/pip install playwright
+NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt \
+  ~/venv/diatom/bin/playwright install chromium
+```
+
+**`NODE_EXTRA_CA_CERTS` 가 핵심이다.** 사내망이 TLS 를 가로채는데(HANDOFF 9.5)
+node 는 시스템 CA 저장소를 안 본다 — `curl` 은 되고 playwright 만
+`SELF_SIGNED_CERT_IN_CHAIN` 으로 죽는다. `deploy/ca/KOPRI_SSL_1.crt` 를 줘도
+안 됐고, **시스템 번들(`/etc/ssl/certs/ca-certificates.crt`)을 통째로** 줘야 했다.
+`pip` 이 `PIP_CERT` 를 필요로 한 것과 같은 갈래다.
+
+이제 되는 것: **키 입력 · 클릭 · 페이지 이동 · 콘솔 오류 · 화면 캡처.**
+이번 원인을 잡은 것도 `page.on("pageerror")` 한 줄이었다.
+
+**시험은 사본 DB 에 붙인다.** 저장소에서 `manage.py runserver` 를 사본 DB 로
+띄우고(`DIATOM_DB=…/ui.db DIATOM_SCRIPT_NAME=`) 거기에 브라우저를 붙였다.
+운영에 붙이면 클릭 한 번이 교정을 지운다 — 027 이 그렇게 났다.
+
+## 6. 남는 것
+
+- **`?shot=last` 로 왔을 때 무엇을 고를 것인가는 그대로 두었다.** 지금은 "그
+  시야의 마지막 사진" 이고, 사람은 "여러 장이면 합성본" 을 기대했다. 고장은
+  고쳤으니 이건 취향의 문제로 따로 본다
+- **엔진 화면은 시작 판이 "개체가 가장 많은 판" 이다**(`data.py` 의 `best`).
+  검토 화면의 "합성본" 과 규칙이 다르다 — 알고 보면 뜻이 있지만 처음엔 헷갈린다

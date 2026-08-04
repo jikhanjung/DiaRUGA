@@ -134,8 +134,14 @@ docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
 
 ### 확인하는 법
 
-브라우저가 없는 머신이다. **뷰어를 확인할 때는 Django 테스트 클라이언트**로
-URL 을 때려 보는 것이 가장 확실하다(`ALLOWED_HOSTS` 에 `testserver` 를 넣어야 한다).
+**브라우저가 있다** — `playwright` + 헤드리스 크로미움(045). 키 입력·클릭·
+페이지 이동·**콘솔 오류**·화면 캡처가 된다. 이벤트 배선 고장은 이것으로만 잡힌다.
+**반드시 사본 DB 에 붙인다** (`DIATOM_DB=…/사본.db DIATOM_SCRIPT_NAME=`
+`manage.py runserver 127.0.0.1:8099`). 설치는 HANDOFF 3.3 — `NODE_EXTRA_CA_CERTS`
+를 빠뜨리면 사내망 TLS 때문에 죽는다.
+
+가볍게 볼 때는 **Django 테스트 클라이언트**로 URL 을 때려 본다
+(`ALLOWED_HOSTS` 에 `testserver` 를 넣어야 한다).
 **node 는 있다**(`/usr/bin/node` v18) — JS 는 **렌더한** 인라인 스크립트를 뽑아
 `node --check` 로 파싱한다(템플릿 원본이 아니라 렌더한 것이어야 한다).
 

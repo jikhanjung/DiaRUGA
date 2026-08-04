@@ -219,8 +219,27 @@ ObjectReview.objects.filter(viewpoint=vp).exclude(mask_key__in=keys).delete()
 경로라서다. 화면을 눌러 보는 시험은 사본 DB(`DIATOM_DB=…/test.db`)에 붙이고,
 시험 코드에 `assert` 로 사본인지 확인하는 줄을 넣는다.
 
-**그리고 이 시험이 못 닿는 자리가 있다.** 브라우저가 없는 머신이라 테스트
-클라이언트로는 "200 이 뜨고 이런 HTML 이 나온다" 까지만 본다. 못 보는 것:
+> **08-04: 브라우저가 생겼다 (045).** `playwright` + 헤드리스 크로미움을 넣었다 —
+> 키 입력·클릭·페이지 이동·**콘솔 오류**·화면 캡처가 된다. 아래 "못 보는 것" 의
+> 첫째(이벤트 배선)는 이제 닿는다. 실제로 `?shot=last` 가 JS 를 죽이던 것을
+> `page.on("pageerror")` 한 줄로 잡았다.
+>
+> ```bash
+> ~/venv/diatom/bin/pip install playwright
+> NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt \
+>   ~/venv/diatom/bin/playwright install chromium
+> ```
+>
+> **`NODE_EXTRA_CA_CERTS` 를 빠뜨리면 `SELF_SIGNED_CERT_IN_CHAIN` 으로 죽는다**
+> (9.5 — 사내망이 TLS 를 가로채는데 node 는 시스템 CA 저장소를 안 본다).
+> `deploy/ca/` 의 인증서 하나로는 안 되고 **시스템 번들을 통째로** 줘야 했다.
+>
+> **브라우저는 반드시 사본 DB 에 붙인다.** 저장소에서
+> `DIATOM_DB=…/사본.db DIATOM_SCRIPT_NAME= manage.py runserver 127.0.0.1:8099`
+> 로 띄우고 거기에 붙인다 — 운영에 붙이면 클릭 한 번이 교정을 지운다(027).
+
+**이 시험이 못 닿는 자리가 있(었)다.** 테스트 클라이언트로는 "200 이 뜨고 이런
+HTML 이 나온다" 까지만 본다. 못 보는 것:
 
 - **이벤트 배선** — 키가 실제로 듣는가, 활성 패널 판정이 맞는가, 입력칸 안에서
   안 듣는가. 단축키(040)가 그렇게 나갔다

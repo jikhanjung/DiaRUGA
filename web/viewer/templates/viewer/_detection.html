@@ -498,16 +498,8 @@
     if (el) el.addEventListener('mouseenter', function () { window.__diatomActive = uid; });
   });
 
-  // 이전 시야로 거슬러 올 때는 그 시야의 마지막 사진에서 시작한다.
-  if (window.__diatomActive === uid && shots.length &&
-      /[?&]shot=last(&|$)/.test(location.search)) {
-    commit(shots.length - 1, true);
-    // 새로고침에서 다시 튀지 않게 주소만 정리한다.
-    // window. 를 붙여야 한다 — 이 스코프의 history 는 교정 이력 배열이다.
-    if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, '', location.pathname + location.hash);
-    }
-  }
+  // `?shot=last` 처리는 여기 있으면 안 된다 — 초기화 끝(applyTransform/build 뒤)에 있다.
+  // 왜 옮겼는지는 그 자리에 적어 두었다.
 
   // --- 시야 간 이동 --------------------------------------------------------
   var GNAV_KEY = 'diatom.crossgroup';        // 'ask'(기본) | 'always'
@@ -1672,6 +1664,31 @@
   applyTransform();
   build();
   renderNotes();
+
+  // --- 이전 시야로 거슬러 왔으면 그 시야의 마지막 사진에서 시작한다 ----------
+  // **반드시 여기여야 한다 — 초기화가 다 끝난 뒤다.**
+  //
+  // 원래는 캐러셀을 만드는 자리(위쪽)에 있었는데, `commit()` 이 `swapDet()` 을
+  // 거쳐 `build()` 를 부르고 `build()` 는 `polys`(이 파일 한참 아래에서
+  // `var polys = []` 로 만들어진다)를 훑는다. `var` 는 끌어올려지지만 값은
+  // `undefined` 라 `polys.forEach` 가 TypeError 를 냈고, **예외가 IIFE 를 뚫고
+  // 나가면서 그 아래 초기화가 통째로 안 돌았다** — 사진과 캡션은 맞는데 개체가
+  // 하나도 안 그려지는 화면이 됐다.
+  //
+  // 검토 화면(`/d/`)은 멀쩡했다. 거기는 `shotDets` 가 없어 `swapDet()` 이 첫
+  // 줄에서 빠져나가 `build()` 를 아예 안 부르기 때문이다. **엔진 화면에서만
+  // 나는 고장**이라 오래 안 보였다.
+  //
+  // 교훈: 초기화 도중에 "다 만들어진 뒤에야 되는 일" 을 끼워 넣지 않는다.
+  if (window.__diatomActive === uid && shots.length &&
+      /[?&]shot=last(&|$)/.test(location.search)) {
+    commit(shots.length - 1, true);
+    // 새로고침에서 다시 튀지 않게 주소만 정리한다.
+    // window. 를 붙여야 한다 — 이 스코프의 history 는 교정 이력 배열이다.
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', location.pathname + location.hash);
+    }
+  }
 })();
 </script>
 {% endif %}
