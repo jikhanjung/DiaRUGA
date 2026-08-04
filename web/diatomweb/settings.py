@@ -94,7 +94,10 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "APP_DIRS": True,
-        "OPTIONS": {"context_processors": []},
+        "OPTIONS": {"context_processors": [
+            # 판 번호를 머리글에 띄운다 (viewer/context.py 머리말 참고)
+            "viewer.context.version",
+        ]},
     }
 ]
 
