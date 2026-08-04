@@ -659,12 +659,57 @@ def mark_done_if_complete(slide) -> bool:
     return True
 
 
+def with_db_retry(fn, tries=6, base=0.7):
+    """SQLite 가 잠겨 있으면 잠깐 쉬었다 다시 한다.
+
+    **뷰어와 파이프라인이 같은 DB 를 쓴다.** WAL 이라 읽기는 여럿이 동시에 되지만
+    **쓰기는 한 번에 하나**다. 파이프라인이 개체 수천 개를 한 트랜잭션으로 넣는
+    동안 사람이 검토를 저장하면 뒤엣것이 `timeout`(20초)을 기다리다 죽는다.
+
+    실제로 그렇게 잃었다 — 2차 실행 중에 검토 저장 31건이 겹쳐 `bp09-0901`
+    프레임 229장이 통째로 날아갔다. 사람이 검토하는 중에 파이프라인을 돌리는
+    일이 앞으로 늘어날 것이므로 재시도로 받아 낸다.
+
+    **잠금이 아닌 오류는 그대로 올려보낸다.** 무엇이든 다시 해 보는 것은
+    고장을 숨기는 짓이다.
+    """
+    from django.db import OperationalError                      # noqa: PLC0415
+
+    for i in range(tries):
+        try:
+            return fn()
+        except OperationalError as e:
+            if "locked" not in str(e).lower() and "busy" not in str(e).lower():
+                raise
+            if i == tries - 1:
+                raise
+            wait = base * (2 ** i)
+            print(f"  DB 가 잠겨 있다 — {wait:.1f}초 뒤 다시 ({i + 1}/{tries})",
+                  file=sys.stderr)
+            time.sleep(wait)
+
+
 def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float,
                    keep_current: bool = False, slide=None):
     """검출 결과를 새 Detection 으로 쌓고 교정을 다시 맺는다.
 
-    **통째로 한 트랜잭션이다.** `is_current` 를 옮기는 것과 교정을 다시 맺는 것이
-    갈라지면, 그 사이에 뷰어를 연 사람은 "교정이 하나도 안 붙은 새 검출"을 본다.
+    **트랜잭션을 둘로 나눈다.**
+
+    1. 검출 행 + 개체 수천 개를 넣는다 (`is_current=False`)
+    2. `is_current` 를 옮기고 교정을 다시 맺는다
+
+    2번은 **반드시 한 덩어리여야 한다** — 갈라지면 그 사이에 뷰어를 연 사람이
+    "교정이 하나도 안 붙은 새 검출"을 본다. 1번은 그럴 필요가 없다.
+    `is_current=False` 라 뷰어에 아예 안 보이기 때문이다.
+
+    **나눈 이유는 잠금이다.** 뷰어와 파이프라인이 같은 SQLite 를 쓴다. WAL 이라
+    읽기는 여럿이 동시에 되지만 **쓰기는 한 번에 하나**다. 둘을 한 덩어리로 묶으면
+    개체 수천 개를 넣는 내내 쓰기 잠금을 쥐고 있어, 그동안 사람이 검토를 저장하면
+    기다리다 죽는다 — 실제로 그렇게 `bp09-0901` 프레임 229장을 잃었다.
+
+    나누면 잠금을 쥐는 시간이 **각 조각의 길이**로 줄어든다. 1번이 실패하면
+    `is_current=False` 인 검출이 남는데, 화면에 안 보이고 다음 실행이 새로
+    쌓으므로 해가 없다.
 
     `keep_current=True` 면 **`is_current` 를 옮기지 않고 재바인딩도 하지 않는다.**
     새 검출은 `is_current=False` 로 쌓이기만 한다. 뷰어(`data.py`)는 current 인
@@ -718,12 +763,14 @@ def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float,
                     reject=(c.get("reject") or "") if not passed else "",
                     **{f: c.get(f) for f in NUM}))
         Candidate.objects.bulk_create(rows, batch_size=2000)
+    # ── 첫 트랜잭션 끝. 여기서 쓰기 잠금을 놓는다 ──
 
-        # 여기부터가 한 덩어리여야 하는 부분이다
-        if keep_current:
-            # 쌓아만 둔다. 지금 것을 건드리지 않으므로 재바인딩도 하지 않는다.
-            return det, len(rows), None
+    if keep_current:
+        # 쌓아만 둔다. 지금 것을 건드리지 않으므로 재바인딩도 하지 않는다.
+        return det, len(rows), None
 
+    # 두 번째 — 짧고, 반드시 한 덩어리여야 하는 부분
+    with transaction.atomic():
         old = list(vp.detections.filter(is_current=True))
         Detection.objects.filter(pk__in=[d.pk for d in old]).update(
             is_current=False, superseded_by=det)
@@ -1081,9 +1128,10 @@ def main():
                 continue
             if args.no_db:
                 continue
-            det, nc, stat = save_detection(payload, f, run, args.rebind_iou,
-                                           keep_current=args.keep_current,
-                                           slide=slide_obj)
+            det, nc, stat = with_db_retry(
+                lambda: save_detection(payload, f, run, args.rebind_iou,
+                                       keep_current=args.keep_current,
+                                       slide=slide_obj))
             if det is None:
                 # 조용히 넘기지 않는다 — 그룹핑과 DB 가 어긋났다는 뜻이다
                 missing.append(f.stem)
@@ -1119,6 +1167,13 @@ def main():
                       "missing_viewpoint": len(missing), "oom": n_oom,
                       **dict(bind)}
         # 전부 OOM 으로 죽었는데 done 으로 남으면 성공한 줄 안다
+        # **하나라도 건너뛰었으면 done 이 아니다.** 예전에는 검출이 하나라도
+        # 있으면 done 이었다 — GPU 를 다른 것이 침범해 9장이 조용히 빠졌는데
+        # 실행은 성공으로 남았고, 나중에 프레임 수를 세어 보고서야 알았다.
+        if n_oom:
+            run.status = "partial"
+            run.error = (f"OOM 으로 {n_oom}장을 건너뛰었다 — 그만큼 검출이 없다. "
+                         f"GPU 를 다른 작업과 나눠 쓰고 있지 않은지 볼 것")
         if n_oom and not n_det:
             run.status = "failed"
             run.error = f"OOM {n_oom}건 — 검출된 것이 없다"

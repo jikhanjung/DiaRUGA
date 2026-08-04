@@ -162,3 +162,20 @@ REVIEW_DIR = "review"
 # 컨테이너에서는 이미지 안(/app)이 읽기 전용이나 마찬가지라 여기 못 쓴다.
 # 데이터 쪽으로 빼면 이미지를 다시 구워도 캐시가 살아남는다 (P03).
 THUMB_CACHE = Path(os.environ.get("DIATOM_THUMB_CACHE", BASE_DIR / ".thumbcache"))
+
+# --- 안전망 상태 (/healthz 가 읽는다) -------------------------------------
+
+# 백업 사본이 놓인 곳. backup_db.py 와 같은 환경변수를 본다 — 값이 갈리면
+# /healthz 가 아무도 안 쓰는 디렉토리를 보며 "최신" 이라고 말하게 된다.
+BACKUP_DIR = Path(os.environ.get("DIATOM_BACKUP_DIR", PROJECT_ROOT / "backup"))
+
+# 가장 새 스냅샷이 이보다 오래면 degraded (data-safety.md §4 의 신선도 게이트).
+#
+# **기본은 꺼 둔다.** 아직 backup_db.py 가 cron 에 없어서(devlog 009) 사람이
+# 큰 작업 전에 손으로 돌린다 — 켜 두면 늘 울리고, 늘 울리는 경보는 안 보게 된다.
+# 시간별 track 을 cron 에 걸 때 `.env` 에 DIATOM_BACKUP_MAX_AGE_H=26 한 줄이면
+# 켜진다. 그때까지 /healthz 는 나이를 **알려만** 준다.
+try:
+    BACKUP_MAX_AGE_H = float(os.environ.get("DIATOM_BACKUP_MAX_AGE_H", "") or 0) or None
+except ValueError:
+    BACKUP_MAX_AGE_H = None

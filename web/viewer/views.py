@@ -1,7 +1,9 @@
 import hashlib
 import json
 import math
+import os
 import re
+import time
 from datetime import date
 from urllib.parse import urlencode
 
@@ -14,13 +16,14 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import antarctica, data, korea, thresholds as th
-from .models import (Core, Detection, Run, Site, Slide,  # noqa: E501
-                     ThresholdSet)
+from .models import (Core, Detection, ObjectReview, Run, Site,  # noqa: E501
+                     Slide, ThresholdSet, Viewpoint)
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 import judge  # noqa: E402
+import db_sentinel  # noqa: E402
 
 # 파일명으로 그대로 쓰이므로 경로 성분이 될 수 있는 문자를 막는다.
 SAFE_STEM = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -903,5 +906,86 @@ def save_review(request):
     return JsonResponse({"ok": True, "done": done, "note": bool(note), **saved})
 
 
+# /healthz 가 "자료가 있다" 고 볼 표. 없으면 이 뷰어는 볼 것이 없는 상태다.
+HEALTH_TABLES = (("slide", Slide), ("viewpoint", Viewpoint),
+                 ("detection", Detection), ("objectreview", ObjectReview))
+
+
 def healthz(request):
-    return HttpResponse("ok")
+    """판·DB·안전망 상태를 한 번에 낸다 (`.guides/web/operations.md` §4).
+
+    ## 세 상태, 그리고 degraded 가 200 인 이유
+
+    | 상태 | 코드 | 뜻 |
+    |---|---|---|
+    | `ok` | 200 | 정상 |
+    | `degraded` | **200** | 서비스는 되는데 손상이 감지됐다 (백업 깃발 등) |
+    | `unhealthy` | 503 | DB 를 못 열거나 자료가 통째로 없다 |
+
+    **`degraded` 를 503 으로 두면 안 된다.** 두 가지가 깨진다. 하나는 503 이
+    "여기로 보내지 말라" 는 교통 신호라, 재시작으로 안 고쳐질 상태에 대고 앞단이
+    호스트를 빼거나 계속 돌리게 된다. 다른 하나가 더 실질적이다 — `deploy.sh` 의
+    기동 게이트가 **200 을 기다린다**(deployment.md §5). degraded 에 503 을 내면
+    "백업이 깨졌다" 는 신호가 배포 자체를 못 끝내게 만든다. 배포를 막는 일은
+    `smoke.sh` 가 `status != ok` 로 하고, 이쪽은 살아 있다고만 답한다.
+
+    ## 가볍게 유지한다
+
+    인증이 없는 엔드포인트다. 여기서 `integrity_check` 나 전체 훑기를 돌리면
+    누구나 부를 수 있는 DoS 표면이 된다. **비싼 검사는 백업이 한 번 하고**
+    (`backup_db.py`), 여기서는 그것이 남긴 깃발 파일을 읽기만 한다
+    (data-safety.md §2). 나머지는 `count(*)` 넷과 `stat` 하나다.
+
+    ## 빈 DB 함정
+
+    `slide` 가 0 이면 **unhealthy** 다. 마운트가 어긋나 컨테이너가 빈 DB 를 새로
+    만들어도 "파일이 있는가" 검사는 통과한다 — `rows > 0` 만이 그것을 잡는다
+    (data-safety.md §8). 그래서 배포 게이트가 여기서 걸리는 편이 맞다.
+    """
+    info = {"status": "ok", "version": os.environ.get("IMAGE_TAG", "")}
+    notes = []
+
+    # 1) DB — 연결과 행 수. 못 열면 나머지는 볼 것도 없다.
+    try:
+        info["db"] = {name: model.objects.count() for name, model in HEALTH_TABLES}
+    except Exception as e:                       # noqa: BLE001 — 무엇이 나오든 죽지 않는다
+        info["status"] = "unhealthy"
+        info["db"] = None
+        notes.append(f"DB 를 읽지 못했다: {e}")
+    else:
+        if info["db"]["slide"] == 0:
+            info["status"] = "unhealthy"
+            notes.append("슬라이드가 0 이다 — DB 마운트가 어긋났을 수 있다")
+
+    # 2) 백업이 세운 무결성 깃발. 파일을 읽기만 한다.
+    flags = db_sentinel.read(settings.DIATOM_DB)
+    info["integrity_flags"] = flags
+    if flags and info["status"] == "ok":
+        info["status"] = "degraded"
+    for f in flags:
+        notes.append(f"백업 실패 깃발 [{f['source']} {f['time']}] {f['reason']}")
+
+    # 3) 백업 신선도. 문턱을 안 주면 알려만 준다 (settings.BACKUP_MAX_AGE_H 주석).
+    age_h = None
+    try:
+        snaps = list(settings.BACKUP_DIR.glob("diatom_*.db"))
+        if snaps:
+            newest = max(snaps, key=lambda p: p.stat().st_mtime)
+            age_h = round((time.time() - newest.stat().st_mtime) / 3600, 1)
+    except OSError:
+        pass
+    info["backup"] = {"age_h": age_h, "max_age_h": settings.BACKUP_MAX_AGE_H}
+    if settings.BACKUP_MAX_AGE_H and (age_h is None
+                                      or age_h > settings.BACKUP_MAX_AGE_H):
+        if info["status"] == "ok":
+            info["status"] = "degraded"
+        notes.append("백업 사본이 없다" if age_h is None else
+                     f"백업이 낡았다 — 가장 새 사본이 {age_h} 시간 전 "
+                     f"(문턱 {settings.BACKUP_MAX_AGE_H})")
+
+    info["notes"] = notes
+    code = 503 if info["status"] == "unhealthy" else 200
+    resp = JsonResponse(info, status=code, json_dumps_params={"ensure_ascii": False})
+    # 앞단이나 브라우저가 이 답을 캐시하면 지난 상태를 보고 판단하게 된다
+    resp["Cache-Control"] = "no-store"
+    return resp

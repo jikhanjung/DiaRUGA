@@ -42,10 +42,15 @@ import sys
 import time
 from pathlib import Path
 
+import db_sentinel
+
 ROOT = Path(__file__).resolve().parent
 
 # 이 표가 있으면 스키마가 살아 있다고 본다 — backup_db.py 와 같은 기준
 SMOKE_TABLE = "viewer_objectreview"
+
+# 깃발에 적히는 주인. backup_db.py 와 갈라야 서로의 실패를 안 지운다.
+SOURCE = "sync_backup_nas"
 
 
 def _env(key, default):
@@ -183,10 +188,25 @@ def main():
             print(f"  {p.name}  검증 실패 — {err}", file=sys.stderr)
             print(f"    증거를 남겼다: {dst.name}", file=sys.stderr)
 
+    # 깃발은 **사본을 믿을 수 없을 때만** 세운다 (db_sentinel 머리말).
+    #
+    # NAS 가 안 붙은 것은 여기 넣지 않았다. 그건 자료가 상한 것이 아니라 lane 이
+    # 잠깐 없는 것인데, 그것까지 세우면 NAS 점검 한 번에 뷰어가 degraded 가 되고
+    # 배포 smoke 가 막힌다. 가장 센 신호(자료가 상했다)가 잡음에 묻히면 안 된다.
+    # 오프사이트 가용성은 별도 신호가 맡을 몫이다.
+    db = Path(_env("DIATOM_DB", str(ROOT / "diatom.db")))
     if failed:
         # 실패했으면 정리하지 않는다 — 지난 성공 사본이 유일한 안전망일 수 있다
         print(f"\n{failed}개가 검증에 실패했다. 정리를 건너뛴다.", file=sys.stderr)
+        if not args.dry_run:
+            flag = db_sentinel.raise_fail(
+                db, SOURCE, f"NAS 사본 {failed}개가 검증에 실패했다 ({nas})")
+            print(f"  깃발을 세웠다: {flag} (/healthz 가 degraded 를 낸다)",
+                  file=sys.stderr)
         return 1
+
+    if not args.dry_run and db_sentinel.clear(db, SOURCE):
+        print("  지난 실패 깃발을 내렸다")
 
     if args.keep and not args.dry_run:
         # 정리는 이 스크립트만 한다 (§10). .corrupt 는 glob 에 안 걸려 남는다.

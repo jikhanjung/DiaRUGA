@@ -51,7 +51,10 @@ class Run(models.Model):
     """실행 이력. 지금까지 아무 데도 없어서 stack_report.json 이 덮어써졌다."""
 
     KIND = RUN_KIND
-    STATUS = [(s, s) for s in ("running", "done", "failed")]
+    # `partial` — 돌긴 했는데 일부를 건너뛴 것. `done` 과 갈라야 한다.
+    # GPU 를 다른 작업이 침범해 9장이 조용히 빠졌는데 실행은 done 이었고,
+    # 나중에 프레임 수를 세어 보고서야 알았다.
+    STATUS = [(s, s) for s in ("running", "done", "partial", "failed")]
 
     kind = models.CharField(max_length=16, choices=KIND)
     # 여러 슬라이드에 걸친 한 번의 작업을 묶는 이름표. 비어 있어도 된다 —
