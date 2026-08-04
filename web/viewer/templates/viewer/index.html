@@ -248,7 +248,13 @@
   }
   var saved;
   try { saved = localStorage.getItem(KEY); } catch (e) { saved = null; }
-  apply(saved === 'cards' || saved === 'map' ? saved : 'table');
+  // **지도가 없는 화면에서는 지도로 열지 않는다.** "전체" 에는 지도가 없는데
+  // 지난번에 지도를 골라 둔 사람이 들어오면 표도 카드도 감춘 빈 화면이 된다 —
+  // 인자 없이 들어오면 "전체" 가 열리므로 그것이 곧 첫 화면이 된다.
+  // **기억은 지우지 않는다** — 남극으로 가면 다시 지도로 열려야 한다.
+  var hasMap = !!box.querySelector('.asMap');
+  var want = (saved === 'cards' || saved === 'map') ? saved : 'table';
+  apply(want === 'map' && !hasMap ? 'table' : want);
   bar.addEventListener('click', function (e) {
     var b = e.target.closest('button[data-view]');
     if (!b) return;

@@ -742,8 +742,10 @@ def area_tabs(selected: str | None = None) -> dict:
     **고른 값을 여기서 정한다.** 화면이 `?area=` 를 그대로 믿으면 없는 값이
     들어왔을 때 빈 목록이 나오고, 왜 비었는지가 화면에 안 보인다.
 
-    기본값은 "자료가 있는 첫 권역" 이다. 지금은 전부 남극이라 남극이 되지만,
-    한국 자료만 들어온 상태에서 빈 남극 탭이 열리는 일도 없다.
+    **아무것도 주지 않으면 `전체` 다.** 한때는 "자료가 있는 첫 권역" 이었는데,
+    그러면 맨 처음 열리는 화면이 이미 한 번 걸러진 것이 된다 — 무엇이 빠졌는지
+    모른 채 본다. 특히 지역이 안 붙은 슬라이드는 어느 권역에도 없어서, 새로
+    반입된 것이 첫 화면에서 통째로 안 보였다.
 
     **`전체` 는 지역(Site)이 안 붙은 슬라이드까지 담는다.** 그것이 이 탭이
     있어야 하는 이유다 — 새로 반입된 슬라이드는 지역이 정해지기 전까지 한국에도
@@ -757,7 +759,7 @@ def area_tabs(selected: str | None = None) -> dict:
                  "n": Slide.objects.count()})
     keys = [t["key"] for t in tabs]
     if selected not in keys:
-        selected = next((t["key"] for t in tabs if t["n"]), AREA_ALL)
+        selected = AREA_ALL
     for t in tabs:
         t["on"] = t["key"] == selected
     return {
