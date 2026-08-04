@@ -1374,9 +1374,24 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
                      "det": stack["detection"]})
 
     shots = {p["key"]: _shot(p["det"]) for p in pool}
-    # 개체가 가장 많은 판에서 시작한다 — 빈 프레임이 먼저 열리면 검출이
-    # 아무것도 없는 줄 알게 된다.
-    best = max(pool, key=lambda p: len(p["det"]["candidates"]), default=None)
+    # **개체가 있는 합성본이면 거기서 시작한다.** 시야로 들어가면 그 시야를
+    # 대표하는 한 장이 먼저 보여야 하고, 그게 합성본이다 — 검토 화면
+    # (`group_detail`)도 같은 규칙이라 두 화면이 같은 자리에서 열린다.
+    #
+    # 아니면 **개체가 가장 많은 판**으로 물러난다. 그것이 원래 규칙이었고 이유가
+    # 있다 — 빈 판이 먼저 열리면 검출이 아무것도 없는 줄 알게 된다.
+    #
+    # **"합성본이 있으면" 이 아니라 "개체가 있으면" 이다.** 처음엔 합성본을
+    # 무조건 골랐는데, 합성본만 비고 프레임에는 개체가 있는 시야가 yolo-1차에서
+    # 10개 나왔다 — 옛 규칙이 막으려던 바로 그 화면을 다시 만들 뻔했다.
+    #
+    # 실측: 이 규칙 전에는 YOLO 묶음의 여러장 시야 317개 중 **247개**가 합성본이
+    # 아닌 프레임에서 열렸다. SAM2 는 합성본에만 검출이 있어 0개였고, 그래서
+    # 엔진을 갈아 끼울 때마다 시작 판이 달라 보였다.
+    stack_p = next((p for p in pool if p["key"] == STACK_KEY
+                    and p["det"]["candidates"]), None)
+    best = stack_p or max(pool, key=lambda p: len(p["det"]["candidates"]),
+                          default=None)
     return {
         "slug": slug, "label": slide.name, "id": gid, "tag": vp.tag,
         "run_id": run_id,
