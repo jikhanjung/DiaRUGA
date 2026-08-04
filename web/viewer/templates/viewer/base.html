@@ -85,8 +85,8 @@
   .tile .thumbwrap polygon.rod { fill: rgba(70,140,255,.45); }
   .tile .thumbwrap polygon.round { fill: rgba(60,220,120,.45); }
   .tile .thumbwrap polygon.manual { fill: rgba(255,180,70,.45); }
-  .tile .thumbwrap polygon.rod_frag { fill: rgba(160,120,255,.45); }
-  .tile .thumbwrap polygon.round_frag { fill: rgba(60,205,205,.45); }
+  .tile .thumbwrap polygon.rod_frag { fill: rgba(120,195,255,.45); }
+  .tile .thumbwrap polygon.round_frag { fill: rgba(140,235,170,.45); }
   .tile .thumbwrap polygon.eucampia { fill: rgba(255,110,190,.5); }
   .tile .thumbwrap polygon.chaetoceros { fill: rgba(150,225,75,.5); }
   /* 사진이 여럿인 시야 — 인스타그램의 캐러셀 표시와 같은 모양.
@@ -117,8 +117,13 @@
   /* 검토 완료 — 다른 배지(초록·주황)와 갈라져야 목록에서 한눈에 짚인다 */
   .badge.done { color: var(--danger); border-color: var(--danger); }
   .badge.warn { color: var(--warn); border-color: var(--warn); }
-  .badge.rod { color: var(--accent); border-color: var(--accent); }
-  .badge.frag { color: #a78bfa; border-color: #a78bfa; }
+  /* 분류 배지는 마스크 색을 그대로 쓴다 — 사진에서 파랗던 것이 목록에서도
+     파래야 한다. 파편은 본체와 같은 색상, 연한 쪽이다.
+     `on`(합성됨·N개 검출)은 분류가 아니라 일반 배지라 여기 섞지 않는다. */
+  .badge.rod  { color: #468cff; border-color: #468cff; }
+  .badge.rodf { color: #78c3ff; border-color: #78c3ff; }
+  .badge.rnd  { color: #3cdc78; border-color: #3cdc78; }
+  .badge.rndf { color: #8cebaa; border-color: #8cebaa; }
   .badge.euc { color: #ff6ebe; border-color: #ff6ebe; }
   .badge.cha { color: #96e14b; border-color: #96e14b; }
 
@@ -192,8 +197,8 @@
   .vpimg polygon { stroke-width: 0; }
   .vpimg polygon.rod { fill: rgba(70,140,255,.42); }
   .vpimg polygon.round { fill: rgba(60,220,120,.42); }
-  .vpimg polygon.rod_frag { fill: rgba(160,120,255,.42); }
-  .vpimg polygon.round_frag { fill: rgba(60,205,205,.42); }
+  .vpimg polygon.rod_frag { fill: rgba(120,195,255,.42); }
+  .vpimg polygon.round_frag { fill: rgba(140,235,170,.42); }
   .vpimg polygon.eucampia { fill: rgba(255,110,190,.45); }
   .vpimg polygon.chaetoceros { fill: rgba(150,225,75,.45); }
   .vpimg polygon.none { fill: rgba(255,60,60,.28); }
@@ -237,8 +242,8 @@
   .crop:hover { border-color: var(--accent); text-decoration: none; }
   .crop.rod { border-color: rgba(70,140,255,.55); }
   .crop.round { border-color: rgba(60,220,120,.55); }
-  .crop.rod_frag { border-color: rgba(160,120,255,.6); }
-  .crop.round_frag { border-color: rgba(60,205,205,.6); }
+  .crop.rod_frag { border-color: rgba(120,195,255,.6); }
+  .crop.round_frag { border-color: rgba(140,235,170,.6); }
   .crop.eucampia { border-color: rgba(255,110,190,.7); }
   .crop.chaetoceros { border-color: rgba(150,225,75,.7); }
   .crop.manual { border-color: var(--warn); }
@@ -569,8 +574,8 @@
   .detview svg.masks polygon.round  { fill: rgba(60,220,120,.42); }
   .detview svg.masks polygon.manual { fill: rgba(255,180,70,.42); }
   .detview svg.masks polygon.none   { fill: rgba(255,60,60,.30); }
-  .detview svg.masks polygon.rod_frag   { fill: rgba(160,120,255,.42); }
-  .detview svg.masks polygon.round_frag { fill: rgba(60,205,205,.42); }
+  .detview svg.masks polygon.rod_frag   { fill: rgba(120,195,255,.42); }
+  .detview svg.masks polygon.round_frag { fill: rgba(140,235,170,.42); }
   /* Eucampia — 형태가 아니라 속으로 알아본 것이라 색을 따로 준다 */
   .detview svg.masks polygon.eucampia   { fill: rgba(255,110,190,.45); }
   .detview svg.masks polygon.chaetoceros { fill: rgba(150,225,75,.45); }
@@ -585,8 +590,8 @@
   .detview.hide-fill svg.masks polygon.round      { stroke: rgba(60,220,120,.95); }
   .detview.hide-fill svg.masks polygon.manual     { stroke: rgba(255,180,70,.95); }
   .detview.hide-fill svg.masks polygon.none       { stroke: rgba(255,60,60,.9); }
-  .detview.hide-fill svg.masks polygon.rod_frag   { stroke: rgba(160,120,255,.95); }
-  .detview.hide-fill svg.masks polygon.round_frag { stroke: rgba(60,205,205,.95); }
+  .detview.hide-fill svg.masks polygon.rod_frag   { stroke: rgba(120,195,255,.95); }
+  .detview.hide-fill svg.masks polygon.round_frag { stroke: rgba(140,235,170,.95); }
   .detview.hide-fill svg.masks polygon.eucampia   { stroke: rgba(255,110,190,.95); }
   .detview.hide-fill svg.masks polygon.chaetoceros { stroke: rgba(150,225,75,.95); }
   .detview.hide-fill svg.masks polygon.sel        { stroke: rgba(255,210,63,1); stroke-width: 2.2px; }
@@ -817,8 +822,8 @@
   }
   .detview .box.rod   { border-color: rgba(70,140,255,.9); }
   .detview .box.round { border-color: rgba(60,220,120,.9); }
-  .detview .box.rod_frag   { border-color: rgba(160,120,255,.95); }
-  .detview .box.round_frag { border-color: rgba(60,205,205,.95); }
+  .detview .box.rod_frag   { border-color: rgba(120,195,255,.95); }
+  .detview .box.round_frag { border-color: rgba(140,235,170,.95); }
   .detview .box.eucampia   { border-color: rgba(255,110,190,.95); }
   .detview .box.chaetoceros { border-color: rgba(150,225,75,.95); }
   /* 사람이 지정한 분류는 실선 대신 굵은 점선 — 자동 판정과 구분된다 */
