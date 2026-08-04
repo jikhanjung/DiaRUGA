@@ -162,6 +162,15 @@ def group(request, slug, gid):
     ctx = data.group_detail(slug, gid)
     if ctx is None:
         raise Http404(f"unknown group: {slug}/{gid}")
+    # 보고 있는 시야를 다른 엔진으로 볼 수 있게. 묶음이 둘 이상일 때만 낸다 —
+    # 하나뿐이면 지금 보는 그것이라 갈 곳이 없다.
+    #
+    # **검토 화면이 이미 보여 주는 묶음으로는 보내지 않는다.** 지금 화면이
+    # 그리는 것이 현재 검출이라, 거기로 가면 같은 것을 교정만 뗀 채 다시 보게
+    # 된다. 다른 엔진이 먼저 열려야 견주는 뜻이 산다.
+    bs = data.batches_for_viewpoint(slug, gid)
+    ctx["engine_batches"] = bs
+    ctx["engine_link"] = next((b for b in bs if not b["current"]), None)
     return render(request, "viewer/group.html", ctx)
 
 

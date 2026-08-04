@@ -49,6 +49,7 @@ import os
 import re
 import shutil
 import sqlite3
+import subprocess
 import sys
 import time
 from datetime import datetime
@@ -169,6 +170,91 @@ def plan_retention(paths, now):
     return keep, drop
 
 
+def sync_photos(src: Path, nas_dir: Path, keep: int, dry_run: bool) -> bool:
+    """사진 트리를 하루 한 덩어리(`photos_YYYYMMDD.tar`)로 묶어 NAS 에 둔다.
+
+    ## 왜 압축하지 않는가
+
+    3.65 GB 가 JPEG 이고 177 MB 만 XML 이다. 재 보니 슬라이드 하나가 440 MB →
+    419 MB, **5%** 다. 그 5% 를 얻자고 매일 3.8 GB 를 통째로 갈아 낸다. 묶는
+    목적은 "파일 하나로" 이지 용량이 아니므로 `tar` 만 쓴다.
+
+    ## 왜 tar 인가 (하드링크 스냅샷이 아니라)
+
+    가이드(§9)는 media 디렉토리에 rsnapshot 식 하드링크 트리를 권한다 —
+    바뀐 것만 나르고 공간도 안 먹는다. 여기서 tar 를 쓰는 이유는 하나다:
+    **덩어리 하나로 들고 다니고 싶다.** NAS 가 18 T 남아 있어 7 × 3.8 GB 가
+    문제되지 않는 동안은 그 편의를 사는 것이 낫다.
+
+    바뀔 조건을 적어 둔다 — **사진이 커지면 이 판단이 뒤집힌다.** 매일 드는
+    비용이 전량에 비례하므로, 사진이 수십 GB 가 되면 하드링크 트리로 옮길 것.
+    NAS 가 하드링크를 받는 것은 확인해 뒀다(rsync 3.2.7, `--link-dest` 로 같은
+    inode 가 나온다).
+
+    ## 이름은 검증을 통과한 뒤에 준다
+
+    `.part` 로 쓰고 `tar -tf` 로 열어 본 뒤 제 이름을 준다. DB 스냅샷과 같은
+    규칙이다 — **이름이 붙어 있으면 검증을 통과한 것.** 받다 만 3.8 GB 가
+    정상 묶음처럼 보이면 그것을 믿고 원본을 지우는 날이 온다.
+
+    파일 수도 견준다. `tar` 가 성공했는데 내용이 빈 경우를 크기만으로는 못 잡는다.
+    """
+    if not src.is_dir():
+        print(f"사진 디렉토리가 없다: {src}", file=sys.stderr)
+        return False
+
+    stamp = time.strftime("%Y%m%d")
+    final = nas_dir / f"photos_{stamp}.tar"
+    part = nas_dir / f"photos_{stamp}.tar.part"
+
+    n_src = sum(1 for _ in src.rglob("*") if _.is_file())
+    print(f"\n사진 — {src} ({n_src}개)")
+
+    if final.exists():
+        print(f"  오늘 것이 이미 있다: {final.name}")
+    elif dry_run:
+        print(f"  묶을 것: {final.name}")
+    else:
+        nas_dir.mkdir(parents=True, exist_ok=True)
+        t0 = time.time()
+        # -C 로 뿌리를 바꿔 담아야 묶음 안이 photos/... 로 깔끔하다.
+        # 절대경로 그대로 담으면 풀 때 어디에 쏟아질지 알기 어렵다.
+        r = subprocess.run(["tar", "cf", str(part), "-C", str(src.parent), src.name],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            part.unlink(missing_ok=True)
+            print(f"  묶기 실패 — {r.stderr.strip()[:200]}", file=sys.stderr)
+            return False
+
+        # 열어 본다. 묶기만 하고 깨진 것을 모르면 뜻이 없다 (§2 의 tar 판).
+        r = subprocess.run(["tar", "tf", str(part)], capture_output=True, text=True)
+        n_tar = sum(1 for line in r.stdout.splitlines() if not line.endswith("/"))
+        if r.returncode != 0 or n_tar < n_src:
+            bad = nas_dir / f"photos_{stamp}.tar.corrupt"   # 정리 glob 밖
+            part.replace(bad)
+            print(f"  검증 실패 — 원본 {n_src}개 · 묶음 {n_tar}개"
+                  f"{' · ' + r.stderr.strip()[:120] if r.stderr.strip() else ''}",
+                  file=sys.stderr)
+            print(f"    증거를 남겼다: {bad.name}", file=sys.stderr)
+            return False
+
+        part.replace(final)
+        mb = final.stat().st_size / 1e6
+        print(f"  {final.name}  {mb:.0f} MB  {n_tar}개  {time.time() - t0:.0f}초")
+
+    # 일주일 rolling. 이름이 날짜라 사전순 = 시간순이다.
+    olds = sorted(nas_dir.glob("photos_*.tar"))[:-keep] if keep else []
+    for old in olds:
+        if dry_run:
+            print(f"  정리할 것: {old.name}")
+        else:
+            old.unlink()
+            print(f"  정리: {old.name}")
+    if not olds:
+        print(f"  보관 {len(sorted(nas_dir.glob('photos_*.tar')))}개 (최근 {keep}개 유지)")
+    return True
+
+
 def verify(db_path: Path):
     """사본을 열어 무결성과 행 수를 본다. (ok, rows, error) 를 돌려준다."""
     try:
@@ -213,6 +299,14 @@ def main():
                          f"{WEEKLY_DAYS}일까지 주 1개 · 그 뒤 달 1개)")
     ap.add_argument("--newest-only", action="store_true",
                     help="가장 새 스냅샷 하나만 보낸다 (일별 cron 이 쓴다)")
+    ap.add_argument("--photos", action="store_true",
+                    help="사진 디렉토리도 하루 한 덩어리로 묶어 NAS 에 둔다")
+    ap.add_argument("--photos-src", default=None,
+                    help="사진 뿌리 (기본: $DIATOM_DATA_ROOT/photos)")
+    ap.add_argument("--photos-nas", default=None,
+                    help="사진 묶음을 둘 곳 (기본: NAS 백업 옆의 photos/)")
+    ap.add_argument("--photos-keep", type=int, default=7,
+                    help="사진 묶음을 최근 N개로 (일주일 rolling)")
     ap.add_argument("--stale-hours", type=float, default=26.0,
                     help="가장 새 로컬 스냅샷이 이보다 오래면 경고 (0 이면 끔)")
     ap.add_argument("--dry-run", action="store_true")
@@ -320,6 +414,17 @@ def main():
 
     total = len(list(nas.glob("diatom_*.db")))
     print(f"\n보냄 {sent}개 · NAS 사본 {total}개 · {nas}")
+
+    # 사진은 **DB 와 갈라 둔다.** 여기서 실패해도 깃발을 세우지 않는다 — 깃발은
+    # "DB 사본을 믿을 수 없다" 는 뜻이고, 사진은 NAS 에 원본이 따로 있다(거기서
+    # 받아 온 것이다). 종료코드로만 알린다.
+    if args.photos:
+        src = Path(args.photos_src or
+                   (Path(_env("DIATOM_DATA_ROOT", "/data3/diatom")) / "photos"))
+        pnas = Path(args.photos_nas or (nas.parent / "photos"))
+        if not sync_photos(src, pnas, args.photos_keep, args.dry_run):
+            return 1
+
     return 0
 
 

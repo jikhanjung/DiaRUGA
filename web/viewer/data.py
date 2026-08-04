@@ -1356,7 +1356,8 @@ def engine_viewpoints(run_id: int) -> list[dict]:
     return sorted(rows, key=lambda r: (r["slug"], r["idx"]))
 
 
-def batches_for_viewpoint(slug: str, gid: int, run_id: int) -> list[dict]:
+def batches_for_viewpoint(slug: str, gid: int,
+                          run_id: int | None = None) -> list[dict]:
     """이 시야에 쌓여 있는 묶음들. 검출 화면에서 갈아 끼우는 데 쓴다.
 
     **같은 시야를 보면서 엔진을 바꿀 수 있어야 한다.** 목록으로 나갔다가 다른
@@ -1373,7 +1374,9 @@ def batches_for_viewpoint(slug: str, gid: int, run_id: int) -> list[dict]:
           .prefetch_related("detections__run__batch").first())
     if vp is None:
         return []
-    here = set(engine_run_ids(run_id))
+    # 검토 화면에서 부를 때는 "지금 보고 있는 묶음" 이 없다 — 그때는 아무것도
+    # 켜지지 않는다.
+    here = set(engine_run_ids(run_id)) if run_id else set()
 
     per = defaultdict(list)
     for d in vp.detections.all():
@@ -1396,6 +1399,8 @@ def batches_for_viewpoint(slug: str, gid: int, run_id: int) -> list[dict]:
             "backend": (rep.run.params or {}).get("backend", "?"),
             "run_id": rep.run_id,
             "on": any(d.run_id in here for d in picked),
+            # 검토 화면이 이미 보여 주는 것인가 — 거기서 길을 낼 때 쓴다
+            "current": any(d.is_current for d in picked),
             "n": Candidate.objects.filter(
                 detection__in=picked, passed=True).count(),
         })

@@ -9,6 +9,15 @@
   <a href="{% url 'dataset' slug %}">{{ label }}</a> / <b>g{{ id }}</b> ·
   {{ n }}장 · <span class="mono">{{ tag }}</span> · 최선 {{ sharpest }}{% endblock %}
 {% block nav %}
+  {% comment %}
+    이 시야를 다른 엔진으로 본다. 묶음이 둘 이상일 때만 낸다 — 하나뿐이면
+    지금 보고 있는 그것이라 갈 곳이 없다. 어느 묶음으로 들어가든 그 화면에서
+    묶음을 갈아 끼울 수 있다.
+  {% endcomment %}
+  {% if engine_batches|length > 1 and engine_link %}
+    <a href="{% url 'engine_view' engine_link.run_id slug id %}"
+       title="사람의 교정을 얹지 않은, 엔진이 낸 그대로를 봅니다 (읽기 전용)">엔진 비교</a>
+  {% endif %}
   {% if prev_id is not None %}<a href="{% url 'group' slug prev_id %}">← g{{ prev_id }}</a>{% endif %}
   {% if next_id is not None %}<a href="{% url 'group' slug next_id %}">g{{ next_id }} →</a>{% endif %}
 {% endblock %}
