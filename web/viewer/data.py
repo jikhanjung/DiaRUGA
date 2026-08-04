@@ -239,6 +239,15 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
     counts["manual"] = sum(1 for d in kept if d.get("manual"))
     counts["labeled"] = sum(1 for d in kept if d.get("cls_user"))
 
+    # 검출 화면 머리의 "(봉상 12, 원형 3, …)". 분류 이름이 템플릿에 박혀 있었다 —
+    # 그래서 Chaetoceros 를 표에 넣어도 이 줄에만 안 나왔다. 표가 정하게 바꾼다.
+    # 0 인 분류는 뺀다. 여기는 표가 아니라 한 줄이라 자리를 맞출 것이 없고,
+    # 짧을수록 읽힌다.
+    order = ([(r["key"], r["label"]) for r in _class_rows()]
+             + [("manual", "수동"), ("labeled", "사람지정")])
+    counts_list = [{"key": k, "label": lb, "n": counts[k]}
+                   for k, lb in order if counts.get(k)]
+
     stem = Path(det.image_path).stem
     overlay = Path(settings.DATA_ROOT) / "out" / f"{stem}_overlay.jpg"
     return {
@@ -255,6 +264,7 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
         "n_auto": n_auto,
         "n_candidates": len(kept),
         "counts": counts,
+        "counts_list": counts_list,
         "thresholds": det.thresholds.as_dict() if det.thresholds else {},
         "candidates": kept,
         "removed_candidates": gone,

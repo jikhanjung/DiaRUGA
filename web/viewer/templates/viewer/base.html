@@ -88,6 +88,7 @@
   .tile .thumbwrap polygon.rod_frag { fill: rgba(160,120,255,.45); }
   .tile .thumbwrap polygon.round_frag { fill: rgba(60,205,205,.45); }
   .tile .thumbwrap polygon.eucampia { fill: rgba(255,110,190,.5); }
+  .tile .thumbwrap polygon.chaetoceros { fill: rgba(150,225,75,.5); }
   /* 사진이 여럿인 시야 — 인스타그램의 캐러셀 표시와 같은 모양.
      판을 깔지 않고 그림자로 띄운다. 썸네일은 밝기가 제각각이라 흰 선만으로는
      밝은 사진에서 묻히는데, drop-shadow 는 어두운 사진에서도 거슬리지 않는다. */
@@ -119,6 +120,7 @@
   .badge.rod { color: var(--accent); border-color: var(--accent); }
   .badge.frag { color: #a78bfa; border-color: #a78bfa; }
   .badge.euc { color: #ff6ebe; border-color: #ff6ebe; }
+  .badge.cha { color: #96e14b; border-color: #96e14b; }
 
   /* --- 문턱 조정 화면 ---
      한 시야를 보며 정한 값이 시야 전부에 걸리므로, 영향받는 시야를 영향 큰 순으로
@@ -193,6 +195,7 @@
   .vpimg polygon.rod_frag { fill: rgba(160,120,255,.42); }
   .vpimg polygon.round_frag { fill: rgba(60,205,205,.42); }
   .vpimg polygon.eucampia { fill: rgba(255,110,190,.45); }
+  .vpimg polygon.chaetoceros { fill: rgba(150,225,75,.45); }
   .vpimg polygon.none { fill: rgba(255,60,60,.28); }
   /* 뒤집히는 것 — 이 문턱 때문에 빠지거나 들어오는 개체.
      들어오는 것을 초록으로 두면 원형(초록 fill) 위에서 안 보인다. 분류에 안 쓰는
@@ -237,6 +240,7 @@
   .crop.rod_frag { border-color: rgba(160,120,255,.6); }
   .crop.round_frag { border-color: rgba(60,205,205,.6); }
   .crop.eucampia { border-color: rgba(255,110,190,.7); }
+  .crop.chaetoceros { border-color: rgba(150,225,75,.7); }
   .crop.manual { border-color: var(--warn); }
   /* 칸 높이는 고정, 이미지는 그 안에서 비율대로. 감싼 .cimg 가 이미지를 꼭
      감싸므로 그 안에 넣은 스케일바의 % 가 곧 이미지 폭이 된다 — object-fit
@@ -569,6 +573,7 @@
   .detview svg.masks polygon.round_frag { fill: rgba(60,205,205,.42); }
   /* Eucampia — 형태가 아니라 속으로 알아본 것이라 색을 따로 준다 */
   .detview svg.masks polygon.eucampia   { fill: rgba(255,110,190,.45); }
+  .detview svg.masks polygon.chaetoceros { fill: rgba(150,225,75,.45); }
   .detview svg.masks polygon.sel    { fill: rgba(255,210,63,.55); }
   /* fill 을 끄면 마스크를 테두리만 그린다. 채운 색을 그대로 선으로 옮기되
      불투명하게 올린다 — 얇은 선은 반투명하면 잘 안 보인다.
@@ -583,6 +588,7 @@
   .detview.hide-fill svg.masks polygon.rod_frag   { stroke: rgba(160,120,255,.95); }
   .detview.hide-fill svg.masks polygon.round_frag { stroke: rgba(60,205,205,.95); }
   .detview.hide-fill svg.masks polygon.eucampia   { stroke: rgba(255,110,190,.95); }
+  .detview.hide-fill svg.masks polygon.chaetoceros { stroke: rgba(150,225,75,.95); }
   .detview.hide-fill svg.masks polygon.sel        { stroke: rgba(255,210,63,1); stroke-width: 2.2px; }
   /* 네 귀퉁이가 다 쓰인다: 좌상 교정 도구, 우상 레이어 토글, 우하 스케일바,
      하단 가운데 검토 완료. 배율 표시는 남은 좌하단으로 뺀다. */
@@ -814,6 +820,7 @@
   .detview .box.rod_frag   { border-color: rgba(160,120,255,.95); }
   .detview .box.round_frag { border-color: rgba(60,205,205,.95); }
   .detview .box.eucampia   { border-color: rgba(255,110,190,.95); }
+  .detview .box.chaetoceros { border-color: rgba(150,225,75,.95); }
   /* 사람이 지정한 분류는 실선 대신 굵은 점선 — 자동 판정과 구분된다 */
   .detview .box.userset { border-style: dashed; }
   .detview .box.hot   { border-width: calc(3px * var(--inv, 1));
@@ -836,6 +843,7 @@
   .detview.hide-box .box.rod_frag,
   .detview.hide-box .box.round_frag,
   .detview.hide-box .box.eucampia,
+  .detview.hide-box .box.chaetoceros,
   .detview.hide-box .box.gone { border-color: transparent; background: none; }
   .detview.hide-box .box.gone::after { display: none; }
   .detview.hide-box .box.hot { border-color: rgba(255,255,255,.8); }

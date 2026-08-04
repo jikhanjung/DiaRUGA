@@ -10,7 +10,11 @@
   <button type="button" class="on" data-pane="view">{{ title }}</button>
   <button type="button" data-pane="list">개체 목록 <span class="dim">{{ det.n_candidates }}</span></button>
   <span class="tabmeta">
-    후보 {{ det.n_candidates }}개{% if det.counts %} (봉상 {{ det.counts.rod }}, 원형 {{ det.counts.round }}{% if det.counts.rod_frag %}, 봉상파편 {{ det.counts.rod_frag }}{% endif %}{% if det.counts.round_frag %}, 원형파편 {{ det.counts.round_frag }}{% endif %}{% if det.counts.eucampia %}, Eucampia {{ det.counts.eucampia }}{% endif %}{% if det.counts.manual %}, 수동 {{ det.counts.manual }}{% endif %}{% if det.counts.labeled %}, 사람지정 {{ det.counts.labeled }}{% endif %}){% endif %} ·
+    {% comment %}
+      분류 이름을 여기 적지 않는다 — ClassDef 에 속을 더해도 이 줄만 옛 목록으로
+      남는다(Chaetoceros 를 넣고 실제로 그랬다). data.py 가 표 순서대로 만든다.
+    {% endcomment %}
+    후보 {{ det.n_candidates }}개{% if det.counts_list %} ({% for c in det.counts_list %}{{ c.label }} {{ c.n }}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %} ·
     원시 {{ det.n_raw_masks }}{% if det.n_sized %} → 크기통과 {{ det.n_sized }}{% endif %} ·
     {{ det.um_per_pixel|floatformat:4 }} µm/px{% if det.um_per_pixel_source %}<span class="dim"> ({{ det.um_per_pixel_source }})</span>{% endif %}
   </span>
