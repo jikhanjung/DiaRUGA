@@ -285,5 +285,21 @@ refilter.py 를 DB 로 옮기고, 판정 규칙을 judge.py 로 떼어낸다
 배포 전 스냅샷을 컨테이너 안에서 뜬다
 ```
 
+**`git add` 는 이 세션에서 내가 직접 고친 파일만 지정한다.** `git add -A` ·
+`git add .` · `git commit -a` 는 쓰지 않는다.
+
+이 저장소는 **여러 Claude 세션이 같은 작업 트리에서 동시에 돈다.** 남의 미커밋
+변경이 내 커밋에 쓸려 들어간 적이 있고, 한 번은 HANDOFF 전면 개편이 엉뚱한
+메시지로 push 됐다.
+
+```bash
+git status --short                       # 커밋 전에 본다
+git commit -F - -- <내가 고친 파일…>      # 파일을 지정해서
+```
+
+**"지금 트리가 전부 내 것으로 보인다" 는 확인은 근거로 삼지 않는다.** 그 사이에
+늘어난다 — 실제로 048 작업 중에 옆 세션이 템플릿 셋을 고치고 있었다. 내가 손대지
+않은 파일이 `git status` 에 보이면 **그대로 둔다.**
+
 `DiaRUGA.db`·`photos/`·`out/`·`stacked/`·`backup/`·`runs/`·`datasets/` 는
 gitignore 다.
