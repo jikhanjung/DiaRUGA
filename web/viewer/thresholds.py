@@ -66,7 +66,8 @@ def detection_index(slug=None):
             "label": vp.slide.name,
             "gid": vp.idx,
             "tag": vp.tag,
-            "image_rel": (stack.focused_path if stack and d.target == "stack"
+            "image_rel": (stack.focused_path
+                          if stack and d.image and d.image.kind == "stack"
                           else d.image_path),
             "size": [d.width, d.height],
             "um_per_pixel": d.um_per_pixel,

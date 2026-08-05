@@ -485,12 +485,12 @@ def candidate_rows(slug: str) -> list[dict]:
             continue
         st = getattr(vp, "stack", None)
         # 합성본 검출이 있으면 그쪽을, 없으면 각 프레임 검출을 훑는다.
-        if st and cur and cur.target == "stack":
+        if st and cur and cur.image and cur.image.kind == "stack":
             sources = [(Path(st.focused_path).stem, det, st.focused_path)]
         else:
             sources = [(f["name"], det, f["rel"])
                        for f in _frames(vp, det,
-                                        cur.frame_id if cur else None)
+                                        cur.image.frame_id if cur and cur.image else None)
                        if f["detection"]]
         for stem, d, image_rel in sources:
             for c in d["candidates"]:
@@ -1206,9 +1206,11 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
         "span_sec": round(vp.span_sec or 0, 1),
         "sharpest": vp.sharpest_frame.name if vp.sharpest_frame else None,
         "frames": _frames(vp, det,
-                          cur.frame_id if cur and cur.target == "frame" else None),
+                          (cur.image.frame_id
+                           if cur and cur.image and cur.image.kind == "frame" else None)),
         # 검출이 아직 없으면 빈 검출을 넘겨 같은 화면을 쓴다 (도구만 잠근다)
-        "stack": (_stack_dict(st, (det if cur and cur.target == "stack"
+        "stack": (_stack_dict(st, (det if cur and cur.image
+                                          and cur.image.kind == "stack"
                                    else preview_detection(vp)))
                   if st else None),
         "prev_id": ids[pos - 1] if pos > 0 else None,
@@ -1238,6 +1240,14 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     if vp is None:
         return None
 
+    # **어느 이미지에 대한 교정인가** (P06 5a). 열쇠가 `(image, mask_key)` 라
+    # 이것이 없으면 행을 만들 수도, 지울 범위를 정할 수도 없다. 화면이 그리는
+    # 것은 현재 검출이므로 그 검출의 이미지다.
+    cur = next((d for d in vp.detections.all() if d.is_current), None)
+    if cur is None or cur.image_id is None:
+        raise ValueError("이 시야에는 현재 검출이 없다 — 저장하지 않았다")
+    image = cur.image
+
     removed, accepted = set(removed), set(accepted)
     keys = removed | accepted | set(labels) | set(notes)
     by_key = {c.mask_key: c for c in
@@ -1255,7 +1265,7 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     #
     # 이미 교정 행이 있는 키는 통과시킨다 — 재바인딩에서 고아가 된 것들이
     # 그렇고, 그것들은 사람이 화면에서 지울 수 있어야 한다.
-    known = set(by_key) | set(ObjectReview.objects.filter(viewpoint=vp)
+    known = set(by_key) | set(ObjectReview.objects.filter(image=image)
                               .values_list("mask_key", flat=True))
     unknown = keys - known
     if unknown:
@@ -1269,8 +1279,8 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     for key in keys:
         cand = by_key.get(key)
         obj, _ = ObjectReview.objects.get_or_create(
-            viewpoint=vp, mask_key=key,
-            defaults={"candidate": cand,
+            image=image, mask_key=key,
+            defaults={"viewpoint": vp, "candidate": cand,
                       "bind_method": "exact" if cand else "orphan",
                       "bind_score": 1.0 if cand else None})
         obj.removed = key in removed
@@ -1287,8 +1297,13 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
             obj.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
         obj.save()
 
-    # 표시가 사라진 행은 지운다
-    ObjectReview.objects.filter(viewpoint=vp).exclude(mask_key__in=keys).delete()
+    # 표시가 사라진 행은 지운다.
+    #
+    # **범위가 시야가 아니라 이미지다** (P06 5a). 시야로 지우면 프레임별 검토를
+    # 붙이는 날 **그 시야의 다른 이미지 교정까지 쓸어 간다** — 017·027·053 이
+    # 전부 이 줄에서 났다. 지금은 시야마다 이미지가 하나라 결과가 같지만,
+    # 같아 보일 때 고쳐 두는 것이 요점이다.
+    ObjectReview.objects.filter(image=image).exclude(mask_key__in=keys).delete()
     return {"removed": len(removed), "accepted": len(accepted),
             "labels": len(labels), "notes": len(notes)}
 
@@ -1443,9 +1458,13 @@ def _engine_pick(dets):
     """
     by_frame, stack_det = {}, None
     for d in sorted(dets, key=lambda d: (d.is_current, d.pk)):
-        if d.target == "frame":
-            by_frame[d.frame_id] = d
-        elif d.target == "stack":
+        # 무엇에 붙은 검출인가는 `image.kind` 가 말한다 (P06 5a). 예전에는
+        # `target` + nullable `frame` 이라는 다형 연관을 흉내 냈다.
+        if d.image_id is None:
+            continue
+        if d.image.kind == "frame":
+            by_frame[d.image.frame_id] = d
+        elif d.image.kind == "stack":
             stack_det = d
     return by_frame, stack_det
 

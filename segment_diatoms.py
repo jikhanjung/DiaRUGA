@@ -744,7 +744,7 @@ def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float,
                              stack=getattr(vp, "stack", None) if target == "stack" else None,
                              width=payload["size"][0], height=payload["size"][1])
         det = Detection.objects.create(
-            viewpoint=vp, target=target, frame=frame, image=image,
+            viewpoint=vp, image=image,
             image_path=rel(img_path),
             width=payload["size"][0], height=payload["size"][1],
             scale=payload["scale"],

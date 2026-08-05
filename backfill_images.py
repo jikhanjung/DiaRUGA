@@ -6,9 +6,9 @@
     deploy/host/dbrun.sh  backfill_images.py --apply
     deploy/host/dbrun.sh  backfill_images.py --verify   # 채워진 뒤 앞뒤가 맞는가
 
-**넓히는 중이라 아무것도 지우지 않는다.** `Detection.target`·`frame` 과
-`Stack.focused_path` 는 그대로 두고 `image` 만 채운다 — 판을 되돌리면 옛 코드가
-그대로 돈다(P06 §1). 조이는 것은 5단계다.
+**조인 뒤에도 쓸모가 있다.** 만드는 일(2~3단계)은 끝났지만 `--verify` 는 계속
+쓴다 — 새 슬라이드가 들어온 뒤, 시야를 가른 뒤, 숫자가 이상할 때. `check_db.py`
+와 같은 성격이다.
 
 ## 무엇을 만드는가
 
@@ -167,10 +167,6 @@ def verify():
             .select_related("image").only("image_path", "image__path")
             if d.image.path != d.image_path)
     report("image.path 와 image_path 가 어긋난 검출", n, 0)
-    n = sum(1 for d in Detection.objects.filter(image__isnull=False)
-            .select_related("image").only("target", "image__kind")
-            if (d.target == "frame") != (d.image.kind == "frame"))
-    report("target 과 image.kind 가 어긋난 검출", n, 0)
     n = Detection.objects.filter(image__kind="depth").count()
     report("깊이맵에 붙은 검출", n, 0)
     n = sum(1 for o in ObjectReview.objects.filter(image__isnull=False)

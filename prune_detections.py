@@ -65,7 +65,8 @@ def plan(batch_label: str = ""):
     groups = defaultdict(list)
     for d in qs:
         bkey = ("b", d.run.batch_id) if d.run.batch_id else ("r", d.run_id)
-        groups[(bkey, d.viewpoint_id, d.target, d.frame_id)].append(d)
+        # 같은 이미지에 쌓인 것끼리 묶는다 — 예전에는 (target, frame_id) 였다
+        groups[(bkey, d.image_id)].append(d)
 
     doomed, conflicts = [], []
     for key, dets in groups.items():

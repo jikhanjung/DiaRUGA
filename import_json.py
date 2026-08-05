@@ -302,9 +302,8 @@ def import_detections():
                              viewpoint=vp, frame=frame,
                              stack=getattr(vp, "stack", None) if target == "stack" else None)
         det, _ = Detection.objects.update_or_create(
-            viewpoint=vp, target=target, frame=frame,
+            viewpoint=vp, image=image,
             defaults=dict(
-                image=image,
                 image_path=rel(d.get("image") or ""),
                 width=(d.get("size") or [None, None])[0],
                 height=(d.get("size") or [None, None])[1],
