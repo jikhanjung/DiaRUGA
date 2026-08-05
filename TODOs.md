@@ -81,12 +81,34 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       조용히 작동을 멈춘다.** 거기에 `Detection.frame` 은 `SET_NULL` 이라 시야
       가르기로 `Frame` 이 지워지면 프레임에 매인 교정이 NULL 쪽으로 넘어간다.
 
-      **NOT NULL 판별자 문자열로 간다.** 센티널은 이미 있다 —
-      `data.STACK_KEY = "__stack__"` 이고 주석이 "프레임 이름(`Snap-…`)과 겹칠 수
-      없어야 한다" 고 못 박아 두었다. `target_key`(합성본이면 `__stack__`, 아니면
-      프레임 이름)를 두고 제약을 `(viewpoint, target_key, mask_key)` 로.
+      **`Detection.frame` 자체는 고치지 않는다.** NULL 이 맞는 값이다 — 합성본은
+      프레임이 아니라 여러 초점면의 합성이고, NULL 이 "이 검출은 프레임에 달린
+      것이 아니다" 를 정확히 말한다. `sharpest_frame` 을 채우면 그 문장이 거짓이
+      되고, `frame_id` 로만 조인하는 코드가 합성본을 프레임으로 취급한다.
+
+      **고칠 곳은 `ObjectReview` 의 키다. NOT NULL 판별자 문자열로 간다.**
+      센티널은 이미 있다 — `data.STACK_KEY = "__stack__"` 이고 주석이 "프레임
+      이름(`Snap-…`)과 겹칠 수 없어야 한다" 고 못 박아 두었다.
+
+          target_key = CharField(max_length=64, db_default="__stack__")
+          # unique: (viewpoint, target_key, mask_key)
+
+      값은 **합성본이면 `__stack__`, 아니면 프레임 이름**이다. 시야 안에 합성본은
+      많아야 하나이므로(`Stack` 이 OneToOne) 그 이상 적을 것이 없다.
       FK 가 아니라 문자열이라 `Frame` 이 지워져도 값이 남는다 — `mask_key` 를
       FK 대신 문자열로 둔 것과 같은 이유다.
+
+      > **`image_path` 의 stem 을 쓰는 안은 버렸다.** 합성본 stem 이
+      > `g000_Snap-21264-21267_focused` 로 태그(프레임 범위)를 품고 있어 길고
+      > 중복이다. stem 은 **통신 규약의 검증용**으로 계속 쓴다(053) — DB 키와는
+      > 다른 일이다.
+      >
+      > **부분 유일 제약 둘로 NULL 을 그대로 두는 길도 있다** —
+      > `condition=Q(frame__isnull=True)` 와 그 반대로 나눠 걸면 SQLite 에서도
+      > 된다. 모델은 더 정직해지지만 **제약이 둘이고 NULL 분기를 계속 기억해야
+      > 한다.** 이 저장소가 당한 고장은 거의 전부 "예외도 경고도 없이 조용히
+      > 다르게 구는" 종류였고 NULL 규칙이 정확히 그것을 만든다. 그래서 문자열
+      > 쪽이다
 
       **이관은 상수 채우기가 아니다.** `db_default="__stack__"` 은 옛 이미지
       INSERT 방어용이고(CLAUDE.md 규칙), 실제 백필은 **시야마다 현재 검출의
