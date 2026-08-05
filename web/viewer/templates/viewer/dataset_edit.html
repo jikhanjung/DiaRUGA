@@ -68,6 +68,42 @@
     <label>설명
       <textarea name="description" rows="3"
                 placeholder="이 슬라이드에 대해 남길 것">{{ slide.description }}</textarea></label>
+
+    {% comment %}
+      관찰 — 같은 시료를 처리 방법을 달리해 여러 번 본 것. 폴더 접미사 `(1)` 이
+      번호를 정하고, 뜻은 여기서만 적는다. **폴더는 안 건드린다.**
+
+      숨김·집계 제외를 둘로 가른 이유는 `models.Slide` 머리말에 있다 — 안 보여도
+      조성에는 들어가야 하는 관찰이 있다.
+    {% endcomment %}
+    <fieldset class="obsbox">
+      <legend>관찰
+        {% if slide.obs_no %}<code class="mono">#{{ slide.obs_no }}</code>
+        {% else %}<span class="dim">접미사 없음</span>{% endif %}</legend>
+      <label>이름표
+        <input type="text" name="obs_label" value="{{ slide.obs_label }}"
+               maxlength="10" placeholder="산처리 · 체 20µm" size="14">
+        <span class="hint"><b>10자까지</b> — 한글로 다섯 자면 넉넉합니다.
+          짧아야 목록의 배지가 표를 밀지 않습니다. 폴더 이름 뒤의
+          {% if slide.obs_no %}<code class="mono">({{ slide.obs_no }})</code>{% else %}<code class="mono">(1)</code>{% endif %}
+          자리에 대신 보입니다. 폴더나 파일은 바뀌지 않습니다 —
+          이름표는 DB 에만 남습니다.
+          {% if not slide.obs_no %}이 슬라이드는 접미사가 없어(관찰 0) 이름표를
+            적지 않으면 목록에 아무 표시도 나오지 않습니다.{% endif %}</span></label>
+      <label class="ck"><input type="checkbox" name="hide_in_list"
+             {% if slide.hide_in_list %}checked{% endif %}>
+        <span>목록에서 숨기기
+          <span class="hint">표·카드·지도에서 안 보입니다. 목록 위의
+            <b>숨긴 항목 보기</b> 를 켜면 흐리게 나옵니다.
+            <b>합계는 그대로 들어갑니다</b> — 빼려면 아래를 함께 켜세요.</span></span></label>
+      <label class="ck"><input type="checkbox" name="exclude_from_totals"
+             {% if slide.exclude_from_totals %}checked{% endif %}>
+        <span>집계에서 제외하기
+          <span class="hint">합계 줄과 코어 머리줄의 숫자에서 뺍니다. 같은 시료를
+            여러 번 관찰했을 때 개체 수가 겹쳐 세지는 것을 막습니다.
+            줄 자체는 목록에 그대로 보이고 개체 수 옆에
+            <span class="exmark">*</span> 가 붙습니다.</span></span></label>
+    </fieldset>
     <div class="ro">
       <span>폴더</span><code class="mono">{{ slide.image_dir }}</code>
       <span>상태</span><code class="mono">{{ slide.state }}{% if slide.state_note %} · {{ slide.state_note }}{% endif %}</code>

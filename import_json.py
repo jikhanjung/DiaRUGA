@@ -93,6 +93,18 @@ def parse_sample_name(name: str):
             float(depth) if depth else None)
 
 
+# 관찰 접미사 `(1)`·`(2)`. **정본은 `group_focus_series.parse_obs_no` 다** —
+# 고칠 때 둘을 함께 본다. 여기서 임포트하지 않는 이유는 그 모듈이 cv2 를 끌고
+# 오기 때문이다(이 스크립트는 그것 없이 도는 자리에서도 불린다). `parse_sample_name`
+# 이 이미 같은 이유로 두 벌이다.
+OBS_SUFFIX = re.compile(r"\s*\((\d+)\)\s*$")
+
+
+def parse_obs_no(folder: str) -> int:
+    m = OBS_SUFFIX.search(folder or "")
+    return int(m.group(1)) if m else 0
+
+
 def mask_key(bbox) -> str:
     """review/*.json 과 뷰어 keyOf() 가 쓰는 규칙과 같아야 한다."""
     return "_".join(str(int(v)) for v in bbox)
@@ -161,7 +173,7 @@ def import_slides(only=None, read_xml=True):
         slide, _ = Slide.objects.update_or_create(
             slug=slug,
             defaults=dict(name=folder, image_dir=image_dir, core=core,
-                          depth_cm=depth,
+                          depth_cm=depth, obs_no=parse_obs_no(folder),
                           corr_thresh=meta.get("corr_thresh"), state="done"))
         n_sl += 1
 

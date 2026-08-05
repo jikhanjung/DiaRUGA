@@ -40,11 +40,16 @@
               <span class="dim">슬라이드 {{ c.n_slides }}장</span></div>
             <ul>
             {% for sl in c.slides %}
-              <li class="mslide">
+              {% comment %}
+                여기는 이름이 아니라 깊이만 적는 자리다 — 같은 깊이의 관찰 둘이
+                **글자 그대로 같아 보인다.** 배지가 그것을 가른다.
+              {% endcomment %}
+              <li class="mslide{% if sl.hidden %} rowhidden{% endif %}">
                 <a href="{% url 'dataset' sl.slug %}">
                   {% include "viewer/_depth.html" with sample_kind=sl.sample_kind depth_cm=sl.depth_cm dash=1 short=1 only %}
                 </a>
-                <span class="dim vp">시야 {{ sl.n_viewpoints }}</span>
+                {% include "viewer/_obs.html" with d=sl only %}
+                <span class="dim vp">시야 {{ sl.n_viewpoints }}{% if sl.excluded %}<span class="exmark">*</span>{% endif %}</span>
                 {% if sl.state != "done" %}<span class="dsstate rev">{{ sl.state }}</span>
                 {% elif sl.reviewed == sl.n_viewpoints %}<span class="mdone rev" title="검토를 마쳤습니다">완료</span>
                 {% else %}<span class="dim rev" title="검토를 마친 시야">{{ sl.reviewed }}/{{ sl.n_viewpoints }}</span>{% endif %}

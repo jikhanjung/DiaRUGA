@@ -48,30 +48,52 @@ THRESHOLD_FIELDS = [
 ]
 
 
+def _with_hidden(request) -> bool:
+    """숨긴 슬라이드를 보이는가. `?hidden=1`.
+
+    **화면이 아니라 서버가 거른다** — 권역 갈래와 같은 이유다(`index.html` 머리말).
+    표·카드·지도가 같은 목록을 봐야 하고, 코어 묶음의 "N장" 도 그것으로 센다.
+    화면에서 줄만 감추면 셋이 서로 다른 것을 보게 된다.
+
+    **합계는 이 값을 안 본다** — `datasets_total()` 머리말.
+    """
+    return request.GET.get("hidden") == "1"
+
+
 def index(request):
     # 권역(한국·남극)은 `?area=` 로 고른다. 고르는 일을 data.area_tabs() 에 맡겨
     # 없는 값이 들어와도 빈 화면이 되지 않게 한다.
     area = data.area_tabs(request.GET.get("area"))
+    with_hidden = _with_hidden(request)
     rows = data.datasets(area["selected"])
+    shown = [r for r in rows if with_hidden or not r["hidden"]]
     # **"전체" 에는 지도가 없다.** 투영이 권역마다 다르므로(남극 EPSG:3031 ·
     # 한국 EPSG:5179) 섞인 것을 한 지도에 올릴 수가 없다. 억지로 하나를 고르면
     # 다른 권역의 시료가 조용히 빠지거나 엉뚱한 자리에 찍힌다.
     show_map = not area["is_all"]
     return render(request, "viewer/index.html", {
-        "datasets": rows,
+        # **보이는 것만.** 합계 줄의 "N장" 이 이것으로 센다 — 화면에 없는 장을
+        # 세면 줄을 세어 봐도 안 맞는다.
+        "datasets": shown,
         # 표·카드 둘 다 코어로 묶어 낸다. 코어가 분석의 단위이고(깊이에 따른
         # 변화가 목적이다) 슬라이드가 늘수록 평평한 목록은 못 읽는다.
-        # `datasets` 는 그대로 둔다 — 합계 줄과 "N장" 이 아직 그것으로 센다.
-        "groups": data.datasets_by_core(rows),
+        "groups": data.datasets_by_core(rows, with_hidden),
         "area": area,
         "show_map": show_map,
+        # **합계만은 숨긴 것까지 센다** — 토글이 숫자를 흔들면 안 된다.
+        # 어긋남은 `n_hidden_in` 으로 화면이 적는다.
         "totals": data.datasets_total(rows),
+        "with_hidden": with_hidden,
+        # **켜 놓았을 때도 실제 숨김 수를 센다** (`len(rows) - len(shown)` 이
+        # 아니다 — 그러면 켠 순간 0 이 되어 몇 장이 숨겨진 것인지 사라진다).
+        "n_hidden": sum(1 for r in rows if r["hidden"]),
         # 표의 분류 열. 줄이 아니라 여기서 정한다 — 슬라이드마다 0인 분류를
         # 빼면 열 수가 달라져 세로로 안 맞는다.
         "count_classes": data.counted_classes(),
         # 지도는 세 번째 보기 방식이다. 해안선이 10~27 KB 뿐이라 늘 함께 보낸다 —
         # 따로 요청하게 만들면 전환이 즉시 되지 않는다.
-        "antmap": (_map_ctx(area["selected"], data.map_points(area["selected"]))
+        "antmap": (_map_ctx(area["selected"],
+                            data.map_points(area["selected"], with_hidden))
                    if show_map else None),
     })
 
@@ -172,10 +194,12 @@ def core_page(request, site_code, core_code):
     **읽기 전용이다.** 속성은 `/d/<slug>/edit/` 이 고친다 — 같은 `Core`·`Site`
     행에 쓰는 문을 둘로 만들지 않는다.
     """
-    ctx = data.core_detail(site_code, core_code)
+    with_hidden = _with_hidden(request)
+    ctx = data.core_detail(site_code, core_code, with_hidden)
     if ctx is None:
         raise Http404(f"unknown core: {site_code}/{core_code}")
-    return render(request, "viewer/core.html", ctx)
+    return render(request, "viewer/core.html", {**ctx,
+                                                "with_hidden": with_hidden})
 
 
 def group(request, slug, gid):
@@ -331,6 +355,13 @@ def dataset_edit(request, slug):
                 slide.depth_cm = _num(p.get("depth_cm"))
             slide.description = (p.get("description") or "").strip()
             slide.um_per_pixel_override = _num(p.get("um_per_pixel_override"))
+            # 관찰 이름표. **`obs_no` 는 여기서 못 고친다** — 폴더 접미사가
+            # 정하는 자동값이라 사람이 고쳐 봐야 다음 반입에 덮인다. 그래서
+            # 칸이 둘이고, 사람이 쓰는 것은 이쪽 하나다.
+            slide.obs_label = (p.get("obs_label") or "").strip()[:10]
+            # 체크박스는 안 켜면 아무것도 안 보낸다 — 없는 것이 곧 꺼짐이다.
+            slide.hide_in_list = bool(p.get("hide_in_list"))
+            slide.exclude_from_totals = bool(p.get("exclude_from_totals"))
             if core:
                 core.code = (p.get("core_code") or core.code).strip()
                 core.kind = (p.get("core_kind") or "").strip()

@@ -25,6 +25,18 @@
 <p class="dim" style="font-size:12px;margin-bottom:14px">
   슬라이드 {{ n }}장 · 사진 {{ totals.n_images }} · 시야 {{ totals.n_groups }} ·
   검출 {{ totals.n_counted }} · 검토 {{ totals.reviewed_groups }}/{{ totals.n_groups }}
+  {% comment %}
+    목록과 같은 규칙이다 — 숫자는 숨긴 것까지 세고(`데이터가 보기 상태를 따라
+    바뀌면 안 된다`) 줄만 걸러진다. 그 어긋남을 여기서 적는다.
+  {% endcomment %}
+  {% if totals.n_excluded %}· <span class="exmark">*</span>
+    {{ totals.n_excluded }}장은 집계에서 뺐습니다{% endif %}
+  {% if n_hidden %}·
+    <a class="hidetoggle{% if with_hidden %} on{% endif %}"
+       href="?{% if not with_hidden %}hidden=1{% endif %}"
+       title="{% if with_hidden %}다시 감춥니다{% else %}숨긴 슬라이드를 흐리게 함께 보입니다{% endif %}"><span
+       class="hm">※</span>숨긴 항목<span class="n">{{ n_hidden }}</span></a>{% endif %}
+  {% if totals.n_hidden_in %}<span class="dim">(숨긴 {{ totals.n_hidden_in }}장은 위 숫자에 들어 있습니다)</span>{% endif %}
 </p>
 
 <div class="corepage">
@@ -56,11 +68,24 @@
         <span class="lithnote">암상 기재가<br>들어올 자리</span>
       </div>
 
-      {% comment %} 시료 위치 — 이 값들은 진짜다 (Slide.depth_cm) {% endcomment %}
+      {% comment %}
+        시료 위치 — 이 값들은 진짜다 (Slide.depth_cm).
+
+        **같은 깊이에 여럿 서면 겹친다.** `pct` 가 글자 그대로 같아져 하나가
+        다른 하나를 완전히 가린다 — 한 시료를 처리 방법을 달리해 여러 번
+        관찰하면 바로 그 상황이고, 예외도 경고도 없이 관찰이 화면에서 사라진다.
+
+        **점은 참 깊이에 두고 이름표만 아래로 민다**(`data._axis_marks`). 점까지
+        밀면 깊이 축이 거짓말을 한다 — 그래서 점은 무리의 첫 줄에만 찍고
+        나머지는 들여 쓴다.
+      {% endcomment %}
       {% for m in axis.marks %}
-        <div class="mark" style="top:{{ m.pct }}%">
-          <span class="mdotc"></span>
+        <div class="mark{% if not m.first %} mstack{% endif %}{% if m.row.hidden %} rowhidden{% endif %}"
+             style="top:calc({{ m.pct }}% + {{ m.nudge_px }}px)">
+          {% if m.first %}<span class="mdotc"></span>
+          {% else %}<span class="mstem" aria-hidden="true"></span>{% endif %}
           <a href="{% url 'dataset' m.row.slug %}">{{ m.row.label }}</a>
+          {% include "viewer/_obs.html" with d=m.row only %}
           <span class="dim">{{ m.row.depth_cm|floatformat:"-1" }} cm ·
             시야 {{ m.row.n_groups }}</span>
         </div>
@@ -100,12 +125,13 @@
         </tr></thead>
         <tbody>
         {% for r in rows %}
-          <tr>
+          <tr{% if r.hidden %} class="rowhidden"{% endif %}>
             <td class="dsname"><a href="{% url 'dataset' r.slug %}">{{ r.label }}</a>
+              {% include "viewer/_obs.html" with d=r only %}
               {% if r.state != "done" %}<span class="dsstate" title="{{ r.state_note }}">{{ r.state }}</span>{% endif %}</td>
             <td>{% include "viewer/_depth.html" with sample_kind=r.sample_kind depth_cm=r.depth_cm dash=1 short=1 only %}</td>
             <td>{{ r.n_groups }}</td>
-            <td>{% if r.mean_counted is not None %}{{ r.n_counted }}{% else %}<span class="dim">—</span>{% endif %}</td>
+            <td>{% if r.mean_counted is not None %}{{ r.n_counted }}{% if r.excluded %}<span class="exmark">*</span>{% endif %}{% else %}<span class="dim">—</span>{% endif %}</td>
             <td class="revcol"><span class="revnum">{{ r.reviewed_groups }}<span class="dim">/{{ r.n_groups }}</span></span></td>
           </tr>
         {% endfor %}

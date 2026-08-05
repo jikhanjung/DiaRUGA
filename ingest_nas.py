@@ -49,8 +49,8 @@ from django.utils import timezone                                   # noqa: E402
 
 import runlog                                                       # noqa: E402
 import scan_nas                                                     # noqa: E402
-from group_focus_series import (parse_sample_name, slide_slug,      # noqa: E402
-                                git_version, rel)
+from group_focus_series import (parse_sample_name, parse_obs_no,    # noqa: E402
+                                slide_slug, git_version, rel)
 from viewer.models import Core, Run, Site, Slide                    # noqa: E402
 
 COPY_EXT = (".jpg", ".jpeg", "_metadata.xml")
@@ -144,6 +144,8 @@ def main():
                 slug=slide_slug(dst),
                 defaults=dict(name=folder, image_dir=r["local"], core=core,
                               depth_cm=depth, state="copying", state_note=note,
+                              # 자동값만. `obs_label` 은 사람 것이라 안 건드린다
+                              obs_no=parse_obs_no(folder),
                               discovered_at=timezone.now()))
 
             n, total = copy_slide(src, dst)

@@ -176,6 +176,51 @@ class Slide(models.Model):
     # 기준점(해저면)에서부터의 깊이. 코어 안에서 이 값으로 정렬한다.
     # **노두 시료에는 없다** — `sample_kind` 를 함께 볼 것.
     depth_cm = models.FloatField(null=True, blank=True)
+
+    # --- 관찰 -------------------------------------------------------------
+    # 시료 하나를 **처리 방법이나 시료 특성을 달리해 여러 번 관찰한 것**.
+    # 폴더 이름 뒤에 `(1)`·`(2)` 를 붙여 올리고, 접미사가 없는 기존 것은 `0` 이다.
+    #
+    # **`sample_kind` 와 헷갈리지 말 것.** 그쪽은 "시추코어냐 노두냐" 이고
+    # 이쪽은 "같은 시료를 몇 번째로 달리 관찰한 것이냐" 다.
+    #
+    # **재촬영과도 다른 축이다.** 같은 폴더명을 다른 날 올리면 슬러그가 촬영일로
+    # 갈리는데(`slide_slug`) 그것은 "같은 관찰을 다시 찍은 것" 이다. 접미사는
+    # "다른 관찰" 이다 — 두 축을 한 칸에 섞지 않는다.
+    #
+    # **`Slide` 의 칸으로 두고 `Sample` 모델을 뽑지 않는다**(사용자 판단
+    # 2026-08-05). 제대로 된 답은 `core`·`depth_cm`·`sample_kind` 를 `Sample` 로
+    # 올리는 것이지만 큰 이사다. 관찰을 가르는 속성이 정해지면 그때 뽑는다.
+    #
+    # **왜 칸이 둘인가.** 한 칸에 두면 폴더에서 다시 읽을 때 자동값이 사람이 적은
+    # 것을 덮는다. 반입·그룹핑은 `obs_no` 만 쓰고 `obs_label` 은 절대 안 건드린다
+    # (`update_or_create` 의 `defaults` 에서 뺀다).
+    #
+    # `db_default` 를 함께 주는 이유는 `sample_kind` 와 같다 — 파이프라인 이미지는
+    # 판이 따로 돌아 옛 INSERT 에 이 칼럼이 안 들어간다.
+    obs_no = models.PositiveSmallIntegerField(default=0, db_default=0)
+    # 사람이 붙이는 뜻(`산처리` · `체 20µm`). **폴더는 안 건드린다** — 이름표는
+    # 여기에만 앉고, 화면이 불러올 때 폴더의 `(1)` 자리에 대신 보인다.
+    #
+    # **10자다** (사용자 판단 2026-08-05). 애초에 길게 적을 것이 아니고 —
+    # 한글 5자면 넉넉하다 — 짧게 못 박아 두면 배지 하나가 목록의 슬라이드 열을
+    # 통째로 미는 일이 아예 안 생긴다. 길이를 화면에서 잘라 감추는 것보다
+    # 들어올 수 없게 하는 쪽이 낫다.
+    obs_label = models.CharField(max_length=10, blank=True, default="",
+                                 db_default="")
+
+    # 같은 시료의 관찰이 여럿이면 **합계가 조용히 두 배가 된다.** 어느 관찰이
+    # 대표인지는 코드가 정할 수 없으므로(비교하려고 만든 것이다) 사람이 고른다.
+    #
+    # **둘을 가른 이유**: 안 보여도 조성에는 들어가야 하는 관찰이 있고, 보이되
+    # 합계에서는 빠져야 하는 관찰이 있다. 한 칸으로 묶으면 둘 중 하나를 못 한다.
+    #
+    # **합계는 `exclude_from_totals` 만 본다 — `hide_in_list` 는 안 본다.**
+    # 섞으면 보기 토글 한 번에 같은 자료가 다른 숫자를 낸다. 대신 숨긴 행이
+    # 합계에 들어 있으면 화면이 그것을 적는다(안 적으면 "보이는 것의 합 ≠ 합계"
+    # 가 이유 없는 어긋남으로 보인다).
+    hide_in_list = models.BooleanField(default=False, db_default=False)
+    exclude_from_totals = models.BooleanField(default=False, db_default=False)
     # 사람이 적는 설명. state_note 와 갈라 둔다 — 그쪽은 자동 처리가 덮어쓴다.
     description = models.TextField(blank=True, default="")
     # 배율을 사람이 못 박는다. 비어 있으면 zen_meta 가 40x 로 가정해 계산한다.
@@ -196,12 +241,24 @@ class Slide(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     class Meta:
-        # 코어 안에서는 깊이순 — 깊이에 따른 변화를 볼 때 그 순서가 자연스럽다
-        ordering = ["core", "depth_cm", "name"]
+        # 코어 안에서는 깊이순 — 깊이에 따른 변화를 볼 때 그 순서가 자연스럽다.
+        # **같은 깊이에 관찰이 여럿 서면 번호순이다** — 이름으로 가르면 `(10)` 이
+        # `(2)` 앞에 온다(문자열 정렬).
+        ordering = ["core", "depth_cm", "obs_no", "name"]
         indexes = [models.Index(fields=["core", "depth_cm"])]
 
     def __str__(self):
         return self.name
+
+    @property
+    def obs_badge(self) -> str:
+        """화면에 낼 관찰 이름표. 낼 것이 없으면 빈 문자열.
+
+        **관찰이 하나뿐인 시료는 아무것도 안 낸다**(사용자 판단 2026-08-05) —
+        검토가 끝난 347 시야가 지금 모습 그대로 남는다. 사람이 이름표를 적었다면
+        `0` 이라도 낸다("원본" 이라고 적을 수 있다).
+        """
+        return self.obs_label or (f"#{self.obs_no}" if self.obs_no else "")
 
 
 class Viewpoint(models.Model):

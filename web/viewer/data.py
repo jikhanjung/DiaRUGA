@@ -317,7 +317,8 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
     }
 
 
-def map_points(area: str | None = None) -> list[dict]:
+def map_points(area: str | None = None,
+               with_hidden: bool = False) -> list[dict]:
     """지도에 찍을 지역별 묶음. 슬라이드가 아니라 **지역 단위**다.
 
     같은 코어의 깊이별 슬라이드는 좌표가 같으므로 겹쳐 찍으면 하나로 보인다.
@@ -329,6 +330,9 @@ def map_points(area: str | None = None) -> list[dict]:
     **권역마다 투영이 다르다.** 남극은 EPSG:3031(극구면), 한국은 EPSG:5179
     (횡메르카토르)다. 마커를 엉뚱한 투영으로 찍으면 지도와 어긋나므로 권역에
     맞는 것을 고른다 — 그래서 `area` 는 거르기용이 아니라 **투영을 정하는 값**이다.
+
+    **숨긴 슬라이드는 여기서도 뺀다** — 세 보기가 같은 것을 봐야 한다. 지도만
+    남으면 마커의 "슬라이드 N장" 이 표의 장수와 안 맞는다.
     """
     area = area or "ant"
     if area == "kr":
@@ -337,9 +341,13 @@ def map_points(area: str | None = None) -> list[dict]:
         approx_sites, project = antarctica.APPROX_SITES, _polar_xy
 
     sites = Site.objects.filter(area=area).prefetch_related("cores__slides")
+
+    def visible(qs):
+        return [sl for sl in qs if with_hidden or not sl.hide_in_list]
+
     out = []
     for site in sites:
-        slides = [sl for c in site.cores.all() for sl in c.slides.all()]
+        slides = [sl for c in site.cores.all() for sl in visible(c.slides.all())]
         if not slides:
             continue
         # 코드는 <지역><연도> 꼴이다 (RS23 · WAP13 · AM22). 뒤의 숫자를 떼고 찾는다.
@@ -357,8 +365,9 @@ def map_points(area: str | None = None) -> list[dict]:
         # 변화를 보는 것이 이 시료의 목적이라 그 순서로 읽혀야 한다.
         cores = []
         for core in sorted(site.cores.all(), key=lambda c: c.code):
-            rows = sorted(core.slides.all(),
-                          key=lambda sl: (sl.depth_cm is None, sl.depth_cm or 0))
+            rows = sorted(visible(core.slides.all()),
+                          key=lambda sl: (sl.depth_cm is None, sl.depth_cm or 0,
+                                          sl.obs_no))
             if not rows:
                 continue
             cores.append({
@@ -370,6 +379,9 @@ def map_points(area: str | None = None) -> list[dict]:
                     "depth_cm": sl.depth_cm,
                     "sample_kind": sl.sample_kind,
                     "state": sl.state,
+                    # 지도 목록은 깊이만 적는다 — 같은 깊이의 관찰 둘이 글자
+                    # 그대로 같아 보인다. 배지가 그것을 가른다.
+                    **_obs(sl),
                     "n_viewpoints": sl.viewpoints.count(),
                     "reviewed": ViewpointReview.objects.filter(
                         viewpoint__slide=sl, done=True).count(),
@@ -828,7 +840,26 @@ def _slide_summary(slide: Slide, details: list | None = None) -> dict:
     }
 
 
+def _obs(slide) -> dict:
+    """행에 싣는 관찰 정보. 목록·코어 페이지가 같은 열쇠를 쓴다.
+
+    화면 셋(표·카드·지도)이 같은 값을 봐야 하므로 여기서 한 번만 만든다.
+    """
+    return {
+        "obs_no": slide.obs_no,
+        "obs_label": slide.obs_label,
+        "obs_badge": slide.obs_badge,
+        "hidden": slide.hide_in_list,
+        "excluded": slide.exclude_from_totals,
+    }
+
+
 def datasets(area: str | None = None) -> list[dict]:
+    """**숨긴 슬라이드도 담아 돌려준다.**
+
+    거르는 자리는 `datasets_by_core()` 다. 여기서 걸러 버리면 합계가 보기 토글을
+    따라 흔들린다 — `숨김` 은 보기 상태이고 `집계 제외` 가 자료의 성질이다.
+    """
     # groups_*.json 은 파이프라인에서 빠졌다(P02 7단계). 목록에 파일 이름 대신
     # 시료가 무엇인지와 어떤 배율로 찍혔는지를 보인다 — 그쪽이 화면에서 쓸모 있다.
     scales = scales_by_slide()
@@ -836,8 +867,11 @@ def datasets(area: str | None = None) -> list[dict]:
     # 지역 → 코어 → 깊이 순. 들어온 순서(id)로 두면 같은 코어의 깊이들이 표에서
     # 떨어져 놓인다 — 깊이에 따른 변화를 보는 것이 분석 목적이라 그게 제일 아프다.
     # 지역·코어가 아직 안 붙은 슬라이드도 있어서 빈 값이 섞여도 죽지 않게 둔다.
+    # 같은 깊이에 관찰이 여럿 서면 번호순이다 — 이름으로 가르면 `(10)` 이 `(2)`
+    # 앞에 온다(문자열 정렬). `Slide.Meta.ordering` 과 같은 규칙이어야 한다.
     slides = (Slide.objects.select_related("core", "core__site")
-              .order_by("core__site__code", "core__code", "depth_cm", "name"))
+              .order_by("core__site__code", "core__code", "depth_cm",
+                        "obs_no", "name"))
     # "전체" 는 거르지 않는다 — 지역이 안 붙은 슬라이드도 여기서는 보여야 한다.
     if area and area != AREA_ALL:
         slides = slides.filter(core__site__area=area)
@@ -863,6 +897,7 @@ def datasets(area: str | None = None) -> list[dict]:
             "state_note": slide.state_note,
             "missing_dir": not (Path(settings.DATA_ROOT)
                                 / slide.image_dir).is_dir(),
+            **_obs(slide),
             **_slide_summary(slide),
         })
     return out
@@ -916,21 +951,35 @@ def datasets_total(rows: list[dict]) -> dict:
     합칠 수 있는 것만 합친다. 평균(`mean_size`·`mean_counted`)은 분모가 슬라이드마다
     달라서 다시 더할 수 없고, 배율은 슬라이드마다 다를 수 있다(devlog 015·017) —
     합계 칸을 비워 두는 편이 그럴듯한 숫자를 놓는 것보다 낫다.
+
+    **같은 시료의 관찰이 여럿이면 그냥 더한 값이 조용히 두 배가 된다.** 예외도
+    경고도 안 난다 — 그럴듯한 숫자가 그냥 틀린다. 어느 관찰이 대표인지는 코드가
+    정할 수 없으므로(처리 방법을 달리해 비교하려고 만든 것이다) **사람이 슬라이드
+    속성에서 `집계 제외` 를 켜고, 여기는 그것만 읽는다.**
+
+    **`숨김` 은 안 읽는다.** 읽으면 보기 토글 한 번에 같은 자료가 다른 숫자를
+    낸다. 대신 숨긴 행이 합계에 들어 있으면 세어서 알린다(`n_hidden_in`) —
+    그래야 "보이는 것의 합 ≠ 합계" 가 이유 없는 어긋남으로 안 보인다.
     """
+    counted_rows = [r for r in rows if not r.get("excluded")]
     keys = ("n_images", "n_groups", "n_detected", "n_counted",
             "reviewed_groups")
-    total = {k: sum(r.get(k) or 0 for r in rows) for k in keys}
+    total = {k: sum(r.get(k) or 0 for r in counted_rows) for k in keys}
     # 분류별 합계도 열 순서 그대로 — 표의 열과 하나씩 맞아야 한다.
     per = {c["key"]: 0 for c in counted_classes()}
-    for r in rows:
+    for r in counted_rows:
         for c in r.get("counted") or []:
             if c["key"] in per:
                 per[c["key"]] += c["n"]
     total["counted"] = [{**c, "n": per[c["key"]]} for c in counted_classes()]
+    # 화면이 각주를 붙일 근거. **0 이면 아무것도 안 낸다** — 관찰이 하나뿐인
+    # 지금까지의 자료는 화면이 그대로 남는다.
+    total["n_excluded"] = len(rows) - len(counted_rows)
+    total["n_hidden_in"] = sum(1 for r in counted_rows if r.get("hidden"))
     return total
 
 
-def datasets_by_core(rows: list[dict]) -> list[dict]:
+def datasets_by_core(rows: list[dict], with_hidden: bool = False) -> list[dict]:
     """목록을 코어로 묶는다. 표·카드 둘 다 이것을 쓴다.
 
     **묶는 열쇠는 지역이 아니라 코어다.** 지역은 머리줄에 함께 낸다. 지금은
@@ -948,6 +997,14 @@ def datasets_by_core(rows: list[dict]) -> list[dict]:
     머리줄의 숫자는 `datasets_total()` 을 묶음마다 한 번 불러 낸다(지금도 전체
     합계를 그 함수 하나로 낸다). **평균은 넣지 않는다** — 분모가 슬라이드마다
     달라 다시 더할 수 없다(그 함수 머리말의 이유).
+
+    **숨긴 슬라이드를 거르는 자리가 여기다.** 다만 **머리줄 숫자는 숨긴 것까지
+    센 값이다** — 안 그러면 보기 토글 한 번에 합계가 바뀐다(`datasets_total()`
+    머리말). 그래서 `rows` 는 걸러 내고 `totals` 는 전부로 낸다.
+
+    **빈 묶음이 되어도 안 지운다.** 한 코어가 통째로 숨겨졌을 때 머리줄까지
+    사라지면 그 코어가 이 권역에 없는 것이 되고, 묶음 숫자를 다 더해도 아래
+    합계와 안 맞는다. 머리줄을 남기고 "숨긴 N장" 을 그 자리에 적는다.
     """
     out, at = [], {}
     for r in rows:
@@ -966,13 +1023,18 @@ def datasets_by_core(rows: list[dict]) -> list[dict]:
                 "site": r.get("site") or "",
                 "core": key[1],
                 "no_core": not key[1],
-                "rows": [],
+                "all_rows": [],
             }
             out.append(g)
-        g["rows"].append(r)
+        g["all_rows"].append(r)
     for g in out:
+        # 숫자는 전부로, 보이는 줄은 걸러서. 둘을 같은 목록에서 내면 토글이
+        # 합계를 흔든다.
+        g["totals"] = datasets_total(g["all_rows"])
+        g["rows"] = [r for r in g["all_rows"]
+                     if with_hidden or not r.get("hidden")]
         g["n"] = len(g["rows"])
-        g["totals"] = datasets_total(g["rows"])
+        g["n_hidden"] = len(g["all_rows"]) - g["n"]
     return out
 
 
@@ -988,7 +1050,44 @@ def _nice_step(span: float, want: int = 8) -> int:
     return 5000
 
 
-def core_detail(site_code: str, core_code: str) -> dict | None:
+def _axis_marks(rows: list[dict], bottom: float) -> list[dict]:
+    """깊이 축의 시료 표식. **같은 깊이에 여럿 서면 겹친다.**
+
+    위치를 `depth_cm / bottom` 하나로만 내면 같은 깊이는 `pct` 가 글자 그대로
+    같아져 **하나가 다른 하나를 완전히 가린다.** 한 시료를 처리 방법을 달리해
+    여러 번 관찰하면 바로 그 상황이다 — 예외도 경고도 없이 관찰 하나가 화면에서
+    사라진다.
+
+    **점은 참 깊이에 그대로 두고 이름표만 아래로 밀어 쌓는다.** 점까지 밀면
+    깊이 축이 거짓말을 한다. 그래서 점은 무리의 첫 줄만 찍고(`first`) 나머지는
+    그 아래 들여 쓴다 — 같은 깊이라는 것이 모양으로 읽힌다.
+
+    `nudge_px` 로 내는 이유는 `pct` 에 더할 수 없어서다. 축이 길든 짧든 글줄
+    높이는 그대로라 % 로 밀면 짧은 축에서는 너무 많이, 긴 축에서는 안 밀린다.
+    """
+    placed = [r for r in rows if r["depth_cm"] is not None]
+    at_depth: dict[float, int] = {}
+    for r in placed:
+        at_depth[r["depth_cm"]] = at_depth.get(r["depth_cm"], 0) + 1
+
+    out, seen = [], {}
+    for r in placed:
+        d = r["depth_cm"]
+        i = seen.get(d, 0)
+        seen[d] = i + 1
+        out.append({
+            "row": r,
+            "pct": round(d / bottom * 100, 3),
+            "first": i == 0,
+            "n_at_depth": at_depth[d],
+            # 글줄 하나만큼. 첫 줄은 0 이라 지금까지의 화면이 그대로다.
+            "nudge_px": i * 17,
+        })
+    return out
+
+
+def core_detail(site_code: str, core_code: str,
+                with_hidden: bool = False) -> dict | None:
     """코어 하나 — 깊이 방향으로 본 화면.
 
     **목록의 부분집합이 아니어야 이 화면이 값을 한다.** 목록은 슬라이드끼리
@@ -1003,6 +1102,9 @@ def core_detail(site_code: str, core_code: str) -> dict | None:
     **속성을 여기서 고치지 않는다.** `/d/<slug>/edit/` 이 이미 슬라이드·코어·
     지역을 한 트랜잭션으로 저장한다. 여기에 폼을 하나 더 두면 같은 `Core`·
     `Site` 행에 쓰는 문이 둘이 된다 — 이 저장소가 두 번 당한 종류다.
+
+    **합계와 보이는 줄을 가르는 규칙은 목록과 같다** — 숫자는 숨긴 것까지,
+    줄은 걸러서(`datasets_by_core()` 머리말).
     """
     core = (Core.objects.select_related("site")
             .filter(site__code=site_code, code=core_code).first())
@@ -1012,10 +1114,11 @@ def core_detail(site_code: str, core_code: str) -> dict | None:
     scales = scales_by_slide()
 
     # 깊이순. 깊이가 없는 것(노두)은 뒤로 — 축에 놓을 자리가 없다.
+    # 같은 깊이에 관찰이 여럿이면 번호순 (`Slide.Meta.ordering` 과 같은 규칙).
     slides = sorted(core.slides.all(),
                     key=lambda sl: (sl.depth_cm is None, sl.depth_cm or 0,
-                                    sl.name))
-    rows = [{
+                                    sl.obs_no, sl.name))
+    all_rows = [{
         "slug": sl.slug,
         "label": sl.name,
         "depth_cm": sl.depth_cm,
@@ -1024,8 +1127,10 @@ def core_detail(site_code: str, core_code: str) -> dict | None:
         "state_note": sl.state_note,
         "description": sl.description,
         "um_per_pixel": scales.get(sl.slug),
+        **_obs(sl),
         **_slide_summary(sl),
     } for sl in slides]
+    rows = [r for r in all_rows if with_hidden or not r["hidden"]]
 
     depths = [r["depth_cm"] for r in rows if r["depth_cm"] is not None]
     axis = None
@@ -1039,8 +1144,7 @@ def core_detail(site_code: str, core_code: str) -> dict | None:
             "top": 0, "bottom": bottom, "step": step,
             "ticks": [{"cm": t, "pct": round(t / bottom * 100, 3)}
                       for t in range(0, bottom + 1, step)],
-            "marks": [{"row": r, "pct": round(r["depth_cm"] / bottom * 100, 3)}
-                      for r in rows if r["depth_cm"] is not None],
+            "marks": _axis_marks(rows, bottom),
         }
     return {
         "site_code": site.code,
@@ -1049,7 +1153,12 @@ def core_detail(site_code: str, core_code: str) -> dict | None:
         "core": core,
         "rows": rows,
         "n": len(rows),
-        "totals": datasets_total(rows),
+        # **켜 놓았을 때도 실제 숨김 수를 센다** — `len(all_rows) - len(rows)` 로
+        # 내면 켠 순간 0 이 되어 몇 장이 숨겨진 것인지 화면에서 사라진다.
+        "n_hidden": sum(1 for r in all_rows if r["hidden"]),
+        # **숫자는 숨긴 것까지 센다.** 목록과 같은 규칙이라 두 화면의 합계가
+        # 서로 맞는다.
+        "totals": datasets_total(all_rows),
         "axis": axis,
         # 축에 못 놓는 것들. **버리지 않고 따로 낸다** — 안 보이면 이 코어에
         # 없는 시료가 된다.

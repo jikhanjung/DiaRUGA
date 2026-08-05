@@ -190,8 +190,40 @@ def slide_slug(slide_dir: Path) -> str:
     촬영일을 함께 넣는다 — 같은 슬라이드를 다른 날 다시 촬영하면 이름이 부딪힌다.
     `ingest_nas.py` 도 이것을 쓴다. 규칙이 갈라지면 반입한 슬라이드를 그룹핑이
     새것으로 다시 만든다.
+
+    **`urls.py` 의 `<slug:slug>` 를 통과해야 한다.** Django 의 slug 변환기는
+    `[-a-zA-Z0-9_]+` 만 받아서, 관찰 접미사 `(1)` 이 붙은 폴더는 그룹핑·합성·
+    검출이 멀쩡히 끝나고 **뷰어만 통째로 404** 가 된다. 예외도 경고도 없다.
+    그래서 허용 문자가 아닌 것은 여기서 전부 `_` 로 눕힌다 — `RS23-GC03 71cm (1)`
+    은 `..._71cm_1` 이 되어 접미사 없는 것과 갈린다.
+
+    **기존 슬러그 10개는 이 규칙으로도 한 글자도 안 바뀐다**(2026-08-05 실측).
+    바뀌면 재반입이 같은 슬라이드를 새 행으로 다시 만든다.
     """
-    return f"{slide_dir.parent.name}_{slide_dir.name}".lower().replace(" ", "_")
+    raw = f"{slide_dir.parent.name}_{slide_dir.name}".lower().replace(" ", "_")
+    return re.sub(r"_+", "_", re.sub(r"[^a-z0-9_-]+", "_", raw)).strip("_")
+
+
+# 관찰 접미사 — 시료 하나를 처리 방법을 달리해 여러 번 관찰한 것.
+# **폴더에는 숫자만 받는다** (사용자 방침 2026-08-05). `(산처리)` 처럼 글자를
+# 받으면 슬러그가 뭉개져 서로 다른 관찰이 같은 슬러그로 부딪히고,
+# `update_or_create(slug=…)` 라 **한쪽이 다른 쪽을 덮어쓴다.**
+# 뜻은 사람이 속성 편집의 `obs_label` 에 적는다 — 폴더는 안 건드린다.
+OBS_SUFFIX = re.compile(r"\s*\((\d+)\)\s*$")
+
+
+def parse_obs_no(folder: str) -> int:
+    """폴더명 끝의 `(1)`·`(2)` 를 읽는다. 없으면 `0`.
+
+    **`0` 을 저장하고 화면에서만 감춘다.** 비워 두면 "아직 안 읽은 것" 과
+    "접미사가 없던 것" 이 구별되지 않는다.
+
+    깊이·코어를 뽑는 `parse_sample_name` 과 갈라 둔다 — 그 정규식은 `re.match`
+    라 뒤에 무엇이 붙어도 앞쪽을 그대로 뽑고, 이쪽은 끝만 본다. 한 함수로 묶으면
+    돌려주는 값이 넷이 되어 부르는 자리 셋을 전부 고쳐야 한다.
+    """
+    m = OBS_SUFFIX.search(folder or "")
+    return int(m.group(1)) if m else 0
 
 
 def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run):
@@ -214,6 +246,9 @@ def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run)
             slug=slug,
             defaults=dict(name=folder, image_dir=rel(slide_dir), core=core,
                           depth_cm=depth, corr_thresh=args.corr_thresh,
+                          # 자동값만 쓴다. `obs_label` 은 사람 것이라 defaults 에
+                          # 넣지 않는다 — 넣으면 다시 그룹핑할 때 지워진다
+                          obs_no=parse_obs_no(folder),
                           # 자동 처리가 다 끝나기 전에는 사람이 검토하면 안 된다.
                           # 뷰어가 이 값을 보고 막는다 (P01 §1)
                           state="processing",
