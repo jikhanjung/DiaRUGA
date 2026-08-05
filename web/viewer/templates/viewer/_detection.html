@@ -25,13 +25,16 @@
     나머지는 읽기 전용이다 — 칸마다 그렇게 적고, 사진 가운데 위에 한 번 더
     크게 알린다(`.roflag`).
   {% endcomment %}
-  {% if engine_batches %}
-  <select class="engsel" id="engsel-{{ uid }}"
-          title="검출 엔진 — 현재 검출만 교정이 저장됩니다. 괄호 안은 그 묶음이 문턱을 통과시킨 개체 수입니다(엔진이 낸 그대로 — 사람의 교정은 빼고 셉니다)">
-    {% for b in engine_batches %}
-      <option value="{{ b.url }}"{% if b.run_id == engine_now.run_id %} selected{% endif %}>{{ b.backend|upper }} · {{ b.label }} ({{ b.n }}){% if not b.editable %} · 읽기 전용{% endif %}</option>
+  {% if engines %}
+  <div class="engpick" id="engpick-{{ uid }}">
+    {% for e in engines %}
+      <label title="{{ e.batch_label }}{% if e.n_batches > 1 %} (이 엔진의 묶음 {{ e.n_batches }}개 중 최근 것){% endif %} · 개체 {{ e.n }}개 — 엔진이 낸 그대로 셉니다(사람의 교정은 빼고).{% if e.editable %} 교정이 저장되는 화면입니다{% else %} 읽기 전용입니다{% endif %}">
+        <input type="radio" name="eng-{{ uid }}" value="{{ e.url }}"
+               {% if e.key == engine_now.key %}checked{% endif %}>
+        {{ e.label }}<span class="n">{{ e.n }}</span>{% if not e.editable %}<span class="ro">읽기 전용</span>{% endif %}
+      </label>
     {% endfor %}
-  </select>
+  </div>
   {% endif %}
   <button type="button" data-pane="list">개체 목록 <span class="dim" id="tabcount-{{ uid }}">{{ det.n_candidates }}</span></button>
   <span class="tabmeta">
@@ -1898,12 +1901,15 @@
   // 주소만 바꿔 같은 시야를 다시 연다. 개체 자료는 검출마다 폴리곤까지 딸려
   // 있어(시야당 29 KB) 판마다 미리 실어 두면 무거워지고, 무엇보다 **교정을
   // 얹을지 말지가 검출마다 다르다** — 서버가 그리게 두는 편이 안전하다.
-  var engSel = document.getElementById('engsel-' + uid);
-  if (engSel) {
-    engSel.addEventListener('change', function () {
-      if (!this.value) return;
+  var engPick = document.getElementById('engpick-' + uid);
+  if (engPick) {
+    // 라디오 하나하나가 아니라 감싼 칸에서 받는다 — 엔진이 늘어도 배선을
+    // 손대지 않는다.
+    engPick.addEventListener('change', function (e) {
+      var t = e.target;
+      if (!t || t.type !== 'radio' || !t.value) return;
       flushSave();                 // 지연 저장이 걸려 있으면 밀어내고 떠난다
-      location.href = this.value;
+      location.href = t.value;
     });
   }
 

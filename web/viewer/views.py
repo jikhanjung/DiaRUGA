@@ -207,14 +207,18 @@ def group(request, slug, gid):
     if ctx is None:
         raise Http404(f"unknown group: {slug}/{gid}")
 
+    # **묶음이 아니라 엔진으로 고른다.** `yolo-1차`·`yolo-3차` 가 따로 서면
+    # 무엇을 눌러야 할지 알 수 없다 — 재는 것은 엔진이다 (`engines_from_batches`).
     here = reverse("group", args=[slug, gid])
-    for b in bs:
-        # 현재 검출을 낸 묶음이 곧 검토 가능한 화면이다 — 맨 주소로 간다.
-        b["url"] = here if b["current"] else f"{here}?batch={b['run_id']}"
-        b["editable"] = b["current"]
-    ctx["engine_batches"] = bs
+    engines = data.engines_from_batches(bs)
+    for e in engines:
+        # 현재 검출을 낸 엔진이 곧 검토 가능한 화면이다 — 맨 주소로 간다.
+        e["url"] = here if e["current"] else f"{here}?batch={e['run_id']}"
+        e["editable"] = e["current"]
+    ctx["engines"] = engines
     # 아무 것도 안 켜져 있으면(=?batch= 가 없으면) 현재 검출을 보고 있는 것이다
-    ctx["engine_now"] = picked or next((b for b in bs if b["current"]), None)
+    ctx["engine_now"] = (next((e for e in engines if e["on"]), None) if run_id
+                         else next((e for e in engines if e["current"]), None))
     return render(request, "viewer/group.html", ctx)
 
 

@@ -1691,3 +1691,44 @@ def batches_for_viewpoint(slug: str, gid: int,
                 detection__in=picked, passed=True).count(),
         })
     return sorted(out, key=lambda g: g["label"])
+
+
+# 화면에 적을 엔진 이름. 백엔드 이름(`Run.params["backend"]`)은 모델 판까지
+# 들어 있어서(`sam2`) 고르는 칸에는 길다. **여기 없는 것은 대문자로 그대로
+# 낸다** — 새 백엔드(`sam3` 등)가 이름 없이 사라지지 않게.
+ENGINE_LABELS = {"sam2": "SAM", "sam3": "SAM3", "yolo": "YOLO"}
+
+
+def engines_from_batches(batches: list[dict]) -> list[dict]:
+    """묶음 목록을 **엔진 단위로** 접는다 (051).
+
+    고르는 사람이 재는 것은 엔진이지 묶음이 아니다 — `yolo-1차`·`yolo-3차` 가
+    따로 서면 무엇을 눌러야 할지 알 수 없다. 한 엔진에 묶음이 여럿이면 하나를
+    대표로 세운다:
+
+        지금 보고 있는 것 → 현재 검출을 낸 것 → 실행 번호가 큰 것(나중 것)
+
+    **묶음 이름은 버리지 않는다** (`batch_label`). 화면이 말풍선에 적어 어느
+    묶음을 열었는지 되짚을 수 있어야 한다.
+
+    개수는 대표 묶음의 것이다. 합치지 않는다 — 눌러서 가는 곳이 대표 하나라,
+    합계를 보이면 눌러 보고 "아까 그 수가 아닌데" 가 된다.
+    """
+    per = defaultdict(list)
+    for b in batches:
+        per[b["backend"]].append(b)
+
+    out = []
+    for backend, group in per.items():
+        rep = sorted(group, key=lambda b: (b["on"], b["current"], b["run_id"]))[-1]
+        out.append({
+            **rep,
+            "key": backend,
+            "label": ENGINE_LABELS.get(backend, (backend or "?").upper()),
+            "batch_label": rep["label"],
+            # 이 엔진이 이 시야에 낸 묶음이 여럿인가 — 말풍선이 적는다
+            "n_batches": len(group),
+        })
+    # **교정이 되는 것을 맨 앞에 둔다.** 검토 화면의 기본 자리이고, 라디오는
+    # 왼쪽부터 읽힌다.
+    return sorted(out, key=lambda e: (not e["current"], e["label"]))
