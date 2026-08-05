@@ -8,6 +8,15 @@
 원본은 `web/viewer/models.py` 이고, 이 그림들은 그 두 문서와 **같은 mermaid 원본**
 에서 나온다 — 한쪽만 고쳐져 어긋나는 일이 없다.
 
+**굽는 명령에 용지를 함께 준다.** `md2docx.py` 의 기본은 A4 세로라, 안 주면
+머리말에 "A3 가로" 라고 적어 놓고 A4 세로가 나온다(실제로 그러고 있었다).
+
+```bash
+NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt npm i --no-save @mermaid-js/mermaid-cli
+MMDC=$(pwd)/node_modules/.bin/mmdc python md2docx.py \
+    docs/20260804_db-erd-poster.md --paper a3 --landscape
+```
+
 ---
 
 ## 전체 그림
