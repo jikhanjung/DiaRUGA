@@ -341,6 +341,38 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 
       지금 안전망: 시간별 자동 사본 · `manual/` 51 · `pre_deploy/` 27 ·
       NAS 오프사이트 · 그리고 **`review/` 의 교정 감사 기록**(git).
+- [ ] **도커 자리를 `/data3` 로 옮긴다 — `root` 가 있는 사람이 해야 한다**
+      (사용자 물음 2026-08-05)
+
+      `/` 는 228 GB 인데 `/data3` 는 **7.3 TB 에 6.3 TB 가 남는다**(로컬 ext4,
+      `/dev/sdc1`). 파이프라인 이미지가 판마다 7.2 GB 라 `/` 는 구조적으로 좁다.
+
+      **빌드만 다른 디스크로 뺄 수는 없다.** BuildKit 캐시는 도커의 `data-root`
+      안에 살고, `docker-container` 드라이버로 빌더를 따로 만들어도 그 볼륨이
+      다시 `data-root` 안이다. **자리를 통째로 옮기는 것이 유일한 길**이다
+      (다른 장비에서 굽는 것이 표준이지만 이 머신은 개발·운영을 겸한다 — 016).
+
+      ```bash
+      # 1) 멈춘다. **네 프로젝트가 함께 선다** — diaruga · phyloserver ·
+      #    scoda-server · refserver. 다른 사람과 시간을 맞출 것
+      sudo systemctl stop docker docker.socket
+      # 2) 옮긴다 (지금 약 33 GB). rsync 는 두 번 돌려 빠진 것을 줍는다
+      sudo rsync -aHAX --numeric-ids /var/lib/docker/ /data3/docker/
+      # 3) daemon.json 에 자리를 적는다. **nvidia 런타임 설정을 지우지 말 것**
+      #    {"runtimes": {...}, "data-root": "/data3/docker"}
+      sudo vi /etc/docker/daemon.json
+      # 4) 올리고 확인
+      sudo systemctl start docker
+      docker info | grep "Root Dir"      # /data3/docker
+      docker images | head               # 이미지가 그대로 보이는가
+      cd /srv/DiaRUGA && docker compose up -d web && bin/smoke.sh
+      # 5) 다 확인한 뒤에 옛 자리를 지운다 — 되돌릴 지점이므로 서두르지 않는다
+      sudo rm -rf /var/lib/docker.old
+      ```
+
+      **그때까지는 값싼 것으로 버틴다** — 굽고 나면
+      `docker builder prune -a`(오늘 27 GB), 파이프라인 판은 덜 자주 올리기.
+      2026-08-05 정리 뒤 `/` 에 47 GB 가 남아 빌드 두세 번은 여유가 있다.
 - [ ] **배율이 다른 슬라이드를 `state="failed"` 로 세우기** — 지금은 경고만 찍고
       40x 로 계산하고 넘어간다 (devlog 015)
 - [x] **`/healthz` 가 백업·무결성 상태를 보게** — `db_sentinel.py` 가 DB 옆에
