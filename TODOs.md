@@ -8,7 +8,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 > 파이프라인이 전부 DB 를 쓰고, NAS 에 슬라이드가 올라오면 1분 안에 검출까지
 > 스스로 간다. 그렇게 4장이 자동으로 들어와 **슬라이드 7 · 시야 270** 이 됐다.
 > **검토는 124/270 에서 멈춰 있다** — 처음 3장만 전수 검토가 끝났다.
-> 뷰어는 http://172.16.116.98/diatom/ 다.
+> 뷰어는 http://172.16.116.98/DiaRUGA/ 다.
 
 ## 지금 가장 급한 것
 
@@ -153,7 +153,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
   - **표 안에서는 `<details>` 가 안 먹는다.** 코어마다 `<tbody>` 를 두고
         머리 `<tr>` 이 그것을 토글한다. 카드는 `<details>/<summary>` 로 그대로 된다
   - **전부 접힌 채로 열면 첫 화면이 빈 목록이다.** 여닫은 상태를 기억한다 —
-        보기 방식이 이미 `localStorage['diatom.dsview']` 로 그렇게 하고 있다
+        보기 방식이 이미 `localStorage['diaruga.dsview']` 로 그렇게 하고 있다
   - **코어가 안 붙은 슬라이드가 있다** (`data.py` 가 빈 값을 허용한다).
         "코어 미지정" 묶음이 필요하고, 위의 노두 시료 항목과 여기서 만난다
   - **구분은 ▶ 와 들여쓰기가 낸다. 색은 거드는 것이다.** 머리줄 앞에 ▶(닫힘)
@@ -221,7 +221,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 
 - [x] **백업 lane 을 cron 에** — 시간별 `backup_db.py`(:20, `--keep 24`) ·
       일별 `sync_backup_nas.py`(04:40, `--newest-only --prune`). 신선도 게이트도
-      켰다(`DIATOM_BACKUP_MAX_AGE_H=3`) (034)
+      켰다(`DIARUGA_BACKUP_MAX_AGE_H=3`) (034)
 - [x] **손으로 뜬 스냅샷과 시간별 스냅샷을 갈라 두기** — `backup/manual/` 로
       갈랐다. 로테이션·NAS 대상 밖이다 (034)
 - [x] **NAS 의 `manual/` 정리** — 지웠다(1.3 GB). 43개가 전부 로컬
@@ -241,7 +241,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       지울 것이 없었다. 로직은 가짜 이름 366개로만 봤다(→ 24개). 7일 경계를
       넘는 **8월 11일** 에 `logs/nas-sync.log` 를 볼 것 (034)
 - [ ] **뷰어 인증** — 80 으로 나오면서 노출 면이 넓어졌다.
-      `diatom-subpath.conf` 에 `auth_basic` 을 걸면 된다 (018)
+      `DiaRUGA-subpath.conf` 에 `auth_basic` 을 걸면 된다 (018)
 
 ## 외부에 걸린 것
 

@@ -6,8 +6,8 @@
 facebook/sam3 접근 권한이 생기면 --backend sam3 로 바꾸면 된다.
 
 사용 예:
-    python segment_diatoms.py "/data3/diatom/stacked/g000_Snap-21365-21370_focused.jpg"
-    python segment_diatoms.py "/data3/diatom/photos/260729/RS23-GC03 71cm" --limit 5
+    python segment_diatoms.py "/data3/DiaRUGA/stacked/g000_Snap-21365-21370_focused.jpg"
+    python segment_diatoms.py "/data3/DiaRUGA/photos/260729/RS23-GC03 71cm" --limit 5
 
 DB 로 옮기면서 달라진 것 (P02 6단계):
 
@@ -41,14 +41,14 @@ import torch
 import django
 from PIL import Image
 
-# 이 스크립트는 저장소 밖(/srv/diatom/scripts)에 복사해 두고 컨테이너 안에서
-# 돌릴 수도 있다. 그때 Django 코드가 어디 있는지는 DIATOM_APP 이 알려 준다 —
+# 이 스크립트는 저장소 밖(/srv/DiaRUGA/scripts)에 복사해 두고 컨테이너 안에서
+# 돌릴 수도 있다. 그때 Django 코드가 어디 있는지는 DIARUGA_APP 이 알려 준다 —
 # 이미지 안의 /app 이고, 뷰어 컨테이너가 쓰는 바로 그 코드다. 저장소에서 그냥
 # 돌리면 예전처럼 자기 옆의 web/ 을 본다.
-APP = Path(os.environ.get("DIATOM_APP") or Path(__file__).resolve().parent)
+APP = Path(os.environ.get("DIARUGA_APP") or Path(__file__).resolve().parent)
 sys.path.insert(0, str(APP / "web"))
 sys.path.insert(0, str(APP))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
 from django.conf import settings                                    # noqa: E402
@@ -612,7 +612,7 @@ def gpu_lock(timeout: float = 7200.0):
     잠금 파일은 호스트와 컨테이너가 같은 경로로 보는 자리에 둔다. 컨테이너가
     죽어도 파일 잠금은 커널이 풀어 준다 — 남은 파일이 막지 않는다.
     """
-    path = Path(os.environ.get("DIATOM_GPU_LOCK",
+    path = Path(os.environ.get("DIARUGA_GPU_LOCK",
                                str(Path(settings.DATA_ROOT) / "locks" / "gpu.lock")))
     path.parent.mkdir(parents=True, exist_ok=True)
     fh = open(path, "w")

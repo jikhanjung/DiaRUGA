@@ -5,8 +5,17 @@
 
 **뷰어의 이름은 `DiaRUGA` 다** (Diatom Refocusing Using Genus-level AI, 041).
 표기는 이 하나뿐 — `Diaruga`·`DIARUGA` 로 쓰지 않는다. **대문자 자리가 곧 약자의
-자리다.** 저장소·컨테이너·DB·URL(`/diatom/`)은 그대로 `diatom` 이고, 지난 devlog·
-`docs/` 도 그때 이름으로 둔다. 화면에 약자를 풀어 쓰지 않는다.
+자리다.** 화면에 약자를 풀어 쓰지 않는다.
+
+**048 에서 이름을 한 겹으로 모았다.** 저장소·경로(`/srv/DiaRUGA`·`/data3/DiaRUGA`·
+`~/venv/DiaRUGA`)·URL(`/DiaRUGA/`)·DB(`DiaRUGA.db`)가 전부 `DiaRUGA` 다. **기술이
+소문자를 강제하는 자리만 `diaruga`** — Docker Hub 이미지(`honestjung/diaruga`),
+파이썬 패키지(`diarugaweb`), 브라우저 `localStorage` 키. 환경변수는 `DIARUGA_*`.
+
+**`diatom` 이 남아 있는 자리는 생물 이름이라 그렇다** — `segment_diatoms.py`,
+`export_yolo.py` 의 YOLO 클래스 `diatom`, NAS 원본 폴더 `DiatomPhotos/`, 본문의
+규조류(diatom). **여기를 바꾸면 안 된다.** 지난 devlog·`docs/` 의 진행 보고서도
+그때 이름으로 둔다.
 
 ## 시작하기 전에 읽을 것
 
@@ -35,7 +44,7 @@
 ## 환경
 
 ```bash
-# venv 는 ~/venv/diatom 이다 (README 의 .venv 가 아니다 — HANDOFF 8.3)
+# venv 는 ~/venv/DiaRUGA 이다 (README 의 .venv 가 아니다 — HANDOFF 8.3)
 python --version        # 3.12.3
 ```
 
@@ -48,8 +57,8 @@ requirements 는 넷으로 갈라져 있다 (P03·032). 호스트 venv 는 `requ
 대상이라 저장소에 남아 있다.
 
 ```
-/srv/diatom/   db/  scripts/  bin/  docker-compose.yml  .env      ← 배포
-/data3/diatom/ photos/<촬영일>/<슬라이드>/                         ← NAS 구조와 1:1
+/srv/DiaRUGA/   db/  scripts/  bin/  docker-compose.yml  .env      ← 배포
+/data3/DiaRUGA/ photos/<촬영일>/<슬라이드>/                         ← NAS 구조와 1:1
                stacked/  out/  backup/  hf/  logs/  datasets/  .thumbcache/
 ```
 
@@ -61,7 +70,7 @@ requirements 는 넷으로 갈라져 있다 (P03·032). 호스트 venv 는 `requ
 
 호스트 venv 로도 같은 DB 를 열 수 있지만 그러면 **같은 파일을 두 벌의 환경이
 만진다 — 두 번 당했다**(낡은 `models.py` 가 NAS 반입을 죽였고, root 로 돈
-컨테이너가 소유자를 바꿨다). 스크립트는 `/srv/diatom/scripts` 로 옮겨 놓은 것만
+컨테이너가 소유자를 바꿨다). 스크립트는 `/srv/DiaRUGA/scripts` 로 옮겨 놓은 것만
 돈다. 저장소는 만들고, `/srv` 는 돌린다.
 
 ```bash
@@ -85,7 +94,7 @@ deploy/host/dbrun.sh  refilter.py --dry-run
 deploy/host/dbrun.sh  refilter.py --round-texture-min 2000
 ```
 
-지금 `/srv/diatom/scripts` 에 있는 것: `check_db.py` · `backup_db.py` ·
+지금 `/srv/DiaRUGA/scripts` 에 있는 것: `check_db.py` · `backup_db.py` ·
 `db_sentinel.py` · `judge.py` · `batch_runs.py` · `prune_detections.py`.
 없는 것을 부르면 `dbrun.sh` 가 **무엇을 옮기라고 알려 준다.**
 
@@ -100,10 +109,10 @@ sqlite3 백업 API 만 쓴다 — 두 벌의 환경이 생기지 않는다. 그�
 ### 뷰어·배포
 
 ```bash
-cd /srv/diatom && docker compose up -d web      # 바깥 :80 /diatom/ 을 nginx 가 8090 으로 넘긴다
-cd /srv/diatom && docker compose logs -f web
-/srv/diatom/bin/deploy.sh <태그>                # pull → 스냅샷 → 교체 → 기동 게이트
-/srv/diatom/bin/smoke.sh                        # 판·행 수·안전망까지 (200 은 "떴다" 일 뿐이다)
+cd /srv/DiaRUGA && docker compose up -d web      # 바깥 :80 /DiaRUGA/ 을 nginx 가 8090 으로 넘긴다
+cd /srv/DiaRUGA && docker compose logs -f web
+/srv/DiaRUGA/bin/deploy.sh <태그>                # pull → 스냅샷 → 교체 → 기동 게이트
+/srv/DiaRUGA/bin/smoke.sh                        # 판·행 수·안전망까지 (200 은 "떴다" 일 뿐이다)
 python db_sentinel.py show                      # 백업이 세운 무결성 깃발이 있는가
 
 docker compose -f deploy/docker-compose.yml build web   # 이미지 굽기는 저장소에서
@@ -116,9 +125,9 @@ docker compose -f deploy/docker-compose.yml build web   # 이미지 굽기는 �
 돌릴 때뿐이다.
 
 ```bash
-cd /srv/diatom
+cd /srv/DiaRUGA
 # 그룹핑만 경로를 받는다 (나머지는 슬라이드 slug). 시야가 이미 있으면 스스로 거부한다
-docker compose run --rm pipeline python group_focus_series.py "/data3/diatom/photos/<촬영일>/<슬라이드>"
+docker compose run --rm pipeline python group_focus_series.py "/data3/DiaRUGA/photos/<촬영일>/<슬라이드>"
 docker compose run --rm pipeline python focus_stack.py --slide <slug>
 docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
     --scale 1.0 --points-per-side 48 --min-um 10 --max-um 150 --batch sam2-전수
@@ -136,7 +145,7 @@ docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
 
 **브라우저가 있다** — `playwright` + 헤드리스 크로미움(045). 키 입력·클릭·
 페이지 이동·**콘솔 오류**·화면 캡처가 된다. 이벤트 배선 고장은 이것으로만 잡힌다.
-**반드시 사본 DB 에 붙인다** (`DIATOM_DB=…/사본.db DIATOM_SCRIPT_NAME=`
+**반드시 사본 DB 에 붙인다** (`DIARUGA_DB=…/사본.db DIARUGA_SCRIPT_NAME=`
 `manage.py runserver 127.0.0.1:8099`). 설치는 HANDOFF 3.3 — `NODE_EXTRA_CA_CERTS`
 를 빠뜨리면 사내망 TLS 때문에 죽는다.
 
@@ -163,7 +172,7 @@ web/viewer/
   antarctica.py  미리 구운 해안선 (korea.py 와 짝) — 투영식이 tools/ 에도 있다
 ```
 
-**데이터의 원본은 `diatom.db` 다** (SQLite, WAL). `out/*.json` 등은 내보내기
+**데이터의 원본은 `DiaRUGA.db` 다** (SQLite, WAL). `out/*.json` 등은 내보내기
 형식으로만 남아 있다.
 
 **검출 엔진이 두 벌이다.** 뷰어가 보는 것은 `sam2-전수` 묶음이고, YOLO 는
@@ -190,7 +199,7 @@ web/viewer/
 
 **DB·스키마**
 
-- **`cp diatom.db` 금지.** WAL 이라 불완전한 사본이 나온다. `backup_db.py` 를 쓸 것
+- **`cp DiaRUGA.db` 금지.** WAL 이라 불완전한 사본이 나온다. `backup_db.py` 를 쓸 것
 - **`NOT NULL` 칸을 더할 때는 `db_default` 를 함께 준다.** Django 의 `default` 는
   파이썬 쪽이라 **판이 다른 옛 이미지의 INSERT 에는 칼럼이 안 들어간다** — 뷰어와
   파이프라인 이미지는 굽는 주기가 달라 판이 같아질 일이 없다
@@ -204,7 +213,7 @@ web/viewer/
   멱등이지만 `Candidate` 를 지우고 다시 만들어서, DB 에서만 한 교정이 있는데
   옛 JSON 을 넣으면 JSON 쪽으로 되돌아간다. **지금 JSON 은 DB 보다 한참 낡았다**
 - **`verify_db.py` 는 임포트하면 `ImportError` 다.** 본문이 전부 최상위에 있어
-  임포트만으로 실행됐고, DB 가 없으면 빈 `diatom.db` 를 만들었다. 막아 뒀다
+  임포트만으로 실행됐고, DB 가 없으면 빈 `DiaRUGA.db` 를 만들었다. 막아 뒀다
 - **`refilter.py` 에서 주지 않은 문턱은 현재 값을 그대로 쓴다.** 전부 기본값으로
   되돌리는 것이 아니다 — 하나 바꾸려다 나머지가 조용히 초기화되는 것을 막는 설계다
 - **분류를 더할 때 "표에 행 하나" 로 끝나지 않는다.** `label`·`short`·`badge`·
@@ -232,13 +241,13 @@ web/viewer/
   `deploy.sh` 의 기동 게이트가 200 을 기다리다 **배포가 스스로 멈춘다**.
   배포를 세우는 판단은 `smoke.sh` 가 `status != ok` 로 한다 (034)
 - **백업 사본은 검증을 통과한 뒤에 제 이름을 받는다.** 뜨는 중에는 `.part` 다.
-  반쯤 쓴 파일이 `diatom_*.db` 라는 이름을 달면 정리 glob 에 걸려 **가장 새
+  반쯤 쓴 파일이 `DiaRUGA_*.db` 라는 이름을 달면 정리 glob 에 걸려 **가장 새
   파일로 살아남고 멀쩡한 사본을 밀어낸다** (034)
-- **`diatom.db` 는 파일이 아니라 디렉토리째로 마운트한다.** 파일 하나만 물리면
+- **`DiaRUGA.db` 는 파일이 아니라 디렉토리째로 마운트한다.** 파일 하나만 물리면
   WAL 이 만드는 `-wal`·`-shm` 형제가 컨테이너 안쪽에 생겨 호스트와 WAL 을 공유하지
   못한다. 같은 DB 를 보는 줄 알았는데 아닌 상태가 된다 (P03)
 - **컨테이너는 `1000:1000` 으로, `TZ=Asia/Seoul` 로 돌린다.** root 로 돌면
-  `diatom.db` 소유자가 바뀌고, 시간대를 빠뜨리면 UTC 로 돌아 **사본 이름이 아홉
+  `DiaRUGA.db` 소유자가 바뀌고, 시간대를 빠뜨리면 UTC 로 돌아 **사본 이름이 아홉
   시간 어긋나 정리 규칙이 가장 새 사본을 지운다** (036)
 - **뷰어와 파이프라인의 판은 따로다**(`IMAGE_TAG` / `PIPELINE_TAG`). 하나로 묶으면
   뷰어 판을 올리는 순간 폴러가 없는 이미지를 가리킨다 — **4시간 반 멈췄다** (026)
@@ -253,11 +262,11 @@ web/viewer/
 - **부모를 `extends` 한 템플릿에서 `block` 바깥에 적은 것은 렌더되지 않는다.**
   `<style>` 이 한 번도 먹은 적이 없었다 — 예외도 경고도 없는 종류의 고장이다
 - **절대경로를 박지 말 것.** JS 는 `base.html` 의 `window.ROOT`, 파이썬은
-  `reverse()` 를 쓴다 (서브경로 `/diatom/` 아래에서 돈다)
+  `reverse()` 를 쓴다 (서브경로 `/DiaRUGA/` 아래에서 돈다)
 
 ## 사람의 교정은 재생성 불가다
 
-`diatom.db` 안의 교정(삭제·되살림·분류·코멘트 **6,700여 건**)은 사람이 347 시야를
+`DiaRUGA.db` 안의 교정(삭제·되살림·분류·코멘트 **6,700여 건**)은 사람이 347 시야를
 검토해 만든 것이고, **다시 만들 수 없다.** `stacked/`·`out/` 은 다시 돌리면 나오고
 `photos/` 는 촬영 원본이다.
 
@@ -276,5 +285,5 @@ refilter.py 를 DB 로 옮기고, 판정 규칙을 judge.py 로 떼어낸다
 배포 전 스냅샷을 컨테이너 안에서 뜬다
 ```
 
-`diatom.db`·`photos/`·`out/`·`stacked/`·`backup/`·`runs/`·`datasets/` 는
+`DiaRUGA.db`·`photos/`·`out/`·`stacked/`·`backup/`·`runs/`·`datasets/` 는
 gitignore 다.

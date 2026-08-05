@@ -1,4 +1,4 @@
-# diatom 뷰어 이미지 (P03).
+# DiaRUGA 뷰어 이미지 (P03).
 #
 # 파이프라인 이미지가 이것을 FROM 한다. 그래서 여기에는 둘이 공통으로 쓰는 것
 # (코드 + Django)만 넣고 torch 는 넣지 않는다 — 뷰어 한 줄 고칠 때마다 6 GB 를
@@ -20,7 +20,7 @@ RUN pip install -r requirements-web.txt
 
 COPY . .
 
-# 컨테이너는 1000:1000 으로 돈다 (compose 의 user:). root 로 돌면 diatom.db 의
+# 컨테이너는 1000:1000 으로 돈다 (compose 의 user:). root 로 돌면 DiaRUGA.db 의
 # 소유자가 바뀌어 호스트의 backup_db.py·check_db.py 가 못 쓰게 된다.
 # 이름 있는 사용자를 만들지 않고 숫자 uid 를 그대로 쓰므로, HOME 이 없어도
 # 곤란하지 않도록 캐시 위치를 명시해 둔다.

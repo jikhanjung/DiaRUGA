@@ -1,7 +1,7 @@
-# diatom 배포 구성 — **/srv/diatom/docker-compose.yml 로 복사해 쓴다** (P03).
+# DiaRUGA 배포 구성 — **/srv/DiaRUGA/docker-compose.yml 로 복사해 쓴다** (P03).
 #
-#   sudo cp deploy/srv/docker-compose.yml /srv/diatom/
-#   cd /srv/diatom && docker compose up -d web
+#   sudo cp deploy/srv/docker-compose.yml /srv/DiaRUGA/
+#   cd /srv/DiaRUGA && docker compose up -d web
 #
 # 이 파일은 **빌드하지 않는다.** 레지스트리에 올라간 이미지를 참조만 한다.
 # 이미지를 굽는 것은 저장소의 deploy/docker-compose.yml 이다 (phyloserver 와 같은 갈래).
@@ -20,8 +20,13 @@
 # 컨테이너 안팎의 경로를 같게 두었다. 파이프라인 스크립트가 파일 경로를 인자로
 # 받으므로, 같은 명령을 호스트와 컨테이너 사이에 그대로 옮겨 쓸 수 있다.
 
+# **프로젝트 이름을 박아 둔다** (048). 안 적으면 compose 가 디렉토리 이름에서
+# 뽑는데, `/srv/DiaRUGA` 는 대문자가 섞여 있어 조용히 소문자로 깎인다. 그 암묵적
+# 변환에 컨테이너 이름이 매달리면 판이 바뀔 때 이름이 달라질 수 있다.
+name: diaruga
+
 x-common: &common
-  # root 로 돌면 diatom.db 소유자가 바뀌어 호스트의 backup_db.py·check_db.py 가
+  # root 로 돌면 DiaRUGA.db 소유자가 바뀌어 호스트의 backup_db.py·check_db.py 가
   # 못 쓰게 된다. 교정이 재생성 불가라 이건 양보할 수 없다.
   user: "1000:1000"
   env_file: [.env]
@@ -35,18 +40,18 @@ x-common: &common
   volumes:
     # DB 가 있는 곳. **파일이 아니라 디렉토리째로** 물린다 — WAL 이 만드는
     # -wal·-shm 형제가 컨테이너 안쪽에 생기면 호스트와 WAL 을 공유하지 못한다.
-    - /srv/diatom/db:/srv/diatom/db
+    - /srv/DiaRUGA/db:/srv/DiaRUGA/db
     # 사진·산출물
-    - /data3/diatom:/data3/diatom
+    - /data3/DiaRUGA:/data3/DiaRUGA
 
 services:
   web:
     <<: *common
-    image: honestjung/diatom:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
+    image: honestjung/diaruga:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
     entrypoint: ["/app/deploy/entrypoint-web.sh"]
     ports:
       # 루프백에만 붙인다. 바깥으로 나가는 문은 nginx 하나뿐이다
-      # (/etc/nginx/sites-enabled/diatom 이 :9090 을 받아 여기로 넘긴다).
+      # (/etc/nginx/sites-enabled/DiaRUGA 이 :9090 을 받아 여기로 넘긴다).
       - "127.0.0.1:8090:9090"
     restart: unless-stopped
 
@@ -57,15 +62,15 @@ services:
     # 없는 파이프라인 태그를 가리키게 되어 **폴러가 4시간 반 동안 멈췄다**
     # (v0.1.1 로 올린 순간부터 524번 실패). 그때 로그는 "NAS 가 내려갔는가" 라고
     # 적었다 — 원인과 전혀 다른 말이라 더 늦게 알았다.
-    image: honestjung/diatom-pipeline:${PIPELINE_TAG:?PIPELINE_TAG 를 .env 에 넣을 것}
+    image: honestjung/diaruga-pipeline:${PIPELINE_TAG:?PIPELINE_TAG 를 .env 에 넣을 것}
     profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
     volumes:
-      - /srv/diatom/db:/srv/diatom/db
-      - /data3/diatom:/data3/diatom
+      - /srv/DiaRUGA/db:/srv/DiaRUGA/db
+      - /data3/DiaRUGA:/data3/DiaRUGA
       # NAS 는 **읽기 전용**. 촬영 원본을 건드리지 않는다 (P01 §1)
       - /nfs/temp-share/DiatomPhotos:/nfs/temp-share/DiatomPhotos:ro
       # SAM2 가중치. 없으면 실행마다 HuggingFace 에서 다시 받는다
-      - /data3/diatom/hf:/hf
+      - /data3/DiaRUGA/hf:/hf
     deploy:
       resources:
         reservations:
@@ -76,18 +81,18 @@ services:
 
   # DB 를 만지는 일회성 스크립트는 **전부 이 문으로 들어간다.**
   #
-  #   deploy/host/dbsync.sh check_db.py     # 저장소 → /srv/diatom/scripts
+  #   deploy/host/dbsync.sh check_db.py     # 저장소 → /srv/DiaRUGA/scripts
   #   deploy/host/dbrun.sh  check_db.py     # 컨테이너 안에서 돌린다
   #
   # 호스트 venv 로도 같은 DB 를 열 수 있지만, 그러면 같은 파일을 두 벌의 환경이
   # 만지게 된다 — 두 번 당했다. 컨테이너의 낡은 `models.py` 가 새 칼럼을 몰라
-  # NAS 반입이 죽었고(→ db_default), root 로 돈 컨테이너가 diatom.db 소유자를
+  # NAS 반입이 죽었고(→ db_default), root 로 돈 컨테이너가 DiaRUGA.db 소유자를
   # 바꿔 호스트 스크립트가 못 쓰게 됐다. 문이 하나면 둘 다 생기지 않는다.
   #
   # **`/app` 은 이미지 것 그대로 둔다.** 저장소를 /app 에 덮어 물리면 편집 중인
   # 작업 트리로 DB 를 만지게 된다 — 막으려던 "환경이 두 벌" 을 다시 만드는 꼴이다.
   # Django 도 모델 코드도 **뷰어 컨테이너가 쓰는 바로 그것**을 쓴다. 밖에서 물리는
-  # 것은 스크립트 파일뿐이고, 그것이 Django 를 어디서 찾을지는 DIATOM_APP 이
+  # 것은 스크립트 파일뿐이고, 그것이 Django 를 어디서 찾을지는 DIARUGA_APP 이
   # 알려 준다.
   #
   # 그래서 **/srv 로 옮겨 놓은 것만 돌아간다.** 저장소에서 고친 것이 곧바로
@@ -98,17 +103,17 @@ services:
   # GPU 를 쓰는 일은 pipeline 서비스로 간다.
   dbtool:
     <<: *common
-    image: honestjung/diatom:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
+    image: honestjung/diaruga:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
     profiles: ["manual"]
     entrypoint: ["python"]
-    working_dir: /srv/diatom/scripts
+    working_dir: /srv/DiaRUGA/scripts
     environment:
       # `<<: *common` 의 environment 를 통째로 덮으므로 TZ 를 여기 다시 적는다.
       # 빠뜨리면 이 컨테이너만 UTC 로 돌아 사본 이름이 어긋난다.
       TZ: Asia/Seoul
-      DIATOM_APP: /app
+      DIARUGA_APP: /app
     volumes:
-      - /srv/diatom/db:/srv/diatom/db
-      - /data3/diatom:/data3/diatom
+      - /srv/DiaRUGA/db:/srv/DiaRUGA/db
+      - /data3/DiaRUGA:/data3/DiaRUGA
       # 스크립트는 읽기만 한다
-      - /srv/diatom/scripts:/srv/diatom/scripts:ro
+      - /srv/DiaRUGA/scripts:/srv/DiaRUGA/scripts:ro

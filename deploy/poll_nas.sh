@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # NAS 를 주기적으로 보고, 복사가 끝난 새 슬라이드를 끝까지 돌린다 (P03 5단계).
 #
-#   * * * * * /home/paleoadmin/projects/diatom/deploy/poll_nas.sh
+#   * * * * * /home/paleoadmin/projects/DiaRUGA/deploy/poll_nas.sh
 #
 # ## 1분마다 돌아도 되는 이유
 #
@@ -28,9 +28,9 @@
 # 트리거만 호스트가 맡고 실제 작업은 전부 컨테이너 안에서 돈다.
 set -euo pipefail
 
-DEPLOY_DIR=/srv/diatom
-LOG_DIR=/data3/diatom/logs
-LOCK=/tmp/diatom-poll.lock
+DEPLOY_DIR=/srv/DiaRUGA
+LOG_DIR=/data3/DiaRUGA/logs
+LOCK=/tmp/DiaRUGA-poll.lock
 STABLE_MIN="${STABLE_MIN:-5}"   # 이만큼(분) 폴더가 안 변해야 가져온다
 PPB="${PPB:-16}"                # points-per-batch — 이 장비(3060 Ti 8 GB) 기준
 # 자동 처리한 검출을 묶는 이름표. 폴러는 슬라이드를 하나씩 처리하므로 "전체를
@@ -92,7 +92,7 @@ fi
 TODO=$(run "$T_SCAN" python - <<'PY' 2>/dev/null | tr -d '\r'
 import os, sys, django
 sys.path.insert(0, "web"); sys.path.insert(0, ".")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 from viewer.models import Slide
 for s in Slide.objects.filter(state__in=("pending", "processing")).order_by("pk"):
@@ -111,7 +111,7 @@ echo "$TODO" | while IFS=$'\t' read -r slug state image_dir; do
     # group_focus_series.py 가 스스로 거부한다.
     if [ "$state" = "pending" ]; then
         if ! run "$T_PIPE" python group_focus_series.py \
-                "/data3/diatom/$image_dir" >>"$LOG" 2>&1; then
+                "/data3/DiaRUGA/$image_dir" >>"$LOG" 2>&1; then
             say "$slug: 그룹핑 실패"
             continue
         fi

@@ -5,8 +5,13 @@
 
 **뷰어의 이름은 `DiaRUGA` 다** (Diatom Refocusing Using Genus-level AI, 041).
 표기는 이 하나뿐이다 — `Diaruga`·`DIARUGA` 로 쓰지 않는다. **대문자 자리가 곧
-약자의 자리다.** 저장소·컨테이너·DB 이름은 그대로 `diatom` 이고, devlog 와
-`docs/` 의 지난 기록도 그때 이름 그대로 두었다.
+약자의 자리다.**
+
+**048 에서 저장소·경로·URL·DB 이름을 전부 `DiaRUGA` 로 옮겼다.** 소문자
+`diaruga` 는 기술이 강제하는 자리뿐이다 — Docker Hub 이미지, 파이썬 패키지
+`diarugaweb`, `localStorage` 키. 아직 `diatom` 인 것은 **생물 이름**이다
+(`segment_diatoms.py`·YOLO 클래스·NAS 의 `DiatomPhotos/`). devlog 와 `docs/` 의
+지난 기록은 그때 이름 그대로 두었다.
 
 **브랜치** main · 판 `v0.3.0`
 
@@ -37,9 +42,9 @@ NAS 에 새 슬라이드가 올라오면 1분 안에 검출까지 스스로 간�
 
 ### 뷰어 — DiaRUGA (Django 5.2, DB 기반)
 
-**http://172.16.116.98/diatom/** — 랜딩 페이지(`/`)의 카드에서도 간다.
-nginx 가 80 에서 `/diatom/` 을 떼고 `127.0.0.1:8090` 의 컨테이너로 넘긴다.
-**경로는 `/diatom/` 그대로다** — 이름만 바뀌었지 URL·컨테이너·DB 는 안 건드렸다.
+**http://172.16.116.98/DiaRUGA/** — 랜딩 페이지(`/`)의 카드에서도 간다.
+nginx 가 80 에서 `/DiaRUGA/` 을 떼고 `127.0.0.1:8090` 의 컨테이너로 넘긴다.
+**경로는 `/DiaRUGA/` 그대로다** — 이름만 바뀌었지 URL·컨테이너·DB 는 안 건드렸다.
 
 > **옛 주소 `:9090` 은 301 로 여기로 넘어온다.** 사내 VPN 이 9090 을 통과시키지
 > 않아서 옮겼다 (devlog 018). 서빙하는 경로는 하나다.
@@ -99,12 +104,12 @@ nginx 가 80 에서 `/diatom/` 을 떼고 `127.0.0.1:8090` 의 컨테이너로 �
 > 붙인 교정이 이름 없는 분류가 되어 화면에서 안 읽힌다
 
 ```bash
-cd /srv/diatom && docker compose up -d web
+cd /srv/DiaRUGA && docker compose up -d web
 ```
 
 읽기·쓰기 모두 DB 다. 9절을 볼 것.
 
-### DB (`diatom.db`, WAL)
+### DB (`DiaRUGA.db`, WAL)
 
 **08-04 16:20 기준.** 사람이 검토 중이라 교정 수는 지금도 움직인다 —
 정확한 값은 `/healthz` 나 `smoke.sh` 가 낸다.
@@ -178,10 +183,10 @@ scan_nas → ingest_nas → group_focus_series → focus_stack --slide → segme
 `review/*.json` 은 **이전 시점 스냅샷에서 멈춰 있다.** 뷰어에서 새로 하는 교정은
 DB 에만 쓰인다(`export_review.py` 가 아직 없다 — P02 5단계). **6,700여 건이다.**
 
-- `diatom.db` 는 gitignore 다. 실물은 `/srv/diatom/db/`
+- `DiaRUGA.db` 는 gitignore 다. 실물은 `/srv/DiaRUGA/db/`
 - **큰 작업 전에 반드시** `deploy/host/dbrun.sh backup_db.py --note <설명>`
-- `cp diatom.db` 로 뜨지 말 것 — WAL 이라 불완전한 사본이 된다
-- 사본은 `/data3/diatom/backup/`, 오프사이트는 NAS (9.6절)
+- `cp DiaRUGA.db` 로 뜨지 말 것 — WAL 이라 불완전한 사본이 된다
+- 사본은 `/data3/DiaRUGA/backup/`, 오프사이트는 NAS (9.6절)
 
 ### 3.2 이상하면 `check_db.py` 부터
 
@@ -216,7 +221,7 @@ ObjectReview.objects.filter(viewpoint=vp).exclude(mask_key__in=keys).delete()
 하나를 잠근다), 서버는 **남의 검출 키가 섞이면 409** 로 아무것도 바꾸지 않는다.
 
 **여전히 빈 키 목록 POST 는 전부 지운다.** 그것이 "교정 전체 초기화" 의 정상
-경로라서다. 화면을 눌러 보는 시험은 사본 DB(`DIATOM_DB=…/test.db`)에 붙이고,
+경로라서다. 화면을 눌러 보는 시험은 사본 DB(`DIARUGA_DB=…/test.db`)에 붙이고,
 시험 코드에 `assert` 로 사본인지 확인하는 줄을 넣는다.
 
 > **08-04: 브라우저가 생겼다 (045).** `playwright` + 헤드리스 크로미움을 넣었다 —
@@ -225,9 +230,9 @@ ObjectReview.objects.filter(viewpoint=vp).exclude(mask_key__in=keys).delete()
 > `page.on("pageerror")` 한 줄로 잡았다.
 >
 > ```bash
-> ~/venv/diatom/bin/pip install playwright
+> ~/venv/DiaRUGA/bin/pip install playwright
 > NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt \
->   ~/venv/diatom/bin/playwright install chromium
+>   ~/venv/DiaRUGA/bin/playwright install chromium
 > ```
 >
 > **`NODE_EXTRA_CA_CERTS` 를 빠뜨리면 `SELF_SIGNED_CERT_IN_CHAIN` 으로 죽는다**
@@ -235,7 +240,7 @@ ObjectReview.objects.filter(viewpoint=vp).exclude(mask_key__in=keys).delete()
 > `deploy/ca/` 의 인증서 하나로는 안 되고 **시스템 번들을 통째로** 줘야 했다.
 >
 > **브라우저는 반드시 사본 DB 에 붙인다.** 저장소에서
-> `DIATOM_DB=…/사본.db DIATOM_SCRIPT_NAME= manage.py runserver 127.0.0.1:8099`
+> `DIARUGA_DB=…/사본.db DIARUGA_SCRIPT_NAME= manage.py runserver 127.0.0.1:8099`
 > 로 띄우고 거기에 붙인다 — 운영에 붙이면 클릭 한 번이 교정을 지운다(027).
 
 **이 시험이 못 닿는 자리가 있(었)다.** 테스트 클라이언트로는 "200 이 뜨고 이런
@@ -332,7 +337,7 @@ SQLite 를 다시 볼 문제가 된다.
 **자료.** 사람이 인정한 개체 1,503 · **지운 것 4,039** · 검출기가 놓쳐 되살린 것
 376. 음성 4,039가 이 자료의 핵심이다 — SAM2 가 실제로 헷갈린 자리에 사람의
 "아니다" 가 붙어 있고, YOLO 는 **라벨 없는 자리를 배경으로 배우므로** 별도 처리
-없이 효력이 있다. 꾸러미는 `/data3/diatom/datasets/yolo-v1{,-seg}` (688 MB,
+없이 효력이 있다. 꾸러미는 `/data3/DiaRUGA/datasets/yolo-v1{,-seg}` (688 MB,
 저장소 밖 · 재생성 가능).
 
 **성적** — `val_slide`(WAP450, 학습에 안 쓴 슬라이드) 기준.
@@ -410,7 +415,7 @@ SQLite 를 다시 볼 문제가 된다.
 | `20260803_P04_yolo-training.md` · `023` · `025` | 학습 계획 · 자료 꾸러미 · 첫 판 성적 |
 | `20260731_015_scale-mismatch.md` | 배율 사고. **계측이 사람 눈과 어긋나면 계측을 의심할 것** |
 | `20260731_016_data-safety-contract.md` | `.guides` 규약 대조. 못 지키는 조항까지 적어 뒀다 |
-| `20260802_018_subpath-on-80.md` | 80 의 `/diatom/` 으로 옮긴 것. **URL 을 만드는 곳이 어디어디인지** |
+| `20260802_018_subpath-on-80.md` | 80 의 `/DiaRUGA/` 으로 옮긴 것. **URL 을 만드는 곳이 어디어디인지** |
 | `20260803_018_separability-metric.md` | 그룹핑 지표를 두 번 고친 것. **꼬리 통계는 표본 수에 딸려 간다** |
 | `20260803_027_engine-view-wiped-reviews.md` | "읽기 전용" 이라 적어 놓고 교정 37건을 지운 것 |
 | `20260804_034_smoke-and-sentinel.md` | 무결성 깃발 · smoke · 백업 lane |
@@ -577,7 +582,7 @@ YOLO 추론은 여기서 **0.71 GiB(9%)** 다 — 폴러와 공존한다. 문제
 디렉토리 안에서 실행한다** — ultralytics 가 `data.yaml` 의 `path:` 를 yaml 위치가
 아니라 **실행 디렉토리** 기준으로 푼다.
 
-### 8.3 venv 는 `~/venv/diatom` 이다
+### 8.3 venv 는 `~/venv/DiaRUGA` 이다
 
 README 의 `.venv` 가 아니다. Python 3.12.3 · `torch 2.13.0+cu126` ·
 `torchvision 0.28.0+cu126` · `SAM-2 1.0` · Django 5.2.16 · opencv-headless.
@@ -598,22 +603,22 @@ requirements 는 넷으로 갈라져 있다 — 호스트는 `requirements.txt`,
 ### 9.1 어디서 무엇이 도는가
 
 ```
-바깥 :80 /diatom/ ──nginx──▶ 127.0.0.1:8090 ──▶ diatom-web-1 (gunicorn, uid 1000)
+바깥 :80 /DiaRUGA/ ──nginx──▶ 127.0.0.1:8090 ──▶ diaruga-web-1 (gunicorn, uid 1000)
 바깥 :9090 ──301──▶ 위로                            │
                                                     │
-/srv/diatom/    db/  scripts/  bin/  compose  .env ─┤  배포
-/data3/diatom/  photos/<촬영일>/<슬라이드>/  ───────┘  사진·산출물·백업·HF 캐시·로그
+/srv/DiaRUGA/    db/  scripts/  bin/  compose  .env ─┤  배포
+/data3/DiaRUGA/  photos/<촬영일>/<슬라이드>/  ───────┘  사진·산출물·백업·HF 캐시·로그
                 stacked/ out/ backup/ hf/ logs/ datasets/
 ```
 
-**저장소는 굽고, `/srv/diatom` 은 돌린다.** 컨테이너 안팎의 경로가 같아 명령을
+**저장소는 굽고, `/srv/DiaRUGA` 은 돌린다.** 컨테이너 안팎의 경로가 같아 명령을
 그대로 옮겨 쓸 수 있다.
 
 ```bash
-cd /srv/diatom && docker compose up -d web                    # 뷰어
-cd /srv/diatom && docker compose run --rm pipeline <명령>      # GPU, 일회성
+cd /srv/DiaRUGA && docker compose up -d web                    # 뷰어
+cd /srv/DiaRUGA && docker compose run --rm pipeline <명령>      # GPU, 일회성
 docker compose -f deploy/docker-compose.yml build web         # 이미지 굽기 (저장소)
-/srv/diatom/bin/deploy.sh <태그>                               # pull → 스냅샷 → 교체 → 게이트
+/srv/DiaRUGA/bin/deploy.sh <태그>                               # pull → 스냅샷 → 교체 → 게이트
 ```
 
 **지금 도는 판**: `IMAGE_TAG=v0.3.0` · `PIPELINE_TAG=v0.1.6`.
@@ -643,14 +648,14 @@ docker compose -f deploy/docker-compose.yml build web         # 이미지 굽기
 ### 9.2 DB 를 만지는 것은 문 하나로만 들어간다
 
 ```bash
-deploy/host/dbsync.sh check_db.py     # 저장소 → /srv/diatom/scripts (옆 모듈까지 따라간다)
+deploy/host/dbsync.sh check_db.py     # 저장소 → /srv/DiaRUGA/scripts (옆 모듈까지 따라간다)
 deploy/host/dbrun.sh  check_db.py     # 컨테이너 안에서 돈다
 deploy/host/dbsync.sh --list          # 옮겨 둔 것이 저장소와 어긋났는가
 ```
 
 호스트 venv 로도 같은 DB 를 열 수 있지만 그러면 **같은 파일을 두 벌의 환경이
 만진다 — 두 번 당했다.** 컨테이너의 낡은 `models.py` 가 새 칼럼을 몰라 NAS 반입이
-죽었고(029), root 로 돈 컨테이너가 `diatom.db` 소유자를 바꿔 호스트 스크립트가
+죽었고(029), root 로 돈 컨테이너가 `DiaRUGA.db` 소유자를 바꿔 호스트 스크립트가
 못 쓰게 됐다.
 
 - **`/app` 은 이미지 것 그대로 둔다.** 저장소를 `/app` 에 덮어 물리면 편집 중인
@@ -665,11 +670,11 @@ deploy/host/dbsync.sh --list          # 옮겨 둔 것이 저장소와 어긋났
 
 ### 9.3 데이터가 저장소 밖으로 나갔다
 
-- 위치는 `.env` 의 `DIATOM_DATA_ROOT` 가 알려 준다 (`.env.template` 이 견본)
+- 위치는 `.env` 의 `DIARUGA_DATA_ROOT` 가 알려 준다 (`.env.template` 이 견본)
 - `photos/` 아래는 `<촬영일>/<슬라이드>/` 두 단계 — NAS 구조와 1:1. 평탄하게 펴면
   같은 슬라이드를 다시 촬영했을 때 이름이 부딪힌다
 - **`review/`·`groups_*.json` 은 저장소에 남아 있다** — git 이 추적하는 감사 기록
-- **DB 디렉토리(`db/`)만 마운트한다.** `/srv/diatom` 을 통째로 물렸더니 `.env` 의
+- **DB 디렉토리(`db/`)만 마운트한다.** `/srv/DiaRUGA` 을 통째로 물렸더니 `.env` 의
   `SECRET_KEY` 가 컨테이너에서 읽혔다 — 잘라 냈다(016). 파일 하나만 물려도 안 된다
   (`-wal`·`-shm` 이 컨테이너 안쪽에 생겨 WAL 을 공유하지 못한다)
 - **컨테이너는 `1000:1000` 으로, `TZ=Asia/Seoul` 로 돈다.** 시간대를 빠뜨리면
@@ -697,17 +702,17 @@ KOPRI 망이 `download.pytorch.org` 를 자체 CA 로 다시 서명한다. 파�
 
 | 파일 | 무엇 |
 |---|---|
-| `/etc/nginx/snippets/diatom-subpath.conf` | 실제 서빙. 원본은 `deploy/nginx/diatom-subpath.conf` |
+| `/etc/nginx/snippets/DiaRUGA-subpath.conf` | 실제 서빙. 원본은 `deploy/nginx/DiaRUGA-subpath.conf` |
 | `/etc/nginx/sites-enabled/phyloserver` | 그 스니펫을 `include` 하는 한 줄이 여기 있다 |
-| `/etc/nginx/sites-enabled/diatom` | `:9090` → 301. 원본은 `deploy/nginx/diatom.conf` |
+| `/etc/nginx/sites-enabled/DiaRUGA` | `:9090` → 301. 원본은 `deploy/nginx/DiaRUGA.conf` |
 
 80 은 phyloserver 블록이 `server_name 172.16.116.98` 로 잡고 있어서 **같은 블록 안에
 location 으로 들어갔다.** 같은 `listen`·`server_name` 으로 server 블록을 둘 두면
 nginx 가 앞의 것만 쓰고 뒤를 버린다.
 
 - `proxy_pass http://127.0.0.1:8090/;` 의 **끝 슬래시가 접두를 뗀다.** 빼면 앱이
-  `/diatom/…` 을 그대로 받아 전부 404 다
-- Django 쪽은 `DIATOM_SCRIPT_NAME=/diatom`(`.env`) → `FORCE_SCRIPT_NAME`
+  `/DiaRUGA/…` 을 그대로 받아 전부 404 다
+- Django 쪽은 `DIARUGA_SCRIPT_NAME=/DiaRUGA`(`.env`) → `FORCE_SCRIPT_NAME`
 - **템플릿에 절대경로를 박지 말 것.** JS 는 `base.html` 이 내보내는 `window.ROOT` 를,
   파이썬은 `reverse()` 를 쓴다 (devlog 018)
 - **배포 중에는 점검 안내가 나간다.** `deploy.sh` 가 세우는 깃발이 있으면 503 ·
@@ -735,13 +740,13 @@ SQLite 온라인 백업 API 로 뜬 뒤 `journal_mode=DELETE` 를 걸어 `-wal`�
 잘못 쓰면 섞인다 — 디렉토리는 glob 이 애초에 안 내려간다.
 
 ```
-/data3/diatom/backup/            시간별 자동 — 24시간 rolling. 여기 것만 NAS 로 간다
+/data3/DiaRUGA/backup/            시간별 자동 — 24시간 rolling. 여기 것만 NAS 로 간다
                      manual/     사람이 --note 로 뜬 것 — 로테이션·NAS 대상 밖
                      pre_deploy/ deploy.sh 가 판 바꾸기 직전에 (--flat, 20개)
-/nfs/temp-share/diatom/backup/   일별 오프사이트 — 계단식 보관
+/nfs/temp-share/DiaRUGA/backup/   일별 오프사이트 — 계단식 보관
 ```
 
-- **로테이션은 꼬리말 없는 이름만 굴린다**(`diatom_????????_??????.db`). 배포 전
+- **로테이션은 꼬리말 없는 이름만 굴린다**(`DiaRUGA_????????_??????.db`). 배포 전
   스냅샷은 `_pre-deploy-v0.1.9` 라는 꼬리말이 붙어 안 걸렸고 24장까지 쌓여 있었다 —
   **`--flat` 은 "이 디렉토리는 이 종류 전용" 이라는 뜻**이고 그때는 꼬리말이 붙은
   것도 굴린다 (036)
@@ -751,7 +756,7 @@ SQLite 온라인 백업 API 로 뜬 뒤 `journal_mode=DELETE` 를 걸어 `-wal`�
 - **사진도 같은 일별 실행에서 간다** — `photos_YYYYMMDD.tar`, 일주일 rolling.
   **압축하지 않는다** (JPEG 이라 5% 밖에 안 준다). 지금 4.0 GB 에 40초
 - **백업 사본은 검증을 통과한 뒤에 제 이름을 받는다.** 뜨는 중에는 `.part` 다.
-  반쯤 쓴 파일이 `diatom_*.db` 라는 이름을 달면 정리 glob 에 걸려 **가장 새
+  반쯤 쓴 파일이 `DiaRUGA_*.db` 라는 이름을 달면 정리 glob 에 걸려 **가장 새
   파일로 살아남고 멀쩡한 사본을 밀어낸다** (034)
 - **실패하면 셋을 다 한다** — 정리를 건너뛰고, `.corrupt` 로 증거를 남기고, DB 옆에
   `INTEGRITY_FAIL` 깃발을 세운다. `/healthz` 가 그것을 읽어 `degraded` 를 내고
@@ -765,8 +770,8 @@ python db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손으로
 ### 9.8 smoke
 
 ```bash
-/srv/diatom/bin/smoke.sh            # .env 의 IMAGE_TAG 를 기대값으로
-/srv/diatom/bin/smoke.sh v0.3.0
+/srv/DiaRUGA/bin/smoke.sh            # .env 의 IMAGE_TAG 를 기대값으로
+/srv/DiaRUGA/bin/smoke.sh v0.3.0
 ```
 
 `/healthz` 200 · `status=ok` · 판 일치 · **행 수 > 0** · nginx 경유 200 을 본다.
@@ -788,7 +793,7 @@ DB 를 물었는지도 모른다** — 둘 다 형제 프로젝트가 실제로 
 
 새 슬라이드가 올라오면 가져와 그룹핑·합성·검출까지 스스로 돈다. 할 일이 없으면
 1~2초에 끝나고 **GPU 를 건드리지 않는다**. 일이 있을 때만 로그를 남긴다
-(`/data3/diatom/logs/poll.log`). 마지막 처리는 08-03 20:54 (`gc03-c1_816cm`).
+(`/data3/DiaRUGA/logs/poll.log`). 마지막 처리는 08-03 20:54 (`gc03-c1_816cm`).
 
 **복사가 끝났는지는 mtime 으로 판단하지 않는다.** `rsync -a` 가 원본 시각을
 보존해서 한창 들어오는 중에도 조용해 보인다. 폴더의 (파일 수·바이트) 지문을
@@ -805,7 +810,7 @@ DB 를 물었는지도 모른다** — 둘 다 형제 프로젝트가 실제로 
 - **`/` 가 91% (21G 남음).** 저장소 `backup/` 에 머신 이전 때 쓴 스냅샷·DB 사본이
   3.4 GB 남아 있다. `/data3` 는 9% 라 여유가 있다 — **7월 말보다 나빠졌다**
 - **뷰어에 인증이 없다.** 80 으로 나오면서 노출 면이 넓어졌다. 필요해지면
-  `diatom-subpath.conf` 에 `auth_basic` 을 걸면 된다 — Django 를 건드릴 필요가 없다
+  `DiaRUGA-subpath.conf` 에 `auth_basic` 을 걸면 된다 — Django 를 건드릴 필요가 없다
 - 표준 deploy 동사 5개 중 셋이 없다 — `rollback`·`preflight`·`seed` (016).
   `build.sh` 도 없어 **시험을 통과해야 push 하는 관문**이 없다. `DEPLOY.md` 도 없다
 - **NAS 의 `manual/` 43개(1.4 GB)를 어떻게 할지** — 정책상 수동은 오프사이트로 안

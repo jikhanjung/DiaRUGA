@@ -44,10 +44,10 @@
 **cron 에서는 `timeout` 으로 감쌀 것.** NAS 가 `hard` 마운트라 내려가면 접근하는
 프로세스가 무한 대기한다.
 
-    40 4 * * * timeout 1800 /home/paleoadmin/venv/diatom/bin/python \
-        /home/paleoadmin/projects/diatom/sync_backup_nas.py \
+    40 4 * * * timeout 1800 /home/paleoadmin/venv/DiaRUGA/bin/python \
+        /home/paleoadmin/projects/DiaRUGA/sync_backup_nas.py \
         --newest-only --prune --photos \
-        >> /data3/diatom/logs/nas-sync.log 2>&1
+        >> /data3/DiaRUGA/logs/nas-sync.log 2>&1
 """
 import argparse
 import os
@@ -113,13 +113,13 @@ def is_real_mount(path: Path) -> bool:
 
 
 def stamp_of(name: str):
-    """`diatom_20260804_114433.db` → datetime. 못 읽으면 None.
+    """`DiaRUGA_20260804_114433.db` → datetime. 못 읽으면 None.
 
     **이름을 믿는다.** mtime 은 복사·이동으로 바뀌지만 이름은 뜬 시각 그대로다.
     보관 정책이 나이로 판단하므로 이 차이가 실제로 갈린다 — NAS 로 건너간 사본은
     전부 "옮긴 시각" 의 mtime 을 갖는다.
     """
-    m = re.match(r"^diatom_(\d{8})_(\d{6})", name)
+    m = re.match(r"^DiaRUGA_(\d{8})_(\d{6})", name)
     if not m:
         return None
     try:
@@ -295,10 +295,10 @@ def copy_verified(src: Path, dst_dir: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--local", default=_env("DIATOM_BACKUP_DIR",
+    ap.add_argument("--local", default=_env("DIARUGA_BACKUP_DIR",
                                             str(ROOT / "backup")))
-    ap.add_argument("--nas", default=_env("DIATOM_NAS_BACKUP_DIR",
-                                          "/nfs/temp-share/diatom/backup"))
+    ap.add_argument("--nas", default=_env("DIARUGA_NAS_BACKUP_DIR",
+                                          "/nfs/temp-share/DiaRUGA/backup"))
     ap.add_argument("--prune", action="store_true",
                     help=f"계단식 보관을 적용한다 ({DAILY_DAYS}일 이내 전부 · "
                          f"{WEEKLY_DAYS}일까지 주 1개 · 그 뒤 달 1개)")
@@ -307,7 +307,7 @@ def main():
     ap.add_argument("--photos", action="store_true",
                     help="사진 디렉토리도 하루 한 덩어리로 묶어 NAS 에 둔다")
     ap.add_argument("--photos-src", default=None,
-                    help="사진 뿌리 (기본: $DIATOM_DATA_ROOT/photos)")
+                    help="사진 뿌리 (기본: $DIARUGA_DATA_ROOT/photos)")
     ap.add_argument("--photos-nas", default=None,
                     help="사진 묶음을 둘 곳 (기본: NAS 백업 옆의 photos/)")
     ap.add_argument("--photos-keep", type=int, default=7,
@@ -320,7 +320,7 @@ def main():
     local = Path(args.local)
     nas = Path(args.nas)
 
-    snaps = sorted(local.glob("diatom_*.db"))
+    snaps = sorted(local.glob("DiaRUGA_*.db"))
     if not snaps:
         print(f"로컬 스냅샷이 없다: {local}", file=sys.stderr)
         print("  backup_db.py 를 먼저 돌렸는가?", file=sys.stderr)
@@ -344,7 +344,7 @@ def main():
 
     # 윗단만 본다. 손으로 뜬 스냅샷은 애초에 로컬 `manual/` 에 있어 `snaps` 에
     # 안 들어오므로(backup_db.py), 여기로 올라올 일이 없다.
-    have = {p.name for p in nas.glob("diatom_*.db")} if nas.is_dir() else set()
+    have = {p.name for p in nas.glob("DiaRUGA_*.db")} if nas.is_dir() else set()
 
     if args.newest_only:
         # **하루에 하나만 건너간다.** 로컬은 시간별로 뜨지만 오프사이트는 일별
@@ -388,7 +388,7 @@ def main():
     # 잠깐 없는 것인데, 그것까지 세우면 NAS 점검 한 번에 뷰어가 degraded 가 되고
     # 배포 smoke 가 막힌다. 가장 센 신호(자료가 상했다)가 잡음에 묻히면 안 된다.
     # 오프사이트 가용성은 별도 신호가 맡을 몫이다.
-    db = Path(_env("DIATOM_DB", str(ROOT / "diatom.db")))
+    db = Path(_env("DIARUGA_DB", str(ROOT / "DiaRUGA.db")))
     if failed:
         # 실패했으면 정리하지 않는다 — 지난 성공 사본이 유일한 안전망일 수 있다
         print(f"\n{failed}개가 검증에 실패했다. 정리를 건너뛴다.", file=sys.stderr)
@@ -405,7 +405,7 @@ def main():
     if args.prune:
         # 정리는 이 스크립트만 한다 (§10). `.corrupt` 는 glob 에 안 걸려 남는다.
         # glob 은 하위로 안 내려가므로 사람이 따로 둔 디렉토리도 안 건드린다.
-        _keep, drop = plan_retention(list(nas.glob("diatom_*.db")),
+        _keep, drop = plan_retention(list(nas.glob("DiaRUGA_*.db")),
                                      datetime.now())
         for old in sorted(drop, key=lambda p: p.name):
             age = (datetime.now() - (stamp_of(old.name) or datetime.now())).days
@@ -417,7 +417,7 @@ def main():
         if not drop:
             print("  정리할 것 없음")
 
-    total = len(list(nas.glob("diatom_*.db")))
+    total = len(list(nas.glob("DiaRUGA_*.db")))
     print(f"\n보냄 {sent}개 · NAS 사본 {total}개 · {nas}")
 
     # 사진은 **DB 와 갈라 둔다.** 여기서 실패해도 깃발을 세우지 않는다 — 깃발은
@@ -425,7 +425,7 @@ def main():
     # 받아 온 것이다). 종료코드로만 알린다.
     if args.photos:
         src = Path(args.photos_src or
-                   (Path(_env("DIATOM_DATA_ROOT", "/data3/diatom")) / "photos"))
+                   (Path(_env("DIARUGA_DATA_ROOT", "/data3/DiaRUGA")) / "photos"))
         pnas = Path(args.photos_nas or (nas.parent / "photos"))
         if not sync_photos(src, pnas, args.photos_keep, args.dry_run):
             return 1

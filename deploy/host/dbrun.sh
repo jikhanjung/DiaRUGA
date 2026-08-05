@@ -4,22 +4,22 @@
 #   deploy/host/dbrun.sh check_db.py
 #   deploy/host/dbrun.sh check_db.py --slide rs23 -v
 #   deploy/host/dbrun.sh prune_detections.py --apply
-#   DBRUN_ENV="DIATOM_BACKUP_DIR=/data3/diatom/backup/pre_deploy" \
+#   DBRUN_ENV="DIARUGA_BACKUP_DIR=/data3/DiaRUGA/backup/pre_deploy" \
 #     deploy/host/dbrun.sh backup_db.py --note before-refilter
 #
 # DBRUN_ENV 는 컨테이너로 넘길 환경변수다 (KEY=VAL, 공백으로 여럿). 스크립트가
 # .env 에 없는 값을 봐야 할 때 쓴다 — 배포가 스냅샷 자리를 지정하는 것이 그것이다.
 #
-# 돌아가는 것은 /srv/diatom/scripts 에 옮겨 둔 것이다 (dbsync.sh 가 옮긴다).
+# 돌아가는 것은 /srv/DiaRUGA/scripts 에 옮겨 둔 것이다 (dbsync.sh 가 옮긴다).
 # Django·모델 코드는 이미지 안의 /app — 뷰어 컨테이너가 쓰는 바로 그것이다.
 # 왜 이 문 하나로만 들어가는지는 compose 의 dbtool 주석에 있다.
 set -euo pipefail
 
-DEPLOY_DIR="${DIATOM_DEPLOY_DIR:-/srv/diatom}"
-SCRIPTS="${DIATOM_SCRIPTS_DIR:-$DEPLOY_DIR/scripts}"
-# 저장소 — 옮겨 둔 것과 어긋났는지 보는 데만 쓴다. /srv/diatom/bin 에 복사해
+DEPLOY_DIR="${DIARUGA_DEPLOY_DIR:-/srv/DiaRUGA}"
+SCRIPTS="${DIARUGA_SCRIPTS_DIR:-$DEPLOY_DIR/scripts}"
+# 저장소 — 옮겨 둔 것과 어긋났는지 보는 데만 쓴다. /srv/DiaRUGA/bin 에 복사해
 # 두고 부를 수도 있어서 찾지 못하면 그 검사만 건너뛴다.
-HERE="${DIATOM_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)}"
+HERE="${DIARUGA_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)}"
 
 [ $# -gt 0 ] || { echo "쓰임: $(basename "$0") <스크립트> [인자...]" >&2; exit 2; }
 [ -f "$DEPLOY_DIR/docker-compose.yml" ] || {

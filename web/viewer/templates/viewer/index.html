@@ -238,7 +238,7 @@
 <script>
 (function () {
   // 고른 방식을 기억한다. 매번 고르게 하면 도구가 아니라 일거리가 된다.
-  var KEY = 'diatom.dsview', box = document.getElementById('dsview'),
+  var KEY = 'diaruga.dsview', box = document.getElementById('dsview'),
       bar = document.getElementById('viewtoggle');
   function apply(v) {
     box.classList.toggle('showCards', v === 'cards');
@@ -250,7 +250,8 @@
     });
   }
   var saved;
-  try { saved = localStorage.getItem(KEY); } catch (e) { saved = null; }
+  // 옛 키도 읽는다 (048 에서 이름이 바뀌었다). 쓰기는 새 키로만 한다.
+  try { saved = localStorage.getItem(KEY) || localStorage.getItem('diatom.dsview'); } catch (e) { saved = null; }
   // **지도가 없는 화면에서는 지도로 열지 않는다.** "전체" 에는 지도가 없는데
   // 지난번에 지도를 골라 둔 사람이 들어오면 표도 카드도 감춘 빈 화면이 된다 —
   // 인자 없이 들어오면 "전체" 가 열리므로 그것이 곧 첫 화면이 된다.

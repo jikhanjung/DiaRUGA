@@ -1,4 +1,4 @@
-# diatom DB 명세
+# DiaRUGA DB 명세
 
 **2026-08-04**
 
@@ -15,7 +15,7 @@
 | | |
 |---|---|
 | 엔진 | SQLite 3 (Django 5.2 ORM) |
-| 파일 | `/srv/diatom/db/diatom.db` — 로컬 ext4 |
+| 파일 | `/srv/DiaRUGA/db/DiaRUGA.db` — 로컬 ext4 |
 | 저널 | **WAL** (`journal_mode=WAL`, `synchronous=NORMAL`) |
 | 외래키 | `PRAGMA foreign_keys=ON` |
 | 잠금 대기 | `timeout=20` (초) |
@@ -39,16 +39,16 @@ locked` 로 **프레임 229장이 날아간 적이 있다.** 그래서 지금은
 
 ### 파일이 아니라 디렉토리째 마운트한다
 
-컨테이너에 `diatom.db` **파일 하나만** 물리면 WAL 이 만드는 `-wal`·`-shm` 형제가
+컨테이너에 `DiaRUGA.db` **파일 하나만** 물리면 WAL 이 만드는 `-wal`·`-shm` 형제가
 컨테이너 안쪽에 생겨 호스트와 WAL 을 공유하지 못한다. 같은 DB 를 보는 줄 알았는데
-아닌 상태가 된다. 그래서 `/srv/diatom/db` 디렉토리를 통째로 물린다.
+아닌 상태가 된다. 그래서 `/srv/DiaRUGA/db` 디렉토리를 통째로 물린다.
 
 ### 들어가는 문은 하나다
 
 DB 를 만지는 일회성 스크립트는 **전부 컨테이너 안에서** 돈다.
 
 ```bash
-deploy/host/dbsync.sh check_db.py     # 저장소 → /srv/diatom/scripts
+deploy/host/dbsync.sh check_db.py     # 저장소 → /srv/DiaRUGA/scripts
 deploy/host/dbrun.sh  check_db.py     # 컨테이너 안에서 돈다
 ```
 
@@ -59,7 +59,7 @@ root 로 돈 컨테이너가 파일 소유자를 바꿔 호스트 스크립트�
 
 ### 사본
 
-`cp diatom.db` 는 **금지**다 — WAL 때문에 불완전한 사본이 나온다. `backup_db.py` 가
+`cp DiaRUGA.db` 는 **금지**다 — WAL 때문에 불완전한 사본이 나온다. `backup_db.py` 가
 sqlite 백업 API 로 뜨고, 검증을 통과한 뒤에야 제 이름을 준다(뜨는 중에는 `.part`).
 
 | 어디 | 무엇 | 로테이션 |

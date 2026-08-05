@@ -59,14 +59,14 @@ from pathlib import Path
 
 import django
 
-# 이 스크립트는 저장소 밖(/srv/diatom/scripts)에 복사해 두고 컨테이너 안에서
-# 돌릴 수도 있다. 그때 Django 코드가 어디 있는지는 DIATOM_APP 이 알려 준다 —
+# 이 스크립트는 저장소 밖(/srv/DiaRUGA/scripts)에 복사해 두고 컨테이너 안에서
+# 돌릴 수도 있다. 그때 Django 코드가 어디 있는지는 DIARUGA_APP 이 알려 준다 —
 # 이미지 안의 /app 이고, 뷰어 컨테이너가 쓰는 바로 그 코드다. 저장소에서 그냥
 # 돌리면 예전처럼 자기 옆의 web/ 을 본다.
-APP = Path(os.environ.get("DIATOM_APP") or Path(__file__).resolve().parent)
+APP = Path(os.environ.get("DIARUGA_APP") or Path(__file__).resolve().parent)
 sys.path.insert(0, str(APP / "web"))
 sys.path.insert(0, str(APP))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
 from django.conf import settings                                    # noqa: E402

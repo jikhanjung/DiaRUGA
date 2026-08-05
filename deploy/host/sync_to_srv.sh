@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 저장소의 배포 파일을 /srv/diatom 으로 옮긴다 (.guides/web/deployment.md §2).
+# 저장소의 배포 파일을 /srv/DiaRUGA 으로 옮긴다 (.guides/web/deployment.md §2).
 #
 #   ./deploy/host/sync_to_srv.sh
 #
@@ -21,7 +21,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SRV="${DIATOM_SRV:-/srv/diatom}"
+SRV="${DIARUGA_SRV:-/srv/DiaRUGA}"
 
 [ -d "$SRV" ] || { echo "배포 디렉토리가 없다: $SRV" >&2; exit 1; }
 
@@ -47,15 +47,15 @@ done
 
 # nginx 가 배포 중에 낼 안내 페이지. nginx(www-data)가 읽어야 하므로 권한을 연다.
 mkdir -p "$SRV/www"
-copy deploy/nginx/maintenance.html www/diatom-maintenance.html
-copy deploy/nginx/unavailable.html www/diatom-unavailable.html
+copy deploy/nginx/maintenance.html www/DiaRUGA-maintenance.html
+copy deploy/nginx/unavailable.html www/DiaRUGA-unavailable.html
 chmod 755 "$SRV/www"; chmod 644 "$SRV/www"/*.html
 
 # .env 는 없을 때만 만든다. 있으면 손대지 않는다.
 if [ ! -f "$SRV/.env" ]; then
     cp -p "$REPO/deploy/srv/env.template" "$SRV/.env"
     chmod 600 "$SRV/.env"
-    echo "  + .env (견본에서 만들었다 — DIATOM_SECRET_KEY 를 채울 것)"
+    echo "  + .env (견본에서 만들었다 — DIARUGA_SECRET_KEY 를 채울 것)"
 else
     # 견본에 새 항목이 생겼는데 .env 에 없으면 알려만 준다. 채우는 것은 사람 몫이다.
     missing=$(comm -23 \

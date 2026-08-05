@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 저장소의 스크립트를 /srv/diatom/scripts 로 옮겨 놓는다.
+# 저장소의 스크립트를 /srv/DiaRUGA/scripts 로 옮겨 놓는다.
 #
 #   deploy/host/dbsync.sh check_db.py backup_db.py
 #   deploy/host/dbsync.sh --list          # 옮겨 둔 것과 저장소가 어긋났는가
@@ -14,12 +14,12 @@
 # Django 앱(viewer 등)은 따라가지 않는다. 그건 이미지 안의 /app 에서 온다.
 set -euo pipefail
 
-# /srv/diatom/bin 에 복사해 두고 부를 수도 있다 — 그때는 저장소가 어디인지
-# 스스로 알 수 없으므로 DIATOM_REPO 로 알려 준다.
-REPO="${DIATOM_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+# /srv/DiaRUGA/bin 에 복사해 두고 부를 수도 있다 — 그때는 저장소가 어디인지
+# 스스로 알 수 없으므로 DIARUGA_REPO 로 알려 준다.
+REPO="${DIARUGA_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 [ -f "$REPO/check_db.py" ] || {
-  echo "저장소를 못 찾았다: $REPO — DIATOM_REPO 로 알려 줄 것" >&2; exit 1; }
-DEST="${DIATOM_SCRIPTS_DIR:-/srv/diatom/scripts}"
+  echo "저장소를 못 찾았다: $REPO — DIARUGA_REPO 로 알려 줄 것" >&2; exit 1; }
+DEST="${DIARUGA_SCRIPTS_DIR:-/srv/DiaRUGA/scripts}"
 mkdir -p "$DEST"
 
 if [ $# -eq 0 ] || [ "${1:-}" = "--list" ]; then

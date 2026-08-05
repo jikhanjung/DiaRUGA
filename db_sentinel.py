@@ -19,7 +19,7 @@ DB 를 통로로 쓰지 않는 이유가 중요하다. **이 깃발이 서는 �
 
 ## 어디에 놓이나
 
-DB 파일과 같은 디렉토리다 — 배포에서는 `/srv/diatom/db/INTEGRITY_FAIL`.
+DB 파일과 같은 디렉토리다 — 배포에서는 `/srv/DiaRUGA/db/INTEGRITY_FAIL`.
 그 디렉토리가 컨테이너에 **통째로** 마운트되므로(data-safety §8), 호스트의
 `backup_db.py` 가 세운 깃발을 컨테이너 안의 뷰어가 그대로 읽는다. 마운트가
 디렉토리인 덕을 여기서 한 번 더 본다.
@@ -34,7 +34,7 @@ DB 파일과 같은 디렉토리다 — 배포에서는 `/srv/diatom/db/INTEGRIT
 깨졌다는 깃발을 다음 시간별 백업이 조용히 내리는 식이다. 그래서 줄마다 세운
 주인을 적고, **자기 줄만 지운다.**
 
-    2026-08-04T10:35:12	backup_db	스냅샷 integrity_check=... (diatom_....db)
+    2026-08-04T10:35:12	backup_db	스냅샷 integrity_check=... (DiaRUGA_....db)
     2026-08-04T04:00:03	sync_backup_nas	NAS 사본 검증 실패 — file is not a database
 
 한 줄이라도 남아 있으면 `/healthz` 는 `degraded` 다.
@@ -138,16 +138,16 @@ if __name__ == "__main__":
     import sys
 
     def _env_db():
-        if "DIATOM_DB" in os.environ:
-            return os.environ["DIATOM_DB"]
+        if "DIARUGA_DB" in os.environ:
+            return os.environ["DIARUGA_DB"]
         root = Path(__file__).resolve().parent
         try:
             for line in (root / ".env").read_text(encoding="utf-8").splitlines():
-                if line.strip().startswith("DIATOM_DB="):
+                if line.strip().startswith("DIARUGA_DB="):
                     return line.partition("=")[2].strip()
         except OSError:
             pass
-        return str(root / "diatom.db")
+        return str(root / "DiaRUGA.db")
 
     db = _env_db()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "show"

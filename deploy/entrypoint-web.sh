@@ -10,7 +10,7 @@ python manage.py migrate --noinput
 # collectstatic 은 하지 않는다 — 이 뷰어는 정적 파일이 없다.
 # 템플릿이 CSS·JS 를 인라인으로 들고 있어 {% static %} 을 한 번도 쓰지 않는다.
 
-exec gunicorn diatomweb.wsgi:application \
+exec gunicorn diarugaweb.wsgi:application \
     --bind 0.0.0.0:9090 \
     --workers 3 \
     --timeout 120 \

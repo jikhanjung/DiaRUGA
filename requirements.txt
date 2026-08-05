@@ -7,10 +7,10 @@
 #   requirements-pipeline.txt  파이프라인  torch, SAM2, opencv (web 을 포함한다)
 #
 # 설치:
-#   python -m venv ~/venv/diatom && . ~/venv/diatom/bin/activate
+#   python -m venv ~/venv/DiaRUGA && . ~/venv/DiaRUGA/bin/activate
 #   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu126
 #
-# 이 저장소의 venv 는 ~/venv/diatom 이다. README 의 .venv 가 아니다 (HANDOFF 8.3).
+# 이 저장소의 venv 는 ~/venv/DiaRUGA 이다. README 의 .venv 가 아니다 (HANDOFF 8.3).
 # CUDA 12.6 기준 — 자세한 것은 requirements-pipeline.txt 를 볼 것.
 
 -r requirements-pipeline.txt

@@ -1,7 +1,7 @@
 """
 DiaRUGA 설정.
 
-데이터와 설정은 SQLite(`diatom.db`)에 모은다. 이전에는 JSON 을 직접 읽었는데
+데이터와 설정은 SQLite(`DiaRUGA.db`)에 모은다. 이전에는 JSON 을 직접 읽었는데
 (슬라이드 3장에 첫 화면이 251개 파일을 열었다) NAS 로 사진이 계속 들어오면
 선형으로 늘어나고, 실행 이력·처리 상태·문턱 이력을 둘 곳이 없었다.
 자세한 것은 devlog/20260730_P02_db-schema.md.
@@ -12,7 +12,7 @@ JSON 은 내보내기 형식으로 남는다 — 특히 `review/*.json` 은 사�
 import os
 from pathlib import Path
 
-# web/diatomweb/settings.py -> web/ -> 프로젝트 루트
+# web/diarugaweb/settings.py -> web/ -> 프로젝트 루트
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR.parent
 
@@ -20,7 +20,7 @@ PROJECT_ROOT = BASE_DIR.parent
 def _load_dotenv(path):
     """프로젝트 루트의 .env 를 환경변수로 올린다 (이미 있는 값은 덮지 않는다).
 
-    사진이 저장소 밖(/data3/diatom)으로 나가면서 호스트에서 스크립트를 그냥
+    사진이 저장소 밖(/data3/DiaRUGA)으로 나가면서 호스트에서 스크립트를 그냥
     돌렸을 때도 데이터 위치를 알아야 해서 둔다 (P03). 컨테이너는 compose 가
     환경변수를 직접 주므로 이 파일 없이도 돈다 — 그래서 없어도 조용히 넘어간다.
 
@@ -42,12 +42,12 @@ def _load_dotenv(path):
 _load_dotenv(PROJECT_ROOT / ".env")
 
 # 사내망 분석용 뷰어. 인증이 없으므로 공개망에 그대로 올릴 물건이 아니다.
-SECRET_KEY = os.environ.get("DIATOM_SECRET_KEY", "dev-only-not-a-secret")
-DEBUG = os.environ.get("DIATOM_DEBUG", "1") == "1"
+SECRET_KEY = os.environ.get("DIARUGA_SECRET_KEY", "dev-only-not-a-secret")
+DEBUG = os.environ.get("DIARUGA_DEBUG", "1") == "1"
 
 # 이 서버가 실제로 응답할 이름만 명시한다. "*" 로 두면 DEBUG=True 와 겹칠 때
 # Host 헤더 스푸핑을 그대로 받아들이게 된다.
-# 다른 호스트명으로 붙어야 하면 DIATOM_HOSTS 에 콤마로 구분해 넣는다.
+# 다른 호스트명으로 붙어야 하면 DIARUGA_HOSTS 에 콤마로 구분해 넣는다.
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
@@ -55,22 +55,22 @@ ALLOWED_HOSTS = [
     "172.16.116.98",    # 이 서버의 사내망 주소
     "paleo-server",     # 이 머신의 hostname
     # 형제 서비스들이 쓰는 이름. nginx 의 phyloserver 블록이
-    # `server_name 172.16.116.98 paleolab` 이고 /diatom/ 이 그 안에 얹혀 있어,
+    # `server_name 172.16.116.98 paleolab` 이고 /DiaRUGA/ 이 그 안에 얹혀 있어,
     # 여기 없으면 이름으로 들어온 요청만 400 이 된다.
     "paleolab",
 ]
-ALLOWED_HOSTS += [h.strip() for h in os.environ.get("DIATOM_HOSTS", "").split(",") if h.strip()]
+ALLOWED_HOSTS += [h.strip() for h in os.environ.get("DIARUGA_HOSTS", "").split(",") if h.strip()]
 
-# 서브경로 아래에 얹을 때 쓴다 (예: "/diatom"). 빈 값이면 뿌리(/)에 붙는다.
+# 서브경로 아래에 얹을 때 쓴다 (예: "/DiaRUGA"). 빈 값이면 뿌리(/)에 붙는다.
 #
 # 왜 필요한가: 사내 VPN 이 80 만 통과시킨다. 이 머신의 80 은 phyloserver 블록이
-# server_name 172.16.116.98 로 이미 잡고 있어서 뷰어를 /diatom/ 아래로 넣는 것
+# server_name 172.16.116.98 로 이미 잡고 있어서 뷰어를 /DiaRUGA/ 아래로 넣는 것
 # 말고는 방법이 없다(호스트명 기반 vhost 는 IP 로 들어오는 VPN 사용자에게 안 걸린다).
 #
 # 이 값을 주면 Django 의 reverse()·{% url %} 가 앞에 뿌리를 붙인다. 템플릿의
 # JS 는 base.html 이 내보내는 window.ROOT 를 쓴다 — 절대경로를 박아 두면 여기만
 # 바꿔서는 안 돌아간다.
-FORCE_SCRIPT_NAME = os.environ.get("DIATOM_SCRIPT_NAME", "").rstrip("/") or None
+FORCE_SCRIPT_NAME = os.environ.get("DIARUGA_SCRIPT_NAME", "").rstrip("/") or None
 
 # 폼이 없어 CSRF 표면은 없지만, DEBUG 를 끄고 쓸 때를 위해 맞춰 둔다.
 # 9090(직접)과 80(nginx 서브경로) 둘 다 살아 있다.
@@ -88,7 +88,7 @@ INSTALLED_APPS = [
 # 인증/세션이 없으므로 미들웨어도 최소한만.
 MIDDLEWARE = ["django.middleware.common.CommonMiddleware"]
 
-ROOT_URLCONF = "diatomweb.urls"
+ROOT_URLCONF = "diarugaweb.urls"
 
 TEMPLATES = [
     {
@@ -101,15 +101,15 @@ TEMPLATES = [
     }
 ]
 
-WSGI_APPLICATION = "diatomweb.wsgi.application"
+WSGI_APPLICATION = "diarugaweb.wsgi.application"
 
 # GPU 배치가 쓰는 동안 뷰어가 읽어야 하므로 WAL 이 필수다. 기본 journal 모드면
 # 쓰기 트랜잭션이 읽기를 막는다.
-DIATOM_DB = Path(os.environ.get("DIATOM_DB", PROJECT_ROOT / "diatom.db"))
+DIARUGA_DB = Path(os.environ.get("DIARUGA_DB", PROJECT_ROOT / "DiaRUGA.db"))
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": DIATOM_DB,
+        "NAME": DIARUGA_DB,
         "OPTIONS": {
             "timeout": 20,
             "init_command": (
@@ -136,9 +136,9 @@ USE_TZ = True
 # 원본 이미지와 산출물이 놓인 곳. 이미지 서빙은 이 목록 안으로만 허용한다.
 #
 # 뿌리를 환경변수로 뺀 것은 컨테이너 때문이다 (P03). 컨테이너 안에서는 /data 로,
-# 호스트에서는 /data3/diatom 으로 같은 디렉토리를 가리킨다. 경로는 전부 이 뿌리
+# 호스트에서는 /data3/DiaRUGA 으로 같은 디렉토리를 가리킨다. 경로는 전부 이 뿌리
 # 기준 상대경로로 다루므로(data.py:_rel), 뿌리만 바꾸면 나머지는 그대로 돈다.
-DATA_ROOT = Path(os.environ.get("DIATOM_DATA_ROOT", PROJECT_ROOT))
+DATA_ROOT = Path(os.environ.get("DIARUGA_DATA_ROOT", PROJECT_ROOT))
 # 260729 이 photos 로 바뀐 것은 이름이 날짜였기 때문이다 — 슬라이드가 NAS 에서
 # 계속 들어오는데 첫 촬영일이 디렉토리 이름으로 남아 있을 이유가 없다 (P03).
 IMAGE_DIRS = ["photos", "stacked", "out", "out_hi"]
@@ -161,13 +161,13 @@ REVIEW_DIR = "review"
 #
 # 컨테이너에서는 이미지 안(/app)이 읽기 전용이나 마찬가지라 여기 못 쓴다.
 # 데이터 쪽으로 빼면 이미지를 다시 구워도 캐시가 살아남는다 (P03).
-THUMB_CACHE = Path(os.environ.get("DIATOM_THUMB_CACHE", BASE_DIR / ".thumbcache"))
+THUMB_CACHE = Path(os.environ.get("DIARUGA_THUMB_CACHE", BASE_DIR / ".thumbcache"))
 
 # --- 안전망 상태 (/healthz 가 읽는다) -------------------------------------
 
 # 백업 사본이 놓인 곳. backup_db.py 와 같은 환경변수를 본다 — 값이 갈리면
 # /healthz 가 아무도 안 쓰는 디렉토리를 보며 "최신" 이라고 말하게 된다.
-BACKUP_DIR = Path(os.environ.get("DIATOM_BACKUP_DIR", PROJECT_ROOT / "backup"))
+BACKUP_DIR = Path(os.environ.get("DIARUGA_BACKUP_DIR", PROJECT_ROOT / "backup"))
 
 # 가장 새 스냅샷이 이보다 오래면 degraded (data-safety.md §4 의 신선도 게이트).
 #
@@ -182,6 +182,6 @@ BACKUP_DIR = Path(os.environ.get("DIATOM_BACKUP_DIR", PROJECT_ROOT / "backup"))
 # 위의 BACKUP_DIR 은 자동 스냅샷만 있는 윗단이다 — 손으로 뜬 것은 manual/ 로
 # 갈라져 있어 여기 안 걸린다. 사람이 뜬 사본이 섞이면 죽은 cron 을 가린다.
 try:
-    BACKUP_MAX_AGE_H = float(os.environ.get("DIATOM_BACKUP_MAX_AGE_H", "") or 0) or None
+    BACKUP_MAX_AGE_H = float(os.environ.get("DIARUGA_BACKUP_MAX_AGE_H", "") or 0) or None
 except ValueError:
     BACKUP_MAX_AGE_H = None

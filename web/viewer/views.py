@@ -1018,7 +1018,7 @@ def healthz(request):
             notes.append("슬라이드가 0 이다 — DB 마운트가 어긋났을 수 있다")
 
     # 2) 백업이 세운 무결성 깃발. 파일을 읽기만 한다.
-    flags = db_sentinel.read(settings.DIATOM_DB)
+    flags = db_sentinel.read(settings.DIARUGA_DB)
     info["integrity_flags"] = flags
     if flags and info["status"] == "ok":
         info["status"] = "degraded"
@@ -1028,7 +1028,7 @@ def healthz(request):
     # 3) 백업 신선도. 문턱을 안 주면 알려만 준다 (settings.BACKUP_MAX_AGE_H 주석).
     age_h = None
     try:
-        snaps = list(settings.BACKUP_DIR.glob("diatom_*.db"))
+        snaps = list(settings.BACKUP_DIR.glob("DiaRUGA_*.db"))
         if snaps:
             newest = max(snaps, key=lambda p: p.stat().st_mtime)
             age_h = round((time.time() - newest.stat().st_mtime) / 3600, 1)

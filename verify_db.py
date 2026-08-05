@@ -27,18 +27,18 @@ from pathlib import Path
 import django
 
 # 이 파일은 본문이 전부 최상위에 있다 — 임포트하면 그대로 실행된다. 그러면
-# django.setup() 이 SQLite 에 연결하면서 **diatom.db 가 없을 때 빈 파일을 만든다**
+# django.setup() 이 SQLite 에 연결하면서 **DiaRUGA.db 가 없을 때 빈 파일을 만든다**
 # (실제로 그렇게 만들어진 적이 있다). DB 연결 전에 막는다.
 if __name__ != "__main__":
     raise ImportError("verify_db.py 는 실행 전용이다: python verify_db.py")
 
-# 이 스크립트는 저장소 밖(/srv/diatom/scripts)에 복사해 두고 컨테이너 안에서
-# 돌릴 수도 있다. 그때 Django 코드가 어디 있는지는 DIATOM_APP 이 알려 준다 —
+# 이 스크립트는 저장소 밖(/srv/DiaRUGA/scripts)에 복사해 두고 컨테이너 안에서
+# 돌릴 수도 있다. 그때 Django 코드가 어디 있는지는 DIARUGA_APP 이 알려 준다 —
 # 이미지 안의 /app 이고, 뷰어 컨테이너가 쓰는 바로 그 코드다. 저장소에서 그냥
 # 돌리면 예전처럼 자기 옆의 web/ 을 본다.
-APP = Path(os.environ.get("DIATOM_APP") or Path(__file__).resolve().parent)
+APP = Path(os.environ.get("DIARUGA_APP") or Path(__file__).resolve().parent)
 sys.path.insert(0, str(APP / "web"))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
 from django.conf import settings                                    # noqa: E402

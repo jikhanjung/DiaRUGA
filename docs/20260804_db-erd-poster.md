@@ -1,4 +1,4 @@
-# diatom DB ERD — 한눈에
+# DiaRUGA DB ERD — 한눈에
 
 **2026-08-04** · A3 가로
 

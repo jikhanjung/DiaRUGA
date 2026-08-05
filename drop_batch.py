@@ -37,10 +37,10 @@ from pathlib import Path
 import django
 
 # group_focus_series.py 와 같은 규칙 — 컨테이너 안에서는 /app 의 Django 를 쓴다.
-APP = Path(os.environ.get("DIATOM_APP") or Path(__file__).resolve().parent)
+APP = Path(os.environ.get("DIARUGA_APP") or Path(__file__).resolve().parent)
 sys.path.insert(0, str(APP / "web"))
 sys.path.insert(0, str(APP))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
 from django.db import transaction                                   # noqa: E402

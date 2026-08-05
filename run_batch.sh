@@ -8,11 +8,11 @@
 # 크기 기준(10~150 µm)만 적용한 기본 검출이며, 뷰어에 그대로 붙는다.
 #
 # 파이썬은 PY 로 준다. 컨테이너 안에서는 그냥 python 이고, 호스트에서는:
-#   PY=~/venv/diatom/bin/python ./run_batch.sh
+#   PY=~/venv/DiaRUGA/bin/python ./run_batch.sh
 #
 # **호스트에서 돌릴 때는 뷰어 컨테이너를 내리고 할 것.** 라이브 DB 에 두 곳에서
 # 쓰면 안 된다 (.guides/web/data-safety.md). 컨테이너로 돌리는 것이 정석이다:
-#   cd /srv/diatom && docker compose run --rm pipeline ./run_batch.sh
+#   cd /srv/DiaRUGA && docker compose run --rm pipeline ./run_batch.sh
 set -u
 
 cd "$(dirname "$0")"
@@ -20,7 +20,7 @@ PY="${PY:-python}"
 export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 
 # 사진과 산출물이 어디 있는지는 .env 가 안다 (저장소 밖이다 — P03)
-DATA_ROOT="${DIATOM_DATA_ROOT:-$(sed -n 's/^DIATOM_DATA_ROOT=//p' .env 2>/dev/null)}"
+DATA_ROOT="${DIARUGA_DATA_ROOT:-$(sed -n 's/^DIARUGA_DATA_ROOT=//p' .env 2>/dev/null)}"
 DATA_ROOT="${DATA_ROOT:-.}"
 STACKED="$DATA_ROOT/stacked"
 OUT="$DATA_ROOT/out"
@@ -47,7 +47,7 @@ for gj in "${targets[@]}"; do
 import json, os, sys, django
 from pathlib import Path
 sys.path.insert(0, "web"); sys.path.insert(0, ".")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 from django.conf import settings
 from focus_stack import resolve_slide

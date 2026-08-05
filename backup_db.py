@@ -5,7 +5,7 @@
     python backup_db.py --note before-refilter    # 파일명에 꼬리말을 붙인다
     python backup_db.py --keep 20                 # 오래된 것부터 지운다
 
-**`cp diatom.db` 로는 안 된다.** WAL 모드라 최근 쓰기가 `-wal` 파일에 있고, 그냥
+**`cp DiaRUGA.db` 로는 안 된다.** WAL 모드라 최근 쓰기가 `-wal` 파일에 있고, 그냥
 복사하면 불완전한 사본이 나온다. SQLite 의 backup API 는 잠금을 잡고 일관된 사본을
 만든다(쓰는 중에도 안전하다).
 
@@ -19,7 +19,7 @@ DB 는 gitignore 다. 사람의 교정(재생성 불가)이 DB 에만 있는 동
 
 1. **정리를 건너뛴다.** 깨진 사본을 채택하고 로테이션을 돌리면 지난 정상 사본이
    전부 밀려난다 — 형제 프로젝트가 그렇게 *N 시간 뒤 복구 가능한 사본 0개* 가 됐다
-2. **증거를 남긴다.** 실패한 사본에 `.corrupt` 를 붙인다. 정리 glob(`diatom_*.db`)에
+2. **증거를 남긴다.** 실패한 사본에 `.corrupt` 를 붙인다. 정리 glob(`DiaRUGA_*.db`)에
    안 걸리는 이름이라야 다음 성공 실행이 지우지 않는다
 3. **깃발을 세운다.** `db_sentinel` 이 DB 옆에 `INTEGRITY_FAIL` 을 놓고
    `/healthz` 가 그것을 읽어 `degraded` 를 낸다. 로그에만 적으면 읽는 사람이
@@ -40,7 +40,7 @@ ROOT = Path(__file__).resolve().parent
 SOURCE = "backup_db"
 
 # 자동(시간별) 스냅샷의 이름. `?` 가 자리를 고정하므로 `--note` 꼬리말이 붙은 것은
-# 여기 안 걸린다 — diatom_20260804_112852_before-refilter.db 는 글자가 더 많다.
+# 여기 안 걸린다 — DiaRUGA_20260804_112852_before-refilter.db 는 글자가 더 많다.
 #
 # **로컬 정리는 이 구분을 쓰지 않는다.** 손으로 뜬 것은 작업 중에 되돌릴 지점이지
 # 보관물이 아니라서, 일이 잘 끝나면 없어져도 되는 물건이다. 로테이션이 알아서
@@ -54,7 +54,7 @@ SOURCE = "backup_db"
 #
 # 이름을 만드는 쪽에 둔 이유는, 쓰는 데마다 제 패턴을 들면 이름 규칙이 바뀔 때
 # 조용히 어긋나기 때문이다.
-AUTO_GLOB = "diatom_????????_??????.db"
+AUTO_GLOB = "DiaRUGA_????????_??????.db"
 
 
 def _env(key, default):
@@ -78,10 +78,10 @@ def _env(key, default):
     return default
 
 
-# DB 는 배포 위치(/srv/diatom)로 나가 있을 수 있다 — .env 의 DIATOM_DB 를 따른다.
-DB = Path(_env("DIATOM_DB", str(ROOT / "diatom.db")))
+# DB 는 배포 위치(/srv/DiaRUGA)로 나가 있을 수 있다 — .env 의 DIARUGA_DB 를 따른다.
+DB = Path(_env("DIARUGA_DB", str(ROOT / "DiaRUGA.db")))
 # 사본은 커지므로(3 GB 넘었다) 큰 디스크에 둘 수 있게 뺀다.
-OUT = Path(_env("DIATOM_BACKUP_DIR", str(ROOT / "backup")))
+OUT = Path(_env("DIARUGA_BACKUP_DIR", str(ROOT / "backup")))
 
 TABLES = ("slide", "viewpoint", "frame", "detection", "candidate",
           "objectreview", "viewpointreview", "run")
@@ -117,10 +117,10 @@ def main():
     dest.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d_%H%M%S")
     tail = f"_{args.note}" if args.note else ""
-    out = dest / f"diatom_{stamp}{tail}.db"
+    out = dest / f"DiaRUGA_{stamp}{tail}.db"
     # **제 이름은 검증을 통과한 뒤에 준다.** 뜨는 중에는 `.part` 다.
     #
-    # 뜨다 실패하면 반쯤 쓴 파일이 남는데, 그것이 `diatom_*.db` 라는 이름을 달고
+    # 뜨다 실패하면 반쯤 쓴 파일이 남는데, 그것이 `DiaRUGA_*.db` 라는 이름을 달고
     # 있으면 두 가지가 어긋난다. 정리 glob 에 걸려 **가장 새 파일로 살아남아
     # 멀쩡한 사본을 하나 밀어내고**, 오프사이트 track 이 그것을 스냅샷으로 알고
     # 집어 간다. 실제로 그렇게 남는 것을 보고 고쳤다.
@@ -197,7 +197,7 @@ def main():
     sweep(part)
 
     mb = part.stat().st_size / 1e6
-    # 사본 디렉토리는 저장소 밖일 수 있다 (DIATOM_BACKUP_DIR)
+    # 사본 디렉토리는 저장소 밖일 수 있다 (DIARUGA_BACKUP_DIR)
     try:
         shown = out.relative_to(ROOT)
     except ValueError:
@@ -230,7 +230,7 @@ def main():
         # AUTO_GLOB 은 꼬리말 없는 이름만 잡아서 **--keep 을 줘도 아무것도 안
         # 걷혔고, 배포마다 한 장씩 무한히 쌓였다** (24장까지 갔다).
         # `.part`·`.corrupt` 는 `.db` 로 끝나지 않아 이 glob 에 안 걸린다.
-        pat = "diatom_*.db" if args.flat else AUTO_GLOB
+        pat = "DiaRUGA_*.db" if args.flat else AUTO_GLOB
         old = sorted(OUT.glob(pat))[: -args.keep] if args.keep else []
         for p in old:
             p.unlink()

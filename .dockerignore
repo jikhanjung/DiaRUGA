@@ -20,9 +20,9 @@ review/
 *.npy
 
 # DB 와 백업 — 마운트해서 쓴다. 이미지에 구우면 사본이 갈라진다
-diatom.db
-diatom.db-wal
-diatom.db-shm
+DiaRUGA.db
+DiaRUGA.db-wal
+DiaRUGA.db-shm
 backup/
 
 # 썸네일 캐시 — 컨테이너가 다시 만든다

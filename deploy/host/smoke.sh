@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 배포한 것이 실제로 사는지 본다 (.guides/web/README.md 의 표준 동사 `smoke`).
 #
-#   /srv/diatom/bin/smoke.sh              # .env 의 IMAGE_TAG 를 기대값으로
-#   /srv/diatom/bin/smoke.sh v0.1.20      # 이 판이 떠 있어야 한다
+#   /srv/DiaRUGA/bin/smoke.sh              # .env 의 IMAGE_TAG 를 기대값으로
+#   /srv/DiaRUGA/bin/smoke.sh v0.1.20      # 이 판이 떠 있어야 한다
 #
 # `deploy.sh` 가 마지막에 이것을 부른다. 따로도 돌린다 — 배포와 무관하게 지금
 # 상태를 묻는 데가 하나 있어야 하기 때문이다.
@@ -23,13 +23,13 @@
 # 배포의 기동 게이트가 안 멈춘다). 배포를 세우는 판단은 이쪽 몫이다.
 set -uo pipefail        # -e 는 안 쓴다. 검사가 실패해도 나머지를 다 보여준 뒤 끝낸다
 
-SRV="${DIATOM_SRV:-/srv/diatom}"
-HEALTH="${DIATOM_HEALTH:-http://127.0.0.1:8090/healthz}"
+SRV="${DIARUGA_SRV:-/srv/DiaRUGA}"
+HEALTH="${DIARUGA_HEALTH:-http://127.0.0.1:8090/healthz}"
 # nginx 를 거치는 길. 사내 VPN 이 80 만 통과시켜 여기가 실제로 사람이 쓰는 주소다.
-SITE="${DIATOM_SITE:-http://127.0.0.1/diatom/}"
+SITE="${DIARUGA_SITE:-http://127.0.0.1/DiaRUGA/}"
 # 그 블록의 server_name. Host 를 안 맞추면 다른 vhost 로 떨어진다.
-SMOKE_HOST="${DIATOM_SMOKE_HOST:-172.16.116.98}"
-PY="${DIATOM_PY:-$(command -v python3 || true)}"
+SMOKE_HOST="${DIARUGA_SMOKE_HOST:-172.16.116.98}"
+PY="${DIARUGA_PY:-$(command -v python3 || true)}"
 
 WANT="${1:-}"
 if [ -z "$WANT" ] && [ -f "$SRV/.env" ]; then

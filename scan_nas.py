@@ -8,7 +8,7 @@ DB 도 파일도 건드리지 않는다. 반입은 `ingest_nas.py` 가 한다.
 
 **왜 나누는가.** NAS 디렉토리는 사람이 만든 것이라 예외가 많다 — 촬영 중인 폴더,
 이름 규칙에서 벗어난 폴더, XML 이 빠진 사진. 먼저 읽기 전용으로 훑어 "무엇이 있고
-무엇이 안 맞는가" 를 보고 나서 반입한다. diatom 은 사람의 교정이 재생성 불가라
+무엇이 안 맞는가" 를 보고 나서 반입한다. DiaRUGA 는 사람의 교정이 재생성 불가라
 이 순서가 더 중요하다. (형제 프로젝트의 EPMA 반입도 같은 갈래다.)
 
 ## NAS 구조
@@ -36,7 +36,7 @@ NFS 에서 inotify 는 믿을 수 없으므로(P01 §1) 폴링으로 본다. 그
 여기에 mtime 을 보조로 쓴다. 최근 1분 안에 쓰인 파일이 있으면 지문이 우연히 같아도
 (같은 크기로 덮어쓰는 중) 아직 들어오는 중으로 본다.
 
-상태 파일은 `DIATOM_NAS_STATE` (기본 `<로그디렉토리>/nas_state.json`). 지워도
+상태 파일은 `DIARUGA_NAS_STATE` (기본 `<로그디렉토리>/nas_state.json`). 지워도
 안전하다 — 시계가 처음부터 다시 갈 뿐이다.
 """
 import argparse
@@ -48,14 +48,14 @@ from pathlib import Path
 
 import django
 
-# 이 스크립트는 저장소 밖(/srv/diatom/scripts)에 복사해 두고 컨테이너 안에서
-# 돌릴 수도 있다. 그때 Django 코드가 어디 있는지는 DIATOM_APP 이 알려 준다 —
+# 이 스크립트는 저장소 밖(/srv/DiaRUGA/scripts)에 복사해 두고 컨테이너 안에서
+# 돌릴 수도 있다. 그때 Django 코드가 어디 있는지는 DIARUGA_APP 이 알려 준다 —
 # 이미지 안의 /app 이고, 뷰어 컨테이너가 쓰는 바로 그 코드다. 저장소에서 그냥
 # 돌리면 예전처럼 자기 옆의 web/ 을 본다.
-APP = Path(os.environ.get("DIATOM_APP") or Path(__file__).resolve().parent)
+APP = Path(os.environ.get("DIARUGA_APP") or Path(__file__).resolve().parent)
 sys.path.insert(0, str(APP / "web"))
 sys.path.insert(0, str(APP))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diatomweb.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
 from django.conf import settings                                    # noqa: E402
@@ -66,7 +66,7 @@ PHOTOS = "photos"
 
 
 def nas_root() -> Path:
-    return Path(os.environ.get("DIATOM_NAS_PHOTOS",
+    return Path(os.environ.get("DIARUGA_NAS_PHOTOS",
                                "/nfs/temp-share/DiatomPhotos"))
 
 
@@ -111,7 +111,7 @@ def survey(slide_dir: Path) -> dict:
 
 def state_path() -> Path:
     return Path(os.environ.get(
-        "DIATOM_NAS_STATE",
+        "DIARUGA_NAS_STATE",
         str(Path(settings.DATA_ROOT) / "logs" / "nas_state.json")))
 
 
