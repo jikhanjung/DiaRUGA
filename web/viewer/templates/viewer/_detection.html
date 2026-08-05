@@ -50,7 +50,7 @@
       탈락 후보 레이어. 기본은 꺼 둔다 — 시야당 100개가 넘어 켜 두면 사진이
       묻힌다. 재현율을 눈으로 볼 때, 그리고 누락을 되살릴 때 켠다.
     {% endcomment %}
-    <label title="문턱에서 떨어진 후보를 빨간 점선 테두리로 보여준다 (클릭하면 되살릴 수 있다)">
+    <label title="문턱에서 떨어진 후보를 빨간 점선 테두리로 보여준다. 켜 두면 클릭이 탈락 후보를 먼저 집는다 — 검출 개체 뒤에 겹친 것도 고를 수 있다 (검출 개체를 고르려면 Shift+클릭)">
       <input type="checkbox" data-layer="reject"> 탈락
       <span class="dim">{{ det.rejected|length }}</span></label>
   </div>
@@ -134,6 +134,11 @@
   휠 = 확대 · 우클릭 드래그 = 이동 · <b>클릭 = 선택 (겹친 자리는 다시 클릭하면 다음 것)</b> · Shift+클릭 = 추가/해제 ·
   드래그 = 범위 선택 · <b>선택 위에서 우클릭 = 오검출 삭제</b> ·
   <b>빈 곳 클릭 = 그 자리의 탈락 후보 펼쳐 보기</b>
+  {% comment %}
+    탈락 레이어를 켜면 클릭 우선순위가 바뀐다 — 켰을 때만이라 그 조건을 함께
+    적는다. 안 적으면 "왜 개체가 안 골라지지" 가 된다.
+  {% endcomment %}
+  · <b>탈락</b>을 켜면 클릭이 탈락 후보를 먼저 집는다 (검출 개체는 Shift+클릭)
 </p>
 {% comment %}
   단축키 안내. 목록을 여기 적지 않는다 — 분류를 더하면서 안내만 옛 목록으로
@@ -1525,6 +1530,12 @@
   // 탈락 후보의 bbox 합집합이 화면의 46.6% 인데 마스크 합집합은 19.5% 다(실측).
   // 그 차이 25%p 는 아무것도 없는 자리이고, 탈락분은 그려지지 않으므로 왜 떴는지
   // 알 수도 없다. bbox 는 값싼 1차 걸름망으로만 쓴다.
+  // 탈락 후보가 지금 화면에 그려져 있는가. `hide-reject` 는 레이어 토글이
+  // 붙이는 클래스다(applyLayers). **mask 를 꺼도 탈락은 남는다** —
+  // `.detview.hide-mask svg.masks polygon:not(.reject)` 이라 이 레이어 하나만
+  // 보면 된다.
+  function rejectsShown() { return !view.classList.contains('hide-reject'); }
+
   function rejectsAt(pt) {
     return rejects.filter(function (c) {
       if (accepted.has(keyOf(c))) return false;
@@ -1634,6 +1645,25 @@
       history.push({ type: 'restore', keys: [key] });
       build();
       save();
+      return;
+    }
+
+    // **탈락 레이어를 켰으면 탈락 후보가 먼저다.**
+    //
+    // 예전에는 아래의 liveHitsAt() 이 먼저였다. 그래서 검출 개체와 겹친 탈락
+    // 후보는 **누를 방법이 아예 없었다** — 클릭이 늘 검출 개체에서 멈추고
+    // 펼침까지 가지 못했다. 탈락 후보는 겹쳐 있는 것이 예사라(시야당 100개가
+    // 넘는다) 정작 되살리고 싶은 것이 대개 그 뒤에 있다.
+    //
+    // **켰을 때만이다.** 꺼 두면 화면에 없는 것이라, 그때도 우선하면 아무것도
+    // 안 보이는 자리에서 펼침이 튀어나온다.
+    //
+    // 검출 개체를 고를 길은 남아 있다 — **Shift+클릭**은 위에서 이미 갈라져
+    // 나가고(cands 만 본다), 우클릭 메뉴도 그대로다.
+    if (rejectsShown() && openSpread(e, pt)) {
+      cycle = null;
+      sel.clear();
+      redraw();
       return;
     }
 
