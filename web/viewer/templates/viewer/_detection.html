@@ -1349,8 +1349,12 @@
 
     spread = document.createElement('div');
     spread.className = 'spread';
+    // 읽기 전용에서는 **볼 수만 있다.** 고르면 그 자리에서 검출로 올라가는데
+    // (`accepted` 에 넣고 `cands` 에 밀어 넣는다) 저장이 안 나가므로 새로고침
+    // 한 번에 사라진다. 머리말부터 그렇게 적는다 — 눌러 보고 알게 하지 않는다.
     spread.innerHTML = '<div class="shead">이 자리를 <b>마스크가 덮는</b> 탈락 후보 ' +
-      hits.length + '개 — 맞는 것을 고르면 검출로 인정된다</div>';
+      hits.length + '개 — ' + (readOnly ? '<b>읽기 전용이라 볼 수만 있습니다</b>'
+                                        : '맞는 것을 고르면 검출로 인정된다') + '</div>';
 
     // 닫기 — 바깥 클릭과 Esc 로도 닫히지만, 눌러서 닫을 곳이 보여야 한다.
     var x = document.createElement('button');
@@ -1376,6 +1380,12 @@
       cap.innerHTML = num(c.major_um, 1) + '×' + num(c.minor_um, 1) + ' µm<br>' +
         '<span class="dim">' + (c.reject || '') + ' · 텍스처 ' + num(c.texture, 0) + '</span>';
       cell.appendChild(cap);
+      if (readOnly) {
+        // 누를 수 없게 만든다. 핸들러만 빼면 눌리는 것처럼 보인다.
+        cell.disabled = true;
+        grid.appendChild(cell);
+        return;
+      }
       cell.addEventListener('click', function (ev) {
         ev.stopPropagation();
         accepted.add(keyOf(c));
@@ -1444,7 +1454,32 @@
     var dead = targets.filter(function (i) { return cands[i] && removed.has(keyOf(cands[i])); });
 
     var items = [];
-    if (live.length) {
+
+    // **읽기 전용에서는 고치는 항목을 아예 내지 않는다.**
+    //
+    // 저장은 이미 막혀 있다(`save()` 가 첫 줄에서 멈춘다). 그런데 메뉴는 살아
+    // 있어서 "오검출로 삭제" 를 누르면 **화면에서는 마스크가 지워지고** 분류를
+    // 고르면 색이 바뀐다 — 되는 것처럼 보인다. 그렇게 한 시야를 검토하고 나면
+    // 그 판단이 통째로 사라진다. 되는 것처럼 보이는 것이 안 되는 것보다 나쁘다.
+    //
+    // 메뉴를 통째로 안 여는 대신 **왜 안 되는지 적는다.** 아무 일도 안 일어나면
+    // 고장으로 읽힌다.
+    if (readOnly) {
+      items.push({ notice: 'Read only — 검토는 현재 검출에서 하십시오' });
+      if (d.target === null) {
+        // 탈락 후보 펼쳐 보기는 남긴다 — 보는 일이지 고치는 일이 아니다
+        // (펼친 판에서 고르는 것은 openSpread 가 따로 막는다).
+        var roPt = { x: d.x, y: d.y };
+        var roNear = rejectsAt(roPt).length;
+        items.push({ sep: true });
+        items.push({ label: '이 자리의 탈락 후보 보기' + (roNear ? ' (' + roNear + ')' : ''),
+                     disabled: !roNear,
+                     run: function () { openSpread(e, roPt); } });
+      }
+      if (sel.size) {
+        items.push({ label: '선택 해제', run: function () { sel.clear(); redraw(); } });
+      }
+    } else if (live.length) {
       items.push({ label: '오검출로 삭제 (' + live.length + ')', danger: true,
                    run: function () { removeKeys(live); } });
       items.push({ sep: true });
@@ -1471,7 +1506,10 @@
                      run: function () { openNoteEdit(e, live[0]); } });
       }
     }
-    if (dead.length) {
+    // 아래는 전부 **고치는 항목**이다 — 읽기 전용에서는 위 갈래가 이미 낼 것을
+    // 냈으므로 건너뛴다. 조건마다 `!readOnly` 를 붙여 두는 것은, 여기에 항목을
+    // 하나 더할 때 읽기 전용을 잊어도 새는 곳이 없게 하기 위해서다.
+    if (!readOnly && dead.length) {
       items.push({ label: '되살리기 (' + dead.length + ')', run: function () {
         var keys = dead.map(function (i) { return keyOf(cands[i]); });
         restore(keys);
@@ -1479,7 +1517,7 @@
         build(); save();
       } });
     }
-    if (d.target === null) {
+    if (!readOnly && d.target === null) {
       var pt = { x: d.x, y: d.y };
       var near = rejectsAt(pt).length;
       items.push({ label: '이 자리의 탈락 후보 보기' + (near ? ' (' + near + ')' : ''),
@@ -1495,8 +1533,8 @@
                      gnote.setSelectionRange(gnote.value.length, gnote.value.length);
                    } });
     }
-    if (sel.size) items.push({ label: '선택 해제', run: function () { sel.clear(); redraw(); } });
-    if (history.length) items.push({ label: '↶ 실행취소', run: undo });
+    if (!readOnly && sel.size) items.push({ label: '선택 해제', run: function () { sel.clear(); redraw(); } });
+    if (!readOnly && history.length) items.push({ label: '↶ 실행취소', run: undo });
     if (!items.length) return;
 
     menu = document.createElement('div');
@@ -1506,6 +1544,16 @@
         var hr = document.createElement('div');
         hr.className = 'msep';
         menu.appendChild(hr);
+        return;
+      }
+      // 알림 줄. **disabled 단추로 내지 않는다** — 그쪽은 opacity .4 라
+      // "지금은 못 누르는 항목" 으로 읽히고, 이건 왜 아무 항목도 없는지를
+      // 설명하는 말이다.
+      if (it.notice) {
+        var nb = document.createElement('div');
+        nb.className = 'mnote';
+        nb.textContent = it.notice;
+        menu.appendChild(nb);
         return;
       }
       var b = document.createElement('button');

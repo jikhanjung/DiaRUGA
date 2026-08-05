@@ -995,7 +995,10 @@
     overflow: hidden; text-align: center;
     display: flex; flex-direction: column; align-items: stretch;
   }
-  .spread .scell:hover { border-color: var(--accent); }
+  .spread .scell:hover:not(:disabled) { border-color: var(--accent); }
+  /* 읽기 전용 — 볼 수만 있다. 크롭은 그대로 밝게 둔다(그것을 보러 여는 판이다).
+     달라지는 것은 커서와 hover 뿐이라 "누를 수 있다" 는 신호만 걷힌다. */
+  .spread .scell:disabled { cursor: default; }
   /* 칸 크기를 크롭의 종횡비대로 JS 가 정한다 — 늘리지 않는다. */
   .spread .scrop { display: block; position: relative; background: #000; }
   .spread .scrop img { width: 100%; height: 100%; display: block; }
@@ -1020,6 +1023,13 @@
   .ctxmenu button:disabled { opacity: .4; cursor: default; }
   .ctxmenu button.danger { color: #ff6b6b; }
   .ctxmenu .msep { height: 1px; background: var(--line); margin: 4px 6px; }
+  /* 읽기 전용에서 "왜 고치는 항목이 없는가" 를 적는 줄. disabled 단추로 내면
+     opacity .4 라 "지금은 못 누르는 항목" 으로 읽힌다 — 설명은 설명처럼 보여야
+     한다 (051). */
+  .ctxmenu .mnote {
+    padding: 6px 10px; font-size: 12px; line-height: 1.4;
+    color: #ff8a8a; white-space: nowrap;
+  }
 
   /* 캐러셀 끝에서 → 를 누르면 다음 시야로 넘어갈지 묻는다.
      "다시 묻지 않기" 를 넣어야 하므로 confirm() 으로는 안 된다. */
