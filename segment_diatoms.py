@@ -18,8 +18,10 @@ DB 로 옮기면서 달라진 것 (P02 6단계):
   트랜잭션**이다 — 중간에 끊기면 뷰어가 "교정이 붙지 않은 새 검출"을 보여준다
 - 실행이 `Run(kind=detect)` 에 남는다
 
-`out/*_candidates.json` 은 계속 쓴다. 원본은 DB 지만 이 파일은 내보내기 형식으로
-남는다(`verify_db.py` 가 대조에 쓴다). 7단계에서 정리한다.
+`out/*_candidates.json` 은 **`--export-json` 을 줄 때만** 쓴다 (P02 7단계).
+원본은 DB 다. 검출 결과를 그려 넣던 `<stem>_overlay.jpg` 는 걷었다 — 뷰어가
+같은 것을 SVG 로 그리는데 그쪽은 켜고 끄고, 확대하면 원본 화소로 가고, 사람의
+교정까지 얹는다. 구운 그림은 그중 아무것도 못 한다.
 """
 import argparse
 import contextlib
@@ -506,28 +508,6 @@ def filter_records(records, min_um, max_um, drop_background_frac=0.5, img_area=N
     return out
 
 
-def draw_overlay(img: Image.Image, records, out_path: Path):
-    from PIL import ImageDraw
-
-    vis = img.convert("RGB").copy()
-    overlay = np.array(vis)
-    rng = np.random.default_rng(0)
-    # 봉상=파랑, 원형=초록, 미분류=무작위색
-    palette = {"rod": (60, 120, 255), "round": (60, 220, 120)}
-    for r in records:
-        seg = r["_seg"]
-        color = np.array(palette.get(r.get("cls"), rng.integers(60, 255, size=3)))
-        overlay[seg] = (0.55 * overlay[seg] + 0.45 * color).astype(np.uint8)
-    vis = Image.fromarray(overlay)
-    d = ImageDraw.Draw(vis)
-    for r in records:
-        x, y, w, h = r["bbox_xywh"]
-        d.rectangle([x, y, x + w, y + h], outline=(255, 40, 40), width=3)
-        d.text((x + 4, max(y - 16, 0)), f"{r['id']}:{r['long_side_um']:.0f}um",
-               fill=(255, 40, 40))
-    vis.save(out_path, quality=88)
-
-
 # Candidate 에 그대로 들어가는 수치 칸들 (import_json.py 와 같아야 한다)
 NUM = ("area_um2", "major_um", "minor_um", "long_side_um", "short_side_um",
        "aspect_ratio", "fill_ratio", "circularity", "convexity", "solidity",
@@ -858,7 +838,6 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
         return [{k: v for k, v in r.items() if not k.startswith("_")} for r in rs]
 
     stem = img_path.stem
-    draw_overlay(img, kept, out_dir / f"{stem}_overlay.jpg")
     payload = {
         "image": str(img_path),
         "size": [img.width, img.height],
@@ -870,7 +849,8 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
         "n_raw_masks": len(recs),
         "n_sized": len(sized),
         "n_candidates": len(kept),
-        # 문턱을 바꿔 다시 거를 때 필요한 값들. refilter.py 가 이걸 읽는다.
+        # 문턱을 바꿔 다시 거를 때 필요한 값들. **`refilter.py` 는 이제
+        # DB 를 읽는다**(P02 6단계) — 이 칸은 내보내기용으로만 남는다.
         "thresholds": {
             "min_um": args.min_um, "max_um": args.max_um,
             "texture_min": args.texture_min,
@@ -889,9 +869,14 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
         # 탈락분도 지표째 남긴다 — 문턱 재조정이 SAM2 재실행 없이 끝난다.
         "rejected": clean(rejected),
     }
-    (out_dir / f"{stem}_candidates.json").write_text(
-        json.dumps(payload, indent=2), encoding="utf-8"
-    )
+    # **기본은 안 쓴다** (P02 7단계). 원본은 DB 이고, 이 파일은 내보내기
+    # 형식일 뿐인데 늘 나오면 "이것이 결과인가" 로 읽힌다. 게다가 경로가
+    # 엔진·묶음을 안 갈라서 **나중에 돈 엔진이 앞의 것을 덮어썼다** —
+    # 파일 이름만으로는 어느 엔진 결과인지 알 수 없었다.
+    if getattr(args, "export_json", False):
+        (out_dir / f"{stem}_candidates.json").write_text(
+            json.dumps(payload, indent=2), encoding="utf-8"
+        )
     c = payload["counts"]
     print(f"{stem}: raw={len(recs)} 크기통과={len(sized)} "
           f"최종={len(kept)} (봉상 {c['rod']}, 원형 {c['round']})")
@@ -905,6 +890,9 @@ def main():
                     help="슬라이드 slug. 검출 대상을 DB 에서 고른다 — 합성본이 "
                          "있으면 그것을, 싱글턴 시야는 그 한 장을 쓴다")
     ap.add_argument("-o", "--out", default=None, help="기본값은 DATA_ROOT/out")
+    ap.add_argument("--export-json", action="store_true",
+                    help="out/<stem>_candidates.json 을 함께 남긴다. "
+                         "**기본은 안 남긴다** — 원본은 DB 다")
     ap.add_argument("--no-db", action="store_true",
                     help="JSON 만 쓰고 DB 는 건드리지 않는다 (시험용)")
     ap.add_argument("--rebind-iou", type=float, default=0.5,

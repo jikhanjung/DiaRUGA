@@ -140,10 +140,6 @@ def cand_key(c) -> str:
     return "_".join(str(int(v)) for v in b)
 
 
-def _rel(path) -> str:
-    return str(Path(path).relative_to(settings.DATA_ROOT))
-
-
 def stamp(rel: str) -> int:
     """이미지의 mtime. URL 에 넣어 "내용이 바뀌면 주소도 바뀌게" 만든다."""
     try:
@@ -286,7 +282,6 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
                    for k, lb in order if counts.get(k)]
 
     stem = Path(det.image_path).stem
-    overlay = Path(settings.DATA_ROOT) / "out" / f"{stem}_overlay.jpg"
     return {
         "image": det.image_path,
         "stem": stem,
@@ -312,7 +307,6 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
         "notes": {k: o.note for k, o in reviews.items() if o.note},
         "review_done": bool(vr and vr.done),
         "review_note": (vr.note if vr else ""),
-        "overlay_rel": _rel(overlay) if overlay.exists() else None,
         "source_dir": "out",
     }
 
@@ -509,7 +503,6 @@ def candidate_rows(slug: str) -> list[dict]:
                 rows.append({
                     "group_id": vp.idx,
                     "stem": stem,
-                    "overlay_rel": d.get("overlay_rel"),
                     "image_rel": image_rel,
                     "reviewed": d.get("review_done"),
                     "um_per_pixel": d.get("um_per_pixel"),
@@ -575,7 +568,7 @@ def preview_detection(vp: Viewpoint) -> dict | None:
         "n_removed": 0, "accepted_keys": [], "labels": {}, "notes": {},
         "review_done": bool(vr and vr.done),
         "review_note": (vr.note if vr else ""),
-        "overlay_rel": None, "source_dir": "out",
+        "source_dir": "out",
         # 이 화면은 아직 검출이 없다 — 템플릿이 도구를 감추는 데 쓴다
         "preview_only": True,
     }
