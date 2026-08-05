@@ -202,7 +202,36 @@ Viewpoint 1:N Image(kind = stack | frame | depth, path, …) 1:N Detection 1:N C
 | 단계 | 상태 |
 |---|---|
 | 1. `export_review.py` | **끝** — 2026-08-05. 시야 432 · 교정 6,732 |
-| 2. `Image` + `Detection.image`·`ObjectReview.image`(nullable) | **끝** — `0019_image_table`. 아직 배포 전 |
-| 3. 백필 | **끝** — `backfill_images.py`. 이미지 1,952 · 검출 2,076 · 교정 6,7xx |
+| 2. `Image` + `Detection.image`·`ObjectReview.image`(nullable) | **끝** — `0019_image_table` · v0.5.4 로 배포 |
+| 3. 백필 | **끝** — 2026-08-05 v0.5.4. 이미지 1,952 · 검출 2,076 · 교정 6,738 |
 | 4. 파이프라인이 `image` 를 쓴다 | 남음 |
 | 5. 조이기 + 프레임별 검토 | 남음 |
+
+---
+
+## 7. 2·3단계를 실제로 한 기록 (2026-08-05, v0.5.4)
+
+```
+배포          deploy.sh v0.5.4 → 0019_image_table 적용 → smoke 통과
+사본          backup_db.py --note before-image-backfill
+폴러 정지     flock /tmp/DiaRUGA-poll.lock  ← crontab 을 건드리지 않는다
+백필          dbrun.sh backfill_images.py --apply
+검증          dbrun.sh backfill_images.py --verify   (일곱 항목 전부 OK)
+대조          export_review.py --check               (달라진 것 없음)
+```
+
+**폴러는 crontab 을 고쳐 세우지 않았다.** `poll_nas.sh` 가 이미 `flock -n` 으로
+겹침을 막고 있어서, 그 잠금을 잡고 있으면 그 사이의 실행은 조용히 물러난다.
+남의 설정을 고쳤다가 되돌리는 것을 잊는 쪽이 위험하다.
+
+**교정이 한 글자도 안 바뀐 것을 파일로 증명했다.** 백필 직전 사본을
+`export_review.py --db` 로 내보내고 지금 저장소의 `review/` 와 `diff -r` 했다 —
+차이 없음. 이것이 1단계를 먼저 만든 이유 그대로다.
+
+### 걸린 것 하나
+
+`backfill_images.py` 가 처음에 `/srv/DiaRUGA/scripts` 에서 안 돌았다
+(`No module named 'diarugaweb'`). 스크립트가 **자기 옆의 `web/`** 을 보게 짜여
+있었는데, 컨테이너에서는 코드가 이미지 안의 `/app` 에 있다. `check_db.py` 가
+`DIARUGA_APP` 으로 이미 풀어 둔 문제였다 — **`dbrun.sh` 로 돌릴 스크립트는 그
+머리를 그대로 베껴 온다.**
