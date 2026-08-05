@@ -360,13 +360,19 @@ class Image(models.Model):
                                   related_name="images")
     kind = models.CharField(max_length=8, choices=KIND)
     path = models.CharField(max_length=500, unique=True)
-    # 어디서 왔는가. 경로로도 되짚을 수 있지만 조인이 명시적인 편이 낫다.
-    # 둘 다 `SET_NULL` 이다 — 출처가 정리돼도 이미지 행과 그 위의 교정은 남는다.
+    # 어디서 왔는가. **둘의 `on_delete` 가 다르다 — 성격이 다르기 때문이다.**
+    #
+    # **프레임은 원본 사진이다.** 시야를 갈라도 그 자리에 그대로 있고 다른 시야로
+    # 묶일 뿐이다 — 그래서 `SET_NULL` 이고 이미지 행도 살아남는다.
+    #
+    # **합성본·깊이맵은 그 묶음에서 나온 것이다.** 묶음이 갈리면 무효다 — 서로
+    # 다른 시야가 된 프레임들을 합쳐 놓은 그림이라 아무것도 아닌 것이 된다.
+    # 그래서 `CASCADE` 로 `Stack` 과 함께 죽는다. 다시 합성하면 새로 생긴다.
     frame = models.OneToOneField(Frame, null=True, blank=True,
                                  on_delete=models.SET_NULL,
                                  related_name="image")
     stack = models.ForeignKey(Stack, null=True, blank=True,
-                              on_delete=models.SET_NULL,
+                              on_delete=models.CASCADE,
                               related_name="images")
     width = models.IntegerField(null=True, blank=True)
     height = models.IntegerField(null=True, blank=True)
