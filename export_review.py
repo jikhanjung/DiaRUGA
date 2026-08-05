@@ -122,7 +122,9 @@ def fetch(conn, slide_slug=None) -> dict:
           {where}
     """, args):
         views[r["id"]] = {"slide": r["slug"], "gid": r["idx"], "tag": r["tag"],
-                          "done": False, "note": "", "objects": []}
+                          "done": False, "note": "", "objects": [],
+                          # 이 시야의 교정이 걸쳐 있는 이미지들. 아래에서 센다.
+                          "images": set()}
 
     for r in conn.execute("SELECT viewpoint_id, done, note FROM viewer_viewpointreview"):
         v = views.get(r["viewpoint_id"])
@@ -130,9 +132,14 @@ def fetch(conn, slide_slug=None) -> dict:
             v["done"] = bool(r["done"])
             v["note"] = r["note"] or ""
 
-    for r in conn.execute("""
+    # `image_id` 는 P06 2단계(0019)에서 생겼다. **옛 DB(백업 파일)에는 없다** —
+    # 이 스크립트는 두 시점을 견주는 도구라 옛 판도 읽어야 한다.
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(viewer_objectreview)")}
+    img_col = "image_id" if "image_id" in cols else "NULL AS image_id"
+
+    for r in conn.execute(f"""
         SELECT viewpoint_id, mask_key, removed, accepted, label, note,
-               geom, bind_method, bind_score
+               geom, bind_method, bind_score, {img_col}
           FROM viewer_objectreview
     """):
         v = views.get(r["viewpoint_id"])
@@ -156,16 +163,36 @@ def fetch(conn, slide_slug=None) -> dict:
         except (TypeError, ValueError):
             obj["geom"] = {}
         v["objects"].append(obj)
+        v["images"].add(r["image_id"])
 
     # **표시가 하나도 없는 시야는 내보내지 않는다.** 452개 중 432개만 자료가
     # 있는데, 빈 파일 20개를 두면 "아직 안 본 것" 과 "봤는데 고칠 게 없던 것" 이
     # 파일 있음/없음으로 구분되지 않는다. 후자는 `done` 이 켜져 있다.
-    out = {}
+    out, spread = {}, []
     for v in views.values():
         if not v["objects"] and not v["done"] and not v["note"]:
             continue
+        if len(v["images"]) > 1:
+            spread.append((v["slide"], v["gid"], len(v["images"])))
         v["objects"].sort(key=lambda o: o["key"])
         out[(v["slide"], v["gid"])] = v
+
+    # **format 2 는 시야 하나에 이미지 하나를 전제한다.** 프레임별 검토를 쓰기
+    # 시작하면 그 전제가 깨지고, 이 형식은 **조용히 못 쓰게 된다**:
+    #
+    #   - 파일 하나 안에서 `key` 가 겹친다 (mask_key 가 프레임끼리 45% 겹친다)
+    #   - 어느 이미지를 보고 한 판단인지 안 남는다 → 되살릴 수 없다
+    #   - `done`·`note` 가 시야당 하나라 이미지별 검토 완료를 못 담는다
+    #
+    # 셋 다 **예외 없이 그럴듯한 파일이 나오는** 종류라 여기서 세워야 한다.
+    # 형식을 올릴 때(2 → 3) 이 검사도 함께 걷는다.
+    if spread:
+        head = ", ".join(f"{s} g{g}({n}개)" for s, g, n in spread[:5])
+        sys.exit(
+            f"교정이 이미지 여럿에 걸친 시야가 {len(spread)}개다: {head}\n"
+            "  format 2 는 시야 하나에 이미지 하나를 전제한다 — 그대로 쓰면\n"
+            "  한 파일 안에서 key 가 겹치고 어느 이미지의 판단인지 사라진다.\n"
+            "  형식을 3 으로 올려야 한다 (P06 5단계).")
     return out
 
 
