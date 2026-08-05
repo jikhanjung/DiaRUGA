@@ -137,7 +137,7 @@ docker compose run --rm pipeline python focus_stack.py --slide <slug>
 docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
     --scale 1.0 --points-per-side 48 --min-um 10 --max-um 150 --batch sam2-전수
 docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
-    --backend yolo --keep-current --batch yolo-3차      # 견주기용으로 쌓기만 한다
+    --backend yolo --keep-current --batch yolo-3차      # 비교용으로 쌓기만 한다
 ```
 
 **인자는 `deploy/poll_nas.sh` 와 같은 것을 쓴다** — 특히 `--scale 1.0`. 빠뜨리면
@@ -181,8 +181,12 @@ web/viewer/
 형식으로만 남아 있다.
 
 **검출 엔진이 두 벌이다.** 뷰어가 보는 것은 `sam2-전수` 묶음이고, YOLO 는
-`--keep-current` 로 나란히 쌓아 두었다(`RunBatch`). `/engine/` 에서 같은 시야를
-두 엔진으로 견준다 — **읽기 전용이고, 그것을 두 겹으로 막아 뒀다**(아래).
+`--keep-current` 로 나란히 쌓아 두었다(`RunBatch`). **검토 화면의 `◉ SAM / ○ YOLO`
+라디오**로 같은 시야를 두 엔진으로 비교한다(051, `?batch=<실행>`). `/engine/` 은
+묶음 전체를 한 표로 훑는 다른 화면으로 남아 있다.
+
+**YOLO 쪽은 읽기 전용이고, 그것을 세 겹으로 막아 뒀다**(아래). 화면이 **되는
+것처럼 보이는 것**까지 막는다 — 저장만 잠그면 사람이 한 시야를 헛검토한다.
 
 ## 밟기 쉬운 곳
 
@@ -201,6 +205,11 @@ web/viewer/
   보낸다" 는 전제이고, 깨지면 나머지를 지운다. **두 번 당했다** — 빈 키 목록을
   운영 DB 로 보내 14건, "읽기 전용" 이라 적어 놓고 CSS 로 버튼만 감춘 화면이
   37건. **화면을 눌러 보는 시험은 사본 DB 에 붙인다**
+- **읽기 전용은 저장을 막는 것으로 끝나지 않는다.** 화면이 **되는 것처럼 보이면**
+  안 된다 — 저장은 잠갔는데 우클릭 메뉴가 살아 있어서, 누르면 마스크가 지워지고
+  분류가 바뀌었다(051). 그렇게 한 시야를 검토하고 새로고침하면 판단이 통째로
+  사라진다. `readOnly` 갈래를 더할 때는 **반응하는 자리를 전부 센다**:
+  키보드 · 우클릭 메뉴 · 탈락 펼침판 · 코멘트 칸
 
 **DB·스키마**
 
@@ -268,6 +277,10 @@ web/viewer/
   `<style>` 이 한 번도 먹은 적이 없었다 — 예외도 경고도 없는 종류의 고장이다
 - **절대경로를 박지 말 것.** JS 는 `base.html` 의 `window.ROOT`, 파이썬은
   `reverse()` 를 쓴다 (서브경로 `/DiaRUGA/` 아래에서 돈다)
+- **감추는 CSS 는 `base.html` 이 그 요소를 어떤 선택자로 잡고 있는지 보고 쓴다.**
+  `.tools { display: none }` 이 한 번도 먹은 적이 없었다 — `.detview .tools` 가
+  `display: flex` 로 특이도에서 이긴다. 세 화면이 도구를 감춘 줄 알고 계속
+  내보이고 있었다(051). **`getComputedStyle` 로 확인할 것** — 예외도 경고도 없다
 
 ## 사람의 교정은 재생성 불가다
 
