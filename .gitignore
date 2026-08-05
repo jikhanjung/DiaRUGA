@@ -53,3 +53,9 @@ datasets/
 runs/
 # 사전학습 가중치 — ultralytics 가 없으면 받아 온다
 yolo11*.pt
+
+# mermaid-cli. `md2docx.py` 가 도표를 그림으로 구울 때만 쓴다 —
+#   NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt npm i --no-save @mermaid-js/mermaid-cli
+# **없으면 도표가 조용히 코드 블록으로 떨어진다.** 파일은 그럴듯하게 나오고
+# 크기만 3분의 1이 된다 — 굽고 나면 크기를 견줄 것.
+node_modules/
