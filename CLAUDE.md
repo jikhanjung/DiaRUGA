@@ -29,6 +29,7 @@
 | 앞으로 할 일을 고른다 | `TODOs.md`, `devlog/20260729_P01_roadmap.md` |
 | 판정 기준·문턱을 만진다 | `judge.py` 머리말, `devlog/20260731_007_*.md` |
 | 검출기를 학습시킨다 | `devlog/20260803_P04_yolo-training.md`, `023`(자료 꾸러미), `025`(첫 판 성적) |
+| 이미지·검출·교정의 관계를 만진다 | `devlog/20260805_P06_*`(계획·결정), `055`(실행), `models.py` 의 `Image` |
 | 데스크탑 앱을 만든다 | `devlog/20260805_P05_desktop-app.md` (계획), `docs/20260805_desktop-app-review.md` (근거), `049`(CPU 실측), `.guides/desktop/` |
 | 배포·백업을 만진다 | `.guides/web/`, `devlog/20260803_019_*`, `20260804_034_smoke-and-sentinel.md` |
 | 파이프라인 알고리즘 | `README.md` (40 KB, 스크립트마다 "왜 이렇게 했는가"가 있다) |
@@ -87,6 +88,14 @@ deploy/host/dbsync.sh --list            # 옮겨 둔 것이 저장소와 어긋�
 
 `check_db.py` 는 **refilter/segment 뒤, `judge.py` 를 고친 뒤, 숫자가 이상할 때**
 돌린다. 여기서 잡는 것은 예외가 안 나고 그냥 틀린 상태다.
+`backfill_images.py --verify` 도 같은 성격이다 — 이미지·검출·교정이 앞뒤가 맞는가.
+
+```bash
+# 교정을 git 감사 기록으로 (호스트 venv 로 돈다 — Django 를 안 쓴다)
+python export_review.py                 # review/<슬라이드>/g<n>.json
+python export_review.py --check         # 파일 ↔ DB 대조. 아무것도 안 쓴다
+python export_review.py --db <백업> --out /tmp/before && diff -r /tmp/before review/
+```
 
 ```bash
 # 큰 작업 전에는 반드시. 시간별 cron 이 따로 돌지만 그건 24시간 rolling 이고,
@@ -171,11 +180,17 @@ group_focus_series.py  →  focus_stack.py  →  segment_diatoms.py  →  refilt
                                                         ↑
                                                     judge.py  ← 판정 규칙은 여기 하나뿐
 web/viewer/
-  models.py      15개 모델. 읽기 전에 파일 첫 주석부터
+  models.py      16개 모델. 읽기 전에 파일 첫 주석부터
+  images.py      Image 를 만드는 문 하나 — 파이프라인 넷과 regroup 이 지난다
   data.py        DB → 뷰가 쓰는 dict
   thresholds.py  문턱 미리보기·적용
   antarctica.py  미리 구운 해안선 (korea.py 와 짝) — 투영식이 tools/ 에도 있다
 ```
+
+**검출과 교정은 `Image` 에 붙는다** (P06 · 055). `Image` 는 **검출을 돌릴 수
+있는 이미지 한 장**이고 `kind` 가 `stack|frame|depth` 다 — 예전에는 `Detection` 이
+`target` + nullable `frame` 으로 다형 연관을 흉내 냈다. 열쇠는 `path` 이고,
+교정의 유일 제약은 `(image, mask_key)` 다.
 
 **데이터의 원본은 `DiaRUGA.db` 다** (SQLite, WAL). `out/*.json` 등은 내보내기
 형식으로만 남아 있다.
@@ -270,6 +285,16 @@ web/viewer/
   시간 어긋나 정리 규칙이 가장 새 사본을 지운다** (036)
 - **뷰어와 파이프라인의 판은 따로다**(`IMAGE_TAG` / `PIPELINE_TAG`). 하나로 묶으면
   뷰어 판을 올리는 순간 폴러가 없는 이미지를 가리킨다 — **4시간 반 멈췄다** (026)
+- **그런데 스키마를 조이는 마이그레이션은 둘을 함께 올려야 한다.** 갈라 놓은
+  것이 이번엔 반대로 문다 — 칼럼을 걷었는데 옛 파이프라인 이미지가 그 칼럼에
+  INSERT 하면 폴러가 선다. **조인 사본에 파이프라인 컨테이너를 붙여 먼저 돌려
+  볼 것** (055 에서 그렇게 잡았다)
+- **폴러를 세울 때 crontab 을 고치지 않는다.** `poll_nas.sh` 가 `flock -n` 으로
+  겹침을 막으므로 `flock /tmp/DiaRUGA-poll.lock <명령>` 이면 그 사이 실행이
+  조용히 물러난다. 남의 설정을 고쳤다가 되돌리기를 잊는 쪽이 위험하다
+- **`dbrun.sh` 로 돌릴 스크립트는 `check_db.py` 의 머리를 베껴 온다.**
+  컨테이너 안에서는 코드가 `/app` 이라 `DIARUGA_APP` 을 봐야 한다 — 자기 옆의
+  `web/` 을 보게 짜면 `No module named 'diarugaweb'` 로 죽는다
 - **사내망이 `download.pytorch.org` 의 TLS 를 가로챈다.** 파이프라인 이미지 빌드가
   거기서 죽으면 `deploy/ca/` 를 볼 것. `pip` 은 시스템 CA 저장소를 보지 않아
   `PIP_CERT` 를 함께 줘야 한다
