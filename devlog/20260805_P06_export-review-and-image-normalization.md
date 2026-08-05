@@ -201,8 +201,8 @@ Viewpoint 1:N Image(kind = stack | frame | depth, path, …) 1:N Detection 1:N C
 
 | 단계 | 상태 |
 |---|---|
-| 1. `export_review.py` | 진행 중 |
-| 2. `Image` + `Detection.image`(nullable) | 남음 |
+| 1. `export_review.py` | **끝** — 2026-08-05. 시야 432 · 교정 6,732 |
+| 2. `Image` + `Detection.image`·`ObjectReview.image`(nullable) | **끝** — `0019_image_table`. 아직 배포 전 |
 | 3. 백필 | 남음 |
 | 4. 파이프라인이 `image` 를 쓴다 | 남음 |
 | 5. 조이기 + 프레임별 검토 | 남음 |

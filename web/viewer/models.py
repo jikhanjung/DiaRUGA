@@ -299,6 +299,81 @@ class Stack(models.Model):
         return self.focused_path
 
 
+class Image(models.Model):
+    """**검출을 돌릴 수 있는 이미지 한 장.** (P06 2단계, 2026-08-05)
+
+    ## 왜 만드는가
+
+    `시야 1:N 프레임 1:N 검출` 이 이 스키마에서 성립하지 않았다 — **합성본은
+    프레임이 아니기 때문이다.** 검출이 도는 이미지가 `Stack.focused_path` 아니면
+    `Frame.path` 라 테이블이 둘이고, 그래서 `Detection` 이 `target`(`stack|frame`)
+    + nullable `frame` 으로 **다형 연관을 흉내 내고** 있었다.
+
+    그 흉내가 실제로 값을 치렀다. `ObjectReview` 의 열쇠가 `(viewpoint, mask_key)`
+    인데 이것은 **시야마다 볼 이미지가 한 장**일 때만 성립한다. YOLO 처럼 프레임
+    마다 검출을 내면 깨진다 — 실측으로 시야 452개 중 203개(45%)에서 프레임끼리
+    `mask_key` 가 겹친다. 고치려고 `(viewpoint, frame, mask_key)` 로 가면 합성본의
+    `frame` 이 NULL 이라 **유일 제약이 82%에 대해 조용히 작동을 멈춘다**(NULL 은
+    서로 다른 값으로 친다).
+
+    이 표가 생기면 그 문제가 **사라진다.** `(image, mask_key)` 하나면 되고,
+    판별자 문자열도 `__stack__` 센티널도 NULL 규칙도 필요 없다.
+
+    ## 열쇠는 `path` 다
+
+    `DATA_ROOT` 기준 상대경로이고 **파일 하나에 행 하나**다. 실측으로 프레임
+    1,318 · 합성본 317 · 깊이맵 317 = 1,952개가 전부 겹치지 않는다. 자연 열쇠가
+    있는데 대리 열쇠를 만들 이유가 없고, `viewpoint` 를 넣으면 그룹핑 전 프레임
+    (viewpoint 가 비어 있다)에서 다시 NULL 문제가 생긴다.
+
+    ## 무엇을 담지 않는가
+
+    **촬영·합성 메타는 그대로 `Frame`·`Stack` 에 둔다.** 이 표는 정체(identity)만
+    맡는다 — `Frame` 은 선명도·촬영시각·`seq`, `Stack` 은 정렬 실패·품질 지표처럼
+    **합성 실행의 산물**을 들고 있고, 그것들은 이미지가 아니라 그 이미지를 만든
+    일에 대한 기록이다.
+
+    ## `kind="depth"` 는 검출이 붙지 않는다
+
+    깊이맵은 Z 좌표가 없는 상대값이라 볼 것은 되지만 검출 대상이 아니다(실측으로
+    검출 0건). 지금까지는 **관행으로만** 그랬는데, 이제 종류가 스키마에 적힌다.
+
+    ## 지금은 아무도 안 쓴다
+
+    P06 은 넓히고(2) → 채우고(3) → 파이프라인을 옮기고(4) → 조인다(5). 지금은
+    2단계라 이 표가 서 있기만 하고 `Detection.image`·`ObjectReview.image` 는
+    **nullable** 이다 — 옛 파이프라인 이미지의 INSERT 가 죽으면 안 되기 때문이다
+    (뷰어와 파이프라인은 판이 따로 돈다).
+    """
+
+    KIND = [("stack", "합성본"), ("frame", "프레임"), ("depth", "깊이맵")]
+
+    # 그룹핑 전 프레임은 시야가 없다 — `Frame.viewpoint` 와 같은 사정이다.
+    viewpoint = models.ForeignKey(Viewpoint, null=True, blank=True,
+                                  on_delete=models.CASCADE,
+                                  related_name="images")
+    kind = models.CharField(max_length=8, choices=KIND)
+    path = models.CharField(max_length=500, unique=True)
+    # 어디서 왔는가. 경로로도 되짚을 수 있지만 조인이 명시적인 편이 낫다.
+    # 둘 다 `SET_NULL` 이다 — 출처가 정리돼도 이미지 행과 그 위의 교정은 남는다.
+    frame = models.OneToOneField(Frame, null=True, blank=True,
+                                 on_delete=models.SET_NULL,
+                                 related_name="image")
+    stack = models.ForeignKey(Stack, null=True, blank=True,
+                              on_delete=models.SET_NULL,
+                              related_name="images")
+    width = models.IntegerField(null=True, blank=True)
+    height = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["viewpoint", "kind", "path"]
+        indexes = [models.Index(fields=["viewpoint", "kind"])]
+
+    def __str__(self):
+        return f"{self.kind}:{self.path}"
+
+
 class ThresholdSet(models.Model):
     """판정 문턱. 지금은 11개 값이 결과 JSON 마다 복사돼 있다.
 
@@ -411,8 +486,17 @@ class Detection(models.Model):
                                  related_name="detections")
     target = models.CharField(max_length=8, choices=TARGET)
     # target=frame 일 때만 (싱글턴 시야는 합성본이 없어 그 한 장으로 돌린다)
+    #
+    # **`target` 과 이 칸은 `image` 로 대체된다** (P06). 지금은 넓히는 중이라
+    # 셋이 함께 있다 — `image` 가 채워지고 파이프라인이 그것을 쓰기 시작한 뒤에
+    # 이 둘을 걷는다(5단계). 그때까지는 이쪽이 원본이다.
     frame = models.ForeignKey(Frame, null=True, blank=True,
                               on_delete=models.SET_NULL,
+                              related_name="detections")
+    # 어느 이미지에 대한 검출인가. **지금은 nullable 이다** — 옛 파이프라인
+    # 이미지가 이 칸을 모르는 채 INSERT 하기 때문이다(판이 따로 돈다).
+    image = models.ForeignKey("Image", null=True, blank=True,
+                              on_delete=models.CASCADE,
                               related_name="detections")
     image_path = models.CharField(max_length=500)
     width = models.IntegerField(null=True, blank=True)
@@ -535,6 +619,16 @@ class ObjectReview(models.Model):
 
     viewpoint = models.ForeignKey(Viewpoint, on_delete=models.CASCADE,
                                  related_name="object_reviews")
+    # **어느 이미지를 보고 한 판단인가** (P06). 지금 열쇠인
+    # `(viewpoint, mask_key)` 는 시야마다 볼 이미지가 한 장일 때만 성립한다 —
+    # 프레임별 검출을 검토하기 시작하면 깨진다. 채워지고 나면 열쇠가
+    # `(image, mask_key)` 가 되고 `viewpoint` 는 편의용으로 남는다(5단계).
+    #
+    # **`SET_NULL` 이다.** 교정은 이미지 행보다 오래 산다 — 재검출·재그룹핑에서
+    # 이미지가 정리돼도 사람의 판단은 `geom` 을 들고 남아야 한다.
+    image = models.ForeignKey("Image", null=True, blank=True,
+                              on_delete=models.SET_NULL,
+                              related_name="object_reviews")
     mask_key = models.CharField(max_length=64)
     candidate = models.ForeignKey(Candidate, null=True, blank=True,
                                   on_delete=models.SET_NULL,
