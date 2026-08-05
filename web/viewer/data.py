@@ -606,17 +606,79 @@ def review_blocked(stem_or_slide) -> str:
             f"끝나는 대로 검토를 열겠습니다.")
 
 
-def _viewpoint_of(stem: str) -> Viewpoint | None:
-    """검출·교정의 stem 으로 시야를 찾는다.
+def _viewpoints_by_stem(stem: str) -> list:
+    """stem 이 가리키는 시야들. **여럿이면 여럿을 그대로 돌려준다.**
 
     합성본은 `<tag>_focused`, 싱글턴은 프레임 이름(`Snap-21171`)이다.
+
+    **프레임 이름은 슬라이드끼리 겹친다** — 카메라 일련번호라 같은 날 이어 찍으면
+    번호대가 이어진다(260803 두 슬라이드에서 143종). `Frame` 에 `(slide, name)`
+    유일 제약이 있는 것이 곧 "이름만으로는 못 찾는다" 는 뜻인데, 여기가 그 제약을
+    안 쓰고 `.first()` 로 아무거나 집고 있었다. 고르는 일은 부르는 쪽에 맡긴다.
     """
     qs = (Viewpoint.objects
           .prefetch_related("detections__candidates", "object_reviews"))
     if stem.endswith("_focused"):
-        return qs.filter(tag=stem[: -len("_focused")]).first()
-    fr = Frame.objects.filter(name=stem).values_list("viewpoint_id", flat=True).first()
-    return qs.filter(id=fr).first() if fr else None
+        return list(qs.filter(tag=stem[: -len("_focused")]))
+    ids = (Frame.objects.filter(name=stem)
+           .values_list("viewpoint_id", flat=True).distinct())
+    return list(qs.filter(id__in=list(ids)))
+
+
+def _viewpoint_of(stem: str) -> Viewpoint | None:
+    """stem 하나로 시야를 찾는다. **모호하면 None 이다.**
+
+    이름이 겹쳐 둘 이상이 나오면 **아무것도 돌려주지 않는다.** 아무거나 집으면
+    엉뚱한 시야가 열리고, 그 화면에서 저장하면 `save_review` 가 그 시야의 교정을
+    통째로 갈아치운다 — 사본에서 재현했다: 싱글턴 시야 135개 중 12개가 자기
+    stem 으로 자기를 못 찾았고, "검토 완료" 만 누른 빈 payload 하나가 남의 시야
+    교정 7건을 지웠다(2026-08-05). 017·027 과 같은 계열이다.
+
+    **부르는 쪽은 `find_viewpoint()` 를 쓴다** — 거기는 `(slug, gid)` 로 짚어서
+    모호할 일이 없다.
+    """
+    vps = _viewpoints_by_stem(stem)
+    return vps[0] if len(vps) == 1 else None
+
+
+def find_viewpoint(stem: str = "", slug: str = "",
+                   gid=None) -> tuple[Viewpoint | None, str]:
+    """저장 요청이 가리키는 시야. `(시야, 오류)` 를 돌려준다.
+
+    **`(slug, gid)` 가 있으면 그것이 정답이다.** stem 은 이름이라 겹칠 수 있지만
+    슬라이드 슬러그와 시야 번호는 주소 그 자체다 — 화면이 이미 둘 다 알고 있으므로
+    보내지 못할 이유가 없다.
+
+    stem 은 그때 **검증용**으로만 쓴다: 그 시야의 현재 검출 이미지와 다르면
+    "다른 화면을 보고 보낸 것" 이므로 받지 않는다. 화면과 저장 대상이 어긋난
+    채로 통과하는 길을 하나도 남기지 않기 위해서다.
+
+    `(slug, gid)` 가 없으면 stem 으로 찾되 **모호하면 거절한다.**
+    """
+    if slug and gid is not None:
+        vp = (Viewpoint.objects
+              .prefetch_related("detections__candidates", "object_reviews")
+              .filter(slide__slug=slug, idx=gid).first())
+        if vp is None:
+            return None, f"모르는 시야다: {slug} g{gid}"
+        if stem:
+            cur = next((d for d in vp.detections.all() if d.is_current), None)
+            # 검출이 아직 없는 시야(검토 준비 중)는 견줄 대상이 없다. 그쪽은
+            # `review_blocked` 가 따로 막는다.
+            if cur is not None and Path(cur.image_path).stem != stem:
+                return None, (f"화면과 저장 대상이 어긋난다 — {slug} g{gid} 의 "
+                              f"현재 검출은 {Path(cur.image_path).stem} 인데 "
+                              f"{stem} 을 보냈다")
+        return vp, ""
+
+    vps = _viewpoints_by_stem(stem)
+    if not vps:
+        return None, f"모르는 이미지다: {stem}"
+    if len(vps) > 1:
+        where = ", ".join(f"{v.slide.slug} g{v.idx}" for v in vps[:4])
+        return None, (f"이 이름의 시야가 {len(vps)}개다 — 어느 것인지 알 수 없어 "
+                      f"저장하지 않았다 ({where}). 화면을 새로고침할 것")
+    return vps[0], ""
 
 
 def detection_for(stem: str) -> dict | None:
@@ -1161,14 +1223,18 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
 
 
 # --- 교정 저장 --------------------------------------------------------------
-def save_review(stem: str, done: bool, note: str, removed, accepted,
+def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
                 labels: dict, notes: dict) -> dict | None:
     """뷰어가 보낸 교정을 DB 에 쓴다. 예전에는 review/<stem>_review.json 이었다.
 
     키(mask_key)마다 한 행이고, 아무 표시도 남지 않은 행은 지운다 — 그래야
     "교정 전체 초기화" 가 예전처럼 깨끗하게 동작한다.
+
+    **시야는 부르는 쪽이 짚어서 넘긴다** (`find_viewpoint`). 예전에는 여기서
+    stem 으로 찾았는데, 프레임 이름이 슬라이드끼리 겹쳐 **엉뚱한 시야가 잡히는
+    길**이 있었다 — 이 함수는 마지막에 그 시야의 교정을 통째로 갈아치우므로
+    잘못 짚으면 남의 판단이 사라진다.
     """
-    vp = _viewpoint_of(stem)
     if vp is None:
         return None
 

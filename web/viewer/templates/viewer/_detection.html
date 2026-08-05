@@ -55,8 +55,15 @@
   — 늘 자리를 차지하면 사진이 그만큼 좁아진다(JS 가 여닫는다).
 {% endcomment %}
 <div class="detrow" id="detrow-{{ uid }}">
+{% comment %}
+  **저장은 `(slug, gid)` 로 시야를 짚는다.** `stem` 은 이름이라 슬라이드끼리
+  겹치는데(프레임 이름 143종), 그것 하나로 찾다가 12개 화면이 다른 슬라이드의
+  시야를 열고 있었다 — 거기서 저장하면 남의 교정이 통째로 지워진다. 주소는
+  겹치지 않고, 화면이 이미 알고 있다.
+{% endcomment %}
 <div class="detview" id="dv-{{ uid }}"
-     data-w="{{ det.size.0 }}" data-h="{{ det.size.1 }}" data-stem="{{ det.stem }}">
+     data-w="{{ det.size.0 }}" data-h="{{ det.size.1 }}" data-stem="{{ det.stem }}"
+     data-slug="{{ slug }}" data-gid="{{ id }}">
   <div class="canvas" id="canvas-{{ uid }}">
     <img id="img-{{ uid }}" src="{% thumb base 1600 %}" alt="{{ title }}" draggable="false">
     <svg class="masks" id="masks-{{ uid }}"
@@ -229,6 +236,9 @@
   var rejects = JSON.parse(document.getElementById('rej-' + uid).textContent || '[]');
   var W = parseFloat(view.dataset.w), H = parseFloat(view.dataset.h);
   var stem = view.dataset.stem;
+  // 저장이 어느 시야로 갈지는 이 둘이 정한다 (stem 은 서버가 검증에만 쓴다)
+  var vpSlug = view.dataset.slug || '';
+  var vpGid = view.dataset.gid || '';
   if (!W || !H) return;
 
   var imgEl = document.getElementById('img-' + uid);
@@ -958,6 +968,8 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         stem: stem,
+        slug: vpSlug,
+        gid: vpGid === '' ? null : Number(vpGid),
         done: reviewDone,
         removed: Array.from(removed),
         accepted: Array.from(accepted),

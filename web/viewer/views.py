@@ -929,7 +929,8 @@ def save_review(request):
     """
     교정 결과를 저장한다.
 
-        {"stem": ..., "done": bool, "removed": [key], "accepted": [key],
+        {"stem": ..., "slug": ..., "gid": int,
+         "done": bool, "removed": [key], "accepted": [key],
          "labels": {key: "round"|"round_frag"|"rod"|"rod_frag"},
          "notes":  {key: "사람이 적은 메모"}}
 
@@ -940,6 +941,17 @@ def save_review(request):
 
     labels 는 자동 판정을 사람이 덮어쓴 것이다 — 조각난 규조각이 봉상/원형으로
     잘못 분류되는 것을 손으로 고치는 수단이고, 학습 데이터의 정답이 된다.
+
+    ## 어느 시야에 쓰는가는 `(slug, gid)` 가 정한다
+
+    예전에는 `stem` 하나로 찾았다. **프레임 이름은 슬라이드끼리 겹친다** —
+    싱글턴 시야는 stem 이 곧 프레임 이름이라, 12개 화면이 **다른 슬라이드의
+    시야를 열고 있었다.** 이 뷰는 마지막에 그 시야의 교정을 통째로 갈아치우므로
+    (`data.save_review`), "검토 완료" 만 누른 빈 payload 하나가 남의 교정 7건을
+    지웠다 — 사본에서 재현했다(2026-08-05). 예외도 409 도 없이 200 이었다.
+
+    `stem` 은 남겨 두고 **검증용**으로 쓴다: 그 시야의 현재 검출과 다르면 받지
+    않는다. 화면과 저장 대상이 어긋난 채 통과하는 길을 남기지 않는다.
     """
     try:
         payload = json.loads(request.body.decode("utf-8"))
@@ -950,10 +962,24 @@ def save_review(request):
     if not SAFE_STEM.match(stem):
         return HttpResponseBadRequest("bad stem")
 
+    # 옛 화면(배포 중에 열려 있던 탭)은 slug·gid 를 안 보낸다. 그때는 stem 으로
+    # 찾되 **모호하면 거절한다** — 아무거나 집는 길은 없앤다.
+    slug = str(payload.get("slug", "") or "")
+    gid = payload.get("gid")
+    if gid is not None:
+        try:
+            gid = int(gid)
+        except (TypeError, ValueError):
+            return HttpResponseBadRequest("bad gid")
+
+    vp, why = data.find_viewpoint(stem=stem, slug=slug, gid=gid)
+    if vp is None:
+        return JsonResponse({"ok": False, "error": why}, status=409)
+
     # 자동 처리가 끝나기 전에는 저장을 받지 않는다 (P01 §1).
     # 반쯤 처리된 슬라이드를 검토하면 아직 안 돌아간 시야의 검출이 뒤늦게
     # 들어오면서 이미 본 화면이 바뀐다. 최상위 폴더 하나를 단위로 열고 닫는다.
-    blocked = data.review_blocked(stem)
+    blocked = data.review_blocked(vp.slide)
     if blocked:
         return JsonResponse({"ok": False, "error": blocked}, status=409)
 
@@ -1009,7 +1035,7 @@ def save_review(request):
         return HttpResponseBadRequest("bad note")
 
     try:
-        saved = data.save_review(stem, done=done, note=note, removed=removed,
+        saved = data.save_review(vp, done=done, note=note, removed=removed,
                                  accepted=accepted, labels=labels, notes=notes)
     except ValueError as e:
         # 현재 검출에 없는 키가 섞여 왔다. 아무것도 바꾸지 않고 돌려보낸다 —
