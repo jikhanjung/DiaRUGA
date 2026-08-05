@@ -41,8 +41,21 @@
     <label>이름
       <input type="text" name="slide_name" value="{{ slide.name }}" maxlength="200">
       <span class="hint">폴더 이름에서 가져왔습니다.</span></label>
+    {% comment %}
+      시료 종류를 깊이 바로 위에 둔다 — 노두를 고르면 아래 깊이 칸이 뜻을 잃기
+      때문이다. JS 가 그때 깊이 칸을 잠근다(꺼도 값은 남는다 — 잘못 골랐다가
+      되돌릴 때 다시 적게 하지 않는다).
+    {% endcomment %}
+    <label>시료 종류
+      <select name="sample_kind" id="samplekind">
+        {% for k, lab in slide.KIND %}
+          <option value="{{ k }}" {% if slide.sample_kind == k %}selected{% endif %}>{{ lab }}</option>
+        {% endfor %}
+      </select>
+      <span class="hint">노두(outcrop) 시료에는 깊이가 없습니다. 목록에는
+        <code class="mono">OC</code> 로 나옵니다.</span></label>
     <label>깊이 (cm)
-      <input type="number" step="0.1" name="depth_cm"
+      <input type="number" step="0.1" name="depth_cm" id="depthcm"
              value="{{ slide.depth_cm|default_if_none:'' }}">
       <span class="hint">폴더 이름에서 읽었습니다. 예: 369</span></label>
     <label>배율 (µm/px)
@@ -185,6 +198,22 @@
   });
   show((location.hash || '#slide').slice(1));
 })();
+
+// 노두를 고르면 깊이 칸을 잠근다. **비우지는 않는다** — 잘못 골랐다가 되돌릴 때
+// 값을 다시 적게 하지 않는다. JS 가 없어도 폼은 그대로 돈다(잠기지 않을 뿐이고,
+// 서버가 노두면 깊이를 무시한다).
+(function () {
+  var kind = document.getElementById('samplekind'),
+      depth = document.getElementById('depthcm');
+  if (!kind || !depth) return;
+  function apply() {
+    var oc = kind.value === 'outcrop';
+    depth.disabled = oc;
+    depth.title = oc ? '노두 시료에는 깊이가 없습니다' : '';
+  }
+  kind.addEventListener('change', apply);
+  apply();
+})();
 </script>
 
 <style>
@@ -210,12 +239,17 @@
   .propform h3 { margin: 0 0 2px; font-size: 14px; }
   .propform section > p.dim { margin: 0 0 12px; font-size: 12px; }
   .propform label { display: block; margin-bottom: 11px; font-size: 12.5px; }
-  .propform input, .propform textarea {
+  .propform input, .propform textarea, .propform select {
     display: block; width: 100%; margin-top: 4px; box-sizing: border-box;
     font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 5px;
     background: var(--field-bg); color: var(--fg); border: 1px solid var(--line);
   }
-  .propform input:focus, .propform textarea:focus { outline: none; border-color: var(--accent); }
+  .propform input:focus, .propform textarea:focus,
+  .propform select:focus { outline: none; border-color: var(--accent); }
+  /* 노두를 고르면 깊이 칸이 뜻을 잃는다. **지우지 않고 잠근다** — 잘못 골랐다가
+     되돌릴 때 값을 다시 적게 하지 않는다. 잠긴 칸은 브라우저가 안 보내므로
+     서버 쪽도 노두면 깊이를 건드리지 않는다(views.dataset_edit). */
+  .propform input:disabled { opacity: .45; cursor: not-allowed; }
   .propform .hint { display: block; margin-top: 3px; font-size: 11px; color: var(--dim); }
   .propform .two { display: flex; gap: 12px; }
   .propform .two label { flex: 1; }

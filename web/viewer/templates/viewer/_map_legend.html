@@ -42,7 +42,7 @@
             {% for sl in c.slides %}
               <li class="mslide">
                 <a href="{% url 'dataset' sl.slug %}">
-                  {% if sl.depth_cm %}{{ sl.depth_cm|floatformat:"-1" }} cm{% else %}<span class="dim">깊이 미상</span>{% endif %}
+                  {% include "viewer/_depth.html" with sample_kind=sl.sample_kind depth_cm=sl.depth_cm dash=1 short=1 only %}
                 </a>
                 <span class="dim vp">시야 {{ sl.n_viewpoints }}</span>
                 {% if sl.state != "done" %}<span class="dsstate rev">{{ sl.state }}</span>

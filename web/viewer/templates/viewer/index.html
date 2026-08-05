@@ -112,7 +112,12 @@
     <tr>
       <th>슬라이드</th>
       <th>코어</th>
-      <th>깊이</th>
+      {% comment %}
+        "깊이" 가 아니라 "위치" 다 — 노두(outcrop) 시료에는 깊이가 없어서
+        이 칸이 "코어의 어디에서 온 시료인가" 를 답한다. 시추코어는 cm,
+        노두는 OC 다 (좁은 칸이라 줄인다 — `_depth.html` 머리말).
+      {% endcomment %}
+      <th title="시추코어는 깊이(cm), 노두 시료는 OC">위치</th>
       <th>µm/px</th>
       <th>사진</th>
       <th>시야</th>
@@ -148,7 +153,7 @@
       <td class="dscore">
         {% if d.site %}<span class="dim">{{ d.site }}</span> {% endif %}{{ d.core }}
       </td>
-      <td>{% if d.depth_cm %}{{ d.depth_cm|floatformat:"-1" }} cm{% else %}<span class="dim">—</span>{% endif %}</td>
+      <td>{% include "viewer/_depth.html" with sample_kind=d.sample_kind depth_cm=d.depth_cm dash=1 short=1 only %}</td>
       <td class="mono">{% if d.um_per_pixel %}{{ d.um_per_pixel|floatformat:4 }}{% else %}<span class="dim">—</span>{% endif %}</td>
       <td>{{ d.n_images }}</td>
       <td>{{ d.n_groups }}</td>
@@ -203,7 +208,7 @@
   <div class="card">
     <h3><a href="{% url 'dataset' d.slug %}">{{ d.label }}</a></h3>
     <div class="dsmeta">
-      {% if d.site %}{{ d.site }}{% endif %}{% if d.core %} · {{ d.core }}{% endif %}{% if d.depth_cm %} · {{ d.depth_cm|floatformat:"-1" }} cm{% endif %}
+      {% if d.site %}{{ d.site }}{% endif %}{% if d.core %} · {{ d.core }}{% endif %}{% if d.sample_kind == "outcrop" or d.depth_cm %} · {% include "viewer/_depth.html" with sample_kind=d.sample_kind depth_cm=d.depth_cm only %}{% endif %}
       {% if d.um_per_pixel %}<span class="mono">· {{ d.um_per_pixel|floatformat:4 }} µm/px</span>{% endif %}
       {% if d.state != "done" %}<span class="dsstate" title="{{ d.state_note }}">{{ d.state }}</span>{% endif %}
       <a class="dsedit" href="{% url 'dataset_edit' d.slug %}">속성 편집</a>
@@ -212,21 +217,38 @@
     {% if d.missing_dir %}
       <div class="dswarn">이미지 디렉토리를 찾을 수 없다: <code class="mono">{{ d.image_dir }}</code></div>
     {% endif %}
+    {% comment %}
+      두 줄을 축으로 가른다 — **첫째 = 얼마나 있고 얼마나 봤나 · 둘째 = 무엇이
+      있었나.** 예전에는 윗변 선이 `평균 장수` 와 `검출` 사이를 지나 아랫줄이
+      "분류별 + 규모 둘 + 진행률" 잡탕이었다.
+
+      그러면 둘째 줄이 정확히 `ClassDef.counted` 만 남아 **분류를 더하면 저절로
+      한 칸 는다** — 038~040 과 같은 방향이다.
+
+      `검토` 는 검출과 무관한 값인데 예전에는 `mean_counted` 의 if 안에 있어
+      **검출이 없는 슬라이드는 검토 수가 아예 안 보였다.** 올리면서 밖으로 뺀다.
+    {% endcomment %}
     <div class="stat-row">
       <div class="stat"><b>{{ d.n_images }}</b><span>사진</span></div>
       <div class="stat"><b>{{ d.n_groups }}</b><span>시야</span></div>
       <div class="stat"><b>{{ d.mean_size }}</b><span>평균 장수</span></div>
-    </div>
-    <div class="stat-row cardstats2">
       {% if d.mean_counted is not None %}
         <div class="stat" title="검출 개체 {{ d.n_detected }}개 중 세는 분류"><b>{{ d.n_counted }}</b><span>검출</span></div>
         <div class="stat"><b>{{ d.mean_counted }}{% if d.detected_groups < d.n_groups %}<span class="dim">*</span>{% endif %}</b><span>시야당</span></div>
-        {% for c in d.counted %}<div class="stat" title="{{ c.label }}"><b>{{ c.n }}</b><span>{{ c.short }}</span></div>{% endfor %}
-        <div class="stat"><b>{{ d.reviewed_groups }}<span class="dim" style="font-size:13px">/{{ d.n_groups }}</span></b><span>검토</span></div>
       {% else %}
+        {% comment %}
+          검출이 없다는 말도 첫째 줄에 선다 — 둘째 줄에 두면 검출 없는
+          슬라이드에 **선만 있는 빈 줄**이 남는다.
+        {% endcomment %}
         <span class="dim nodet">검출 결과 없음</span>
       {% endif %}
+      <div class="stat"><b>{{ d.reviewed_groups }}<span class="dim" style="font-size:13px">/{{ d.n_groups }}</span></b><span>검토</span></div>
     </div>
+    {% if d.mean_counted is not None %}
+    <div class="stat-row cardstats2">
+      {% for c in d.counted %}<div class="stat" title="{{ c.label }}"><b>{{ c.n }}</b><span>{{ c.short }}</span></div>{% endfor %}
+    </div>
+    {% endif %}
     {% if d.mean_counted is not None and d.detected_groups < d.n_groups %}
       <div class="dsnote">{{ d.n_groups }}개 시야 중 {{ d.detected_groups }}개만 검출됨 — 시야당은 그 시야들 기준</div>
     {% endif %}

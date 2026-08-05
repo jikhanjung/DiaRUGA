@@ -25,6 +25,10 @@
     --warn-bg: #4a3a12; --warn-fg: #ffe9b8; --warn-line: #7d6222;
     /* 입력칸. 패널보다 살짝 눌러 앉은 면 */
     --field-bg: #0e0e11;
+    /* 배경 워터마크의 진하기. **테마마다 따로 준다** — 어두운 바탕에 얹는 밝은
+       획과 밝은 바탕에 얹는 어두운 획은 같은 알파로 같게 안 보인다. 어두운
+       쪽이 더 잘 드러나므로 값이 더 작다. */
+    --wm-op: .045;
   }
   @media (prefers-color-scheme: light) {
     :root {
@@ -35,6 +39,7 @@
       --err-bg: #fdecec;  --err-fg: #7f1d1d; --err-line: #f0b4b4;
       --warn-bg: #fdf3e0; --warn-fg: #7c4a03; --warn-line: #e8c98a;
       --field-bg: #fff;
+      --wm-op: .06;
     }
   }
   * { box-sizing: border-box; }
@@ -70,6 +75,47 @@
   /* 워드마크는 SVG 가 아니라 글자다 — 원본의 Montserrat 이 이 서버에 없다.
      **`text-transform` 을 여기 얹지 말 것**: DiaRUGA 의 대소문자가 곧 약자다. */
   .wordmark { font-weight: 750; letter-spacing: .3px; }
+
+  /* --- 배경 워터마크 ---
+     페이지 뒤에 규조 마크를 아주 옅게 깐다. 표시 겸 디자인이다.
+
+     **PNG 을 쓰지 않는다.** docs/assets/logo/ 의 PNG 은 281 KB 이고, 이 배포에는
+     정적 파일을 내보내는 길이 없어(STATIC_ROOT 도 nginx 의 static 자리도 없다)
+     data URI 로 심어야 하는데 base64 면 ~375 KB 가 모든 페이지에 붙는다.
+     같은 그림이 이미 _logo.html 로 1 KB 남짓 심겨 있다 — 그것을 쓴다.
+
+     `body::before` 가 아니라 요소인 이유: 그림을 include 로 가져오려면 실제
+     요소여야 한다. 하는 일은 같다(fixed · z-index -1).
+
+     **z-index: -1 이라 카드·표가 덮는다.** body 의 배경은 캔버스로 올라가므로
+     여기가 그 위에 그려지고, 흐름 속의 본문은 다시 그 위다. --panel 이 불투명해
+     여백에만 남는다 — 그 자체로 경계가 선다. **검토 화면은 .detview 가
+     background:#000 이라 사진 뒤로는 아무것도 새지 않는다.** 현미경 사진과
+     마스크를 읽는 자리에 무늬가 있으면 구조로 오독될 수 있다.
+
+     **글자는 머리글과 같은 방식이다.** 원본의 워드마크는 Montserrat 인데 서버에
+     없고 사내망이라 웹폰트도 못 받는다(_logo.html 머리말) — 그래서 머리글도
+     SVG 가 아니라 HTML 글자로 쓴다. 기기마다 글꼴이 다르게 나오지만, 여기는
+     읽는 글이 아니라 배경이라 그 차이가 드러날 자리가 아니다.
+     **text-transform 을 얹지 말 것**: DiaRUGA 의 대소문자가 곧 약자다. */
+  .watermark {
+    position: fixed; inset: 0; z-index: -1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 3.2vmin;
+    /* 검토 화면이 캔버스 전체에 클릭·드래그를 건다 — 통과시켜야 한다 */
+    pointer-events: none;
+    color: var(--fg); opacity: var(--wm-op);
+  }
+  /* 머리글의 .logomark(21px)와 같은 그림이라 크기를 여기서 다시 정한다.
+     vmin 이라 세로로 긴 화면에서도 넘치지 않는다. */
+  .watermark .logomark { width: min(46vmin, 400px); height: auto; }
+  /* 글자는 마크의 폭에 맞춘다 — 둘의 비율이 고정이라 화면이 커져도 한 덩어리로
+     읽힌다. 자간을 머리글보다 넓게 주는 것은 크게 뽑을수록 글자가 뭉쳐 보여서다. */
+  .watermark .wordmark {
+    font-size: min(11vmin, 96px); line-height: 1;
+    letter-spacing: .06em; white-space: nowrap;
+  }
+
   header .sub { font-size: 13px; color: var(--dim); min-width: 0; }
   header .sub b { color: var(--fg); font-weight: 650; }
   header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
@@ -435,7 +481,8 @@
     display: flex; gap: 7px; align-items: baseline;
     padding: 2px 0; font-size: 11.5px;
   }
-  /* 깊이는 오른쪽 맞춤 — 세로로 자릿수가 맞아야 순서가 눈에 들어온다 */
+  /* 깊이는 오른쪽 맞춤 — 세로로 자릿수가 맞아야 순서가 눈에 들어온다.
+     노두 시료는 여기서 `OC` 로 줄여 나오므로 이 폭에 들어간다. */
   .maptree .mslide a {
     font-variant-numeric: tabular-nums; text-align: right;
     flex: 0 0 54px;
@@ -452,7 +499,13 @@
   .card .cardstats2 {
     border-top: 1px solid var(--line); padding-top: 10px; margin-top: 12px;
   }
-  .card .nodet { font-size: 12px; }
+  /* 첫째 줄이 여섯 칸이라(사진·시야·평균 장수·검출·시야당·검토) 기본 간격
+     18px 로는 자릿수가 큰 슬라이드에서 한 칸이 접혀 내려간다. 카드에서만
+     좁힌다 — 표는 이 규칙을 안 쓴다. */
+  .card .stat-row { gap: 13px; }
+  /* "검출 결과 없음" 은 이제 첫째 줄에서 숫자 칸들과 나란히 선다.
+     stat 은 두 줄(숫자 + 이름)이라 그냥 두면 글자가 위에 붙는다. */
+  .card .nodet { font-size: 12px; align-self: center; }
   .card .dsnote { font-size: 11.5px; color: var(--dim); margin-top: 6px; }
   .card .dsmeta {
     font-size: 12px; color: var(--dim); display: flex; flex-wrap: wrap;
@@ -931,6 +984,11 @@
   그래서 `text-transform` 을 얹지 않는다. 표 머리(th)와 카드 항목(.stat span)에
   `uppercase` 가 걸려 있으니 이름을 그 안에 넣지 말 것.
 {% endcomment %}
+{% comment %}
+  배경 워터마크. 읽는 것이 아니라 바탕이라 aria-hidden 이다 — _logo.html 의
+  svg 도 제 안에서 한 번 더 감춘다. 규칙은 base.html 의 .watermark 에 있다.
+{% endcomment %}
+<div class="watermark" aria-hidden="true">{% include "viewer/_logo.html" %}<span class="wordmark">DiaRUGA</span></div>
 <header>
   <h1><a href="{% url 'index' %}">{% include "viewer/_logo.html" %}<span class="wordmark">DiaRUGA</span></a>{% if image_tag %}<span class="ver" title="지금 떠 있는 뷰어 이미지의 판">{{ image_tag }}</span>{% endif %}</h1>
   <span class="sub">{% block subtitle %}{% endblock %}</span>

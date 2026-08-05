@@ -368,6 +368,7 @@ def map_points(area: str | None = None) -> list[dict]:
                     "slug": sl.slug,
                     "label": sl.name,
                     "depth_cm": sl.depth_cm,
+                    "sample_kind": sl.sample_kind,
                     "state": sl.state,
                     "n_viewpoints": sl.viewpoints.count(),
                     "reviewed": ViewpointReview.objects.filter(
@@ -789,6 +790,7 @@ def datasets(area: str | None = None) -> list[dict]:
             "site": (site.region or site.name or site.code) if site else "",
             "core": core.code if core else "",
             "depth_cm": slide.depth_cm,
+            "sample_kind": slide.sample_kind,
             "description": slide.description,
             "um_per_pixel": scales.get(slide.slug),
             "state": slide.state,
@@ -924,6 +926,7 @@ def dataset_detail(slug: str) -> dict | None:
                  or slide.core.site.code) if slide.core else "",
         "core": slide.core.code if slide.core else "",
         "depth_cm": slide.depth_cm,
+        "sample_kind": slide.sample_kind,
         "um_per_pixel": scales_by_slide().get(slide.slug),
         "groups": groups,
         **_slide_summary(slide, details),

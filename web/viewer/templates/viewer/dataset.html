@@ -12,7 +12,7 @@
 <div class="crumb"><a href="{% url 'index' %}">데이터셋</a> / {{ label }}</div>
 <h2>{{ label }}</h2>
 <p class="dim mono" style="font-size:12px; margin-bottom:2px">
-  {% if site %}{{ site }} · {% endif %}{% if core %}{{ core }} · {% endif %}{% if depth_cm %}{{ depth_cm|floatformat:"-1" }} cm · {% endif %}
+  {% if site %}{{ site }} · {% endif %}{% if core %}{{ core }} · {% endif %}{% if sample_kind == "outcrop" or depth_cm %}{% include "viewer/_depth.html" with sample_kind=sample_kind depth_cm=depth_cm only %} · {% endif %}
   {% if um_per_pixel %}{{ um_per_pixel|floatformat:4 }} µm/px · {% endif %}
   사진 {{ n_images }} → 그룹 {{ n_groups }} · 평균 {{ mean_size }}장 ·
   싱글턴 {{ singletons }} · 최대 {{ max_size }}장 ·

@@ -274,7 +274,17 @@ def dataset_edit(request, slug):
                 core, made_core = Core(site=site, code=core_code), True
         try:
             slide.name = (p.get("slide_name") or slide.name).strip()
-            slide.depth_cm = _num(p.get("depth_cm"))
+            # 목록·상세가 깊이 칸을 가르는 값이라 아무 문자열이나 들어오면
+            # 안 된다. 모르는 값이 오면 조용히 바꾸지 않고 그대로 둔다
+            # (지역 권역을 다루는 방식과 같다).
+            k = (p.get("sample_kind") or "").strip()
+            if k in dict(Slide.KIND):
+                slide.sample_kind = k
+            # **노두 시료의 깊이는 건드리지 않는다.** 화면이 그 칸을 잠그면
+            # 브라우저가 값을 안 보내는데, 그것을 "비웠다" 로 읽으면 종류를
+            # 잘못 골랐다가 되돌릴 때 깊이가 이미 사라져 있다.
+            if slide.sample_kind != "outcrop":
+                slide.depth_cm = _num(p.get("depth_cm"))
             slide.description = (p.get("description") or "").strip()
             slide.um_per_pixel_override = _num(p.get("um_per_pixel_override"))
             if core:

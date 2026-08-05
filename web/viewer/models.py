@@ -153,12 +153,28 @@ class Slide(models.Model):
     STATE = [(s, s) for s in
              ("pending", "copying", "processing", "done", "failed")]
 
+    # 시추코어에서 뜬 것인가, 노두(outcrop)에서 뜬 것인가.
+    #
+    # **왜 칸을 따로 두는가.** 노두 시료에는 깊이가 없다. `depth_cm` 을 비워
+    # 두는 수밖에 없었는데, 그러면 화면에 `—` 로 나와 **"깊이가 없는 시료" 와
+    # "아직 안 채운 시료" 가 구별되지 않는다.**
+    #
+    # **`depth_cm` 을 문자열로 바꾸지 않는다.** 슬라이드 정렬이 이 값으로 서고
+    # (`Meta.ordering` · `data.py` 두 곳) `(core, depth_cm)` 인덱스가 걸려 있다.
+    # 종류를 따로 두고 화면이 그것을 읽는 쪽이 맞다.
+    KIND = [("core", "시추코어"), ("outcrop", "노두")]
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=120, unique=True)
     image_dir = models.CharField(max_length=500)
     core = models.ForeignKey(Core, null=True, blank=True,
                              on_delete=models.SET_NULL, related_name="slides")
+    # **`db_default` 를 함께 준다.** Django 의 `default` 는 파이썬 쪽이라 판이
+    # 다른 옛 이미지의 INSERT 에는 칼럼이 안 들어간다 — 뷰어와 파이프라인
+    # 이미지는 굽는 주기가 달라 판이 같아질 일이 없다.
+    sample_kind = models.CharField(max_length=12, choices=KIND,
+                                   default="core", db_default="core")
     # 기준점(해저면)에서부터의 깊이. 코어 안에서 이 값으로 정렬한다.
+    # **노두 시료에는 없다** — `sample_kind` 를 함께 볼 것.
     depth_cm = models.FloatField(null=True, blank=True)
     # 사람이 적는 설명. state_note 와 갈라 둔다 — 그쪽은 자동 처리가 덮어쓴다.
     description = models.TextField(blank=True, default="")

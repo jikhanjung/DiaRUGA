@@ -1,0 +1,22 @@
+{% comment %}
+  시료가 코어의 어디에서 왔는가 — 한 칸. **네 화면이 같은 규칙으로 읽어야 해서**
+  여기 하나로 모았다: 목록 표 · 목록 카드 · 시야 목록 머리 · 지도 범례.
+
+  가르는 것은 셋이다:
+
+  - **노두(outcrop) 시료** — 깊이라는 것이 없다. `—` 로 두면 "아직 안 채운 것"
+    과 구별이 안 되므로 그렇게 적는다. 이것이 `Slide.sample_kind` 를 따로 둔
+    이유다 (`depth_cm` 을 문자열로 바꾸면 정렬과 인덱스가 깨진다)
+  - **깊이가 있는 시추코어 시료** — 값 그대로 `cm`
+  - **깊이를 아직 안 채운 시추코어 시료** — 표에서는 칸을 비울 수 없으니 `—`,
+    줄글 속에서는 아예 내지 않는다. 그 갈래를 `dash` 가 정한다
+
+  **좁은 칸에서는 `OC` 로 줄인다**(`short`). `ClassDef.short` 가
+  `Chaetoceros → CRS` 를 쓰는 것과 같은 규칙이다 — 자리가 좁은 곳만 줄이고
+  **말풍선은 늘 전체 이름**이라 무엇인지 물어볼 곳이 남는다.
+
+  쓰임:
+    {% templatetag openblock %} include "viewer/_depth.html"
+        with sample_kind=d.sample_kind depth_cm=d.depth_cm dash=1 short=1 only {% templatetag closeblock %}
+{% endcomment %}
+{% if sample_kind == "outcrop" %}<span class="dim" title="노두(outcrop) 시료 — 깊이가 없습니다">{% if short %}OC{% else %}노두 시료{% endif %}</span>{% elif depth_cm %}{{ depth_cm|floatformat:"-1" }} cm{% elif dash %}<span class="dim" title="시추코어 시료인데 깊이가 아직 채워지지 않았습니다">—</span>{% endif %}
