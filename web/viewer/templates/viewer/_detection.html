@@ -141,14 +141,21 @@
   여기 안 나오고, 그것이 곧 "아직 배정 안 했다" 는 표시다.
   읽기 전용 화면(/engine/)에서는 키가 안 듣는다 — 안내도 내지 않는다.
 {% endcomment %}
+{% comment %}
+  삭제 키는 ClassDef 가 아니라 여기 적는다 — 오검출은 분류가 아니라 removed
+  집합이라 표에 태울 자리가 없다(hotkey_groups 가 .strip() 을 걸어 공백은 빈
+  값으로 사라진다). **가장 많이 하는 조작이라 맨 앞에 둔다** (교정 6,753 중
+  삭제가 5,467).
+
+  분류가 하나도 없어도 이 줄은 선다 — 삭제 키는 분류와 무관하다.
+{% endcomment %}
 {% hotkey_groups as hk %}
-{% if hk.groups %}
 <p class="dim keyhint" id="keyhint-{{ uid }}" style="font-size:11.5px;margin:2px 2px 0">
   <b>단축키</b> — 개체를 고르고
+  <kbd>Space</kbd>&nbsp;<span title="오검출로 삭제 · 지운 것을 고르고 다시 누르면 되살립니다">삭제</span>{% if hk.groups %} ·
   {% for h in hk.groups %}<kbd>{{ h.hotkey|upper }}</kbd>&nbsp;{% for c in h.classes %}{% if not forloop.first %} → {% endif %}<span title="{{ c.label }}">{{ c.short }}</span>{% endfor %}{% if not forloop.last %} · {% endif %}{% endfor %}{% if hk.cycles %}
-  <span class="dim">(→ 는 같은 키를 다시 누르면 넘어간다는 뜻)</span>{% endif %}
+  <span class="dim">(→ 는 같은 키를 다시 누르면 넘어간다는 뜻)</span>{% endif %}{% endif %}
 </p>
-{% endif %}
 </section>
 
 <script type="application/json" id="cand-{{ uid }}">{{ det.candidates|json_dumps }}</script>
@@ -818,7 +825,19 @@
     var picked = Array.from(sel).map(function (i) { return cands[i]; })
       .filter(function (c) { return c && !removed.has(keyOf(c)); });
     if (!picked.length) {
-      info.textContent = '선택 없음'; info.className = 'dim';
+      // 지운 것만 골랐을 때. **"선택 없음" 이라고 하면 안 된다** — 유령을
+      // Shift+클릭으로 고를 수 있게 된 뒤로는(스페이스 되살리기의 전제) 골라
+      // 놓고도 아무 일이 없는 것처럼 보인다.
+      var ghosts = Array.from(sel).filter(function (i) {
+        return cands[i] && removed.has(keyOf(cands[i]));
+      });
+      if (ghosts.length && !readOnly) {
+        info.className = '';
+        info.innerHTML = '<b>지운 개체 ' + ghosts.length + '개 선택</b> ' +
+          '<span class="dim">· Space 로 되살립니다</span>';
+      } else {
+        info.textContent = '선택 없음'; info.className = 'dim';
+      }
     } else {
       var sizes = picked.map(function (c) { return +c.major_um || 0; }).sort(function (a, b) { return a - b; });
       info.className = '';
@@ -979,6 +998,60 @@
     var next = ring[(at + 1) % ring.length];
     setLabel(live, next.key);
     saveState.textContent = next.label + ' 로 지정 — ' + live.length + '개';
+  });
+
+  // --- 오검출 삭제 단축키 (스페이스) ----------------------------------------
+  // **가장 많이 하는 조작이다** — 교정 6,753건 중 삭제가 5,467이다. 분류에는
+  // 040 에서 키를 줬는데 삭제만 우클릭 메뉴로 남아 있었다. 메뉴를 여닫는 왕복이
+  // 곧 검토 속도다.
+  //
+  // 분류 키가 도는 것과 같은 모양이다 — 고른 것에 누르면 지우고, 지운 것에
+  // 다시 누르면 되살린다.
+  //
+  // **ClassDef.hotkey 에 못 태운다.** 오검출은 분류가 아니라 removed 집합이고,
+  // data.hotkey_groups() 가 .strip() 을 걸어 공백은 빈 값으로 사라진다.
+  // 그래서 위의 분류 갈래와 나눠 여기 따로 둔다.
+  document.addEventListener('keydown', function (e) {
+    if (readOnly) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    if (window.__diarugaActive !== uid) return;
+    if (ask) return;
+    // **e.key 는 'Space' 가 아니라 ' ' 다** (e.code 쪽이 'Space').
+    if (e.key !== ' ' && e.key !== 'Spacebar') return;
+    var t = document.activeElement;
+    // **BUTTON 을 함께 거른다.** 분류 키와 달리 스페이스는 초점이 놓인 버튼을
+    // 누른다 — 저장·초기화 버튼 위에서 눌리면 곤란하다. 여기서 돌려보내
+    // 브라우저가 제 일(버튼 누르기)을 하게 둔다.
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName)) return;
+
+    var targets = Array.from(sel);
+    var live = targets.filter(function (i) {
+      return cands[i] && !removed.has(keyOf(cands[i]));
+    });
+    var dead = targets.filter(function (i) {
+      return cands[i] && removed.has(keyOf(cands[i]));
+    });
+    // **스크롤을 막는다.** 위의 분류 갈래는 HOTKEYS 에 걸린 키에만
+    // preventDefault 를 부르는데, 스페이스는 브라우저가 스크롤에 쓴다 —
+    // 안 막으면 지우면서 화면이 뛴다.
+    e.preventDefault();
+    if (!live.length && !dead.length) {
+      saveState.textContent = '개체를 먼저 고르세요 (클릭 · 드래그 범위 선택)';
+      return;
+    }
+    // 산 것이 하나라도 섞여 있으면 지운다 — 여럿을 고른 채 눌렀을 때 결과가
+    // 한 가지여야 한다(분류 키와 같은 규칙). 되살리기는 고른 것이 **전부**
+    // 지워진 것일 때만이다.
+    if (live.length) {
+      removeKeys(live);          // sel 을 비우고 build·save 까지 한다
+      saveState.textContent = '오검출로 삭제 — ' + live.length + '개';
+      return;
+    }
+    var keys = dead.map(function (i) { return keyOf(cands[i]); });
+    restore(keys);
+    history.push({ type: 'restore', keys: keys });
+    build(); save();
+    saveState.textContent = '되살림 — ' + keys.length + '개';
   });
 
   // --- 코멘트 ---------------------------------------------------------------
@@ -1541,6 +1614,19 @@
 
     if (d.btn !== 0) return;
 
+    // Shift+클릭은 더하고 빼는 조작이라 순환하지 않는다 — 두 번 누르면 제자리로
+    // 돌아와야 한다. 맨 위의 것 하나만 토글한다.
+    //
+    // **유령 되살리기보다 이쪽이 먼저다.** 예전에는 순서가 반대라 유령은
+    // Shift 를 눌러도 곧바로 되살아났고, 범위 선택도 지운 것을 걸러 내므로
+    // **지운 개체를 고를 방법이 아예 없었다.** 그러면 스페이스의 되살리기
+    // 갈래가 닿지 못하는 코드가 된다. 그냥 클릭은 아래에서 그대로 되살린다.
+    if (d.shift) {
+      if (top !== null) { sel.has(top) ? sel.delete(top) : sel.add(top); }
+      redraw();
+      return;
+    }
+
     // 지운 것(유령)을 클릭하면 되살린다 — 순환 대상에서는 빼고 이쪽이 먼저다.
     if (top !== null && removed.has(keyOf(cands[top]))) {
       var key = keyOf(cands[top]);
@@ -1548,14 +1634,6 @@
       history.push({ type: 'restore', keys: [key] });
       build();
       save();
-      return;
-    }
-
-    // Shift+클릭은 더하고 빼는 조작이라 순환하지 않는다 — 두 번 누르면 제자리로
-    // 돌아와야 한다. 맨 위의 것 하나만 토글한다.
-    if (d.shift) {
-      if (top !== null) { sel.has(top) ? sel.delete(top) : sel.add(top); }
-      redraw();
       return;
     }
 
