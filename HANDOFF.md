@@ -13,7 +13,7 @@
 (`segment_diatoms.py`·YOLO 클래스·NAS 의 `DiatomPhotos/`). devlog 와 `docs/` 의
 지난 기록은 그때 이름 그대로 두었다.
 
-**브랜치** main · 판 `v0.5.2` (파이프라인 `v0.2.0`)
+**브랜치** main · 판 `v0.5.3` (파이프라인 `v0.2.0`)
 
 ---
 
