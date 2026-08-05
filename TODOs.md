@@ -68,6 +68,10 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 - [ ] **Identification** — 논문·handbook 이미지로 종 동정 (별개 트랙, 병행).
       `ClassDef` 표에 속을 더한다(Eucampia · Chaetoceros). **다만 아직 배포가
       필요하다 — 색이 `base.html` 에 키로 박혀 있다**(038). 아래 항목 참고
+- [ ] **데스크탑 앱** (P05) — GPU 서버 없는 연구자에게 배포하기 위한 갈래.
+      라이선스(AGPL-3.0)·엔진(YOLO)·스택(PySide6)은 정해졌다. **1단계는 읽기
+      전용 뷰어**이고, 거기서 PyInstaller + Django 가 얼려지는지를 먼저 본다.
+      근거는 `docs/20260805_desktop-app-review.md`, 실측은 049
 - [ ] **UI · 편의성 개선** — 지속. 만든 것: 문턱 조정(`/thresholds/`),
       시료 속성 편집(`/d/<slug>/edit/`). 남은 것: 수동 박스 그리기,
       시야 병합·분할, 계측 결과 CSV 내보내기

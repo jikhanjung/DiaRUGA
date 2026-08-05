@@ -29,6 +29,7 @@
 | 앞으로 할 일을 고른다 | `TODOs.md`, `devlog/20260729_P01_roadmap.md` |
 | 판정 기준·문턱을 만진다 | `judge.py` 머리말, `devlog/20260731_007_*.md` |
 | 검출기를 학습시킨다 | `devlog/20260803_P04_yolo-training.md`, `023`(자료 꾸러미), `025`(첫 판 성적) |
+| 데스크탑 앱을 만든다 | `devlog/20260805_P05_desktop-app.md` (계획), `docs/20260805_desktop-app-review.md` (근거), `049`(CPU 실측), `.guides/desktop/` |
 | 배포·백업을 만진다 | `.guides/web/`, `devlog/20260803_019_*`, `20260804_034_smoke-and-sentinel.md` |
 | 파이프라인 알고리즘 | `README.md` (40 KB, 스크립트마다 "왜 이렇게 했는가"가 있다) |
 
