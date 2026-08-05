@@ -72,10 +72,37 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
         되찾았다
   - [x] `segment_diatoms.py` — `is_current` 이동과 재바인딩을 한 트랜잭션으로
   - [x] `group_focus_series.py` — 기존 시야가 있으면 경고한다
-- [ ] **7. JSON 을 원본에서 내리기** — 원본 자리에서는 빠졌다. 다만
-      `segment_diatoms.py` 가 **아직 `out/*.json` 을 쓴다**(1,496개, 오늘 것도
-      있다). 내보내기 형식으로만 남기는 것이 뜻이었으므로 `--export-json` 뒤로
-      옮길지 정해야 한다. `import_json.py` 의 중복 코드와 `README` 갱신도 남았다
+- [ ] **7. JSON 을 원본에서 내리기 — 절반만 됐다**
+
+      JSON 이 **원본 자리**에서는 내려왔지만(DB 가 원본) **쓰는 것**은 안 걷혔다.
+      `segment_diatoms.py` 가 검출할 때마다 무조건 쓴다 — 플래그 뒤가 아니다.
+
+      ```
+      :861  draw_overlay(...)  -> out/<stem>_overlay.jpg
+      :892  write_text(...)    -> out/<stem>_candidates.json
+      ```
+
+      **지금 세 가지가 어긋나 있다** (2026-08-05 실측):
+
+      - **경로가 엔진·묶음을 안 가른다.** `out_dir` 은 늘 `DATA_ROOT/out` 이고
+        `-o` 를 폴러가 안 준다 — **YOLO 실행이 SAM2 의 JSON 을 덮어쓴다.**
+        `g024_…_focused_candidates.json` 은 지금 원시 13·개체 1(YOLO)인데
+        운영 DB 의 그 이미지 현재 검출은 원시 142·통과 5(SAM2)다.
+        **파일 이름만으로는 어느 엔진 것인지 알 수 없다**
+      - 그래서 **`verify_db.py` 의 대조가 못 믿을 것이 됐다** — 이 파일들이
+        남아 있던 이유가 그 도구였다
+      - **overlay JPG 1,498개를 아무도 안 읽는다.** `data.py` 가 `overlay_rel` 을
+        계산하지만 템플릿 어디서도 안 쓴다. `out/` 799 MB 의 대부분이 이것이다
+
+      **`--export-json` 뒤로 옮기는 것을 권한다**(기본은 안 씀). `verify_db.py`
+      는 P02 3단계용이라 역할이 끝났고, 그 자리는 `export_review.py --check`(교정)
+      와 `backfill_images.py --verify`(이미지·검출)가 맡는다. overlay 는 뺀다.
+      `import_json.py` 의 중복 코드와 `README` 갱신도 남았다.
+
+      > **덮어쓰기는 사고로도 이어진다.** 055 의 5a 시험에서 파이프라인을 사본
+      > DB 에 붙여 돌렸는데 `out_dir` 은 `DATA_ROOT` 라 **JSON·overlay 30개가
+      > 운영 자리로 나갔다.** DB 는 안 건드렸지만 그 슬라이드의 JSON 은 YOLO
+      > 것으로 바뀌었다 — 사본으로 시험해도 이 자리는 안 갈린다.
 - [ ] **8. 재바인딩 + 고아 화면**(`/orphans/`) — `rebind.py` 는 만들었다(011).
       **화면이 없다**(`urls.py` 에 `/orphans/` 가 없다). 학습·엔진 교체의 전제 —
       없으면 교정이 조용히 버려진다. 지금 교정 6,738건은 **전부 `exact`** 라
