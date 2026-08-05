@@ -604,6 +604,74 @@
   .dslist tfoot td { border-bottom: 0; border-top: 2px solid var(--line);
                      font-weight: 650; color: var(--dim); }
 
+  /* --- 코어 화면 (/core/<지역>/<코어>/) ---
+     깊이 축이 주인공이다. 왼쪽이 로그(깊이·암상·시료), 오른쪽이 현황과 속성.
+     좁아지면 로그가 위로 가고 속성이 아래로 흐른다. */
+  .corepage { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+  .corelog { flex: 1 1 460px; min-width: 320px; }
+  .coreside { flex: 1 1 380px; min-width: 300px; display: grid; gap: 12px; }
+  .coreside .card h3 {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+  }
+  .coreside .card h3 .dsedit { margin-left: auto; }
+  .coreside .ro {
+    display: grid; grid-template-columns: auto 1fr; gap: 5px 14px;
+    font-size: 12px;
+  }
+  .coreside .ro > span:nth-child(odd) { color: var(--dim); white-space: nowrap; }
+  .ctab { font-size: 12.5px; }
+  .ctab th, .ctab td { padding: 5px 8px; white-space: nowrap; }
+  .ctab .dsname { text-align: left; }
+  .ctab tfoot td { border-bottom: 0; border-top: 2px solid var(--line);
+                   font-weight: 650; color: var(--dim); }
+
+  .loghead {
+    display: flex; font-size: 11px; color: var(--dim);
+    text-transform: uppercase; letter-spacing: .4px;
+    padding-bottom: 5px; border-bottom: 1px solid var(--line);
+  }
+  .loghead .lh-depth { width: 52px; text-align: right; }
+  .loghead .lh-lith { width: 74px; text-align: center; margin-left: 10px; }
+  .loghead .lh-samp { margin-left: 14px; }
+  /* 축의 높이는 못 박는다 — 깊이에 비례해 늘이면 얕은 코어는 납작해지고
+     깊은 코어는 화면을 넘긴다. 자리는 백분율이 잡는다. */
+  .logbody { position: relative; height: 620px; margin-top: 4px; }
+  .tick {
+    position: absolute; left: 0; right: 0; height: 0;
+    border-top: 1px solid var(--line);
+  }
+  .tick .tlab {
+    position: absolute; right: calc(100% - 52px); top: -.62em;
+    font-size: 11px; color: var(--dim);
+    font-variant-numeric: tabular-nums; background: var(--bg); padding-left: 4px;
+  }
+  /* 암상 띠 — **비어 있는 것이 지금의 상태다.** 빗금으로 "들어올 자리" 임을
+     내되 그럴듯한 가짜 암상을 그리지 않는다. 색은 중립이어야 한다 —
+     암상 색이 나중에 여기 들어오므로 지금 뜻 있는 색을 쓰면 부딪친다. */
+  .lithband {
+    position: absolute; top: 0; bottom: 0; left: 62px; width: 74px;
+    border: 1px dashed var(--line); border-radius: 3px;
+    background: repeating-linear-gradient(
+      45deg, transparent 0 6px, var(--group-bg) 6px 12px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lithband .lithnote {
+    font-size: 10.5px; color: var(--dim); text-align: center; line-height: 1.5;
+  }
+  .mark {
+    position: absolute; left: 146px; right: 0; height: 0;
+    display: flex; align-items: center; gap: 7px; font-size: 12px;
+    white-space: nowrap;
+  }
+  .mark .mdotc {
+    width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+    background: var(--accent);
+    /* 띠에서 이름표까지 이어 주는 선. 없으면 깊이와 이름이 따로 논다 */
+    box-shadow: -14px 0 0 -3.5px var(--accent);
+  }
+  .mark .dim { font-size: 11px; }
+  .unplaced { margin: 6px 0 0; padding-left: 18px; font-size: 12px; }
+
   /* --- 탭 (검출 화면 / 개체 목록) --- */
   .dettabs {
     display: flex; gap: 2px; align-items: center; flex-wrap: wrap;

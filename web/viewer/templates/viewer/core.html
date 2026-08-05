@@ -1,0 +1,154 @@
+{% extends "viewer/base.html" %}
+{% comment %}
+  코어 하나 — **깊이 방향으로** 본 화면.
+
+  목록(`/`)은 슬라이드끼리 견주는 자리다. 여기가 값을 하려면 목록의 부분집합
+  이상이어야 하고, 그것이 **깊이 축**이다 — 암상 기재가 들어올 자리도 그 옆이다.
+
+  **암상 띠는 아직 비어 있다.** 구간 상·하한 · 암상 코드 · 색 · 조직 · 화석
+  함량 같은 칸이 정해져야 표가 서는데 그 기재 규칙이 아직 없다. 지금 스키마를
+  박으면 나중에 이미 붙은 자료를 옮겨야 한다. **축은 진짜다** — 깊이가 DB 에
+  이미 있어서 눈금도 시료 위치도 실제 값이다.
+
+  **속성을 여기서 고치지 않는다.** `/d/<slug>/edit/` 이 슬라이드·코어·지역을 한
+  트랜잭션으로 저장한다. 여기에 폼을 하나 더 두면 같은 행에 쓰는 문이 둘이 된다.
+
+  스타일은 base.html 에 둔다 — 부모를 extends 한 템플릿에서 block 바깥에 적은
+  것은 렌더되지 않는다.
+{% endcomment %}
+{% block title %}{{ core.code }} · DiaRUGA{% endblock %}
+{% block subtitle %}{{ site_label }} · <b>{{ core.code }}</b> · 슬라이드 {{ n }}장{% endblock %}
+
+{% block content %}
+<div class="crumb"><a href="{% url 'index' %}">데이터셋</a> / {{ core.code }}</div>
+<h2>{{ core.code }} <span class="dim" style="font-size:14px;font-weight:400">{{ site_label }}</span></h2>
+<p class="dim" style="font-size:12px;margin-bottom:14px">
+  슬라이드 {{ n }}장 · 사진 {{ totals.n_images }} · 시야 {{ totals.n_groups }} ·
+  검출 {{ totals.n_counted }} · 검토 {{ totals.reviewed_groups }}/{{ totals.n_groups }}
+</p>
+
+<div class="corepage">
+
+  {% comment %} --- 왼쪽: 깊이 축 + 암상 띠 --- {% endcomment %}
+  <div class="corelog">
+    {% if axis %}
+    <div class="loghead">
+      <span class="lh-depth">깊이</span>
+      <span class="lh-lith">암상</span>
+      <span class="lh-samp">시료</span>
+    </div>
+    <div class="logbody" style="--bottom:{{ axis.bottom }}">
+      {% comment %}
+        눈금. 위가 얕고 아래로 깊어진다 — 코어 로그의 관례다. 축은 늘 0 에서
+        시작한다(가장 얕은 시료부터 그리면 그 위 구간이 없는 것처럼 보인다).
+      {% endcomment %}
+      {% for t in axis.ticks %}
+        <div class="tick" style="top:{{ t.pct }}%">
+          <span class="tlab">{{ t.cm }}</span>
+        </div>
+      {% endfor %}
+
+      {% comment %}
+        암상 띠 — **비어 있는 것이 지금의 상태다.** 무늬로 "여기 들어올 것"
+        임을 내되, 그럴듯한 가짜 암상을 그리지 않는다.
+      {% endcomment %}
+      <div class="lithband" title="암상 기재가 들어올 자리입니다 (아직 자료가 없습니다)">
+        <span class="lithnote">암상 기재가<br>들어올 자리</span>
+      </div>
+
+      {% comment %} 시료 위치 — 이 값들은 진짜다 (Slide.depth_cm) {% endcomment %}
+      {% for m in axis.marks %}
+        <div class="mark" style="top:{{ m.pct }}%">
+          <span class="mdotc"></span>
+          <a href="{% url 'dataset' m.row.slug %}">{{ m.row.label }}</a>
+          <span class="dim">{{ m.row.depth_cm|floatformat:"-1" }} cm ·
+            시야 {{ m.row.n_groups }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="note">깊이가 적힌 슬라이드가 없어 축을 그릴 수 없습니다.
+        속성 편집에서 깊이를 채우면 여기 나옵니다.</div>
+    {% endif %}
+
+    {% if unplaced %}
+      {% comment %}
+        축에 못 놓는 것들. **버리지 않고 따로 낸다** — 안 보이면 이 코어에
+        없는 시료가 된다.
+      {% endcomment %}
+      <div class="note" style="margin-top:14px">
+        축에 놓지 못한 슬라이드 {{ unplaced|length }}장 — 깊이가 없습니다.
+        <ul class="unplaced">
+          {% for r in unplaced %}
+            <li><a href="{% url 'dataset' r.slug %}">{{ r.label }}</a>
+              {% include "viewer/_depth.html" with sample_kind=r.sample_kind depth_cm=r.depth_cm dash=1 only %}
+              <span class="dim">· 시야 {{ r.n_groups }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+
+  {% comment %} --- 오른쪽: 시료 현황 + 속성 --- {% endcomment %}
+  <div class="coreside">
+    <section class="card">
+      <h3>이 코어의 시료</h3>
+      <div class="scroll">
+      <table class="ctab">
+        <thead><tr>
+          <th>슬라이드</th><th>위치</th><th>시야</th><th>검출</th><th>검토</th>
+        </tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td class="dsname"><a href="{% url 'dataset' r.slug %}">{{ r.label }}</a>
+              {% if r.state != "done" %}<span class="dsstate" title="{{ r.state_note }}">{{ r.state }}</span>{% endif %}</td>
+            <td>{% include "viewer/_depth.html" with sample_kind=r.sample_kind depth_cm=r.depth_cm dash=1 short=1 only %}</td>
+            <td>{{ r.n_groups }}</td>
+            <td>{% if r.mean_counted is not None %}{{ r.n_counted }}{% else %}<span class="dim">—</span>{% endif %}</td>
+            <td class="revcol"><span class="revnum">{{ r.reviewed_groups }}<span class="dim">/{{ r.n_groups }}</span></span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot><tr>
+          <td class="dsname">합계 <span class="dim">{{ n }}장</span></td>
+          <td></td>
+          <td>{{ totals.n_groups }}</td>
+          <td>{{ totals.n_counted }}</td>
+          <td class="revcol"><span class="revnum">{{ totals.reviewed_groups }}<span class="dim">/{{ totals.n_groups }}</span></span></td>
+        </tr></tfoot>
+      </table>
+      </div>
+    </section>
+
+    {% comment %}
+      속성은 **읽기만 한다.** 고치는 문은 /d/<slug>/edit/ 하나다 — 같은 Core·
+      Site 행에 쓰는 자리를 둘로 만들지 않는다. 그 화면은 해시로 칸을 여니
+      코어·지역 칸으로 곧장 보낸다.
+    {% endcomment %}
+    <section class="card">
+      <h3>코어 <span class="dim">{{ core.code }}</span>
+        {% if edit_slug %}<a class="dsedit" href="{% url 'dataset_edit' edit_slug %}#core">속성 편집 →</a>{% endif %}</h3>
+      <div class="ro">
+        <span>채취 방식</span><span>{{ core.kind|default:"—" }}</span>
+        <span>위도 / 경도</span><span class="mono">{% if core.lat is not None and core.lon is not None %}{{ core.lat|floatformat:4 }} / {{ core.lon|floatformat:4 }}{% else %}—{% endif %}</span>
+        <span>수심</span><span>{% if core.water_depth_m %}{{ core.water_depth_m|floatformat:"-1" }} m{% else %}—{% endif %}</span>
+        <span>채취일</span><span>{{ core.collected_at|default:"—" }}</span>
+        {% if core.note %}<span>메모</span><span>{{ core.note }}</span>{% endif %}
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>지역 <span class="dim">{{ site.code }}</span>
+        {% if edit_slug %}<a class="dsedit" href="{% url 'dataset_edit' edit_slug %}#site">속성 편집 →</a>{% endif %}</h3>
+      <div class="ro">
+        <span>이름</span><span>{{ site.name|default:"—" }}</span>
+        <span>해역·지역</span><span>{{ site.region|default:"—" }}</span>
+        <span>권역</span><span>{{ site.get_area_display }}</span>
+        <span>위도 / 경도</span><span class="mono">{% if site.lat is not None and site.lon is not None %}{{ site.lat|floatformat:4 }} / {{ site.lon|floatformat:4 }}{% else %}<span class="dim">— (지도에 대략값으로 찍힙니다)</span>{% endif %}</span>
+        {% if site.note %}<span>메모</span><span>{{ site.note }}</span>{% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

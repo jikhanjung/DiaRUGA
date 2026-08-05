@@ -166,6 +166,18 @@ def dataset(request, slug):
     return render(request, "viewer/dataset.html", ctx)
 
 
+def core_page(request, site_code, core_code):
+    """코어 하나 — 깊이 방향으로 본 화면. 근거는 `data.core_detail()` 머리말.
+
+    **읽기 전용이다.** 속성은 `/d/<slug>/edit/` 이 고친다 — 같은 `Core`·`Site`
+    행에 쓰는 문을 둘로 만들지 않는다.
+    """
+    ctx = data.core_detail(site_code, core_code)
+    if ctx is None:
+        raise Http404(f"unknown core: {site_code}/{core_code}")
+    return render(request, "viewer/core.html", ctx)
+
+
 def group(request, slug, gid):
     ctx = data.group_detail(slug, gid)
     if ctx is None:

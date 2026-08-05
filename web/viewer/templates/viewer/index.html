@@ -172,7 +172,16 @@
         <div class="revnum">{{ g.totals.reviewed_groups }}<span class="dim">/{{ g.totals.n_groups }}</span></div>
         <div class="bar"><i style="width:{% widthratio g.totals.reviewed_groups g.totals.n_groups 100 %}%"></i></div>
       </td>
-      <td></td>
+      {% comment %}
+        속성 칸이 머리줄에서는 비어 있었다. 코어 페이지로 가는 길을 여기 둔다 —
+        깊이 축과 암상이 그 화면에 있고, 목록은 그것을 못 보여준다.
+
+        **"코어 미지정" 묶음에는 안 낸다** — `Core` 행이 없어 갈 곳이 없다.
+        눌러도 아무 일이 없는 링크는 "눌렀는데 안 되네" 로 읽힌다.
+      {% endcomment %}
+      <td>{% if not g.no_core %}<a class="dsedit corelink"
+            href="{% url 'core' g.site_code g.core %}"
+            title="{{ g.core }} 를 깊이 방향으로 봅니다">보기</a>{% endif %}</td>
     </tr>
   {% for d in g.rows %}
     {% comment %}
@@ -269,6 +278,12 @@
     <span class="dim">{% if g.site %}{{ g.site }} · {% endif %}{{ g.n }}장</span>
     <span class="gsum dim">사진 {{ g.totals.n_images }} · 시야 {{ g.totals.n_groups }} ·
       검출 {{ g.totals.n_counted }} · 검토 {{ g.totals.reviewed_groups }}/{{ g.totals.n_groups }}</span>
+    {% comment %}
+      표의 머리줄과 같은 길. summary 안의 링크는 클릭이 여닫기로도 가므로
+      전파를 끊는다 — 누르면 페이지가 바뀌면서 묶음까지 접히면 안 된다.
+    {% endcomment %}
+    {% if not g.no_core %}<a class="dsedit corelink" href="{% url 'core' g.site_code g.core %}"
+       onclick="event.stopPropagation()">보기</a>{% endif %}
   </summary>
   {% comment %}
     한 코어에 슬라이드가 아주 많아지면 묶음 하나가 화면을 통째로 먹는다.
@@ -418,6 +433,9 @@
       if (tb) { tb.classList.add('all'); more.closest('.morerow').remove(); }
       return;
     }
+    // 머리줄 안의 링크(코어 페이지 "보기")는 제 일을 한다 — 여기서 잡으면
+    // 페이지를 떠나면서 묶음까지 접힌 것으로 적힌다.
+    if (e.target.closest('a')) return;
     var head = e.target.closest('.chead');
     if (head) {
       var tb2 = head.closest('.csgroup');

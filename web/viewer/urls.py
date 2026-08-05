@@ -8,6 +8,9 @@ urlpatterns = [
     path("crop", views.crop, name="crop"),
     path("healthz", views.healthz, name="healthz"),
     path("review", views.save_review, name="save_review"),
+    # 코어 하나 — 깊이 방향으로 본 화면. **코어 코드는 지역마다 겹칠 수 있다**
+    # (`Core` 의 unique 가 `(site, code)` 다). 주소도 그 짝이어야 한다.
+    path("core/<str:site_code>/<str:core_code>/", views.core_page, name="core"),
     path("d/<slug:slug>/", views.dataset, name="dataset"),
     path("d/<slug:slug>/edit/", views.dataset_edit, name="dataset_edit"),
     path("d/<slug:slug>/detections/", views.detections, name="detections"),

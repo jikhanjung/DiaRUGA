@@ -20,8 +20,8 @@ from django.db.models import (Case, CharField, Count, Exists, F, OuterRef,
                               Q, Subquery, Value, When)
 
 from . import antarctica, korea
-from .models import (Candidate, ClassDef, Detection, Frame, ObjectReview, Run,
-                     Site, Slide, Stack, Viewpoint, ViewpointReview)
+from .models import (Candidate, ClassDef, Core, Detection, Frame, ObjectReview,
+                     Run, Site, Slide, Stack, Viewpoint, ViewpointReview)
 
 # --- 분류 정의 -------------------------------------------------------------
 # ClassDef 테이블이 원본이다. 다만 매 요청마다 읽을 값이 아니라(거의 바뀌지 않고
@@ -788,6 +788,10 @@ def datasets(area: str | None = None) -> list[dict]:
             "image_dir": slide.image_dir,
             "corr_thresh": slide.corr_thresh,
             "site": (site.region or site.name or site.code) if site else "",
+            # 화면에 내는 이름(`site`)과 주소·열쇠에 쓰는 코드는 다르다 —
+            # 지역 이름은 사람이 고칠 수 있고, 코어 페이지의 주소가 그때
+            # 따라 바뀌면 적어 둔 링크가 깨진다.
+            "site_code": site.code if site else "",
             "core": core.code if core else "",
             "depth_cm": slide.depth_cm,
             "sample_kind": slide.sample_kind,
@@ -887,14 +891,17 @@ def datasets_by_core(rows: list[dict]) -> list[dict]:
     for r in rows:
         # 같은 코어 코드가 지역마다 따로 있을 수 있다(Core 의 unique 가
         # (site, code) 인 이유). 열쇠도 그 짝이어야 한다.
-        key = (r.get("site") or "", r.get("core") or "")
+        # **이름이 아니라 코드로 묶는다.** 지역 이름은 사람이 고칠 수 있는데,
+        # 그것을 열쇠로 삼으면 이름을 고치는 순간 접어 둔 것이 풀린다.
+        key = (r.get("site_code") or "", r.get("core") or "")
         g = at.get(key)
         if g is None:
             g = at[key] = {
                 # 화면이 여닫은 상태를 기억할 이름. **가름표를 넣는다** —
                 # 그냥 이으면 ("RS2","3GC03")과 ("RS23","GC03")이 같아진다.
                 "key": f"{key[0]}/{key[1]}",
-                "site": key[0],
+                "site_code": key[0],
+                "site": r.get("site") or "",
                 "core": key[1],
                 "no_core": not key[1],
                 "rows": [],
@@ -905,6 +912,90 @@ def datasets_by_core(rows: list[dict]) -> list[dict]:
         g["n"] = len(g["rows"])
         g["totals"] = datasets_total(g["rows"])
     return out
+
+
+def _nice_step(span: float, want: int = 8) -> int:
+    """깊이 축의 눈금 간격. 사람이 읽는 수(1·2·5 계열)로만 고른다.
+
+    `span / want` 를 그대로 쓰면 137 cm 같은 간격이 나와 축이 안 읽힌다.
+    """
+    raw = max(span / want, 1)
+    for m in (1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500):
+        if raw <= m:
+            return m
+    return 5000
+
+
+def core_detail(site_code: str, core_code: str) -> dict | None:
+    """코어 하나 — 깊이 방향으로 본 화면.
+
+    **목록의 부분집합이 아니어야 이 화면이 값을 한다.** 목록은 슬라이드끼리
+    견주는 자리이고, 여기는 **깊이 축**이 주인공이다 — 암상 기재가 들어올
+    자리도 그 축 옆이다. 목록이 절대 못 보여주는 것이 그것이다.
+
+    **암상은 아직 모델이 없다.** 구간 상·하한 · 암상 코드 · 색 · 조직 · 화석
+    함량 같은 칸이 정해져야 표가 서는데 그 기재 규칙이 아직 없다. 지금 스키마를
+    박으면 나중에 이미 붙은 자료를 옮겨야 한다 — **축과 자리만 잡고 띠는 비워
+    둔다.** 깊이는 DB 에 이미 있으니 축 자체는 진짜다.
+
+    **속성을 여기서 고치지 않는다.** `/d/<slug>/edit/` 이 이미 슬라이드·코어·
+    지역을 한 트랜잭션으로 저장한다. 여기에 폼을 하나 더 두면 같은 `Core`·
+    `Site` 행에 쓰는 문이 둘이 된다 — 이 저장소가 두 번 당한 종류다.
+    """
+    core = (Core.objects.select_related("site")
+            .filter(site__code=site_code, code=core_code).first())
+    if core is None:
+        return None
+    site = core.site
+    scales = scales_by_slide()
+
+    # 깊이순. 깊이가 없는 것(노두)은 뒤로 — 축에 놓을 자리가 없다.
+    slides = sorted(core.slides.all(),
+                    key=lambda sl: (sl.depth_cm is None, sl.depth_cm or 0,
+                                    sl.name))
+    rows = [{
+        "slug": sl.slug,
+        "label": sl.name,
+        "depth_cm": sl.depth_cm,
+        "sample_kind": sl.sample_kind,
+        "state": sl.state,
+        "state_note": sl.state_note,
+        "description": sl.description,
+        "um_per_pixel": scales.get(sl.slug),
+        **_slide_summary(sl),
+    } for sl in slides]
+
+    depths = [r["depth_cm"] for r in rows if r["depth_cm"] is not None]
+    axis = None
+    if depths:
+        # **위가 얕고 아래로 깊어진다** — 코어 로그의 관례다. 축은 늘 0 에서
+        # 시작한다. 가장 얕은 시료부터 그리면 그 위의 구간이 없는 것처럼 보인다.
+        step = _nice_step(max(depths) or 1)
+        # 가장 깊은 시료가 축 맨 끝에 붙으면 이름표가 잘린다. 한 칸 더 준다.
+        bottom = (int(max(depths) // step) + 1) * step
+        axis = {
+            "top": 0, "bottom": bottom, "step": step,
+            "ticks": [{"cm": t, "pct": round(t / bottom * 100, 3)}
+                      for t in range(0, bottom + 1, step)],
+            "marks": [{"row": r, "pct": round(r["depth_cm"] / bottom * 100, 3)}
+                      for r in rows if r["depth_cm"] is not None],
+        }
+    return {
+        "site_code": site.code,
+        "site_label": site.region or site.name or site.code,
+        "site": site,
+        "core": core,
+        "rows": rows,
+        "n": len(rows),
+        "totals": datasets_total(rows),
+        "axis": axis,
+        # 축에 못 놓는 것들. **버리지 않고 따로 낸다** — 안 보이면 이 코어에
+        # 없는 시료가 된다.
+        "unplaced": [r for r in rows if r["depth_cm"] is None],
+        # 편집은 기존 화면으로 보낸다. 슬라이드 하나를 지나가야 하는데,
+        # 그 화면의 코어·지역 칸은 어느 슬라이드에서 열어도 같은 행을 고친다.
+        "edit_slug": rows[0]["slug"] if rows else "",
+    }
 
 
 def _viewpoints_of(slide: Slide):
