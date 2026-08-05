@@ -179,18 +179,42 @@ def core_page(request, site_code, core_code):
 
 
 def group(request, slug, gid):
-    ctx = data.group_detail(slug, gid)
+    """검토 화면. `?batch=<실행 번호>` 로 **엔진을 갈아 끼운다** (051).
+
+    검출 엔진 고르기는 `/engine/` 에만 있던 기능이다. 견주려면 화면을 나갔다
+    들어와야 했고, 그때마다 어느 시야를 보고 있었는지 잃었다. 이제 검토 화면
+    안에서 고른다 — 시야는 그대로 두고 그림 위의 개체만 바뀐다.
+
+    **현재 검출(SAM2)일 때만 교정이 저장된다.** 다른 묶음을 고르면 읽기 전용이고
+    화면 가운데 위에 그렇게 적힌다. 근거는 `data.group_detail` 머리말.
+    """
+    # 이 시야에 쌓인 묶음들. 검토 화면이 그리는 현재 검출도 그중 하나로 나온다.
+    raw = (request.GET.get("batch") or "").strip()
+    try:
+        run_id = int(raw) if raw else None
+    except ValueError:
+        run_id = None
+
+    bs = data.batches_for_viewpoint(slug, gid, run_id)
+    picked = next((b for b in bs if b["on"]), None) if run_id else None
+    # 모르는 묶음이거나, 지금 검토 화면이 이미 그리고 있는 그것이면 제 주소로
+    # 돌려보낸다. **읽기 전용 화면으로 현재 검출을 보게 두면 안 된다** — 같은
+    # 것을 교정만 뗀 채 보게 되고, 거기서 고친 것은 저장되지 않는다.
+    if run_id is not None and (picked is None or picked["current"]):
+        return redirect("group", slug=slug, gid=gid)
+
+    ctx = data.group_detail(slug, gid, run_id)
     if ctx is None:
         raise Http404(f"unknown group: {slug}/{gid}")
-    # 보고 있는 시야를 다른 엔진으로 볼 수 있게. 묶음이 둘 이상일 때만 낸다 —
-    # 하나뿐이면 지금 보는 그것이라 갈 곳이 없다.
-    #
-    # **검토 화면이 이미 보여 주는 묶음으로는 보내지 않는다.** 지금 화면이
-    # 그리는 것이 현재 검출이라, 거기로 가면 같은 것을 교정만 뗀 채 다시 보게
-    # 된다. 다른 엔진이 먼저 열려야 견주는 뜻이 산다.
-    bs = data.batches_for_viewpoint(slug, gid)
+
+    here = reverse("group", args=[slug, gid])
+    for b in bs:
+        # 현재 검출을 낸 묶음이 곧 검토 가능한 화면이다 — 맨 주소로 간다.
+        b["url"] = here if b["current"] else f"{here}?batch={b['run_id']}"
+        b["editable"] = b["current"]
     ctx["engine_batches"] = bs
-    ctx["engine_link"] = next((b for b in bs if not b["current"]), None)
+    # 아무 것도 안 켜져 있으면(=?batch= 가 없으면) 현재 검출을 보고 있는 것이다
+    ctx["engine_now"] = picked or next((b for b in bs if b["current"]), None)
     return render(request, "viewer/group.html", ctx)
 
 

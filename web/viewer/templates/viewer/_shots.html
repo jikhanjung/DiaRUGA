@@ -32,6 +32,9 @@
           data-view="{% thumb f.rel 1600 %}"
           data-full="{% full f.rel %}"
           data-title="{{ f.name }}"
+          {# 탭 이름에 쓸 짧은 이름. 캡션과 같은 규칙으로 `Snap-` 을 뗀다 —
+             사진 이름 칸(shotcap)은 파일을 되짚는 자리라 전체를 그대로 둔다 #}
+          data-short="{{ f.name|cut:"Snap-" }}"
           data-note="선명도 {{ f.sharpness }}{% if f.is_sharpest %} · 그룹 내 최선{% endif %}{% if f.acquired_at %} · 촬영 {{ f.acquired_at|date:'Y-m-d H:i' }}{% endif %}{% if f.created_at %} · 반입 {{ f.created_at|date:'Y-m-d H:i' }}{% endif %}"
           data-raw="1"
           {# 캐러셀이 프레임을 바꿀 때 그 프레임의 검출로 갈아 끼우는 열쇠.

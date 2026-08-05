@@ -10,16 +10,16 @@
   {{ n }}장 · <span class="mono">{{ tag }}</span> · 최선 {{ sharpest }}{% endblock %}
 {% block nav %}
   {% comment %}
-    이 시야를 다른 엔진으로 본다. 묶음이 둘 이상일 때만 낸다 — 하나뿐이면
-    지금 보고 있는 그것이라 갈 곳이 없다. 어느 묶음으로 들어가든 그 화면에서
-    묶음을 갈아 끼울 수 있다.
+    엔진 고르기는 사진 위 탭줄의 드롭다운으로 옮겼다 (051). 여기 있던 "엔진
+    비교" 링크는 다른 화면(`/engine/`)으로 나가는 길이었고, 나갔다 돌아오면
+    어느 시야를 보고 있었는지 잃었다. 여러 묶음을 한 표로 훑는 그 화면은
+    그대로 있다 — 데이터셋 목록에서 들어간다.
+
+    **이웃 시야로 갈 때 고른 엔진을 들고 간다.** `prev_url`·`next_url` 은
+    서버가 만든다(`data.group_detail` 이 `?batch=` 를 붙인다).
   {% endcomment %}
-  {% if engine_batches|length > 1 and engine_link %}
-    <a href="{% url 'engine_view' engine_link.run_id slug id %}"
-       title="사람의 교정을 얹지 않은, 엔진이 낸 그대로를 봅니다 (읽기 전용)">엔진 비교</a>
-  {% endif %}
-  {% if prev_id is not None %}<a href="{% url 'group' slug prev_id %}">← g{{ prev_id }}</a>{% endif %}
-  {% if next_id is not None %}<a href="{% url 'group' slug next_id %}">g{{ next_id }} →</a>{% endif %}
+  {% if prev_url %}<a href="{{ prev_url }}">← g{{ prev_id }}</a>{% endif %}
+  {% if next_url %}<a href="{{ next_url }}">g{{ next_id }} →</a>{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -50,9 +50,13 @@
 {% endcomment %}
 {% if review_blocked or stack.detection.preview_only %}
 <style>
-  /* 사진과 캐러셀은 그대로 두고 도구만 감춘다 */
-  .tools, .donebar, .layers { display: none; }
-  /* 개체가 없으니 "개체 목록" 탭과 후보 수 표시도 의미가 없다 */
+  /* 사진과 캐러셀은 그대로 두고 도구만 감춘다.
+     `.detview` 를 붙여야 먹는다 — base.html 이 세 가지 모두 `display: flex` 로
+     잡고 있어 특이도에서 진다. 화면은 "도구만 잠가 두었습니다" 라고 적으면서
+     실제로는 도구가 그대로 보이고 있었다 (051). */
+  .detview .tools, .detview .donebar, .detview .layers { display: none; }
+  /* 개체가 없으니 "개체 목록" 탭과 후보 수 표시도 의미가 없다.
+     엔진 고르기(.engsel)는 남긴다 — 다른 묶음에는 검출이 있을 수 있다 */
   .dettabs [data-pane="list"], .dettabs .tabmeta { display: none; }
 </style>
 {% endif %}
@@ -63,16 +67,49 @@
 {% comment %}
   이미지와 검출은 한 화면에 있다. 사진 아래 캐러셀에서 합성본·깊이 맵·원본
   프레임을 오가며 같은 검출 레이어를 얹어 본다.
+
+  **화면이 둘로 갈린다.** 현재 검출(SAM2)은 교정을 얹어 그리고 저장까지 받는다.
+  `?batch=` 로 다른 묶음을 고르면 그 묶음이 낸 그대로를 읽기 전용으로 그린다 —
+  교정은 mask_key(bbox 문자열)로 붙는데 엔진이 다르면 거의 전부 어긋나기
+  때문이다 (`data.group_detail` 머리말).
 {% endcomment %}
-{% if stack and stack.detection %}
-  {% include "viewer/_detection.html" with det=stack.detection base=stack.focused_rel uid="stack" title="검출 화면 (합성본)" %}
+{% if readonly %}
+  <style>
+    /* 도구를 통째로 잠근다. 사진과 마스크는 그대로 본다.
+       **감추는 것은 막는 것이 아니다** — 저장은 JS(ro-stack)가, 그다음 서버가
+       막는다 (027 에서 CSS 만 믿었다가 교정 37건을 잃었다)
+
+       `.detview` 를 붙여야 한다. base.html 이 `.detview .tools { display: flex }`
+       로 잡고 있어서 `.tools` 만 적으면 특이도에서 져 아무 일도 안 일어난다 —
+       `/engine/` 이 그렇게 도구를 감춘 줄 알고 계속 내보이고 있었다. */
+    .detview .tools, .detview .donebar { display: none; }
+  </style>
+  {% comment %}
+    이 표식이 있으면 `_detection.html` 이 저장을 아예 보내지 않고, 사진 가운데
+    위에 "Read only" 를 띄운다. 도구를 CSS 로 감추는 것만으로는 못 막는다 —
+    마스크 클릭이 save() 를 부른다.
+  {% endcomment %}
+  <span id="ro-stack" hidden></span>
+  {% if base_det %}
+    <script type="application/json" id="shotdet-stack">{{ shot_dets|json_dumps }}</script>
+    {% include "viewer/_detection.html" with det=base_det base=base_rel uid="stack" title="검출결과 검토" shot=base_name %}
+  {% else %}
+    {% comment %}
+      검출이 없으면 `_detection.html` 을 안 그리는데, 엔진 고르는 드롭다운이
+      거기 있다 — 돌아갈 길을 여기서 따로 낸다. 없으면 갇힌다.
+    {% endcomment %}
+    <div class="note">이 시야에는 고른 묶음의 검출이 없습니다.
+      <a href="{% url 'group' slug id %}">현재 검출로 돌아가기</a></div>
+  {% endif %}
+{% elif stack and stack.detection %}
+  {% include "viewer/_detection.html" with det=stack.detection base=stack.focused_rel uid="stack" title="검출결과 검토" shot="합성본" %}
 {% elif frames %}
   {% for f in frames %}{% if f.detection %}
-    {% include "viewer/_detection.html" with det=f.detection base=f.rel uid=forloop.counter title=f.name %}
+    {% include "viewer/_detection.html" with det=f.detection base=f.rel uid=forloop.counter title="검출결과 검토" shot=f.name %}
   {% endif %}{% endfor %}
 {% endif %}
 
-{% if not stack and not frames %}
+{% if not readonly and not stack and not frames %}
   <div class="note">이 시야는 아직 합성하지 않았습니다.</div>
 {% endif %}
 
@@ -89,8 +126,12 @@
   체크박스와 POST 만으로 되는 일에 배선을 만들 이유가 없다.
 
   프레임이 하나뿐이면 낼 이유가 없고, 검토가 막힌 슬라이드에서도 감춘다.
+  **읽기 전용(다른 엔진을 고른 상태)에서도 감춘다** — 그 화면에서 무엇을 눌러도
+  현재 검출과 그 교정이 사라지는 일은 없어야 한다. 서버가 막지는 않는다(같은
+  시야이므로 정당한 요청이다). 여기서 감추는 것으로 충분하다: 읽기 전용은
+  "저장이 안 되는 화면" 이지 "쓰기가 봉인된 시야" 가 아니다.
 {% endcomment %}
-{% if frames|length > 1 and not review_blocked %}
+{% if frames|length > 1 and not review_blocked and not readonly %}
 <details class="resplit">
   <summary>시야 가르기</summary>
   <div class="resplit-body">

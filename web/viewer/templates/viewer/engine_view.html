@@ -14,8 +14,11 @@
 {% endcomment %}
 {% block content %}
 <style>
-  /* 도구를 통째로 잠근다. 사진과 마스크는 그대로 본다 */
-  .tools, .donebar, .layers .lay-save, .notebox { display: none; }
+  /* 도구를 통째로 잠근다. 사진과 마스크는 그대로 본다.
+     `.detview` 를 붙인다 — base.html 의 `.detview .tools { display: flex }` 가
+     특이도에서 이겨서, `.tools` 만 적은 동안은 도구가 그대로 보이고 있었다
+     (051 에서 브라우저로 눌러 보고 알았다). 저장은 `ro-eng` 가 막아 왔다. */
+  .detview .tools, .detview .donebar { display: none; }
   .enghead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .engwarn {
     border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px;
@@ -85,7 +88,7 @@
   {% endcomment %}
   <span id="ro-eng" hidden></span>
   <script type="application/json" id="shotdet-eng">{{ shot_dets|json_dumps }}</script>
-  {% include "viewer/_detection.html" with det=base_det base=base_rel uid="eng" title=base_name %}
+  {% include "viewer/_detection.html" with det=base_det base=base_rel uid="eng" title="엔진 비교" shot=base_name %}
 {% else %}
   <div class="note">이 시야에는 이 실행의 검출이 없습니다.</div>
 {% endif %}

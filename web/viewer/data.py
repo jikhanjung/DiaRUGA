@@ -1092,7 +1092,35 @@ def _frames(vp: Viewpoint, det: dict | None, frame_det_id) -> list[dict]:
     return out
 
 
-def group_detail(slug: str, gid: int) -> dict | None:
+def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
+    """검토 화면 한 장.
+
+    `run_id` 를 주면 **그 묶음이 낸 검출**을 대신 그린다(051). 엔진을 갈아 끼우는
+    일이 검토 화면 안에서 되어야 한다 — 예전에는 `/engine/` 이라는 다른 화면으로
+    나가야 했고, 나갔다 돌아오면 어느 시야를 보고 있었는지 잃었다.
+
+    **그때는 읽기 전용이다.** 교정은 `mask_key`(bbox 문자열)로 붙는데 엔진이
+    다르면 거의 전부 어긋난다. `readonly` 를 켜서 화면이 저장을 아예 보내지 않게
+    하고(`_detection.html` 의 `ro-<uid>`), 서버는 `save_review` 가 현재 검출에
+    없는 키를 거절해 한 겹 더 막는다. **화면에서 감추는 것은 막는 것이 아니다**
+    — 027 이 정확히 그 자리에서 났다(교정 37건).
+    """
+    if run_id is not None:
+        ctx = engine_viewpoint(
+            slug, gid, run_id,
+            # 옆 시야로 가도 **고른 엔진을 그대로 들고 간다.** 견주기는 같은
+            # 조건으로 여러 시야를 훑는 일이라, 한 칸 옮길 때마다 현재 검출로
+            # 돌아가면 무엇을 보고 있었는지 잃는다.
+            link=lambda i: (reverse("group", args=[slug, i])
+                            + f"?batch={run_id}"))
+        if ctx is None:
+            return None
+        slide = Slide.objects.filter(slug=slug).first()
+        ctx["review_blocked"] = review_blocked(slide)
+        ctx["readonly"] = True
+        ctx["batch_run_id"] = run_id
+        return ctx
+
     slide = Slide.objects.filter(slug=slug).first()
     if slide is None:
         return None
@@ -1430,12 +1458,19 @@ def engine_detection(det: Detection) -> dict:
     return _apply_review(det, {}, None)
 
 
-def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
+def engine_viewpoint(slug: str, gid: int, run_id: int,
+                     link=None) -> dict | None:
     """시험 화면 한 장. `group_detail` 과 같은 모양이되 검출만 갈아 끼운다.
 
     YOLO 는 **프레임마다** 검출을 낸다(합성본이 아니라 원본을 본다). 그래서
     프레임 하나하나에 각자의 검출이 붙는다 — `group_detail` 이 싱글턴에 쓰던
     길과 같다.
+
+    `link` 는 이웃 시야의 주소를 만드는 함수다. **화면마다 다르다** — 엔진 비교
+    화면(`/engine/`)은 거기 머물러야 하고, 검토 화면이 엔진을 갈아 끼운 상태
+    (`/d/…?batch=`)는 그 상태로 옆 시야로 가야 한다. 주소를 여기 박아 두면
+    한쪽에서 "다음 시야" 를 누를 때마다 다른 화면으로 튀어나간다(051 이전에
+    실제로 그랬다).
     """
     slide = Slide.objects.filter(slug=slug).first()
     if slide is None:
@@ -1443,6 +1478,9 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
     vp = _viewpoints_of(slide).filter(idx=gid).first()
     if vp is None:
         return None
+    if link is None:
+        def link(i):
+            return reverse("engine_view", args=[run_id, slug, i])
 
     # 묶음이면 형제 실행까지 본다 — 한 슬라이드가 한 실행이라 시야를 열면
     # 그 시야를 만든 실행은 하나뿐이지만, 주소의 실행 번호가 다른 슬라이드
@@ -1462,13 +1500,20 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
     # 누르게 된다.
 
     frames = []
-    for f in vp.frames.all():
+    all_frames = list(vp.frames.all())
+    # 선명도 막대는 그룹 내 최고 대비 비율이다. 빠뜨리면 `_shots.html` 이
+    # `width:%` 라는 값 없는 CSS 를 내고 막대가 통째로 사라진다.
+    values = [f.sharpness for f in all_frames if f.sharpness is not None]
+    top = max(values) if values else 0
+    for f in all_frames:
         d = by_frame.get(f.id)
         frames.append({
             "name": f.name,
             "acquired_at": f.acquired_at,
             "created_at": f.created_at,
             "sharpness": f.sharpness,
+            "sharp_pct": (round(100 * f.sharpness / top)
+                          if f.sharpness and top else 0),
             "is_sharpest": f.is_sharpest,
             "rel": f.path,
             "exists": (Path(settings.DATA_ROOT) / f.path).exists(),
@@ -1532,6 +1577,8 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
     return {
         "slug": slug, "label": slide.name, "id": gid, "tag": vp.tag,
         "run_id": run_id,
+        "n": vp.n_frames,
+        "sharpest": vp.sharpest_frame.name if vp.sharpest_frame else None,
         "frames": frames,
         "stack": stack,
         "base_rel": best["rel"] if best else None,
@@ -1546,10 +1593,8 @@ def engine_viewpoint(slug: str, gid: int, run_id: int) -> dict | None:
         "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
         # **이 화면 안에 머문다.** 사진 띠의 시야 이동 단추가 검토 화면 주소를
         # 박아 두고 있어서, 여기서 "다음 시야" 를 누르면 /d/ 로 튀어나갔다.
-        "prev_url": (reverse("engine_view", args=[run_id, slug, ids[pos - 1]])
-                     if pos > 0 else None),
-        "next_url": (reverse("engine_view", args=[run_id, slug, ids[pos + 1]])
-                     if pos < len(ids) - 1 else None),
+        "prev_url": link(ids[pos - 1]) if pos > 0 else None,
+        "next_url": link(ids[pos + 1]) if pos < len(ids) - 1 else None,
     }
 
 

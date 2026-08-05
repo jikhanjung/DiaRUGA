@@ -688,6 +688,15 @@
   .dettabs button:hover { color: var(--fg); }
   .dettabs button.on { color: var(--fg); font-weight: 600; border-bottom-color: var(--accent); }
   .dettabs .tabmeta { margin-left: auto; font-size: 12px; color: var(--dim); padding-bottom: 6px; }
+  /* 검출 엔진 고르기. 탭 이름 바로 옆이다 — "무엇을 보고 있는가" 와 "무엇으로
+     검출한 것인가" 는 함께 읽혀야 한다. */
+  .dettabs .engsel {
+    font: inherit; font-size: 12px; margin: 0 4px 6px 8px; padding: 3px 6px;
+    background: var(--panel); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+    max-width: 320px;
+  }
+  .dettabs .engsel:hover { border-color: var(--accent); }
 
   /* --- 사진 + 코멘트 목록 --- */
   .detrow { display: flex; gap: 10px; align-items: flex-start; }
@@ -811,6 +820,24 @@
     background: rgba(0,0,0,.6); color: #fff; font-size: 11px; line-height: 1.5;
     padding: 2px 7px; border-radius: 5px;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  /* --- 읽기 전용 표시 (사진 가운데 위) ---
+     교정이 안 되는 화면을 교정 화면으로 착각하면 한 시야를 통째로 헛본다.
+     좌상(도구)·우상(레이어)이 이미 찬 자리라 가운데로 온다 — 도구가 감춰져
+     있는 화면이므로 사진을 가리지도 않는다. 클릭은 통과시킨다: 이 표시 아래에
+     개체가 있으면 골라서 볼 수 있어야 한다. */
+  .detview .roflag {
+    position: absolute; left: 50%; top: 8px; z-index: 6;
+    transform: translateX(-50%); pointer-events: none; text-align: center;
+    padding: 6px 20px 7px; border-radius: 9px; line-height: 1.25;
+    font-size: 19px; font-weight: 700; letter-spacing: .6px;
+    background: rgba(0,0,0,.66); color: #ff5f5f;
+    border: 1px solid rgba(255,95,95,.75);
+  }
+  .detview .roflag span {
+    display: block; font-size: 11.5px; font-weight: 400; letter-spacing: 0;
+    color: #ffd9d9; margin-top: 2px;
   }
 
   /* --- 교정 도구 (사진 좌상단) ---
