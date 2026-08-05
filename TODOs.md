@@ -72,37 +72,22 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
         되찾았다
   - [x] `segment_diatoms.py` — `is_current` 이동과 재바인딩을 한 트랜잭션으로
   - [x] `group_focus_series.py` — 기존 시야가 있으면 경고한다
-- [ ] **7. JSON 을 원본에서 내리기 — 절반만 됐다**
+- [x] **7. JSON 을 원본에서 내리기** — 2026-08-05 (`aed471a`)
 
-      JSON 이 **원본 자리**에서는 내려왔지만(DB 가 원본) **쓰는 것**은 안 걷혔다.
-      `segment_diatoms.py` 가 검출할 때마다 무조건 쓴다 — 플래그 뒤가 아니다.
+      **overlay JPG 는 아예 걷었다.** 1,496장 752 MB 가 쌓여 있었는데 `data.py`
+      가 `overlay_rel` 을 계산할 뿐 템플릿 어디서도 안 썼다 — 뷰어가 같은 것을
+      SVG 로 그리고 그쪽은 켜고 끄고 확대하면 원본 화소로 가고 교정까지 얹는다.
 
-      ```
-      :861  draw_overlay(...)  -> out/<stem>_overlay.jpg
-      :892  write_text(...)    -> out/<stem>_candidates.json
-      ```
+      **`out/<stem>_candidates.json` 은 `--export-json` 을 줄 때만 쓴다.**
+      `out_dir` 이 엔진·묶음을 안 갈라서 **나중에 돈 YOLO 가 SAM2 의 JSON 을
+      덮어쓰고 있었다**(실측: `g024_…_focused` 파일은 원시 13·개체 1인데 DB 의
+      현재 검출은 원시 142·통과 5). 폴러는 이 플래그를 안 주므로 평소에는
+      안 생긴다.
 
-      **지금 세 가지가 어긋나 있다** (2026-08-05 실측):
-
-      - **경로가 엔진·묶음을 안 가른다.** `out_dir` 은 늘 `DATA_ROOT/out` 이고
-        `-o` 를 폴러가 안 준다 — **YOLO 실행이 SAM2 의 JSON 을 덮어쓴다.**
-        `g024_…_focused_candidates.json` 은 지금 원시 13·개체 1(YOLO)인데
-        운영 DB 의 그 이미지 현재 검출은 원시 142·통과 5(SAM2)다.
-        **파일 이름만으로는 어느 엔진 것인지 알 수 없다**
-      - 그래서 **`verify_db.py` 의 대조가 못 믿을 것이 됐다** — 이 파일들이
-        남아 있던 이유가 그 도구였다
-      - **overlay JPG 1,498개를 아무도 안 읽는다.** `data.py` 가 `overlay_rel` 을
-        계산하지만 템플릿 어디서도 안 쓴다. `out/` 799 MB 의 대부분이 이것이다
-
-      **`--export-json` 뒤로 옮기는 것을 권한다**(기본은 안 씀). `verify_db.py`
-      는 P02 3단계용이라 역할이 끝났고, 그 자리는 `export_review.py --check`(교정)
-      와 `backfill_images.py --verify`(이미지·검출)가 맡는다. overlay 는 뺀다.
-      `import_json.py` 의 중복 코드와 `README` 갱신도 남았다.
-
-      > **덮어쓰기는 사고로도 이어진다.** 055 의 5a 시험에서 파이프라인을 사본
-      > DB 에 붙여 돌렸는데 `out_dir` 은 `DATA_ROOT` 라 **JSON·overlay 30개가
-      > 운영 자리로 나갔다.** DB 는 안 건드렸지만 그 슬라이드의 JSON 은 YOLO
-      > 것으로 바뀌었다 — 사본으로 시험해도 이 자리는 안 갈린다.
+      읽는 쪽은 살아 있는 경로에 하나도 없다 — `verify_db`(P02 3단계 대조) ·
+      `import_json`(이전용) · `tighten_bbox` · `backfill_scale_source` 넷 다
+      이전기·일회성 도구다. 그 자리는 `export_review.py --check`(교정)와
+      `backfill_images.py --verify`(이미지·검출)가 맡는다.
 - [ ] **8. 재바인딩 + 고아 화면**(`/orphans/`) — `rebind.py` 는 만들었다(011).
       **화면이 없다**(`urls.py` 에 `/orphans/` 가 없다). 학습·엔진 교체의 전제 —
       없으면 교정이 조용히 버려진다. 지금 교정 6,738건은 **전부 `exact`** 라
@@ -356,6 +341,11 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       40x 로 계산하고 넘어간다 (devlog 015)
 - [x] **`/healthz` 가 백업·무결성 상태를 보게** — `db_sentinel.py` 가 DB 옆에
       깃발을 세우고 `/healthz` 가 `degraded`(200)로 낸다 (034)
+- [ ] **`smoke.sh` 가 화면이 뜨는지도 보게** — 지금은 `/healthz` 200 · 판 일치 ·
+      행 수만 본다. 둘 다 **링크를 만들지 않는 경로**라 057 을 통과시켰다
+      (슬러그 하나 때문에 목록 템플릿이 `NoReverseMatch` 로 죽어 **모든 화면이
+      500**). **목록 페이지를 때려 200 인지 보는 한 줄**이면 잡혔다.
+      슬라이드 상세도 한 장 곁들이면 링크를 만드는 경로를 둘 다 지난다
 - [ ] **표준 deploy 동사 5개** (preflight/deploy/seed/smoke/rollback) — 016
   - [x] `deploy` (019) · `smoke` (034)
   - [ ] `rollback` · `preflight` · `seed`("(none)" 선언)
