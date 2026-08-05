@@ -59,6 +59,10 @@ def index(request):
     show_map = not area["is_all"]
     return render(request, "viewer/index.html", {
         "datasets": rows,
+        # 표·카드 둘 다 코어로 묶어 낸다. 코어가 분석의 단위이고(깊이에 따른
+        # 변화가 목적이다) 슬라이드가 늘수록 평평한 목록은 못 읽는다.
+        # `datasets` 는 그대로 둔다 — 합계 줄과 "N장" 이 아직 그것으로 센다.
+        "groups": data.datasets_by_core(rows),
         "area": area,
         "show_map": show_map,
         "totals": data.datasets_total(rows),

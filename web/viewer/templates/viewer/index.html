@@ -139,9 +139,50 @@
       <th></th>
     </tr>
   </thead>
-  <tbody>
-  {% for d in datasets %}
-    <tr>
+  {% comment %}
+    코어마다 `<tbody>` 하나. **표 안에서는 `<details>` 가 안 먹는다** — 표의
+    자식은 행 무리여야 해서 사이에 다른 요소를 낄 수 없다. `<tbody>` 는 표
+    하나에 여럿 둘 수 있고, 그 자체가 "여기까지가 한 묶음" 이라는 뜻이다.
+
+    머리줄이 숫자를 들고 있어야 접어 놓고도 쓸모가 있다. **평균은 넣지 않는다**
+    — 분모가 슬라이드마다 달라 다시 더할 수 없다(`datasets_total()` 머리말).
+    그 자리(평균 장수·시야당)는 비운다.
+  {% endcomment %}
+  {% for g in groups %}
+  <tbody class="csgroup" data-gkey="{{ g.key }}">
+    <tr class="chead" tabindex="0" role="button" aria-expanded="true"
+        title="눌러서 접거나 폅니다">
+      <td class="dsname" colspan="4">
+        {% comment %}
+          ▶ 는 장식이 아니다 — 접히는 머리줄은 "눌리는 것" 과 "지금 열렸나" 를
+          같이 내야 하는데 옅은 면만으로는 둘 다 못 낸다.
+        {% endcomment %}
+        <span class="tw" aria-hidden="true"></span>
+        {% if g.no_core %}<span class="dim">코어 미지정</span>
+        {% else %}{{ g.core }}{% endif %}
+        <span class="ghead-sub dim">{% if g.site %}{{ g.site }} · {% endif %}{{ g.n }}장</span>
+      </td>
+      <td>{{ g.totals.n_images }}</td>
+      <td>{{ g.totals.n_groups }}</td>
+      <td></td>
+      <td>{{ g.totals.n_counted }}</td>
+      <td></td>
+      {% for c in g.totals.counted %}<td>{{ c.n }}</td>{% endfor %}
+      <td class="revcol">
+        <div class="revnum">{{ g.totals.reviewed_groups }}<span class="dim">/{{ g.totals.n_groups }}</span></div>
+        <div class="bar"><i style="width:{% widthratio g.totals.reviewed_groups g.totals.n_groups 100 %}%"></i></div>
+      </td>
+      <td></td>
+    </tr>
+  {% for d in g.rows %}
+    {% comment %}
+      **한 코어에 슬라이드가 100장 넘는 날이 온다.** 그때 묶음 하나가 화면을
+      통째로 먹으면 접어 둔 보람이 없다. 표에서는 `<tbody>` 가 스크롤 상자가
+      못 되므로(그러려면 table-layout: fixed 로 열 너비를 못 박아야 한다)
+      **처음 열 줄만 내고 "나머지 N장 더 보기"** 로 간다 — 뼈대를 안 건드리고,
+      스크롤이 겹쳐 휠이 갇히는 일도 없다.
+    {% endcomment %}
+    <tr{% if forloop.counter > 10 %} class="extra"{% endif %}>
       <td class="dsname">
         <a href="{% url 'dataset' d.slug %}">{{ d.label }}</a>
         {% if d.state != "done" %}<span class="dsstate" title="{{ d.state_note }}">{{ d.state }}</span>{% endif %}
@@ -178,7 +219,13 @@
       <td><a class="dsedit" href="{% url 'dataset_edit' d.slug %}">속성</a></td>
     </tr>
   {% endfor %}
+  {% if g.n > 10 %}
+    <tr class="morerow"><td colspan="99">
+      <button type="button" class="morebtn">나머지 {{ g.n|add:"-10" }}장 더 보기</button>
+    </td></tr>
+  {% endif %}
   </tbody>
+  {% endfor %}
   <tfoot>
     <tr>
       <td class="dsname">합계 <span class="dim">{{ datasets|length }}장</span></td>
@@ -202,9 +249,33 @@
 {% comment %} 지도 판 — 어느 해역의 시료인지. "전체" 에는 없다. {% endcomment %}
 {% if show_map %}<div class="asMap">{% include "viewer/_map.html" %}</div>{% endif %}
 
-{% comment %} 카드 판 — 슬라이드 하나씩 훑어볼 때. 표와 같은 값을 보인다. {% endcomment %}
-<div class="cards asCards">
-{% for d in datasets %}
+{% comment %}
+  카드 판 — 슬라이드 하나씩 훑어볼 때. 표와 같은 값을 보인다.
+
+  카드는 `<details>/<summary>` 로 그대로 된다(표와 달리 낄 자리가 있다).
+  **여닫는 상태는 표와 같은 열쇠를 쓴다** — 보기 방식을 바꿨는데 접힘이 달라지면
+  두 화면이 남남이 된다.
+{% endcomment %}
+<div class="asCards cgroups">
+{% for g in groups %}
+<details class="cgroup" data-gkey="{{ g.key }}" open>
+  <summary>
+    {% comment %}
+      브라우저가 그리는 삼각형을 끄고(::marker) 표와 같은 ▶ 를 직접 그린다 —
+      모양이 달라지면 두 화면이 남남이 된다.
+    {% endcomment %}
+    <span class="tw" aria-hidden="true"></span>
+    <b>{% if g.no_core %}<span class="dim">코어 미지정</span>{% else %}{{ g.core }}{% endif %}</b>
+    <span class="dim">{% if g.site %}{{ g.site }} · {% endif %}{{ g.n }}장</span>
+    <span class="gsum dim">사진 {{ g.totals.n_images }} · 시야 {{ g.totals.n_groups }} ·
+      검출 {{ g.totals.n_counted }} · 검토 {{ g.totals.reviewed_groups }}/{{ g.totals.n_groups }}</span>
+  </summary>
+  {% comment %}
+    한 코어에 슬라이드가 아주 많아지면 묶음 하나가 화면을 통째로 먹는다.
+    카드는 표와 달리 상자가 스크롤이 되므로 여기서 끊는다.
+  {% endcomment %}
+  <div class="cards{% if g.n > 10 %} capped{% endif %}">
+{% for d in g.rows %}
   <div class="card">
     <h3><a href="{% url 'dataset' d.slug %}">{{ d.label }}</a></h3>
     <div class="dsmeta">
@@ -254,6 +325,9 @@
     {% endif %}
   </div>
 {% endfor %}
+  </div>
+</details>
+{% endfor %}
 </div>
 </div>
 
@@ -286,6 +360,97 @@
     if (!b) return;
     apply(b.dataset.view);
     try { localStorage.setItem(KEY, b.dataset.view); } catch (err) { /* 사생활 모드 */ }
+  });
+})();
+
+// --- 코어 묶음 접기 --------------------------------------------------------
+// 표와 카드가 **같은 열쇠**를 쓴다. 보기 방식을 바꿨는데 접힘이 달라지면 두
+// 화면이 남남이 된다.
+//
+// **접은 것만 적어 둔다.** 편 것을 적으면 새 코어가 들어왔을 때 목록에 없어
+// 접힌 채로 열린다 — 그러면 첫 화면이 빈 목록이다. 기본은 늘 펴짐이다.
+(function () {
+  var KEY = 'diaruga.dsclosed', box = document.getElementById('dsview');
+  if (!box) return;
+  var shut = {};
+  try {
+    (JSON.parse(localStorage.getItem(KEY) || '[]') || []).forEach(function (k) {
+      shut[k] = 1;
+    });
+  } catch (e) { /* 사생활 모드 · 깨진 값 */ }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(Object.keys(shut))); }
+    catch (e) { /* 사생활 모드 */ }
+  }
+
+  // 한 열쇠의 상태를 표와 카드 양쪽에 함께 그린다.
+  function paint(key) {
+    var on = !shut[key];
+    box.querySelectorAll('.csgroup[data-gkey]').forEach(function (tb) {
+      if (tb.dataset.gkey !== key) return;
+      tb.classList.toggle('closed', !on);
+      var h = tb.querySelector('.chead');
+      if (h) h.setAttribute('aria-expanded', on ? 'true' : 'false');
+    });
+    box.querySelectorAll('.cgroup[data-gkey]').forEach(function (dt) {
+      // `<details>` 는 여닫힘을 스스로 알린다 — aria-expanded 를 따로 얹지
+      // 않는다. 표의 머리줄은 행이라 그 뜻이 없어서 직접 붙인다.
+      if (dt.dataset.gkey === key) dt.open = on;
+    });
+  }
+
+  function toggle(key) {
+    if (shut[key]) delete shut[key]; else shut[key] = 1;
+    save(); paint(key);
+  }
+
+  var keys = {};
+  box.querySelectorAll('[data-gkey]').forEach(function (el) { keys[el.dataset.gkey] = 1; });
+  Object.keys(keys).forEach(paint);
+
+  box.addEventListener('click', function (e) {
+    // 묶음 안의 "더 보기" — 이 묶음만 마저 편다. 접기로 되돌리지는 않는다
+    // (열 줄로 되접으면 방금 찾던 줄이 다시 사라진다).
+    var more = e.target.closest('.morebtn');
+    if (more) {
+      var tb = more.closest('.csgroup');
+      if (tb) { tb.classList.add('all'); more.closest('.morerow').remove(); }
+      return;
+    }
+    var head = e.target.closest('.chead');
+    if (head) {
+      var tb2 = head.closest('.csgroup');
+      if (tb2) toggle(tb2.dataset.gkey);
+      return;
+    }
+    // 카드 쪽은 `<details>` 가 스스로 여닫으므로 기억만 맞춰 준다. 이 자리에서
+    // preventDefault 를 하면 브라우저 기본 동작과 싸운다.
+    var sm = e.target.closest('.cgroup > summary');
+    if (sm) {
+      var dt = sm.parentElement, k = dt.dataset.gkey;
+      // click 시점의 dt.open 은 아직 바뀌기 전이다 — 뒤집힌 값을 적는다.
+      if (dt.open) shut[k] = 1; else delete shut[k];
+      save();
+      // 표 쪽도 같이 맞춘다 (카드에서 접고 표로 갈아탔을 때)
+      box.querySelectorAll('.csgroup[data-gkey]').forEach(function (tb3) {
+        if (tb3.dataset.gkey !== k) return;
+        tb3.classList.toggle('closed', !!shut[k]);
+        var h = tb3.querySelector('.chead');
+        if (h) h.setAttribute('aria-expanded', shut[k] ? 'false' : 'true');
+      });
+    }
+  });
+
+  // 머리줄은 행이라 기본으로 키를 안 받는다. role="button" 을 붙였으니
+  // 엔터·스페이스도 눌린 것으로 쳐야 한다.
+  box.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var head = e.target.closest && e.target.closest('.chead');
+    if (!head) return;
+    e.preventDefault();
+    var tb = head.closest('.csgroup');
+    if (tb) toggle(tb.dataset.gkey);
   });
 })();
 </script>

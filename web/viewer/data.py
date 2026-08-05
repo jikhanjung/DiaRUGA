@@ -864,6 +864,49 @@ def datasets_total(rows: list[dict]) -> dict:
     return total
 
 
+def datasets_by_core(rows: list[dict]) -> list[dict]:
+    """목록을 코어로 묶는다. 표·카드 둘 다 이것을 쓴다.
+
+    **묶는 열쇠는 지역이 아니라 코어다.** 지역은 머리줄에 함께 낸다. 지금은
+    지역↔코어가 거의 1:1(5:5)이라 어느 쪽으로 묶어도 화면은 같지만, **먼저 오는
+    것은 한 코어에서 슬라이드가 여럿이 되는 일이다** — 이미 RS23-GC03 이 셋이다.
+    한 지역에 코어가 둘 되는 날은 그 다음이고, 그때는 층이 하나 더 생길 뿐 이
+    묶음이 안 흔들린다.
+
+    **줄 순서는 이미 지역→코어→깊이다**(`datasets()`). 그래서 같은 코어가 이어
+    놓여 있고, 나온 순서대로 훑으며 묶기만 하면 된다 — 다시 정렬하지 않는다.
+
+    **코어가 안 붙은 슬라이드가 있다**(`data.py` 가 빈 값을 허용한다). 그것만
+    따로 "코어 미지정" 묶음이 된다 — 어디에도 안 들어가면 목록에서 사라진다.
+
+    머리줄의 숫자는 `datasets_total()` 을 묶음마다 한 번 불러 낸다(지금도 전체
+    합계를 그 함수 하나로 낸다). **평균은 넣지 않는다** — 분모가 슬라이드마다
+    달라 다시 더할 수 없다(그 함수 머리말의 이유).
+    """
+    out, at = [], {}
+    for r in rows:
+        # 같은 코어 코드가 지역마다 따로 있을 수 있다(Core 의 unique 가
+        # (site, code) 인 이유). 열쇠도 그 짝이어야 한다.
+        key = (r.get("site") or "", r.get("core") or "")
+        g = at.get(key)
+        if g is None:
+            g = at[key] = {
+                # 화면이 여닫은 상태를 기억할 이름. **가름표를 넣는다** —
+                # 그냥 이으면 ("RS2","3GC03")과 ("RS23","GC03")이 같아진다.
+                "key": f"{key[0]}/{key[1]}",
+                "site": key[0],
+                "core": key[1],
+                "no_core": not key[1],
+                "rows": [],
+            }
+            out.append(g)
+        g["rows"].append(r)
+    for g in out:
+        g["n"] = len(g["rows"])
+        g["totals"] = datasets_total(g["rows"])
+    return out
+
+
 def _viewpoints_of(slide: Slide):
     return (Viewpoint.objects.filter(slide=slide)
             .select_related("sharpest_frame", "stack")
