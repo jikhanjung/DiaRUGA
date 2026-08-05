@@ -54,6 +54,11 @@
 `viewer_run.params` 에 `/data3/diatom/datasets/...` 가 든 행이 둘 있는데 이것도
 남겼다. "그때 이렇게 돌렸다" 는 기록이라 devlog 와 성격이 같다.
 
+**진척 보고서는 6차부터 `DiaRUGA-` 다** — `docs/YYYYMMDD_DiaRUGA-analysis-system-
+progress-6.md`. 1~5차는 그 이름으로 이미 NAS 공유에 docx 가 올라가 있어 바꾸지
+않았다. 남이 열어 둔 파일의 이름을 뒤에서 바꾸면 저쪽 링크가 끊긴다. 새 보고서가
+옛 보고서를 링크할 때는 **그 파일의 실제 이름**을 쓴다.
+
 ## 4. 밟을 뻔한 것들
 
 **URL 은 대소문자를 가린다.** 정식 주소가 `/DiaRUGA/` 면 `/diaruga/` 로 친 사람은
