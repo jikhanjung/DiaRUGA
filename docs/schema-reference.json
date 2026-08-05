@@ -1,0 +1,1589 @@
+{
+  "viewer_candidate": {
+    "autoincrement": true,
+    "checks": [
+      "((json_valid(polygon)orpolygonisnull))"
+    ],
+    "columns": {
+      "area_px": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "area_um2": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "aspect_ratio": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "bbox_h": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "bbox_w": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "bbox_x": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "bbox_y": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "center_x": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "center_y": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "circularity": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "cls": {
+        "affinity": "TEXT",
+        "decl": "varchar(32)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "convexity": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "detection_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "ellipse_iou": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "elongation": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "fill_ratio": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "long_side_um": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "major_um": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "mask_key": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "minor_um": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "passed": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "polygon": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "predicted_iou": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "raw_id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "reject": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "shape_ok": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "short_side_um": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "solidity": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "stability_score": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "texture": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "detection_id→viewer_detection.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {
+      "detection_id,mask_key": "uniq_candidate_key"
+    },
+    "uniques": [
+      [
+        "detection_id",
+        "mask_key"
+      ]
+    ]
+  },
+  "viewer_classdef": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "active": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "badge": {
+        "affinity": "TEXT",
+        "decl": "varchar(16)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "color": {
+        "affinity": "TEXT",
+        "decl": "varchar(24)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "counted": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "hotkey": {
+        "affinity": "TEXT",
+        "decl": "varchar(8)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "is_taxon": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "key": {
+        "affinity": "TEXT",
+        "decl": "varchar(32)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "label": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "short": {
+        "affinity": "TEXT",
+        "decl": "varchar(16)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "sort_order": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [],
+    "unique_names": {},
+    "uniques": [
+      [
+        "key"
+      ]
+    ]
+  },
+  "viewer_core": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "code": {
+        "affinity": "TEXT",
+        "decl": "varchar(32)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "collected_at": {
+        "affinity": "NUMERIC",
+        "decl": "date",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "kind": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "lat": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "lon": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "note": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "site_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "water_depth_m": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "site_id→viewer_site.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {
+      "code,site_id": "uniq_core_code"
+    },
+    "uniques": [
+      [
+        "code",
+        "site_id"
+      ]
+    ]
+  },
+  "viewer_detection": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "created_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "frame_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "height": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "image_path": {
+        "affinity": "TEXT",
+        "decl": "varchar(500)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "is_current": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "n_raw_masks": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "n_sized": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "run_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "scale": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "superseded_by_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "target": {
+        "affinity": "TEXT",
+        "decl": "varchar(8)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "thresholds_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "um_per_pixel": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "um_per_pixel_backfilled": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "um_per_pixel_native": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "um_per_pixel_source": {
+        "affinity": "TEXT",
+        "decl": "varchar(8)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "viewpoint_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "width": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "frame_id→viewer_frame.id|del=NO ACTION|upd=NO ACTION",
+      "run_id→viewer_run.id|del=NO ACTION|upd=NO ACTION",
+      "superseded_by_id→viewer_detection.id|del=NO ACTION|upd=NO ACTION",
+      "thresholds_id→viewer_thresholdset.id|del=NO ACTION|upd=NO ACTION",
+      "viewpoint_id→viewer_viewpoint.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {},
+    "uniques": []
+  },
+  "viewer_frame": {
+    "autoincrement": true,
+    "checks": [
+      "((json_valid(meta)ormetaisnull))"
+    ],
+    "columns": {
+      "acquired_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "created_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "height": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "is_sharpest": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "meta": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "name": {
+        "affinity": "TEXT",
+        "decl": "varchar(120)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "path": {
+        "affinity": "TEXT",
+        "decl": "varchar(500)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "seq": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "sharpness": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "slide_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "um_per_pixel": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "um_per_pixel_source": {
+        "affinity": "TEXT",
+        "decl": "varchar(8)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "updated_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "viewpoint_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "width": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "slide_id→viewer_slide.id|del=NO ACTION|upd=NO ACTION",
+      "viewpoint_id→viewer_viewpoint.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {
+      "name,slide_id": "uniq_frame_name"
+    },
+    "uniques": [
+      [
+        "name",
+        "slide_id"
+      ]
+    ]
+  },
+  "viewer_objectreview": {
+    "autoincrement": true,
+    "checks": [
+      "((json_valid(geom)orgeomisnull))"
+    ],
+    "columns": {
+      "accepted": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "bind_method": {
+        "affinity": "TEXT",
+        "decl": "varchar(8)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "bind_score": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "candidate_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "geom": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "label": {
+        "affinity": "TEXT",
+        "decl": "varchar(32)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "mask_key": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "note": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "removed": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "updated_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "viewpoint_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "candidate_id→viewer_candidate.id|del=NO ACTION|upd=NO ACTION",
+      "viewpoint_id→viewer_viewpoint.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {
+      "mask_key,viewpoint_id": "uniq_objreview_key"
+    },
+    "uniques": [
+      [
+        "mask_key",
+        "viewpoint_id"
+      ]
+    ]
+  },
+  "viewer_run": {
+    "autoincrement": true,
+    "checks": [
+      "((json_valid(counts)orcountsisnull))",
+      "((json_valid(params)orparamsisnull))"
+    ],
+    "columns": {
+      "batch_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "code_version": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "counts": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "error": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "finished_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "gpu": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "host": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "kind": {
+        "affinity": "TEXT",
+        "decl": "varchar(16)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "params": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "slide_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "started_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "status": {
+        "affinity": "TEXT",
+        "decl": "varchar(8)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "batch_id→viewer_runbatch.id|del=NO ACTION|upd=NO ACTION",
+      "slide_id→viewer_slide.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {},
+    "uniques": []
+  },
+  "viewer_runbatch": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "finished_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "kind": {
+        "affinity": "TEXT",
+        "decl": "varchar(16)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "label": {
+        "affinity": "TEXT",
+        "decl": "varchar(120)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "note": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "started_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [],
+    "unique_names": {
+      "kind,label": "uniq_batch_label"
+    },
+    "uniques": [
+      [
+        "kind",
+        "label"
+      ]
+    ]
+  },
+  "viewer_setting": {
+    "autoincrement": true,
+    "checks": [
+      "((json_valid(value)orvalueisnull))"
+    ],
+    "columns": {
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "key": {
+        "affinity": "TEXT",
+        "decl": "varchar(64)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "updated_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "value": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [],
+    "unique_names": {},
+    "uniques": [
+      [
+        "key"
+      ]
+    ]
+  },
+  "viewer_site": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "area": {
+        "affinity": "TEXT",
+        "decl": "varchar(8)",
+        "default": "ant",
+        "notnull": true,
+        "pk": 0
+      },
+      "code": {
+        "affinity": "TEXT",
+        "decl": "varchar(32)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "lat": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "lon": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "name": {
+        "affinity": "TEXT",
+        "decl": "varchar(200)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "note": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "region": {
+        "affinity": "TEXT",
+        "decl": "varchar(200)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [],
+    "unique_names": {},
+    "uniques": [
+      [
+        "code"
+      ]
+    ]
+  },
+  "viewer_slide": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "copied_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "core_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "corr_thresh": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "created_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "depth_cm": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "description": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "discovered_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "image_dir": {
+        "affinity": "TEXT",
+        "decl": "varchar(500)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "name": {
+        "affinity": "TEXT",
+        "decl": "varchar(200)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "processed_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "sample_kind": {
+        "affinity": "TEXT",
+        "decl": "varchar(12)",
+        "default": "core",
+        "notnull": true,
+        "pk": 0
+      },
+      "slug": {
+        "affinity": "TEXT",
+        "decl": "varchar(120)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "state": {
+        "affinity": "TEXT",
+        "decl": "varchar(12)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "state_note": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "um_per_pixel_override": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "updated_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "core_id→viewer_core.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {},
+    "uniques": [
+      [
+        "slug"
+      ]
+    ]
+  },
+  "viewer_stack": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "align_failed": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "created_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "depth_npz_path": {
+        "affinity": "TEXT",
+        "decl": "varchar(500)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "depth_path": {
+        "affinity": "TEXT",
+        "decl": "varchar(500)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "focused_path": {
+        "affinity": "TEXT",
+        "decl": "varchar(500)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "gain": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "native_um_per_pixel": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "object_px_frac": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "ref_frame_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "resize_scale": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "run_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "sharpness_best_single": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "sharpness_fused": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "um_per_pixel": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "um_per_pixel_source": {
+        "affinity": "TEXT",
+        "decl": "varchar(8)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "viewpoint_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "ref_frame_id→viewer_frame.id|del=NO ACTION|upd=NO ACTION",
+      "run_id→viewer_run.id|del=NO ACTION|upd=NO ACTION",
+      "viewpoint_id→viewer_viewpoint.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {},
+    "uniques": [
+      [
+        "viewpoint_id"
+      ]
+    ]
+  },
+  "viewer_thresholdset": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "created_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "is_default": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "max_um": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "min_um": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "name": {
+        "affinity": "TEXT",
+        "decl": "varchar(120)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "note": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "rod_max_elong": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "rod_min_elong": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "rod_min_iou": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "rod_min_solidity": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "round_max_elong": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "round_min_iou": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "round_min_solidity": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "round_texture_min": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "texture_min": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [],
+    "unique_names": {},
+    "uniques": []
+  },
+  "viewer_viewpoint": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "grouping_run_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "idx": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "n_frames": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "sharpest_frame_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "slide_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "span_sec": {
+        "affinity": "REAL",
+        "decl": "REAL",
+        "default": null,
+        "notnull": false,
+        "pk": 0
+      },
+      "tag": {
+        "affinity": "TEXT",
+        "decl": "varchar(120)",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "grouping_run_id→viewer_run.id|del=NO ACTION|upd=NO ACTION",
+      "sharpest_frame_id→viewer_frame.id|del=NO ACTION|upd=NO ACTION",
+      "slide_id→viewer_slide.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {
+      "idx,slide_id": "uniq_viewpoint_idx"
+    },
+    "uniques": [
+      [
+        "idx",
+        "slide_id"
+      ]
+    ]
+  },
+  "viewer_viewpointreview": {
+    "autoincrement": true,
+    "checks": [],
+    "columns": {
+      "done": {
+        "affinity": "NUMERIC",
+        "decl": "bool",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "id": {
+        "affinity": "INTEGER",
+        "decl": "INTEGER",
+        "default": null,
+        "notnull": true,
+        "pk": 1
+      },
+      "note": {
+        "affinity": "TEXT",
+        "decl": "TEXT",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "updated_at": {
+        "affinity": "NUMERIC",
+        "decl": "datetime",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      },
+      "viewpoint_id": {
+        "affinity": "INTEGER",
+        "decl": "bigint",
+        "default": null,
+        "notnull": true,
+        "pk": 0
+      }
+    },
+    "foreign_keys": [
+      "viewpoint_id→viewer_viewpoint.id|del=NO ACTION|upd=NO ACTION"
+    ],
+    "unique_names": {},
+    "uniques": [
+      [
+        "viewpoint_id"
+      ]
+    ]
+  }
+}

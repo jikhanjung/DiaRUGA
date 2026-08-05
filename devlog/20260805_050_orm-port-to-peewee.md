@@ -180,21 +180,70 @@ peewee 로 만든 빈 DB           ─┘
 웹 뷰어로 열어 같은 교정이 보이는지 본다. 반대 방향도 같다.
 **이 두 시험이 CI 에 있으면 이식이 안전해지고, 없으면 안 된다.**
 
+### 만들었다 — `tools/schema_diff.py`
+
+```bash
+python tools/schema_diff.py A.db B.db              # 견준다 (다르면 종료코드 1)
+python tools/schema_diff.py --dump db -o ref.json  # 기준 지문을 뜬다
+python tools/schema_diff.py ref.json B.db          # 지문과 견준다 (Django 불필요)
+```
+
+stdlib 만 쓴다. 시험해 확인한 것:
+
+| 시험 | 결과 |
+|---|---|
+| 운영 DB ↔ 자기 자신 | 같다 |
+| **운영 DB ↔ 마이그레이션으로 새로 만든 빈 DB** | **같다** — 운영 스키마가 마이그레이션과 어긋나지 않았다 |
+| 일부러 유일 제약·CHECK·기본값·FK 규칙을 망가뜨린 사본 | **4건 전부 잡았다** |
+| `bigint` → `integer` (친화도 같음) | **경고만** — 실패로 세지 않는다 |
+
+정규화가 실제로 필요했다는 증거가 마지막 줄이다. 그리고 유일 제약은 **테이블
+제약이든 별도 인덱스든 한 자루에 담아** `(표, 칼럼 집합)` 으로 견준다 — 이름은
+무시하고 보고에만 적는다.
+
 ---
 
-## 6. 마이그레이션은 어떻게 되는가
+## 6. 마이그레이션 — 양쪽에 필요하다
 
 정직하게, **여기에는 중복이 생긴다.** 피할 방법을 못 찾았다.
+**스키마가 바뀌면 Django 쪽과 peewee 쪽 둘 다 이행 스크립트가 필요하다.**
 
-- **새 DB 를 만들 때**는 문제가 없다. peewee 로 만들고 5절 시험으로 확인한다
-  (또는 빌드 때 Django 로 구운 **빈 템플릿 DB 를 앱에 싣는다** — 동일성이
-  보장되는 대신 빌드 단계가 는다)
-- **이미 쓰던 DB 를 새 판으로 올릴 때**는 앱 쪽에도 이행 스크립트가 필요하다.
-  `Modan2` 가 쓰는 `peewee-migrate` 가 그 자리다
 - **처음 한 번은 지금 스키마로 squash 한다.** 18개를 옮기지 않는다. 앱의
-  이행 이력은 "현재 스키마" 에서 시작하고, **그 뒤로만 Django 와 나란히 간다**
+  이행 이력은 "현재 스키마" 에서 시작하고, **그 뒤로만 나란히 간다**
+- **새 DB 를 만들 때**는 peewee 로 만들고 5절 시험으로 확인한다
+- **쓰던 DB 를 올릴 때**는 `peewee-migrate` (`Modan2` 가 쓰는 것)
 
-나란히 가는 두 벌이 어긋나는 것을 막는 것이 5절의 시험이다.
+### 절차
+
+```bash
+# 1) 스키마의 원본은 Django 마이그레이션이다
+python web/manage.py makemigrations && python web/manage.py migrate
+
+# 2) 빈 DB 에 적용해 기준 지문을 다시 뜬다 (운영 DB 를 쓰지 않는다)
+DIARUGA_DB=/tmp/fresh.db python web/manage.py migrate
+python tools/schema_diff.py --dump /tmp/fresh.db -o docs/schema-reference.json
+
+# 3) peewee 쪽 이행을 쓴 뒤, 만든 DB 를 지문과 견준다
+python tools/schema_diff.py docs/schema-reference.json build/peewee.db
+```
+
+**지문(`docs/schema-reference.json`)을 저장소에 두는 이유**는 3번을 **Django 없이**
+돌릴 수 있게 하기 위해서다. 데스크탑 쪽 CI 에 Django 를 깔지 않아도 된다.
+
+### DB 를 공유하지 않는 경우
+
+개별 연구자가 자기 자료만 데스크탑에서 쓰고 **웹과 DB 를 주고받지 않을** 수도
+있다. 그러면 스키마가 글자까지 같아야 할 이유는 약해지고, **데스크탑만 이행하면
+된다.** 앱이 자기 표(설정·최근 폴더 같은)를 더하는 것도 자연스럽다.
+
+그럴 때를 위해 `--allow-extra` 를 뒀다 — **B 가 더 가진 것은 넘어가고, 잃은 것만
+실패한다.** 다만 **바뀐 것은 더한 것이 아니다**: 형·NOT NULL·기본값이 다르거나
+외래키 규칙이 달라지면 이 모드에서도 잡힌다.
+
+> **그래도 스키마는 최대한 공용으로 간다.** 공유하지 않더라도 값이 있다 —
+> `data.py`·`segment_diatoms.py`·`refilter.py` 를 두 쪽이 함께 쓰고, 사용자가
+> 보내온 DB 를 우리 도구로 열어 볼 수 있고, 나중에 반입이 필요해졌을 때 길이
+> 열려 있다. **`--allow-extra` 는 기본이 아니라 비상구다.**
 
 ---
 
