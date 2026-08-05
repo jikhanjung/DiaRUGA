@@ -316,7 +316,7 @@ class Image(models.Model):
     `frame` 이 NULL 이라 **유일 제약이 82%에 대해 조용히 작동을 멈춘다**(NULL 은
     서로 다른 값으로 친다).
 
-    이 표가 생기면 그 문제가 **사라진다.** `(image, mask_key)` 하나면 되고,
+    이 테이블이 생기면 그 문제가 **사라진다.** `(image, mask_key)` 하나면 되고,
     판별자 문자열도 `__stack__` 센티널도 NULL 규칙도 필요 없다.
 
     ## 열쇠는 `path` 다
@@ -328,7 +328,7 @@ class Image(models.Model):
 
     ## 무엇을 담지 않는가
 
-    **촬영·합성 메타는 그대로 `Frame`·`Stack` 에 둔다.** 이 표는 정체(identity)만
+    **촬영·합성 메타는 그대로 `Frame`·`Stack` 에 둔다.** 이 테이블은 정체(identity)만
     맡는다 — `Frame` 은 선명도·촬영시각·`seq`, `Stack` 은 정렬 실패·품질 지표처럼
     **합성 실행의 산물**을 들고 있고, 그것들은 이미지가 아니라 그 이미지를 만든
     일에 대한 기록이다.
@@ -341,7 +341,7 @@ class Image(models.Model):
     ## 지금은 아무도 안 쓴다
 
     P06 은 넓히고(2) → 채우고(3) → 파이프라인을 옮기고(4) → 조인다(5). 지금은
-    2단계라 이 표가 서 있기만 하고 `Detection.image`·`ObjectReview.image` 는
+    2단계라 이 테이블이 서 있기만 하고 `Detection.image`·`ObjectReview.image` 는
     **nullable** 이다 — 옛 파이프라인 이미지의 INSERT 가 죽으면 안 되기 때문이다
     (뷰어와 파이프라인은 판이 따로 돈다).
     """
@@ -353,8 +353,8 @@ class Image(models.Model):
     #
     # **`CASCADE` 로 두면 안 된다.** 시야 가르기(`regroup.apply_split`)는 시야를
     # 지우고 다시 만드는데 **프레임은 살아남는다** — 그 사이에 이미지 행이 같이
-    # 죽으면 디스크에 파일이 그대로 있는데 표에서만 사라진다.
-    # **이 표는 디스크의 파일을 비추는 것**이고, 시야는 그 파일에 붙는 이름표다.
+    # 죽으면 디스크에 파일이 그대로 있는데 테이블에서만 사라진다.
+    # **이 테이블은 디스크의 파일을 비추는 것**이고, 시야는 그 파일에 붙는 이름표다.
     viewpoint = models.ForeignKey(Viewpoint, null=True, blank=True,
                                   on_delete=models.SET_NULL,
                                   related_name="images")
@@ -389,7 +389,7 @@ class Image(models.Model):
 class ThresholdSet(models.Model):
     """판정 문턱. 지금은 11개 값이 결과 JSON 마다 복사돼 있다.
 
-    표로 두면 이름을 붙여 비교할 수 있다 — "1500 vs 2000 을 같은 시야에 걸고
+    테이블로 두면 이름을 붙여 비교할 수 있다 — "1500 vs 2000 을 같은 시야에 걸고
     개수를 나란히" 가 가능해진다.
     """
 
@@ -425,7 +425,7 @@ class ThresholdSet(models.Model):
 class ClassDef(models.Model):
     """분류 정의. 지금 data.py 의 CLASS_LABELS + CSS 에 흩어진 색.
 
-    표로 두면 분류를 더할 때 배포가 필요 없다 — Eucampia 를 넣은 것이 코드
+    테이블로 두면 분류를 더할 때 배포가 필요 없다 — Eucampia 를 넣은 것이 코드
     수정이었는데, 속은 계속 늘어난다.
 
     **분류를 더할 때 채울 것.** 하나라도 비면 예외는 안 나고 그 분류만 화면에서
@@ -435,7 +435,7 @@ class ClassDef(models.Model):
         short       약칭. 자리가 좁은 곳에서 쓴다. 비면 label 을 쓴다
         badge       배지 CSS 클래스. `base.html` 에 `.badge.<badge>` 규칙이 있어야 한다
         color       "R,G,B". **`base.html` 의 CSS 도 함께 고쳐야 한다** — 색은
-                    아직 표에서 뿜어내지 않는다. 비면 마스크가 투명해진다
+                    아직 테이블에서 뿜어내지 않는다. 비면 마스크가 투명해진다
         hotkey      검토 화면 단축키. 비면 그 분류만 메뉴로만 지정된다
         counted     개체 수로 세는가 (파편은 False)
         is_taxon    형태가 아니라 분류학으로 알아본 것인가 (메뉴에서 줄로 갈린다)
@@ -530,7 +530,7 @@ class Detection(models.Model):
 
 
 class Candidate(models.Model):
-    """개체 하나. 통과분·탈락분을 한 표에 담고 `passed` 로 가른다.
+    """개체 하나. 통과분·탈락분을 한 테이블에 담고 `passed` 로 가른다.
 
     문턱을 바꾸면 개체가 무리를 옮겨 다니므로(지금은 두 배열 사이로 옮기느라
     파일을 다시 쓴다) `passed` 칼럼 하나면 refilter 가 UPDATE 한 번이다.

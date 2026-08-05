@@ -328,7 +328,7 @@ def save_stack(vp: Viewpoint, out_dir: Path, r: dict, run: Run) -> None:
             sharpness_fused=r["sharpness_fused"],
             gain=r["gain"],
             run=run))
-    # 합성본과 깊이맵을 이미지 표에 올린다 (P06). 다시 합성해도 `path` 가
+    # 합성본과 깊이맵을 이미지 테이블에 올린다 (P06). 다시 합성해도 `path` 가
     # 같으면 같은 행이고, 링크만 새 `Stack` 으로 맞춰진다.
     ensure_stack_images(st)
 

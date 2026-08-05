@@ -1,6 +1,6 @@
 # DiaRUGA DB ERD — 한눈에
 
-**2026-08-04** · A3 가로
+**2026-08-04** (`Image` 반영 2026-08-05 — P06 · devlog 055) · A3 가로
 
 도표만 모았다. 칸의 뜻은 [DB 명세](20260804_db-specification.md), 관계 하나하나의
 방향·`on_delete`·`related_name` 은 [ERD 문서](20260804_db-erd.md)에 있다.
@@ -20,9 +20,9 @@ flowchart LR
     Site[Site<br/>지역] --> Core[Core<br/>코어] --> Slide[Slide<br/>슬라이드]
     Slide --> VP[Viewpoint<br/>시야] --> Frame[Frame<br/>사진]
     VP --> Stack[Stack<br/>합성본 1:1]
-    VP --> Det[Detection<br/>is_current] --> Cand[Candidate<br/>개체]
+    VP --> Img[Image<br/>stack·frame·depth] --> Det[Detection<br/>is_current] --> Cand[Candidate<br/>개체]
     VP --> VR[ViewpointReview<br/>시야 검토 1:1]
-    VP --> OR[ObjectReview<br/>개체 교정]
+    Img --> OR[ObjectReview<br/>개체 교정]
     Cand -. "mask_key 로 느슨히" .-> OR
     Cand -. "cls 문자열" .-> CD[ClassDef<br/>분류 정의]
     RB[RunBatch<br/>이름표] --> Run[Run<br/>실행]
@@ -38,7 +38,7 @@ flowchart LR
     classDef side fill:#f8f9fa,stroke:#9aa0a6,color:#5f6368
     class Site,Core,Slide,VP,Frame stem
     class OR,VR human
-    class Det,Cand,Stack det
+    class Det,Cand,Stack,Img det
     class RB,Run,TS,CD,ST side
 ```
 
@@ -57,6 +57,9 @@ erDiagram
     RunBatch ||--o{ Run : runs
     Viewpoint ||--o{ Frame : frames
     Viewpoint ||--|| Stack : stack
+    Viewpoint ||--o{ Image : images
+    Frame ||--|| Image : image
+    Stack ||--o{ Image : images
     Viewpoint ||--|| ViewpointReview : review
     Run ||--o{ Stack : stacks
     Run ||--o{ Viewpoint : viewpoints
@@ -69,17 +72,22 @@ erDiagram
 
 ```mermaid
 erDiagram
+    Image ||--o{ Detection : detections
+    Image ||--o{ ObjectReview : object_reviews
     Viewpoint ||--o{ Detection : detections
     Viewpoint ||--o{ ObjectReview : object_reviews
-    Frame ||--o{ Detection : detections
     Run ||--o{ Detection : detections
     ThresholdSet ||--o{ Detection : detections
     Detection ||--o{ Candidate : candidates
     Detection ||--o{ Detection : supersedes
     Candidate ||--o{ ObjectReview : reviews
 
+    Image {
+        string path UK "자연 열쇠"
+        string kind "stack|frame|depth"
+    }
     Detection {
-        string target "stack|frame"
+        int image FK "NOT NULL"
         bool is_current "뷰어가 볼 것"
     }
     Candidate {
@@ -88,7 +96,7 @@ erDiagram
         string cls
     }
     ObjectReview {
-        string mask_key UK "viewpoint 안에서"
+        string mask_key UK "image 안에서"
         json geom "스스로 든 기하"
         bool removed
         bool accepted
@@ -111,7 +119,7 @@ flowchart LR
     subgraph 다시_돌리기_후 [재검출 후]
         C2[Candidate<br/>id=7734<br/>mask_key=1240_880_96_64]
     end
-    R[ObjectReview<br/>viewpoint + mask_key<br/>geom · removed · label]
+    R[ObjectReview<br/>image + mask_key<br/>geom · removed · label]
     C1 -. "FK 였다면 여기서 끊긴다" .-> R
     C2 == "mask_key 로 다시 붙는다<br/>exact → IoU → orphan" ==> R
 
@@ -123,15 +131,16 @@ flowchart LR
 
 ---
 
-## 지금 담긴 것 (2026-08-04)
+## 지금 담긴 것 (2026-08-05)
 
 ```mermaid
 flowchart LR
-    S["Site<br/>5"] --> C["Core<br/>5"] --> SL["Slide<br/>10"] --> VP["Viewpoint<br/>448"]
+    S["Site<br/>5"] --> C["Core<br/>5"] --> SL["Slide<br/>10"] --> VP["Viewpoint<br/>452"]
     VP --> F["Frame<br/>1,318<br/><small>평균 2.9장/시야</small>"]
-    VP --> ST["Stack<br/>317<br/><small>싱글턴 131은 없다</small>"]
-    VP --> VR["ViewpointReview<br/>436"]
-    VP --> OR["ObjectReview<br/>6,753"]
-    VP --> D["Detection<br/>3,705"] --> CA["Candidate<br/>128,583<br/><small>평균 35개/검출</small>"]
-    RB["RunBatch<br/>3"] --> R["Run<br/>188"]
+    VP --> ST["Stack<br/>317<br/><small>싱글턴 135는 없다</small>"]
+    VP --> VR["ViewpointReview<br/>432"]
+    VP --> IM["Image<br/>1,952"]
+    IM --> OR["ObjectReview<br/>6,738"]
+    IM --> D["Detection<br/>2,076"] --> CA["Candidate<br/>91,603<br/><small>평균 44개/검출</small>"]
+    RB["RunBatch<br/>2"] --> R["Run<br/>171"]
 ```

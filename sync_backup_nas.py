@@ -68,7 +68,7 @@ ROOT = Path(__file__).resolve().parent
 DAILY_DAYS = 7        # 이 안쪽은 전부 남긴다
 WEEKLY_DAYS = 30      # 여기까지는 주에 하나, 그 뒤로는 달에 하나
 
-# 이 표가 있으면 스키마가 살아 있다고 본다 — backup_db.py 와 같은 기준
+# 이 테이블이 있으면 스키마가 살아 있다고 본다 — backup_db.py 와 같은 기준
 SMOKE_TABLE = "viewer_objectreview"
 
 # 깃발에 적히는 주인. backup_db.py 와 갈라야 서로의 실패를 안 지운다.

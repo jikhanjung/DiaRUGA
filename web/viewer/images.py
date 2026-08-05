@@ -14,7 +14,7 @@
 
 `viewpoint`·`frame`·`stack` 은 시간이 지나면 바뀐다. 그룹핑 전 프레임은 시야가
 없고, 시야 가르기는 프레임을 다른 시야로 옮기며, 다시 합성하면 `Stack` 행이
-새로 생긴다. **그때마다 이 함수가 다시 불려 링크를 맞춘다** — 안 맞추면 표가
+새로 생긴다. **그때마다 이 함수가 다시 불려 링크를 맞춘다** — 안 맞추면 테이블이
 디스크와 조용히 어긋난다.
 """
 from .models import Image
@@ -55,7 +55,7 @@ def ensure_stack_images(stack) -> Image:
 
     **깊이맵도 이미지다** — 볼 수 있는 파일이고 캐러셀이 띄운다. 다만 검출은
     안 붙는다(Z 좌표가 없는 상대값이라 검출 대상이 아니다). 그 사실이 이제
-    `kind` 로 표에 적힌다.
+    `kind` 로 테이블에 적힌다.
     """
     img = ensure_image(stack.focused_path, "stack",
                        viewpoint=stack.viewpoint, stack=stack)

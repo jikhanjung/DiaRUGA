@@ -1,8 +1,8 @@
 # DiaRUGA DB 명세
 
-**2026-08-04**
+**2026-08-04** (`Image` 반영 2026-08-05 — P06 · devlog 055)
 
-남극 시추코어 규조류 분석 파이프라인이 쓰는 데이터베이스의 명세다. 표 하나하나가
+남극 시추코어 규조류 분석 파이프라인이 쓰는 데이터베이스의 명세다. 테이블 하나하나가
 무엇을 담는지, 서로 어떻게 매이는지, 그리고 **왜 그렇게 두었는지**를 적는다.
 
 > **원본은 `web/viewer/models.py` 다.** 이 문서는 그것을 읽기 좋게 편 것이고,
@@ -77,9 +77,11 @@ flowchart LR
     Site[Site<br/>지역] --> Core[Core<br/>코어] --> Slide[Slide<br/>슬라이드]
     Slide --> VP[Viewpoint<br/>시야] --> Frame[Frame<br/>사진]
     VP --> Stack[Stack<br/>합성본 1:1]
-    VP --> Det[Detection<br/>is_current] --> Cand[Candidate<br/>개체]
+    VP --> Img[Image<br/>stack·frame·depth] --> Det[Detection<br/>is_current] --> Cand[Candidate<br/>개체]
+    Frame -. "1:1" .-> Img
+    Stack -. "focused·depth" .-> Img
     VP --> VR[ViewpointReview<br/>시야 검토 1:1]
-    VP --> OR[ObjectReview<br/>개체 교정]
+    Img --> OR[ObjectReview<br/>개체 교정]
     Cand -. "mask_key 로 느슨히" .-> OR
     Cand -. "cls 문자열" .-> CD[ClassDef<br/>분류 정의]
     RB[RunBatch<br/>이름표] --> Run[Run<br/>실행]
@@ -95,13 +97,18 @@ flowchart LR
     classDef side fill:#f8f9fa,stroke:#9aa0a6,color:#5f6368
     class Site,Core,Slide,VP,Frame stem
     class OR,VR human
-    class Det,Cand,Stack det
+    class Det,Cand,Stack,Img det
     class RB,Run,TS,CD,ST side
 ```
 
 **파랑**이 줄기(시료 계통), **초록**이 검출, **빨강**이 사람의 교정, **회색**이
 설정과 이력이다. 실선은 소유(FK — 지우면 따라 지워진다), 점선은 참조이거나 FK 가
 아예 아닌 것이다.
+
+**검출과 교정은 `Image` 에 붙는다** (P06 · devlog 055). `Image` 는 **검출을 돌릴 수
+있는 이미지 한 장**이고 `kind` 가 `stack | frame | depth` 다. 예전에는 `Detection` 이
+`target`(`stack|frame`) + nullable `frame` 으로 다형 연관을 흉내 냈다 — 합성본이
+`Frame` 이 아니라 테이블이 둘이었기 때문이다.
 
 굵은 줄기는 **지역 → 코어 → 슬라이드 → 시야 → 사진**이다. 폴더 이름
 `RS23-GC03 71cm` 을 통짜 문자열로 두지 않고 갈라 담은 결과이고, 그래야 "같은
@@ -111,7 +118,7 @@ flowchart LR
 
 ---
 
-## 3. 표별 명세
+## 3. 테이블별 명세
 
 ### 3.1 시료 계통
 
@@ -193,6 +200,31 @@ flowchart LR
 
 합성 전후 선명도를 함께 들고 있어 **합성이 실제로 이득이었는지**를 사후에 따질 수 있다.
 
+#### `Image` — 검출을 돌릴 수 있는 이미지 한 장
+
+**열쇠는 `path` 다** (`DATA_ROOT` 기준 상대경로, `unique`). 파일 하나에 행 하나이고
+실측 1,952개 — 프레임 1,318 + 합성본 317 + 깊이맵 317.
+
+| 칸 | 비고 |
+|---|---|
+| `path` | **unique. 자연 열쇠** |
+| `kind` | `stack` / `frame` / `depth` |
+| `viewpoint` | FK **`SET_NULL`** — 그룹핑 전 프레임은 비어 있다 |
+| `frame` | 1:1 FK `SET_NULL` — 촬영본이면 그 프레임 |
+| `stack` | FK **`CASCADE`** — 합성본·깊이맵이면 그 `Stack` |
+| `width` · `height` | |
+
+**두 `on_delete` 의 방향이 반대인 것이 요점이다.** 시야 가르기
+(`regroup.apply_split`)는 시야를 지우고 다시 만드는데 —
+
+- **프레임은 원본 사진이라 살아남아** 다른 시야로 묶인다 → `viewpoint` 는 `SET_NULL`
+- **합성본·깊이맵은 그 묶음에서 나온 것이라 무효다**(서로 다른 시야가 된 프레임들을
+  합쳐 놓은 그림이다) → `stack` 이 `CASCADE`
+
+**촬영·합성 메타는 `Frame`·`Stack` 에 그대로 있다.** 이 테이블은 정체만 맡는다.
+만드는 문은 `web/viewer/images.py` 하나이고 파이프라인 네 자리와 `regroup` 이
+전부 거기를 지난다.
+
 ### 3.2 검출
 
 #### `Detection` — 이미지 한 장에 대한 검출 실행
@@ -200,9 +232,8 @@ flowchart LR
 | 칸 | 비고 |
 |---|---|
 | `viewpoint` | FK cascade |
-| `target` | `stack` / `frame` |
-| `frame` | `target=frame` 일 때만 |
-| `image_path` · `width` · `height` · `scale` | |
+| `image` | **FK cascade, NOT NULL** — 무엇에 붙은 검출인가는 `image.kind` 가 말한다 |
+| `image_path` · `width` · `height` · `scale` | `image_path` 는 `image.path` 와 같다(옛 칸) |
 | `um_per_pixel`(+ native, source, `backfilled`) | |
 | `n_raw_masks` · `n_sized` | 원시 마스크 수, 크기 통과 수 |
 | `thresholds` | FK `ThresholdSet` |
@@ -214,7 +245,10 @@ flowchart LR
 간다. 엔진 교체 전후를 같은 시야에서 견주려면 옛것이 남아 있어야 한다.
 
 - 엔진마다 검출을 다는 자리가 다르다 — **SAM2 는 합성본 한 장에만**, **YOLO 는
-  프레임마다 + 합성본에도** 단다.
+  프레임마다 + 합성본에도** 단다. 그것이 `image.kind` 로 드러난다.
+- **`kind="depth"` 에는 검출이 붙지 않는다.** 깊이맵은 Z 좌표가 없는 상대값이라
+  검출 대상이 아니다 — 관행이 아니라 스키마에 적혀 있고
+  `backfill_images.py --verify` 가 지킨다.
 - `superseded_by` 가 `SET_NULL` 이라 옛 검출을 지워도 현재 검출이 딸려 가지 않는다.
 - **같은 묶음 안에서 같은 이미지에 둘 이상 쌓인 것은 기록이 아니라 찌꺼기다**
   (빠진 프레임을 다시 돌리면 이미 끝난 것까지 다시 쌓인다). `prune_detections.py`
@@ -223,7 +257,7 @@ flowchart LR
 
 #### `Candidate` — 개체 하나
 
-`(detection, mask_key)` unique. 통과분과 탈락분을 **한 표에 담고 `passed` 로 가른다** —
+`(detection, mask_key)` unique. 통과분과 탈락분을 **한 테이블에 담고 `passed` 로 가른다** —
 문턱을 바꾸면 개체가 무리를 옮겨 다니는데, 칼럼 하나면 `refilter` 가 UPDATE 한 번이다.
 
 | 갈래 | 칸 |
@@ -246,11 +280,16 @@ flowchart LR
 
 #### `ObjectReview` — 개체 단위 교정
 
-`(viewpoint, mask_key)` unique.
+**`(image, mask_key)` unique.** 예전에는 `(viewpoint, mask_key)` 였는데, 그것은
+**시야마다 볼 이미지가 한 장**일 때만 성립한다 — 프레임별 검출을 검토하기
+시작하면 깨진다(실측으로 시야 452개 중 203개(45 %)에서 `mask_key` 가 프레임끼리
+겹친다). P06 5a 에서 옮겼다.
 
 | 칸 | 비고 |
 |---|---|
-| `mask_key` | **진짜 키** |
+| `image` | **FK cascade, NOT NULL** — 어느 이미지를 보고 한 판단인가 |
+| `viewpoint` | FK cascade — 편의용. 화면·목록이 시야로 묶어 본다 |
+| `mask_key` | **개체를 가리키는 키** |
 | `candidate` | FK null — **바인딩 결과일 뿐이다** |
 | `bind_method` | `exact` / `iou` / `manual` / `orphan` |
 | `bind_score` | IoU 로 붙었을 때의 값 |
@@ -281,7 +320,7 @@ flowchart LR
 `round_max_elong` · `round_min_iou` · `round_min_solidity` · `round_texture_min` ·
 `rod_min_elong` · `rod_max_elong` · `rod_min_iou` · `rod_min_solidity`.
 
-표로 두어 이름을 붙여 견줄 수 있다 — "1500 대 2000 을 같은 시야에 걸고 개수를
+테이블로 두어 이름을 붙여 비교할 수 있다 — "1500 대 2000 을 같은 시야에 걸고 개수를
 나란히". 원형은 areolae 를 더 무겁게 본다(`round_texture_min` 이 따로 있는 이유) —
 형태만으로는 밋밋한 원반을 가려낼 수 없다.
 
@@ -299,7 +338,7 @@ flowchart LR
 | `is_taxon` | 형태가 아니라 분류학으로 알아본 것인가 | |
 | `sort_order` · `active` | 차례, 켜고 끄기 | |
 
-표로 두면 분류를 더할 때 배포가 필요 없다 — Eucampia 를 넣은 것이 코드 수정이었다.
+테이블로 두면 분류를 더할 때 배포가 필요 없다 — Eucampia 를 넣은 것이 코드 수정이었다.
 형태 칸(원형·봉상)과 분류학 칸(`is_taxon`)은 성격이 달라 메뉴에서 줄을 그어 나눈다.
 
 `counted` 는 **개체 수로 세는가**다. 파편은 개체가 아니다 — 깨진 조각 하나를 규조
@@ -326,13 +365,13 @@ INSERT 하면 운영 DB 에만 있고 새로 만든 DB(시험·복구)에는 없
 화면에서 이름도 색도 없는 분류가 된다.
 
 읽는 쪽은 `data.py` 가 `active=True` 인 것만 가져와 **프로세스 수명 동안 캐시**한다
-(거의 안 바뀌는데 템플릿과 클라이언트가 여러 번 묻는다). 표를 고치면
+(거의 안 바뀌는데 템플릿과 클라이언트가 여러 번 묻는다). 테이블을 고치면
 `invalidate_classes()` 로 버린다.
 
-`color` 는 표에 적혀 있지만 **화면의 색은 아직 CSS 가 키로 잡는다.** 그래서 분류를
+`color` 는 테이블에 적혀 있지만 **화면의 색은 아직 CSS 가 키로 잡는다.** 그래서 분류를
 하나 더하거나 색을 바꾸면 이 행만으로 끝나지 않고 `base.html` 도 함께 가야 한다 —
-표로 옮기다 만 자리이고, 기계로도 아직 못 본다. `0015` 가 파편을 제 본체와 같은
-색 가족으로 묶은 것(진하기로만 가른다)도 표와 CSS 양쪽을 고친 작업이다.
+테이블로 옮기다 만 자리이고, 기계로도 아직 못 본다. `0015` 가 파편을 제 본체와 같은
+색 가족으로 묶은 것(진하기로만 가른다)도 테이블과 CSS 양쪽을 고친 작업이다.
 
 #### `Run` / `RunBatch` — 실행 이력
 
@@ -418,23 +457,24 @@ flowchart TB
 
 ---
 
-## 6. 지금 담긴 것 (2026-08-04)
+## 6. 지금 담긴 것 (2026-08-05)
 
-| 표 | 행 |
+| 테이블 | 행 |
 |---|---|
 | `Site` / `Core` / `Slide` | 5 / 5 / 10 |
-| `Viewpoint` / `Frame` / `Stack` | 448 / 1 318 / 317 |
-| `Detection` / `Candidate` | 3 705 / 128 583 |
-| `ObjectReview` / `ViewpointReview` | 6 753 / 436 |
-| `Run` / `RunBatch` | 188 / 3 |
+| `Viewpoint` / `Frame` / `Stack` | 452 / 1 318 / 317 |
+| **`Image`** | **1 952** (프레임 1 318 · 합성본 317 · 깊이맵 317) |
+| `Detection` / `Candidate` | 2 076 / 91 603 |
+| `ObjectReview` / `ViewpointReview` | 6 738 / 432 (완료 395) |
+| `Run` / `RunBatch` | 171 / 2 |
 | `ThresholdSet` / `ClassDef` / `Setting` | 2 / 6 / 2 |
 
-**교정 6 753건의 속내** — 삭제 5 467 · 되살림 637 · 분류 지정 1 254 · 메모 2.
+**교정 6 738건의 속내** — 삭제 5 452 · 되살림 640 · 분류 지정 1 255 · 메모 2.
 바인딩은 전부 `exact` 다.
 
-**실행 188건** — detect 133 · ingest 29 · stack 12 · group 7 · refilter 5 · export 2.
+**실행 171건** — detect 108 · ingest 29 · stack 16 · group 11 · refilter 5 · export 2.
 
-**묶음 셋** — `sam2-전수` · `yolo-1차` · `yolo-2차`.
+**묶음 둘** — `sam2-전수` · `yolo-3차` (`yolo-1차`·`2차` 는 046 에서 걷었다).
 
 **분류 여섯** — 원형 · 원형 파편 · 봉상 · 봉상 파편 · Eucampia · Chaetoceros
 (뒤의 둘이 `is_taxon`, 파편 둘이 `counted=False`).
@@ -447,11 +487,21 @@ flowchart TB
 
 ## 7. 마이그레이션
 
-`web/viewer/migrations/` 에 0001 … 0017. **전부 걸려 있다** (2026-08-04 07:11,
-`v0.3.0` 배포 때). 컨테이너가 뜨면서 `migrate` 가 돈다.
+`web/viewer/migrations/` 에 0001 … 0022. **전부 걸려 있다** (2026-08-05,
+`v0.5.6` 배포 때). 컨테이너가 뜨면서 `migrate` 가 돈다.
 
-최근 것들은 전부 `ClassDef` 였다 — `0013` `counted`, `0014` Chaetoceros,
-`0015` 파편 색, `0016` `hotkey`, `0017` `short`.
+최근 다섯이 `Image` 다 (P06 · devlog 055) — `0019` 테이블과 두 FK(nullable),
+`0020` `Image.viewpoint` 를 `SET_NULL` 로, `0021` `Image.stack` 을 `CASCADE` 로,
+`0022` **조이기**(`target`·`frame` 제거 · `NOT NULL` · 유일 제약 교체).
+그 앞 `0018` 이 `Slide.sample_kind`.
+
+**`0022` 는 되돌릴 수 없다.** 0019~0021 은 옛 칸을 그대로 두고 곁들이기만 해서
+판을 되돌리면 옛 코드가 그대로 돌았다.
+
+**스키마를 조이는 마이그레이션은 뷰어와 파이프라인 판을 함께 올린다.** 칼럼을
+걷었는데 옛 파이프라인 이미지가 거기에 INSERT 하면 폴러가 선다 — 실제로
+`v0.2.1` 이 `target=` 을 써서 죽었고, **조인 사본에 파이프라인 컨테이너를 붙여
+돌려 보고** 잡았다(055).
 
 **여기서 조심할 것이 하나 있다.** 작업 트리의 `models.py` 는 새 칸을 아는데 DB 는
 아직 모르는 상태가 **정상적으로 존재한다** — 코드를 커밋한 때와 그것을 담은
@@ -464,10 +514,10 @@ flowchart TB
 
 ## 8. 아직 빈 곳
 
-- **`export_review.py` 가 없다** (P02 5단계). 교정이 DB 에만 있어 `backup_db.py`
-  가 유일한 안전망이다
-- **파이프라인 일부가 아직 JSON 을 쓴다.** `refilter.py` 는 DB 로 왔고
-  `focus_stack.py`·`group_focus_series.py` 가 남았다 (P02 6단계)
+- **`ObjectReview.viewpoint` 는 이제 편의용이다.** 진짜 열쇠는 `(image, mask_key)`
+  이고, 둘이 어긋나면 안 된다 — `backfill_images.py --verify` 가 본다
+- **프레임별 검토는 아직 화면이 없다** (P06 5b). 스키마는 그것을 받을 준비가 됐다
+  (`(image, mask_key)`), `save_review` 도 지우는 범위를 이미지로 좁혀 뒀다
 - `import_json.py` 는 **멱등이지만 `Candidate` 를 지우고 다시 만든다.** DB 에서만
   한 교정이 있는데 옛 JSON 을 넣으면 JSON 쪽으로 되돌아간다 — 아무 때나 돌리지 않는다
 - `ObjectReview.bind_method` 가 전부 `exact` 다. IoU 바인딩은 코드에 있지만 아직

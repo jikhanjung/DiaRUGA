@@ -277,7 +277,7 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
     counts["labeled"] = sum(1 for d in kept if d.get("cls_user"))
 
     # 검출 화면 머리의 "(봉상 12, 원형 3, …)". 분류 이름이 템플릿에 박혀 있었다 —
-    # 그래서 Chaetoceros 를 표에 넣어도 이 줄에만 안 나왔다. 표가 정하게 바꾼다.
+    # 그래서 Chaetoceros 를 테이블에 넣어도 이 줄에만 안 나왔다. 테이블이 정하게 바꾼다.
     # 0 인 분류는 뺀다. 여기는 표가 아니라 한 줄이라 자리를 맞출 것이 없고,
     # 짧을수록 읽힌다.
     order = ([(r["key"], r["short"]) for r in _class_rows()]

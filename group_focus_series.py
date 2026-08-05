@@ -248,7 +248,7 @@ def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run)
                                   um_per_pixel=sc["um_per_pixel"],
                                   um_per_pixel_source=sc["source"],
                                   acquired_at=times[i]))
-                # 이미지 표에도 올린다 (P06). `path` 가 열쇠라 다시 묶어도 같다
+                # 이미지 테이블에도 올린다 (P06). `path` 가 열쇠라 다시 묶어도 같다
                 ensure_frame_image(fr)
                 if name == best_name:
                     best_frame = fr

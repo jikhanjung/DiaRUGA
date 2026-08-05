@@ -247,7 +247,7 @@ def compare(a: dict, b: dict, strict_types: bool,
     """A 를 기준으로 B 를 견준다.
 
     `allow_extra` 면 **B 가 더 가진 것은 넘어간다** — 잃은 것만 실패다.
-    DB 를 웹과 공유하지 않고 데스크탑만 쓰는 경우에 쓴다: 앱이 자기 표를
+    DB 를 웹과 공유하지 않고 데스크탑만 쓰는 경우에 쓴다: 앱이 자기 테이블을
     더하는 것은 괜찮지만, `models.py` 가 들고 있던 제약을 흘리면 안 된다.
     **바뀐 것은 더한 것이 아니다** — 형·NOT NULL·기본값이 다르거나 외래키
     규칙이 달라지면 이 모드에서도 실패한다.
@@ -257,9 +257,9 @@ def compare(a: dict, b: dict, strict_types: bool,
     extra = r.note if allow_extra else r.bad
 
     for t in sorted(ta - tb):
-        r.bad(f"표가 B 에 없다: {t}")
+        r.bad(f"테이블이 B 에 없다: {t}")
     for t in sorted(tb - ta):
-        extra(f"표가 A 에 없다: {t}" + (" (더한 것 — 넘어간다)" if allow_extra else ""))
+        extra(f"테이블이 A 에 없다: {t}" + (" (더한 것 — 넘어간다)" if allow_extra else ""))
 
     for t in sorted(ta & tb):
         A, B = a[t], b[t]

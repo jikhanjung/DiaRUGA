@@ -1046,7 +1046,7 @@ def save_review(request):
     return JsonResponse({"ok": True, "done": done, "note": bool(note), **saved})
 
 
-# /healthz 가 "자료가 있다" 고 볼 표. 없으면 이 뷰어는 볼 것이 없는 상태다.
+# /healthz 가 "자료가 있다" 고 볼 테이블. 없으면 이 뷰어는 볼 것이 없는 상태다.
 HEALTH_TABLES = (("slide", Slide), ("viewpoint", Viewpoint),
                  ("detection", Detection), ("objectreview", ObjectReview))
 

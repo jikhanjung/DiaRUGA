@@ -7,7 +7,7 @@
 
 | 판 | 내용 | 마이그레이션 |
 |---|---|---|
-| `v0.5.4` | `Image` 표를 세우고 채운다 | `0019` |
+| `v0.5.4` | `Image` 테이블을 세우고 채운다 | `0019` |
 | `v0.5.5` · 파이프라인 `v0.2.1` | 파이프라인이 `Image` 를 쓴다 | `0020` · `0021` |
 | `v0.5.6` · 파이프라인 `v0.2.2` | **조인다** — `target`·`frame` 제거 | `0022` |
 
@@ -30,7 +30,7 @@
   `target`(`stack|frame`) + nullable `frame` 으로 다형 연관을 흉내 냈다
 
 나는 그 자리를 **또 다른 문자열 판별자**(`target_key = "__stack__"`)로 때우려
-했었다. 물렸다. 빠진 것은 `Image` 표였다.
+했었다. 물렸다. 빠진 것은 `Image` 테이블이었다.
 
 ## 2. 먼저 안전망을 만들었다
 
@@ -46,7 +46,7 @@
 ## 3. 넓히고 → 채우고 → 옮기고 → 조인다
 
 ```
-0019  Image 표 + Detection.image · ObjectReview.image (nullable)
+0019  Image 테이블 + Detection.image · ObjectReview.image (nullable)
       backfill_images.py --apply   이미지 1,952 · 검출 2,076 · 교정 6,738
 0020  Image.viewpoint  CASCADE  -> SET_NULL
 0021  Image.stack      SET_NULL -> CASCADE

@@ -210,7 +210,7 @@ def apply_split(slide, specs, source: str = "") -> dict:
             f.is_sharpest = (f.pk == best.pk)
             f.save(update_fields=["viewpoint", "is_sharpest"])
             # **이미지 행도 새 시야를 따라간다** (P06). 프레임은 살아남고
-            # 시야만 갈리므로, 안 맞추면 표가 디스크와 조용히 어긋난다.
+            # 시야만 갈리므로, 안 맞추면 테이블이 디스크와 조용히 어긋난다.
             ensure_frame_image(f)
         vp.sharpest_frame = best
         vp.save(update_fields=["sharpest_frame"])
