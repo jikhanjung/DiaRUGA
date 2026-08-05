@@ -1,4 +1,4 @@
-# HANDOFF — 2026-08-04 현재 상태
+# HANDOFF — 2026-08-05 현재 상태
 
 이어서 작업할 사람(또는 다음 세션)을 위한 인수 문서. 무엇이 돌아가고 있고, 무엇이
 반쯤 되어 있고, 어디를 밟으면 안 되는지를 적는다.
@@ -13,7 +13,7 @@
 (`segment_diatoms.py`·YOLO 클래스·NAS 의 `DiatomPhotos/`). devlog 와 `docs/` 의
 지난 기록은 그때 이름 그대로 두었다.
 
-**브랜치** main · 판 `v0.3.0`
+**브랜치** main · 판 `v0.4.0` (파이프라인 `v0.2.0`)
 
 ---
 
@@ -621,7 +621,7 @@ docker compose -f deploy/docker-compose.yml build web         # 이미지 굽기
 /srv/DiaRUGA/bin/deploy.sh <태그>                               # pull → 스냅샷 → 교체 → 게이트
 ```
 
-**지금 도는 판**: `IMAGE_TAG=v0.3.0` · `PIPELINE_TAG=v0.1.6`.
+**지금 도는 판**: `IMAGE_TAG=v0.4.0` · `PIPELINE_TAG=v0.2.0`.
 뷰어 판은 `.env` 와 `/healthz` 가 알려 준다 — 이 문서보다 그쪽이 늘 옳다.
 
 > **되돌릴 때: 이미지는 돌아가지만 마이그레이션은 따라 내려가지 않는다.**
