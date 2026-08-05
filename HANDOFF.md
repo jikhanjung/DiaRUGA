@@ -199,10 +199,28 @@ scan_nas → ingest_nas → group_focus_series → focus_stack --slide → segme
 
 ## 3. 지금 조심할 것
 
-### 3.1 교정은 DB 에만 있다
+### 3.1 교정의 원본은 DB 다 — 감사 기록은 `review/` 로 나간다
 
-`review/*.json` 은 **이전 시점 스냅샷에서 멈춰 있다.** 뷰어에서 새로 하는 교정은
-DB 에만 쓰인다(`export_review.py` 가 아직 없다 — P02 5단계). **6,700여 건이다.**
+**6,732건이고 재생성 불가다.** 원본은 `DiaRUGA.db` 이고, `export_review.py` 가
+`review/<슬라이드>/g<n>.json` 으로 내보낸다(P02 5단계 · P06 — 2026-08-05).
+git 에 남으므로 **`git diff` 로 "언제 무엇이 달라졌나" 가 보인다.**
+
+```bash
+python export_review.py            # 저장소 review/ 로 (호스트 venv 로 돈다)
+python export_review.py --check    # 파일 ↔ DB 대조. 아무것도 쓰지 않는다
+python export_review.py --db /data3/DiaRUGA/backup/<사본>.db --out /tmp/before
+diff -r /tmp/before review/        # 두 시점을 견준다
+```
+
+> **왜 호스트에서 도는가** — Django 를 임포트하지 않고 sqlite3 로 **읽기 전용**
+> 으로만 열어서 `backup_db.py` 와 같은 자리다(9.2절의 예외 근거가 그대로 성립).
+> 그래야 저장소에 바로 쓰고, 스키마가 바뀌는 동안에도 같은 도구로 견주고,
+> 백업 파일을 `--db` 로 그대로 읽는다.
+>
+> **파일 이름이 `(슬라이드, 시야)` 인 이유**: 옛 평면 형식(`<stem>_review.json`)은
+> stem 이 슬라이드끼리 겹쳐 **파일이 서로를 덮어썼다** — 053 과 같은 원인이다.
+
+**그래도 `backup_db.py` 가 첫 안전망이다** — 내보내기는 교정만 담는다.
 
 - `DiaRUGA.db` 는 gitignore 다. 실물은 `/srv/DiaRUGA/db/`
 - **큰 작업 전에 반드시** `deploy/host/dbrun.sh backup_db.py --note <설명>`
@@ -359,7 +377,7 @@ SQLite 를 다시 볼 문제가 된다.
 | 2. `import_json.py` (멱등) | **끝** — 8초 |
 | 3. 대조 `verify_db.py` | **끝** — 검사 37개 전부 일치 |
 | 4. 뷰어를 DB 로 | **끝** |
-| 5. `export_review.py` | **남음** — 교정 6,700여 건이 DB 에만 있다 |
+| 5. `export_review.py` | **끝** — 2026-08-05. 시야 432 · 교정 6,732 (P06) |
 | 6. 스크립트 4개를 DB 에 쓰게 | **끝** — devlog 010·011·012 |
 | 7. JSON 을 원본에서 내리기 | **거의** — 파이프라인에서 빠졌다. `import_json.py` 의 중복 코드가 남아 있다 |
 | 8. 재바인딩 + 고아 화면 | **반** — `rebind.py` 는 만들었다(011). **`/orphans/` 화면이 없다** |
@@ -908,7 +926,10 @@ DB 를 물었는지도 모른다** — 둘 다 형제 프로젝트가 실제로 
    부담이 3.1배 준다
 2. **싱글턴/합성본 차이가 모델 탓인지 라벨 탓인지 가른다** (4.2절 1번).
    라벨이 흐린 상태에서는 그 위의 모든 개선을 못 읽는다
-3. **`export_review.py`** (P02 5단계) — 교정 6,700여 건의 두 번째 안전망
+3. **`Image` 정규화** (P06 2~5단계) — 프레임별 검출을 검토하려면 교정이 어느
+   이미지에 붙는지가 있어야 한다. `export_review.py` 는 끝났고(그 이사의 안전망
+   이었다) **지금이 가장 싼 시점이다** — 자료가 가장 적고, 스키마가 아직 한 벌이고
+   (peewee 이식 전), 프레임별 검토를 아직 안 만들었다
 4. **고아 화면 `/orphans/`** (P02 8단계) — **엔진 교체의 전제다.** YOLO 로 갈면
    `exact` 바인딩이 거의 0 이 되고, 고아가 된 교정을 볼 화면이 없으면 사람의
    판단이 조용히 버려진다

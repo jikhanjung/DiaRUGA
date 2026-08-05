@@ -35,8 +35,9 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       그 아래 검출·교정이 통째로 어긋난다
 - [ ] **새 슬라이드 4장 검토 (146 시야)** — 파이프라인이 더 갈 곳이 없다.
       자동 판정 그대로면 통과 개체 수를 슬라이드끼리 비교할 수 없다
-- [ ] **`export_review.py`** (P02 5단계) — 교정 2,441건이 DB 에만 있다.
-      지금 안전망은 `backup_db.py` 하나뿐
+- [x] **`export_review.py`** (P02 5단계 · P06) — 2026-08-05. `review/<슬라이드>/
+      g<n>.json` 으로 시야 432 · 교정 6,732 을 내보낸다. `--check` 로 DB 와
+      대조하고, `--db <백업>` 으로 두 시점을 견준다
 
 ## DB 이전 (P02)
 
@@ -44,7 +45,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 - [x] **2. `import_json.py`** — 멱등, 8초
 - [x] **3. 대조 `verify_db.py`** — 검사 37개 전부 일치
 - [x] **4. 뷰어를 DB 로**
-- [ ] **5. `export_review.py`** — DB → `review/*.json` (git 에 남길 감사 기록)
+- [x] **5. `export_review.py`** — DB → `review/<슬라이드>/g<n>.json` (P06)
 - [x] **6. 스크립트 4개를 DB 에 쓰게** — devlog 010·011·012
   - [x] `refilter.py` — UPDATE 한 번(124 시야 0.9초). 문턱이 `ThresholdSet` 에
         남고 실행이 `Run` 에 기록된다. 판정 규칙은 `judge.py` 로 떼어냈다

@@ -293,8 +293,19 @@ web/viewer/
 검토해 만든 것이고, **다시 만들 수 없다.** `stacked/`·`out/` 은 다시 돌리면 나오고
 `photos/` 는 촬영 원본이다.
 
-`export_review.py`(P02 5단계)가 아직 없어서 교정이 DB 에만 있다. 그동안은
-`backup_db.py` 가 유일한 안전망이다. **큰 작업 전에는 반드시 사본을 뜬다.**
+`export_review.py`(P02 5단계 · P06)가 **`review/<슬라이드>/g<n>.json` 으로
+내보낸다** — git 에 남는 감사 기록이자, `--check` 로 DB 와 대조하는 도구다.
+Django 를 임포트하지 않고 sqlite3 로 **읽기 전용**으로 열어 `backup_db.py` 와 같은
+자리에 있다(그래서 호스트에서 돌고 백업 파일도 `--db` 로 그대로 읽는다).
+
+```bash
+python export_review.py                 # 저장소 review/ 로
+python export_review.py --check         # 파일 ↔ DB 대조 (안 쓴다)
+python export_review.py --db <백업> --out /tmp/before && diff -r /tmp/before review/
+```
+
+**그래도 `backup_db.py` 는 계속 첫 안전망이다** — 내보내기는 교정만 담는다.
+**큰 작업 전에는 반드시 사본을 뜬다.**
 
 ## 커밋
 
