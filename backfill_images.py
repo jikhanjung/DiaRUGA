@@ -55,7 +55,7 @@ sys.path.insert(0, str(APP))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
-from django.db import transaction                       # noqa: E402
+from django.db import models, transaction                # noqa: E402
 from viewer.models import (Detection, Frame, Image,      # noqa: E402
                            ObjectReview, Slide, Stack)
 
@@ -177,6 +177,23 @@ def verify():
             .select_related("image").only("viewpoint_id", "image__viewpoint_id")
             if o.image.viewpoint_id != o.viewpoint_id)
     report("교정과 이미지의 시야가 어긋난 것", n, 0)
+    # **시야 가르기가 지나간 자리를 본다.** 프레임은 살아남고 시야만 갈리므로
+    # 이미지의 시야가 프레임을 따라가야 한다 — 안 따라가면 표가 디스크와
+    # 조용히 어긋난다 (`regroup` 이 `ensure_frame_image` 를 부른다).
+    n = sum(1 for i in Image.objects.filter(kind="frame", frame__isnull=False)
+            .select_related("frame").only("viewpoint_id", "frame__viewpoint_id")
+            if i.viewpoint_id != i.frame.viewpoint_id)
+    report("프레임과 시야가 어긋난 이미지", n, 0)
+    n = Image.objects.filter(kind__in=("stack", "depth"), stack__isnull=False) \
+        .exclude(viewpoint=models.F("stack__viewpoint")).count()
+    report("합성본과 시야가 어긋난 이미지", n, 0)
+    # 파일은 있는데 표에 없는 것 — 파이프라인이 `ensure_image` 를 안 부른 자리
+    have = set(Image.objects.values_list("path", flat=True))
+    miss = ([f.path for f in Frame.objects.only("path") if f.path not in have]
+            + [s.focused_path for s in Stack.objects.only("focused_path")
+               if s.focused_path not in have])
+    report("이미지 표에 없는 프레임·합성본", len(miss), 0,
+           f"  {miss[:2]}" if miss else "")
     # 5단계에서 열쇠가 될 조합이 지금 이미 유일한가
     seen = Counter(ObjectReview.objects.filter(image__isnull=False)
                    .values_list("image_id", "mask_key"))

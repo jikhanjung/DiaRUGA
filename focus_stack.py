@@ -58,6 +58,7 @@ from django.db import transaction                                   # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
 import runlog                                                       # noqa: E402
+from viewer.images import ensure_stack_images
 from viewer.models import Frame, Run, Slide, Stack, Viewpoint       # noqa: E402
 from zen_meta import ScaleLog, scaling_for, write_scale_sidecar     # noqa: E402
 
@@ -310,7 +311,7 @@ def save_stack(vp: Viewpoint, out_dir: Path, r: dict, run: Run) -> None:
         print(f"  {r['tag']}: 경고 — 기준 프레임 {r['ref']} 을 DB 에서 못 찾았다",
               file=sys.stderr)
 
-    Stack.objects.update_or_create(
+    st, _ = Stack.objects.update_or_create(
         viewpoint=vp,
         defaults=dict(
             focused_path=rel(focused),
@@ -327,6 +328,9 @@ def save_stack(vp: Viewpoint, out_dir: Path, r: dict, run: Run) -> None:
             sharpness_fused=r["sharpness_fused"],
             gain=r["gain"],
             run=run))
+    # 합성본과 깊이맵을 이미지 표에 올린다 (P06). 다시 합성해도 `path` 가
+    # 같으면 같은 행이고, 링크만 새 `Stack` 으로 맞춰진다.
+    ensure_stack_images(st)
 
 
 def main():

@@ -57,6 +57,7 @@ from django.utils import timezone                                   # noqa: E402
 
 import rebind                                                       # noqa: E402
 import runlog                                                       # noqa: E402
+from viewer.images import ensure_image
 from viewer.models import (Candidate, Detection, Frame, Run,        # noqa: E402
                            ThresholdSet, Viewpoint)
 from judge import classify, dedupe                 # noqa: F401,E402 (외부에서 쓴다)
@@ -735,8 +736,15 @@ def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float,
 
     with transaction.atomic():
         ts = threshold_set_for(payload["thresholds"])
+        # 어느 이미지에 대한 검출인가 (P06). `target`·`frame` 은 아직 함께
+        # 쓴다 — 조이기(5단계) 전까지는 그쪽이 원본이다.
+        image = ensure_image(rel(img_path),
+                             "frame" if target == "frame" else "stack",
+                             viewpoint=vp, frame=frame,
+                             stack=getattr(vp, "stack", None) if target == "stack" else None,
+                             width=payload["size"][0], height=payload["size"][1])
         det = Detection.objects.create(
-            viewpoint=vp, target=target, frame=frame,
+            viewpoint=vp, target=target, frame=frame, image=image,
             image_path=rel(img_path),
             width=payload["size"][0], height=payload["size"][1],
             scale=payload["scale"],

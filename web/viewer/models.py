@@ -348,9 +348,15 @@ class Image(models.Model):
 
     KIND = [("stack", "합성본"), ("frame", "프레임"), ("depth", "깊이맵")]
 
-    # 그룹핑 전 프레임은 시야가 없다 — `Frame.viewpoint` 와 같은 사정이다.
+    # 그룹핑 전 프레임은 시야가 없다 — `Frame.viewpoint` 와 같은 사정이고
+    # `SET_NULL` 인 것도 같은 이유다.
+    #
+    # **`CASCADE` 로 두면 안 된다.** 시야 가르기(`regroup.apply_split`)는 시야를
+    # 지우고 다시 만드는데 **프레임은 살아남는다** — 그 사이에 이미지 행이 같이
+    # 죽으면 디스크에 파일이 그대로 있는데 표에서만 사라진다.
+    # **이 표는 디스크의 파일을 비추는 것**이고, 시야는 그 파일에 붙는 이름표다.
     viewpoint = models.ForeignKey(Viewpoint, null=True, blank=True,
-                                  on_delete=models.CASCADE,
+                                  on_delete=models.SET_NULL,
                                   related_name="images")
     kind = models.CharField(max_length=8, choices=KIND)
     path = models.CharField(max_length=500, unique=True)

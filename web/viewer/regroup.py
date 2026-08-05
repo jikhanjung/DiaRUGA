@@ -47,6 +47,7 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
+from .images import ensure_frame_image
 from .models import Frame, Run, Viewpoint
 
 # idx 를 다시 매기는 동안 유일 제약에 걸리지 않도록 잠깐 치워 두는 자리.
@@ -208,6 +209,9 @@ def apply_split(slide, specs, source: str = "") -> dict:
             f.viewpoint = vp
             f.is_sharpest = (f.pk == best.pk)
             f.save(update_fields=["viewpoint", "is_sharpest"])
+            # **이미지 행도 새 시야를 따라간다** (P06). 프레임은 살아남고
+            # 시야만 갈리므로, 안 맞추면 표가 디스크와 조용히 어긋난다.
+            ensure_frame_image(f)
         vp.sharpest_frame = best
         vp.save(update_fields=["sharpest_frame"])
 

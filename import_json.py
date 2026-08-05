@@ -40,6 +40,8 @@ from django.conf import settings                                    # noqa: E402
 from django.db import transaction                                   # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
+from viewer.images import (ensure_frame_image, ensure_image,
+                          ensure_stack_images)
 from viewer.models import (Candidate, ClassDef, Core, Detection,     # noqa: E402
                            Frame, ObjectReview, Run, Setting, Site,
                            Slide, Stack, ThresholdSet, Viewpoint,
@@ -180,6 +182,7 @@ def import_slides(only=None, read_xml=True):
                     defaults=dict(viewpoint=vp, path=rel(jpg), seq=seq,
                                   sharpness=sharp.get(name),
                                   is_sharpest=(name == g.get("sharpest"))))
+                ensure_frame_image(fr)
                 seq += 1
                 n_fr += 1
                 if read_xml and jpg.exists():
@@ -232,7 +235,7 @@ def import_stacks():
         r = report.get(vp.tag, {})
         ref = (Frame.objects.filter(slide=vp.slide, name=r["ref"]).first()
                if r.get("ref") else None)
-        Stack.objects.update_or_create(
+        st, _ = Stack.objects.update_or_create(
             viewpoint=vp,
             defaults=dict(
                 focused_path=rel(focused),
@@ -249,6 +252,7 @@ def import_stacks():
                 sharpness_fused=r.get("sharpness_fused"),
                 gain=r.get("gain"),
                 run=run))
+        ensure_stack_images(st)
         n += 1
     run.status = "done"
     run.finished_at = timezone.now()
@@ -293,9 +297,14 @@ def import_detections():
         d = json.loads(path.read_text(encoding="utf-8"))
         ts = threshold_set_for(d.get("thresholds") or {})
 
+        image = ensure_image(rel(d.get("image") or ""),
+                             "frame" if target == "frame" else "stack",
+                             viewpoint=vp, frame=frame,
+                             stack=getattr(vp, "stack", None) if target == "stack" else None)
         det, _ = Detection.objects.update_or_create(
             viewpoint=vp, target=target, frame=frame,
             defaults=dict(
+                image=image,
                 image_path=rel(d.get("image") or ""),
                 width=(d.get("size") or [None, None])[0],
                 height=(d.get("size") or [None, None])[1],

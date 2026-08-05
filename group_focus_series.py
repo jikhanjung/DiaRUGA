@@ -57,6 +57,7 @@ from django.utils import timezone                                   # noqa: E402
 
 import zen_meta                                                     # noqa: E402
 import runlog                                                       # noqa: E402
+from viewer.images import ensure_frame_image
 from viewer.models import (Core, Frame, Site, Slide, Viewpoint)     # noqa: E402
 # XML 을 찾는 규칙은 zen_meta 한 곳에만 둔다
 from zen_meta import read_timestamp                                 # noqa: E402
@@ -247,6 +248,8 @@ def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run)
                                   um_per_pixel=sc["um_per_pixel"],
                                   um_per_pixel_source=sc["source"],
                                   acquired_at=times[i]))
+                # 이미지 표에도 올린다 (P06). `path` 가 열쇠라 다시 묶어도 같다
+                ensure_frame_image(fr)
                 if name == best_name:
                     best_frame = fr
                 seq += 1
