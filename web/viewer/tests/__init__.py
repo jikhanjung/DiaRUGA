@@ -15,3 +15,14 @@
 `backup_db.py`·`export_review.py` 와 같은 자리다. 그것을 사람이 기억하는 대신
 `base.DiaRUGATestCase` 가 확인한다.
 """
+import sys
+from pathlib import Path
+
+# `judge.py` 는 저장소 뿌리에 있다 — `web/` 안이 아니다. 앱에서는
+# `viewer/thresholds.py` 가 임포트 직전에 뿌리를 `sys.path` 에 넣어서 되는데,
+# **시험은 그 모듈을 안 거치고 `judge` 를 바로 부를 수 있다**(1겹은 Django 를
+# 안 쓰는 것이 요점이다). 그래서 여기서 같은 일을 한 번 해 둔다 — 패키지
+# `__init__` 이라 어느 시험 모듈보다 먼저 돈다.
+_ROOT = str(Path(__file__).resolve().parents[3])
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
