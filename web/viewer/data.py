@@ -725,9 +725,19 @@ def _summary_by_sql(slide: Slide) -> dict:
       통과분 중 사람이 지운 것을 뺀다 + 탈락분 중 사람이 되살린 것을 더한다
       분류는 사람이 지정한 것이 먼저, 되살린 것은 신장비로 짐작, 나머지는 자동 판정
       "사람지정" 은 통과분만 센다
+
+    **교정은 `image` 로 짚는다 — `viewpoint` 가 아니다.** 후보 하나마다 이 상관
+    서브질의가 서너 번 돌므로 유일 인덱스를 타야 한다. 055 에서 교정의 열쇠가
+    `(viewpoint, mask_key)` 에서 `(image, mask_key)` 로 옮겨 갔고, 그때 이 줄이
+    따라가지 않아 **인덱스가 발밑에서 사라졌다** — 목록 화면이 0.5 → 2.0초가
+    됐다(058). `viewpoint` 로 짚으면 `(viewpoint_id, bind_method)` 인덱스로
+    시야까지만 좁힌 뒤 그 시야의 교정을 전부 훑으며 `mask_key` 를 비교한다.
+
+    **프레임별 검토(P06 5b)가 붙으면 `viewpoint` 는 값도 틀린다** — 한 시야에
+    이미지가 여럿이 되는 순간 다른 이미지의 교정까지 끌어온다.
     """
     reviews = ObjectReview.objects.filter(
-        viewpoint=OuterRef("detection__viewpoint"), mask_key=OuterRef("mask_key"))
+        image=OuterRef("detection__image"), mask_key=OuterRef("mask_key"))
     cands = (Candidate.objects
              .filter(detection__viewpoint__slide=slide, detection__is_current=True)
              .annotate(
