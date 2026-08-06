@@ -635,6 +635,9 @@
       labels: JSON.parse(JSON.stringify(d.labels || {})),
       notes: JSON.parse(JSON.stringify(d.notes || {})),
       image: d.image == null ? '' : String(d.image),
+      // 고친 기하도 판마다 따로다 — 안 가르면 프레임에서 고친 것이 합성본의
+      // 저장에 실려 나간다 (P09 1단계와 같은 이야기)
+      edits: {},
       summary: d.summary || ''
     };
     return shotState[key];
@@ -645,7 +648,7 @@
     var st = shotState[curKey];
     st.cands = cands; st.rejects = rejects;
     st.removed = removed; st.accepted = accepted;
-    st.labels = labels; st.notes = notes;
+    st.labels = labels; st.notes = notes; st.edits = edits;
   }
 
   // `commit` 이 false 면 **그리기만** 바꾼다 (커서가 지나가는 미리보기).
@@ -683,7 +686,7 @@
       curKey = null;
       cands = []; rejects = [];
       removed = new Set(); accepted = new Set();
-      labels = {}; notes = {};
+      labels = {}; notes = {}; edits = {};
       curImage = '';
       var meta0 = document.querySelector('#tabs-' + uid + ' .tabmeta');
       if (meta0) meta0.textContent = '이 판에는 검출이 없습니다';
@@ -700,6 +703,7 @@
     cands = st.cands; rejects = st.rejects;
     removed = st.removed; accepted = st.accepted;
     labels = st.labels; notes = st.notes;
+    edits = st.edits || (st.edits = {});
     curImage = st.image;
     var meta = document.querySelector('#tabs-' + uid + ' .tabmeta');
     if (meta) meta.textContent = st.summary;
@@ -778,7 +782,7 @@
       if (curKey && shotDets[curKey]) {
         shotState[curKey] = {
           cands: cands, rejects: rejects, removed: removed, accepted: accepted,
-          labels: labels, notes: notes, image: curImage,
+          labels: labels, notes: notes, edits: edits, image: curImage,
           summary: (shotDets[curKey].summary || '')
         };
       }
@@ -1205,6 +1209,9 @@
         //
         // **판마다 다르다.** 캐러셀이 판을 바꾸면 `cands` 가 그 판의 것으로
         // 갈리므로 이 목록도 함께 간다.
+        // **엔진 개체의 고친 기하** (P09 4단계). `{키: 폴리곤}` 이고 빈 배열은
+        // "엔진 것으로 되돌린다" 는 말이다.
+        edits: edits,
         drawn: cands.filter(isManual).map(function (c) {
           return { key: keyOf(c), polygon: c.polygon,
                    cls: c.cls || '', note: c.note || '' };
@@ -1308,6 +1315,11 @@
 
     // **그리는 중에는 그리기가 먼저다** (P09 3단계). 분류 단축키가 여기 있는데,
     // 그리다가 `q` 를 누르면 아직 만들지도 않은 개체에 분류를 지정하려 든다.
+    if (editing) {
+      if (e.key === 'Enter') { e.preventDefault(); editFinish(); }
+      else if (e.key === 'Escape') { e.preventDefault(); editCancel(); }
+      return;
+    }
     if (drawing) {
       if (e.key === 'Enter') { e.preventDefault(); drawFinish(); }
       else if (e.key === 'Escape') { e.preventDefault(); drawCancel(); }
@@ -1755,6 +1767,17 @@
     } else if (live.length) {
       items.push({ label: '오검출로 삭제 (' + live.length + ')', danger: true,
                    run: function () { removeKeys(live); } });
+      // **마스크 고치기** (P09 4단계) — 하나만 골랐을 때다. 여럿을 한꺼번에
+      // 고치는 일은 없고, 있으면 어느 것을 고치는지 화면이 못 말한다.
+      if (live.length === 1) {
+        var one = live[0];
+        items.push({ label: '✎ 마스크 고치기',
+                     run: function () { editStart(one); } });
+        if (cands[one] && cands[one].geom_edited) {
+          items.push({ label: '↺ 엔진이 낸 모양으로',
+                       run: function () { editRevert(one); } });
+        }
+      }
       items.push({ sep: true });
       // 분류 직접 지정 — 조각난 것이 봉상/원형으로 잘못 분류되는 것을 고친다.
       // 형태 칸과 분류학 칸(Eucampia) 사이에는 줄을 그어 성격을 갈라 둔다.
@@ -2082,13 +2105,171 @@
     drawRender(); drawStatus();
   }
 
+  // --- 마스크 고치기 (P09 4단계) --------------------------------------------
+  //
+  // **점 끌기다.** 실측으로 YOLO 폴리곤이 중앙 13점·90%가 18점 이하라 단순화
+  // 단계 없이 그대로 끌 수 있다(P09 5.11). 선분 중간을 누르면 점이 늘고, 점을
+  // 더블클릭하면 준다.
+  //
+  // **고친 기하는 `edits` 로 나가고 `Candidate` 는 안 건드린다** — 검출 이력에서
+  // 엔진이 낸 것과 사람이 손댄 것을 못 가르면 회차 비교가 무의미해진다.
+  var editing = null;                  // {i, key, pts, grab}
+  // 점을 집는 반경. 화면 화소라 확대해도 손맛이 같다.
+  var GRAB_PX = 10;
+  var edits = {};                      // 키 → 폴리곤 (빈 배열이면 되돌리기)
+
+  function editStart(i) {
+    if (readOnly) return;
+    var c = cands[i];
+    if (!c || !hasPoly(c)) return;
+    drawCancel();
+    closeMenu(); closeSpread(); closeNoteEdit();
+    var pts = [];
+    for (var j = 0; j < c.polygon.length; j += 2) {
+      pts.push([c.polygon[j], c.polygon[j + 1]]);
+    }
+    editing = { i: i, key: keyOf(c), pts: pts, grab: -1 };
+    view.classList.add('drawing');
+    sel.clear(); sel.add(i);
+    editRender(); redraw();
+    if (saveState) {
+      saveState.textContent = '마스크 고치는 중 — 점을 끌어 옮긴다 · 선분을 '
+        + '누르면 점이 늘고 · 점을 더블클릭하면 준다 · Enter 마침 · Esc 취소';
+    }
+  }
+
+  function editRender() {
+    var g = drawLayer();
+    g.textContent = '';
+    if (!editing) return;
+    var poly = document.createElementNS(SVGNS, 'polyline');
+    poly.setAttribute('points', editing.pts.concat([editing.pts[0]])
+      .map(function (p) { return p[0] + ',' + p[1]; }).join(' '));
+    g.appendChild(poly);
+    editing.pts.forEach(function (p, j) {
+      var c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', p[0]);
+      c.setAttribute('cy', p[1]);
+      c.setAttribute('r', j === editing.grab ? 5 : 3.2);
+      if (j === editing.grab) c.setAttribute('class', 'first');
+      g.appendChild(c);
+    });
+  }
+
+  function imgScale() {
+    var box = svg.getBoundingClientRect();
+    return W ? box.width / W : 1;
+  }
+
+  // 집을 점 — 없으면 -1
+  function editHit(p) {
+    var s = imgScale(), best = -1, bd = GRAB_PX;
+    editing.pts.forEach(function (q, j) {
+      var d = Math.hypot(p.x - q[0], p.y - q[1]) * s;
+      if (d <= bd) { bd = d; best = j; }
+    });
+    return best;
+  }
+
+  // 선분 위의 가장 가까운 자리 — 여기를 누르면 점이 는다.
+  function editEdge(p) {
+    var s = imgScale(), best = -1, bd = GRAB_PX;
+    var n = editing.pts.length;
+    for (var j = 0; j < n; j++) {
+      var a = editing.pts[j], b = editing.pts[(j + 1) % n];
+      var vx = b[0] - a[0], vy = b[1] - a[1];
+      var len2 = vx * vx + vy * vy;
+      if (!len2) continue;
+      var t = Math.max(0, Math.min(1, ((p.x - a[0]) * vx + (p.y - a[1]) * vy) / len2));
+      var d = Math.hypot(p.x - (a[0] + t * vx), p.y - (a[1] + t * vy)) * s;
+      if (d <= bd) { bd = d; best = j; }
+    }
+    return best;
+  }
+
+  function editCancel() {
+    if (!editing) return;
+    editing = null;
+    view.classList.remove('drawing');
+    editRender(); redraw();
+  }
+
+  function editFinish() {
+    if (!editing) return;
+    var c = cands[editing.i];
+    if (!c || editing.pts.length < 3) { editCancel(); return; }
+    var poly = [];
+    editing.pts.forEach(function (p) { poly.push(Math.round(p[0]), Math.round(p[1])); });
+    var xs = editing.pts.map(function (p) { return p[0]; });
+    var ys = editing.pts.map(function (p) { return p[1]; });
+    var x0 = Math.floor(Math.min.apply(null, xs));
+    var y0 = Math.floor(Math.min.apply(null, ys));
+    var x1 = Math.ceil(Math.max.apply(null, xs));
+    var y1 = Math.ceil(Math.max.apply(null, ys));
+    c.polygon = poly;
+    // **`bbox_xywh` 는 바뀌지만 키는 안 바뀐다.** `keyOf` 가 `c.key` 를 먼저
+    // 보기 때문이고, 그것이 이 기능이 성립하는 이유다 (P09 5.4).
+    c.bbox_xywh = [x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0)];
+    c.center_xy = [x0 + ((x1 - x0) >> 1), y0 + ((y1 - y0) >> 1)];
+    c.geom_edited = true;
+    if (isManual(c)) {
+      // 사람이 그린 것은 `drawn` 이 통째로 나른다 — `edits` 에 넣으면 엔진
+      // 쪽 키로 취급되어 서버가 모른다고 거절한다.
+      delete edits[editing.key];
+    } else {
+      edits[editing.key] = poly;
+    }
+    editing = null;
+    view.classList.remove('drawing');
+    editRender();
+    build(); redraw(); save();
+  }
+
+  function editRevert(i) {
+    var c = cands[i];
+    if (!c || isManual(c)) return;
+    // 빈 폴리곤이 "엔진 것으로 되돌린다" 는 말이다. 화면은 서버가 다시 낸
+    // 것으로 맞춰야 하므로 저장 뒤 새로고침한다 — 엔진의 원래 폴리곤을
+    // 화면이 들고 있지 않기 때문이다(교정이 덮어 놓았다).
+    edits[keyOf(c)] = [];
+    save();
+    setTimeout(function () { location.reload(); }, 500);
+  }
+
   // --- 마우스: 선택 / 범위선택 / 이동 / 삭제 -------------------------------
   var down = null, mode = null;
 
   view.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
+  // 점을 더블클릭하면 뺀다. **3점 아래로는 못 뺀다** — 도형이 아니게 된다.
+  view.addEventListener('dblclick', function (e) {
+    if (!editing) return;
+    var j = editHit(toImage(e));
+    if (j >= 0 && editing.pts.length > 3) {
+      editing.pts.splice(j, 1);
+      editing.grab = -1;
+      editRender();
+    }
+    e.preventDefault();
+  });
+
   view.addEventListener('mousedown', function (e) {
     var pt = toImage(e);
+    // **고치는 중에는 점을 집는다.** 선택·범위선택으로 흘려보내면 끌기가
+    // 범위선택이 되어 개체가 우수수 골라진다.
+    if (editing && e.button === 0) {
+      editing.grab = editHit(pt);
+      if (editing.grab < 0) {
+        var edge = editEdge(pt);
+        if (edge >= 0) {                 // 선분을 누르면 점이 는다
+          editing.pts.splice(edge + 1, 0, [pt.x, pt.y]);
+          editing.grab = edge + 1;
+        }
+      }
+      editRender();
+      e.preventDefault();
+      return;
+    }
     // target 은 mouseup 에서 좌표로 다시 정한다 (bbox/마스크 판정이 갈리므로).
     down = {
       sx: e.clientX, sy: e.clientY, fx: pt.fx, fy: pt.fy, x: pt.x, y: pt.y,
@@ -2100,6 +2281,12 @@
   });
 
   window.addEventListener('mousemove', function (e) {
+    if (editing && editing.grab >= 0) {
+      var p = toImage(e);
+      editing.pts[editing.grab] = [p.x, p.y];
+      editRender();
+      return;
+    }
     if (!down) return;
     var dx = e.clientX - down.sx, dy = e.clientY - down.sy;
     if (!mode && Math.abs(dx) + Math.abs(dy) > 4) {
@@ -2122,6 +2309,7 @@
   });
 
   window.addEventListener('mouseup', function (e) {
+    if (editing) { editing.grab = -1; editRender(); return; }
     if (!down) return;
     var d = down; down = null;
     var m = mode; mode = null;

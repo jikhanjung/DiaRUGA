@@ -1340,10 +1340,22 @@ def save_review(request):
                           "cls": cls, "note": as_note(it.get("note")) or ""})
         drawn = clean
 
+    # **사람이 고친 기하** (P09 4단계). `{키: 폴리곤}` 이고 **빈 폴리곤은
+    # "엔진 것으로 되돌린다"** 는 말이다. 그린 개체(`drawn`)와 달리 엔진 개체의
+    # 교정이라 묶음에 속한다 — `Candidate` 는 안 건드리고 교정 행의 `geom` 만
+    # 덮는다(P09 5.6).
+    edits = payload.get("edits")
+    if edits is not None:
+        if not isinstance(edits, dict) or len(edits) > 500:
+            return HttpResponseBadRequest("bad edits")
+        for v in edits.values():
+            if not isinstance(v, list):
+                return HttpResponseBadRequest("bad edits polygon")
+
     try:
         saved = data.save_review(vp, done=done, note=note, removed=removed,
                                  accepted=accepted, labels=labels, notes=notes,
-                                 image=image_id, drawn=drawn)
+                                 image=image_id, drawn=drawn, edits=edits)
     except ValueError as e:
         # 현재 검출에 없는 키가 섞여 왔다. 아무것도 바꾸지 않고 돌려보낸다 —
         # 그대로 두면 그 시야의 교정이 통째로 지워진다 (data.save_review 주석).

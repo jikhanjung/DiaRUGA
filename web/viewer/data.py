@@ -181,6 +181,11 @@ def _cand_dict(c: Candidate) -> dict:
     그대로 쓴다 — 예전 JSON 이 그랬고, 내보내기로 되돌릴 수 있어야 한다.
     """
     d = {
+        # **키를 늘 실어 보낸다** (P09 4단계). 지금까지는 기하에서 다시 만들어도
+        # 같았는데, 사람이 경계를 고치면 bbox 가 바뀌고 키는 그대로여야 한다 —
+        # 기하에서 만들면 그 순간 **다른 개체가 되어 옛 행이 지워진다.**
+        # 안 고친 개체에서도 값이 같으므로 늘 넣어 그 갈래를 아예 없앤다.
+        "key": c.mask_key,
         "bbox_xywh": [c.bbox_x, c.bbox_y, c.bbox_w, c.bbox_h],
         "center_xy": [c.center_x, c.center_y],
         "area_px": c.area_px,
@@ -355,6 +360,30 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
         o = reviews.get(cand_key(d))
         if not o:
             continue
+        # **사람이 고친 기하가 엔진 것을 덮는다** (P09 4단계). `geom` 이 원본이고
+        # 엔진의 `Candidate` 는 그대로 둔다 — 검출 이력에서 엔진이 낸 것과 사람이
+        # 손댄 것을 못 가르게 되면 회차 비교가 무의미해진다 (P09 5.6).
+        if o.geom_edited and (o.geom or {}).get("polygon"):
+            d["polygon"] = list(o.geom["polygon"])
+            if o.geom.get("bbox"):
+                d["bbox_xywh"] = list(o.geom["bbox"])
+                bx, by, bw, bh = d["bbox_xywh"]
+                d["center_xy"] = [bx + bw // 2, by + bh // 2]
+            d["geom_edited"] = True
+            # **기하가 바뀌었으면 지표도 다시 잰다.** 안 재면 화면이 옛 모양의
+            # 면적·장축을 새 마스크 옆에 적는다 — 예외 없이 틀린 숫자다.
+            #
+            # `texture`·`predicted_iou`·`stability_score` 는 **그대로 둔다**:
+            # 픽셀이 있어야 나오는 값이라 여기서 못 재고, 엔진이 잰 영역과 거의
+            # 같은 자리다. 다시 잰 것과 아닌 것이 섞이므로 **화면이 고쳤다는
+            # 사실을 적는다**(말풍선).
+            m = shape.measure(d["polygon"], det.um_per_pixel)
+            for f in NUM_FIELDS:
+                if f in ("texture", "predicted_iou", "stability_score"):
+                    continue
+                d[f] = m.get(f)
+            if m.get("area_px"):
+                d["area_px"] = m["area_px"]
         if o.label:
             if d.get("cls") != o.label:
                 d["cls_auto"] = d.get("cls")
@@ -1877,7 +1906,7 @@ def mark_all_reviewed(slug: str, done: bool) -> dict | None:
 # --- 교정 저장 --------------------------------------------------------------
 def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
                 labels: dict, notes: dict, image=None,
-                drawn=None) -> dict | None:
+                drawn=None, edits=None) -> dict | None:
     """뷰어가 보낸 교정을 DB 에 쓴다. 예전에는 review/<stem>_review.json 이었다.
 
     키(mask_key)마다 한 행이고, 아무 표시도 남지 않은 행은 지운다 — 그래야
@@ -1930,7 +1959,14 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
             "않았다. batch_runs.py 로 묶은 뒤 다시 시도할 것")
 
     removed, accepted = set(removed), set(accepted)
-    keys = removed | accepted | set(labels) | set(notes)
+    # **고친 기하도 표시다** (P09 4단계). `keys` 에 안 넣으면 아래 삭제 줄이
+    # "표시가 사라진 행" 으로 보고 지운다 — 사람이 고친 마스크가 그 저장에서
+    # 곧바로 사라진다.
+    edits = {str(k): list(v or []) for k, v in (edits or {}).items()}
+    for k, poly in edits.items():
+        if poly:                       # 빈 것은 "엔진 것으로 되돌린다" 는 말이다
+            check_polygon(poly, (cur.width, cur.height), k)
+    keys = removed | accepted | set(labels) | set(notes) | set(edits)
     # **그 검출의 개체만 본다.** 예전에는 시야의 현재 검출 전부를 훑었는데,
     # 시야마다 현재 검출이 하나일 때만 같은 뜻이다 — 여럿이면 **프레임 A 의 키가
     # 프레임 B 의 화면에서 통과한다.** `mask_key` 는 프레임끼리 45% 겹치므로
@@ -1980,6 +2016,22 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
         # 지운 것도 학습의 음성 표본이다 (P02 §2.7)
         if cand and not obj.geom:
             obj.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
+        # **사람이 고친 기하** (P09 4단계). 빈 폴리곤은 "엔진 것으로 되돌린다" 는
+        # 말이라 깃발을 내리고 엔진의 기하를 다시 넣는다.
+        if key in edits:
+            poly = edits[key]
+            if poly:
+                obj.geom = {"bbox": shape.bbox(shape.points(poly)),
+                            "polygon": poly}
+                obj.geom_edited = True
+            elif cand:
+                obj.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
+                obj.geom_edited = False
+            else:
+                # 되돌릴 엔진 개체가 없다(고아) — 기하를 지우면 못 그린다
+                raise ValueError(
+                    f"되돌릴 엔진 개체가 없다 — 이 개체는 검출에 대응이 없다 "
+                    f"(키 {key})")
         obj.save()
 
     # 표시가 사라진 행은 지운다.
@@ -2013,6 +2065,36 @@ MANUAL_KEY = re.compile(r"^m[0-9a-f]{8}$")
 MAX_POINTS = 400
 
 
+def check_polygon(poly, size, key=""):
+    """사람이 보낸 폴리곤을 받을 수 있는지 본다. 돌려주는 것은 `[x, y, w, h]`.
+
+    **그리기와 고치기가 같은 검사를 지난다** — 갈라지면 한쪽으로만 들어오는
+    값이 생기고, 그 값은 화면·학습 자료 어디서 터질지 모른다.
+
+    못 받을 것은 **오류로 말한다.** 조용히 고쳐 앉히면 사람이 보낸 것과 다른
+    것이 저장되고, 화면은 "저장됨" 이라고 적는다.
+    """
+    where = f" (키 {key})" if key else ""
+    if len(poly) < shape.MIN_POINTS * 2 or len(poly) > MAX_POINTS * 2:
+        raise ValueError(
+            f"폴리곤의 점 수가 {shape.MIN_POINTS}~{MAX_POINTS} 를 벗어난다 "
+            f"({len(poly) // 2}점){where}")
+    try:
+        poly[:] = [float(v) for v in poly]
+    except (TypeError, ValueError):
+        raise ValueError(f"폴리곤에 숫자가 아닌 값이 있다{where}")
+    box = shape.bbox(shape.points(poly))
+    if box is None:
+        raise ValueError(f"폴리곤에서 상자를 못 만든다{where}")
+    # **이미지 밖은 안 받는다.** 밖에 있는 개체는 그릴 수도 잴 수도 없고,
+    # 학습 자료로 나가면 좌표가 뒤집힌 라벨이 된다.
+    w, h = size
+    if w and h and (box[0] < 0 or box[1] < 0
+                    or box[0] + box[2] > w or box[1] + box[3] > h):
+        raise ValueError(f"폴리곤이 이미지 밖으로 나간다{where}")
+    return box
+
+
 def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0)) -> int | None:
     """사람이 그린 개체를 저장한다 (P09 3단계). 돌려주는 것은 남은 개수다.
 
@@ -2036,29 +2118,11 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0)) -> int | None:
         key = str(item.get("key") or "")
         if not MANUAL_KEY.match(key):
             raise ValueError(f"사람이 그린 개체의 키가 규칙에 안 맞는다: {key!r}")
-        poly = item.get("polygon") or []
-        if len(poly) < shape.MIN_POINTS * 2 or len(poly) > MAX_POINTS * 2:
-            raise ValueError(
-                f"폴리곤의 점 수가 {shape.MIN_POINTS}~{MAX_POINTS} 를 벗어난다 "
-                f"({len(poly) // 2}점, 키 {key})")
-        try:
-            poly = [float(v) for v in poly]
-        except (TypeError, ValueError):
-            raise ValueError(f"폴리곤에 숫자가 아닌 값이 있다 (키 {key})")
-
-        box = shape.bbox(shape.points(poly))
-        if box is None:
-            raise ValueError(f"폴리곤에서 상자를 못 만든다 (키 {key})")
-        # **이미지 밖은 안 받는다.** 밖에 있는 개체는 그릴 수도 잴 수도 없고,
-        # 학습 자료로 나가면 좌표가 뒤집힌 라벨이 된다.
-        #
+        poly = list(item.get("polygon") or [])
         # 크기는 **검출**에서 받는다 — `Image.width`·`height` 는 nullable 이라
         # 안 채워진 행이 있고(그러면 검사가 조용히 통과한다), 화면이 좌표를
         # 만드는 근거도 검출의 `size` 다.
-        w, h = size
-        if w and h and (box[0] < 0 or box[1] < 0
-                        or box[0] + box[2] > w or box[1] + box[3] > h):
-            raise ValueError(f"폴리곤이 이미지 밖으로 나간다 (키 {key})")
+        box = check_polygon(poly, size, key)
 
         keep.append((key, {"bbox": box, "polygon": poly},
                      item.get("cls") or "", item.get("note") or ""))
