@@ -38,11 +38,18 @@ class BrowserTestCase(StaticLiveServerTestCase):
     `--exclude-tag browser` 로 뺀다 — 이 겹은 크로미움이 있어야 하고 30배
     느리다. 표가 없으면 `manage.py test viewer` 가 늘 함께 끌고 간다.
 
+    `self.uniq` 는 시험마다 다른 정수다 — 픽스처의 슬러그를 갈라 놓는 데 쓴다
+    (`setUp` 의 주석에 이유가 있다). **슬러그에 쓸 수 있는 문자여야 하므로
+    시험 이름을 못 쓴다** — 이 저장소의 시험 이름은 한글이고 `<slug:slug>` 는
+    그것을 못 받는다.
+
     `_SafeRootsMixin` 을 상속하지 않고 뿌리 갈이를 다시 적는다 —
     `StaticLiveServerTestCase` 는 `setUpClass` 에서 서버까지 띄우므로 순서가
     한 겹 더 있고, 그것을 섞으면 어느 쪽이 먼저인지가 안 보인다. **순서를 잘못
     잡아 시험이 `/data3` 에 쓴 적이 있다** (`..base` 머리말).
     """
+
+    _seq = 0        # setUp 이 올린다. 시험마다 다른 슬러그를 만드는 데 쓴다
 
     @classmethod
     def setUpClass(cls):
@@ -96,6 +103,19 @@ class BrowserTestCase(StaticLiveServerTestCase):
         # **`setUpTestData` 를 쓸 수 없다.** `LiveServerTestCase` 는
         # `TransactionTestCase` 라서 표를 시험마다 비운다 — 클래스 한 번만
         # 만든 자료는 두 번째 시험에서 사라진다. 픽스처는 여기서 세운다.
+        #
+        # **그래서 시험마다 다른 슬러그를 쓴다** (`self.uniq`). 표를 비우는
+        # 것은 `TransactionTestCase` 의 뒤처리(flush)인데, 그것이 **살아 있는
+        # 서버 스레드와 경합한다** — 앞 시험의 페이지가 아직 이미지를 받는
+        # 중이면 그 연결이 트랜잭션을 물고 있어 flush 가 늦고, 다음 시험의
+        # `Slide.objects.create(slug="rs23")` 가
+        # `UNIQUE constraint failed: viewer_slide.slug` 로 죽는다.
+        # CI 에서 6개 중 2개가 그렇게 났다(로컬에서는 빨라서 잘 안 난다).
+        #
+        # 고칠 자리는 여기다 — **픽스처가 제 유효성을 남의 뒤처리에 기대면
+        # 안 된다.** 청소를 기다리는 대신 애초에 안 부딪히게 한다.
+        type(self)._seq += 1
+        self.uniq = type(self)._seq
         self.make_data()
         self.errors = []
         self.ctx = self._browser.new_context(viewport={"width": 1400,

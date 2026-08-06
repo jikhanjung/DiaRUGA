@@ -17,7 +17,10 @@ class PagesLoadTest(BrowserTestCase):
 
     def make_data(self):
         fx.make_classes()
-        self.w = fx.make_world(slug="rs23", n_viewpoints=2, n_candidates=3)
+        # 슬러그·지역 코드를 시험마다 가른다 — 이유는 `base.setUp` 주석에.
+        self.w = fx.make_world(slug=f"rs23-{self.uniq}",
+                               site_code=f"RS{self.uniq}",
+                               n_viewpoints=2, n_candidates=3)
 
     def test_목록이_열린다(self):
         page = self.open(reverse("index"))
