@@ -183,6 +183,27 @@ docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
 
 ### 확인하는 법
 
+**자동 시험이 있다 — 고치고 나면 이것부터 돌린다** (P08 · 064).
+
+```bash
+python web/manage.py test viewer --exclude-tag browser   # 85개 · 0.5초
+python web/manage.py test viewer                         # 110개 (브라우저 포함)
+```
+
+호스트 venv 로 돈다 — `dbrun.sh` 를 안 거친다. 규약이 막으려는 "같은 파일을 두
+벌의 환경이 만진다" 가 성립하지 않기 때문이다: 시험은 **자기 DB 를 새로 만들고
+끝나면 버린다**(`backup_db.py`·`export_review.py` 와 같은 자리). 그 사실을 사람이
+기억하는 대신 `tests/base.py` 가 확인한다 — 운영 DB 나 `/data3` 를 가리키면 선다.
+
+**커버리지를 목표로 하지 않는다.** 시험 목록은 이 절의 "밟기 쉬운 곳" 이다 —
+027·051·053·057·038~040·045. 시험을 더할 때도 그 기준이다: **되살려서 잡히는
+것을 보고 나서 "있다" 고 말한다.** 실패할 수 없는 시험은 없는 것보다 나쁘다
+(덮은 줄 알게 한다 — 실제로 한 번 그렇게 짰다가 064 에서 고쳤다).
+
+**GitHub Actions 가 push 마다 돈다** — 시험이 통과한 것만 뷰어 이미지가 된다.
+**파이프라인 이미지는 거기서 안 굽는다**(러너에 GPU 가 없어 구워도 확인이 안
+된다). `deploy.sh` 는 사람이 부른다. 자세한 것은 P08 §5.
+
 **브라우저가 있다** — `playwright` + 헤드리스 크로미움(045). 키 입력·클릭·
 페이지 이동·**콘솔 오류**·화면 캡처가 된다. 이벤트 배선 고장은 이것으로만 잡힌다.
 **반드시 사본 DB 에 붙인다** (`DIARUGA_DB=…/사본.db DIARUGA_SCRIPT_NAME=`
