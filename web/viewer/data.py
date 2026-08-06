@@ -820,9 +820,12 @@ def _summary_by_sql(slide: Slide) -> dict:
                                  "n_auto": 0, "n_labeled": 0}
     per_cls.update({k: v for k, v in row["per_cls"].items() if k in per_cls})
 
-    # 검출이 돈 시야 수 — 평균의 분모다
+    # 검출이 돈 **시야 수** — 평균의 분모다. **검출 수가 아니다**: 시야 하나에
+    # 현재 검출이 여럿이면(합성본 + 프레임마다) 분모가 4.6배가 되어 시야당 평균이
+    # 그만큼 작아진다. 분자는 대표 이미지 하나만 세므로 둘이 어긋난다 (P09 5.3).
     detected_groups = (Detection.objects
-                       .filter(viewpoint__slide=slide, is_current=True).count())
+                       .filter(viewpoint__slide=slide, is_current=True)
+                       .values("viewpoint_id").distinct().count())
     return {"per_cls": per_cls, "n_detected": row["n_detected"],
             "n_auto": row["n_auto"], "n_labeled": row["n_labeled"],
             "detected_groups": detected_groups}
@@ -842,7 +845,28 @@ def _summary_by_sql(slide: Slide) -> dict:
 # **판정 규칙은 `_apply_review`·`_guess_cls` 와 같아야 한다.** 아래 CASE 두 개가
 # 그 규칙이고, 경계값(1.4 · 2.0 · 20.0)까지 같아야 목록과 상세 화면의 숫자가
 # 어긋나지 않는다.
+#
+# **시야마다 대표 이미지 하나만 센다** (P09 5.3). 예전에는 `d.is_current` 인 검출을
+# 전부 세었는데, 시야마다 현재 검출이 하나일 때만 같은 뜻이다. 프레임별 검출이
+# 올라오면 **같은 규조각이 합성본 1 + 프레임 3.6 장에서 4.6번 세어져** 밀도가 그만큼
+# 부푼다 — 학습 자료로는 맞고 계측 통계로는 틀리다. 아래 `rep` 가 그 하나를 고르고,
+# 규칙은 `representative_detection` 과 같다(합성본이 있으면 합성본).
+#
+# **교정을 묶음으로도 맞춘다.** `(image, mask_key)` 만으로 맺으면 묶음을 갈아탄 뒤
+# 같은 이미지에 남아 있는 **옛 회차의 교정이 새 후보에 붙는다.** 키가 겹칠 확률은
+# 낮지만(엔진이 다르면 `exact` 가 0%다) 겹치면 `LEFT JOIN` 이 행을 불려 개수가
+# 조용히 는다. `IS` 로 비교하는 것은 사람이 그린 개체가 `batch IS NULL` 이라서다.
 _SUMMARY_SQL = """
+WITH rep AS (
+    SELECT d.id AS det_id, d.viewpoint_id, d.image_id, run.batch_id,
+           ROW_NUMBER() OVER (
+               PARTITION BY d.viewpoint_id
+               ORDER BY CASE i.kind WHEN 'stack' THEN 0 ELSE 1 END, d.id) AS rn
+      FROM viewer_detection d
+      JOIN viewer_image i ON i.id = d.image_id
+      LEFT JOIN viewer_run run ON run.id = d.run_id
+     WHERE d.is_current
+)
 SELECT v.slide_id AS slide_id,
        CASE WHEN r.label IS NOT NULL AND r.label <> '' THEN r.label
             WHEN NOT c.passed THEN CASE
@@ -857,10 +881,11 @@ SELECT v.slide_id AS slide_id,
                             OR (NOT c.passed AND COALESCE(r.accepted, 0)))
                           AND r.label IS NOT NULL AND r.label <> '')        AS n_labeled
 FROM viewer_candidate c
-JOIN viewer_detection d ON d.id = c.detection_id AND d.is_current
-JOIN viewer_viewpoint v ON v.id = d.viewpoint_id
+JOIN rep ON rep.det_id = c.detection_id AND rep.rn = 1
+JOIN viewer_viewpoint v ON v.id = rep.viewpoint_id
 LEFT JOIN viewer_objectreview r
-       ON r.image_id = d.image_id AND r.mask_key = c.mask_key
+       ON r.image_id = rep.image_id AND r.mask_key = c.mask_key
+      AND r.batch_id IS rep.batch_id
 WHERE {where}
 GROUP BY v.slide_id, eff_cls
 """
@@ -875,20 +900,34 @@ GROUP BY v.slide_id, eff_cls
 # **표시 분류는 `mask_class` 와 같아야 한다** — 사람이 지정한 것이 먼저, 되살린
 # 것은 `manual`(짐작한 분류가 아니라 되살렸다는 사실을 색으로 보인다), 나머지는
 # 자동 판정. 순서도 같아야 한다: 넓은 것부터 그려야 작은 개체가 안 묻힌다.
+# **여기도 대표 이미지 하나만 본다** (`_SUMMARY_SQL` 과 같은 `rep`). 표지에 얹는
+# 마스크라 여럿을 그리면 같은 규조각이 겹쳐 그려지고, `n_kept` 도 함께 부푼다 —
+# 그 수가 시야 목록의 "검토" 칸이다.
 _COVER_SQL = """
-SELECT d.viewpoint_id, c.polygon,
+WITH rep AS (
+    SELECT d.id AS det_id, d.viewpoint_id, d.image_id, run.batch_id,
+           ROW_NUMBER() OVER (
+               PARTITION BY d.viewpoint_id
+               ORDER BY CASE i.kind WHEN 'stack' THEN 0 ELSE 1 END, d.id) AS rn
+      FROM viewer_detection d
+      JOIN viewer_image i ON i.id = d.image_id
+      LEFT JOIN viewer_run run ON run.id = d.run_id
+     WHERE d.is_current
+)
+SELECT rep.viewpoint_id, c.polygon,
        CASE WHEN r.label IS NOT NULL AND r.label <> '' THEN r.label
             WHEN NOT c.passed THEN 'manual'
             ELSE COALESCE(NULLIF(c.cls, ''), 'none') END AS mask_cls
 FROM viewer_candidate c
-JOIN viewer_detection d ON d.id = c.detection_id AND d.is_current
-JOIN viewer_viewpoint v ON v.id = d.viewpoint_id
+JOIN rep ON rep.det_id = c.detection_id AND rep.rn = 1
+JOIN viewer_viewpoint v ON v.id = rep.viewpoint_id
 LEFT JOIN viewer_objectreview r
-       ON r.image_id = d.image_id AND r.mask_key = c.mask_key
+       ON r.image_id = rep.image_id AND r.mask_key = c.mask_key
+      AND r.batch_id IS rep.batch_id
 WHERE v.slide_id = %s
   AND ((c.passed AND NOT COALESCE(r.removed, 0))
        OR (NOT c.passed AND COALESCE(r.accepted, 0)))
-ORDER BY d.viewpoint_id, c.area_px DESC
+ORDER BY rep.viewpoint_id, c.area_px DESC
 """
 
 

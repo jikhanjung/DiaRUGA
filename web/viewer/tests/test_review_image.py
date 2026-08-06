@@ -164,3 +164,66 @@ class MultiImageViewpointTest(DiaRUGATestCase):
         self.post(self.full(image=self.frame_img.pk, removed=[alien]),
                   expect=409)
         self.assertEqual(ObjectReview.objects.count(), 0)
+
+
+class SummaryCountsOneImageTest(DiaRUGATestCase):
+    """집계는 **시야마다 대표 이미지 하나**에서 낸다 (P09 5.3).
+
+    검토는 모든 이미지에서 하지만, 세는 것은 하나여야 한다. 다 세면 같은 규조각이
+    합성본 1 + 프레임 3.6 장에서 거듭 세어져 **밀도가 4.6배**가 된다 — 학습
+    자료로는 맞고 계측 통계로는 틀리다. 그리고 그 숫자가 보고서에 실린다.
+
+    **이 고장은 예외를 안 낸다.** 화면이 그럴듯한 숫자를 내고, 옳은 값을 아는
+    사람만 이상하다고 느낀다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_frames=3, n_candidates=3)
+
+    def summary(self):
+        """목록 화면이 쓰는 값 그대로 (`_summary_by_sql`)."""
+        return data._summary_by_sql(self.w.slide)
+
+    def test_프레임_검출이_붙어도_개체_수가_안_는다(self):
+        before = self.summary()
+        fx.add_frame_detections(self.w.vp)          # 현재 검출 1 → 4
+        after = self.summary()
+
+        self.assertEqual(len(data.current_detections(self.w.vp)), 4,
+                         "픽스처 전제가 깨졌다")
+        self.assertEqual(after["n_detected"], before["n_detected"],
+                         "프레임 검출이 붙자 개체 수가 늘었다 — 밀도가 부푼다")
+        self.assertEqual(after["n_auto"], before["n_auto"])
+        self.assertEqual(after["per_cls"], before["per_cls"])
+
+    def test_평균의_분모는_시야_수다(self):
+        """**검출 수가 아니다.** 분자는 대표 하나만 세므로 둘이 어긋난다."""
+        fx.add_frame_detections(self.w.vp)
+        self.assertEqual(self.summary()["detected_groups"], 1)
+
+    def test_표지_마스크도_대표에서만_온다(self):
+        fx.add_frame_detections(self.w.vp)
+        masks, n_kept = data._kept_masks(self.w.slide)
+        self.assertEqual(n_kept[self.w.vp.pk], 3,
+                         "표지의 개체 수가 프레임만큼 부풀었다")
+
+    def test_옛_묶음의_교정이_새_후보에_안_붙는다(self):
+        """묶음을 갈아탄 뒤 같은 이미지에 남아 있는 옛 회차의 교정.
+
+        키가 겹치면 `LEFT JOIN` 이 행을 불려 **개수가 조용히 는다.**
+        """
+        from ..models import ObjectReview, RunBatch
+        det = self.w.detection()
+        old, _ = RunBatch.objects.get_or_create(kind="detect", label="옛회차")
+        for c in det.candidates.all():              # 같은 키, 다른 묶음
+            ObjectReview.objects.create(
+                viewpoint=self.w.vp, image=det.image, batch=old,
+                mask_key=c.mask_key, label="rod",
+                geom={"bbox": c.bbox_xywh, "polygon": list(c.polygon)})
+
+        s = self.summary()
+        self.assertEqual(s["n_detected"], 3, "옛 묶음의 교정이 행을 불렸다")
+        self.assertEqual(s["n_labeled"], 0,
+                         "옛 묶음의 분류가 이번 회차 집계에 섞였다")
