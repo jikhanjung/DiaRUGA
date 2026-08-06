@@ -140,3 +140,40 @@ class BrowserTestCase(StaticLiveServerTestCase):
         """앱의 주소 하나를 연다. `path` 는 `reverse()` 가 낸 것."""
         self.page.goto(f"{self.live_server_url}{path}", wait_until="load")
         return self.page
+
+    # --- 이미지 좌표로 짚기 ------------------------------------------------
+
+    def masks_svg(self, uid="stack"):
+        """마스크 `<svg>`. 이것이 이미지 화소 좌표계를 그대로 들고 있다."""
+        return self.page.wait_for_selector(f"#masks-{uid}", state="attached",
+                                           timeout=10_000)
+
+    def image_point(self, img_x, img_y, uid="stack"):
+        """**이미지 화소 좌표**를 화면 좌표로 옮긴다.
+
+        `<svg>` 가 `viewBox="0 0 W H"` 에 `preserveAspectRatio="none"` 이라
+        상자에 정확히 늘어난다 — 그래서 변환이 선형이다. 여백을 짐작하지
+        않는다.
+
+        **화면 한가운데를 찍어 보는 식으로 하면 안 된다.** 개체 위에 떨어질지
+        아닐지가 운이라, 못 맞히면 시험이 `skip` 으로 조용히 넘어가고 **덮은
+        줄 알게 된다** — 실제로 탈락 펼침판이 그렇게 한 번 건너뛰었다.
+        """
+        svg = self.masks_svg(uid)
+        box = svg.bounding_box()
+        vb = [float(v) for v in svg.get_attribute("viewBox").split()]
+        vx, vy, vw, vh = vb
+        return (box["x"] + (img_x - vx) / vw * box["width"],
+                box["y"] + (img_y - vy) / vh * box["height"])
+
+    def click_image(self, img_x, img_y, uid="stack", button="left"):
+        """이미지 화소 좌표 하나를 누른다."""
+        x, y = self.image_point(img_x, img_y, uid)
+        self.page.mouse.click(x, y, button=button)
+        self.page.wait_for_timeout(150)
+
+    def context_menu_at(self, img_x, img_y, uid="stack"):
+        """그 자리에서 우클릭하고 메뉴를 돌려준다 (없으면 `None`)."""
+        self.click_image(img_x, img_y, uid, button="right")
+        self.page.wait_for_timeout(200)
+        return self.page.query_selector(".ctxmenu")

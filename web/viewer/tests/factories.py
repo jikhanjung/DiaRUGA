@@ -32,8 +32,8 @@ from .base import write_image
 from .. import data
 from ..images import ensure_frame_image, ensure_stack_images
 from ..models import (Candidate, ClassDef, Detection, Frame, Image, Locality,
-                      ObjectReview, Sample, Site, Slide, Stack, ThresholdSet,
-                      Viewpoint, ViewpointReview)
+                      ObjectReview, Run, RunBatch, Sample, Site, Slide, Stack,
+                      ThresholdSet, Viewpoint, ViewpointReview)
 
 
 # 픽스처 이미지의 크기. **실물(2752x2208)보다 작게 잡되, 기록한 값과 실제 파일이
@@ -42,6 +42,13 @@ from ..models import (Candidate, ClassDef, Detection, Frame, Image, Locality,
 # 찾았다 — **현실에서 생길 수 없는 상태를 시험한 것**이다. 크기는 여기 하나로
 # 정하고 행·파일·bbox 가 전부 이 값을 따른다.
 IMG_W, IMG_H = 640, 480
+
+# `add_other_engine` 의 탈락 후보 자리 (x, y, w, h). **통과분과 안 겹친다.**
+# 시험이 이 값을 짚어 그 자리를 누르므로 여기 하나로 정해 둔다 — 시험에 좌표를
+# 베껴 두면 자리를 옮길 때 시험만 옛 자리를 누르고 조용히 건너뛴다.
+REJECT_BOX = (480, 380, 44, 40)
+REJECT_CENTER = (REJECT_BOX[0] + REJECT_BOX[2] // 2,
+                 REJECT_BOX[1] + REJECT_BOX[3] // 2)
 
 
 @dataclass
@@ -230,6 +237,69 @@ def _make_detection(vp, img, *, n_candidates):
         polygon=[x, y, x + w, y, x + w, y + h, x, y + h],
         passed=False, reject="too_small")
     return det
+
+
+def add_other_engine(vp, *, label=None, n_candidates=2) -> Run:
+    """같은 시야에 **다른 엔진의 검출**을 하나 더 쌓는다. `Run` 을 돌려준다.
+
+    **검출은 덮어쓰지 않고 쌓는다** — `is_current` 가 뷰어가 볼 것을 가리킨다
+    (CLAUDE.md). 이 함수가 만드는 것은 `is_current=False` 라 검토 화면에는
+    안 나오고, `?batch=<run.id>` 로 골라야 보인다.
+
+    **그리고 그때가 읽기 전용이다** (051). 교정은 `mask_key`(bbox 문자열)로
+    붙는데 엔진이 다르면 거의 전부 어긋나므로 저장을 받으면 안 된다. 읽기
+    전용 화면을 시험하려면 이 자료가 있어야 한다.
+    """
+    batch, _ = RunBatch.objects.get_or_create(
+        kind="detect", label=label or f"yolo-시험-{vp.slide.slug}")
+    run = Run.objects.create(kind="detect", batch=batch, slide=vp.slide,
+                             status="done")
+
+    cur = vp.detections.get(is_current=True)
+    det = Detection.objects.create(
+        viewpoint=vp, image=cur.image, image_path=cur.image_path,
+        width=cur.width, height=cur.height, scale=1.0,
+        um_per_pixel=cur.um_per_pixel, um_per_pixel_source="xml",
+        n_raw_masks=n_candidates, n_sized=n_candidates,
+        run=run, is_current=False)
+
+    # **현재 검출과 다른 자리에 둔다.** 같은 bbox 를 쓰면 `mask_key` 가 겹쳐
+    # 교정이 우연히 붙고, "엔진이 다르면 키가 어긋난다" 는 전제가 시험 자료에서
+    # 만 성립하지 않게 된다.
+    for i in range(n_candidates):
+        x, y = 300 + i * 90, 250 + i * 60
+        w, h = 55 + i * 7, 45 + i * 7
+        Candidate.objects.create(
+            detection=det, raw_id=i,
+            mask_key=data.cand_key({"bbox_xywh": [x, y, w, h]}),
+            bbox_x=x, bbox_y=y, bbox_w=w, bbox_h=h,
+            center_x=x + w // 2, center_y=y + h // 2,
+            area_px=w * h // 2, area_um2=float(w * h) / 200,
+            major_um=float(w) / 10, minor_um=float(h) / 10,
+            long_side_um=float(w) / 10, short_side_um=float(h) / 10,
+            aspect_ratio=w / h, fill_ratio=0.6,
+            shape_ok=True, circularity=0.8, convexity=0.9, solidity=0.9,
+            elongation=1.2, ellipse_iou=0.86, texture=2800.0,
+            polygon=[x, y, x + w, y, x + w, y + h, x, y + h],
+            passed=True, cls=CLASSES[i % len(CLASSES)][0])
+
+    # 탈락분 하나 — 읽기 전용에서 **탈락 펼침판**이 어떻게 구는지 보려면 있어야 한다.
+    #
+    # **통과분이 안 덮는 자리에 둔다.** 펼침판은 우클릭 메뉴의 "이 자리의 탈락
+    # 후보 보기" 로 여는데, 그 항목은 **빈 자리를 눌렀을 때만**(`d.target === null`)
+    # 나온다. 통과분 위에 겹쳐 두면 개체 메뉴가 떠서 영영 못 연다.
+    x, y, w, h = REJECT_BOX
+    Candidate.objects.create(
+        detection=det, raw_id=n_candidates,
+        mask_key=data.cand_key({"bbox_xywh": [x, y, w, h]}),
+        bbox_x=x, bbox_y=y, bbox_w=w, bbox_h=h,
+        center_x=x + w // 2, center_y=y + h // 2,
+        area_px=w * h // 2, area_um2=2.0, major_um=2.4, minor_um=2.0,
+        long_side_um=2.4, short_side_um=2.0, aspect_ratio=1.2,
+        fill_ratio=0.5, shape_ok=False, texture=180.0,
+        polygon=[x, y, x + w, y, x + w, y + h, x, y + h],
+        passed=False, reject="too_small")
+    return run
 
 
 def add_review(vp, mask_key, *, removed=False, accepted=False, label="",
