@@ -9,6 +9,7 @@
 
 기하 계산(주축·스케일바)은 DB 와 무관하므로 그대로 두었다.
 """
+import json
 import math
 import re
 from collections import Counter, defaultdict
@@ -17,7 +18,7 @@ from pathlib import Path
 from django.conf import settings
 from django.urls import reverse
 from django.db import connection
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 
 from . import antarctica, korea
 from .models import (Candidate, ClassDef, Core, Detection, Frame, ObjectReview,
@@ -199,6 +200,10 @@ def mask_class(c: dict) -> str:
 
     사람이 지정한 분류가 가장 먼저다 — 되살린 개체(manual)에 Eucampia 를
     지정했으면 Eucampia 색으로 보여야 한다.
+
+    **부르는 자리는 없다.** 시야 목록이 이 규칙을 SQL 로 옮겨 갔다(`_COVER_SQL`,
+    060). 규칙이 셋(여기 · SQL · 뷰어의 `addPolygon`)이 되면 어긋나므로, 다음에
+    파이썬 쪽에서 마스크를 그릴 일이 생기면 **이것을 되쓰거나 함께 고친다.**
     """
     if c.get("cls_user") and c.get("cls"):
         return c["cls"]
@@ -484,7 +489,7 @@ def candidate_rows(slug: str) -> list[dict]:
         return []
 
     rows = []
-    for vp in _viewpoints_of(slide):
+    for vp in _viewpoints_of(slide, only_current=True):
         cur = next((d for d in vp.detections.all() if d.is_current), None)
         det = detection_for_viewpoint(vp)
         if det is None:
@@ -786,6 +791,54 @@ GROUP BY v.slide_id, eff_cls
 """
 
 
+# 시야 목록의 표지에 얹을 마스크. **화면에 남는 개체만** 가져온다.
+#
+# 그리는 것은 시야당 다섯 남짓인데 예전에는 후보를 전부 dict 로 만들어(탈락분
+# 8,586개까지) 그중에서 골랐다 — 폴리곤이 JSONField 라 만드는 값이 곧 파싱
+# 비용이다(060). 남는 개체의 조건은 `_summary_rows` 와 같은 규칙이다.
+#
+# **표시 분류는 `mask_class` 와 같아야 한다** — 사람이 지정한 것이 먼저, 되살린
+# 것은 `manual`(짐작한 분류가 아니라 되살렸다는 사실을 색으로 보인다), 나머지는
+# 자동 판정. 순서도 같아야 한다: 넓은 것부터 그려야 작은 개체가 안 묻힌다.
+_COVER_SQL = """
+SELECT d.viewpoint_id, c.polygon,
+       CASE WHEN r.label IS NOT NULL AND r.label <> '' THEN r.label
+            WHEN NOT c.passed THEN 'manual'
+            ELSE COALESCE(NULLIF(c.cls, ''), 'none') END AS mask_cls
+FROM viewer_candidate c
+JOIN viewer_detection d ON d.id = c.detection_id AND d.is_current
+JOIN viewer_viewpoint v ON v.id = d.viewpoint_id
+LEFT JOIN viewer_objectreview r
+       ON r.image_id = d.image_id AND r.mask_key = c.mask_key
+WHERE v.slide_id = %s
+  AND ((c.passed AND NOT COALESCE(r.removed, 0))
+       OR (NOT c.passed AND COALESCE(r.accepted, 0)))
+ORDER BY d.viewpoint_id, c.area_px DESC
+"""
+
+
+def _kept_masks(slide: Slide) -> tuple[dict[int, list[dict]], dict[int, int]]:
+    """시야 번호(pk) → (표지에 그릴 마스크, 남는 개체 수). 질의 하나.
+
+    **개수는 마스크 수가 아니다.** 폴리곤이 점 셋 미만이면 그릴 수 없어 마스크를
+    안 만드는데(`mask_points` 와 같은 문턱), 그 개체도 화면에는 세어져야 한다.
+    """
+    masks: dict[int, list[dict]] = {}
+    n_kept: dict[int, int] = {}
+    with connection.cursor() as cur:
+        cur.execute(_COVER_SQL, [slide.id])
+        for vp_id, poly, cls in cur.fetchall():
+            n_kept[vp_id] = n_kept.get(vp_id, 0) + 1
+            p = json.loads(poly) if poly else []
+            if len(p) < 6:
+                continue
+            masks.setdefault(vp_id, []).append(
+                {"points": " ".join(f"{p[i]},{p[i + 1]}"
+                                    for i in range(0, len(p) - 1, 2)),
+                 "cls": cls})
+    return masks, n_kept
+
+
 def _summary_rows(where: str, params: list) -> dict[int, dict]:
     """슬라이드 번호 → 집계. `eff_cls` 로 묶어 온 것을 파이썬에서 접는다.
 
@@ -807,34 +860,24 @@ def _summary_rows(where: str, params: list) -> dict[int, dict]:
     return out
 
 
-def _slide_summary(slide: Slide, details: list | None = None) -> dict:
+def _slide_summary(slide: Slide) -> dict:
     """목록 화면의 집계.
 
-    details 를 넘기면 그것을 쓴다 — dataset_detail 이 이미 시야를 다 훑었으므로
-    두 번 계산하지 않는다. 없으면 SQL 로 센다(`_summary_by_sql`).
+    **세는 일은 `_summary_by_sql` 하나로 모았다.** 예전에는 `dataset_detail` 이
+    이미 만든 개체 dict 를 넘겨 파이썬에서 더하는 갈래가 따로 있었는데, 그
+    갈래가 있으려면 화면이 개체를 전부 물질화해야 했다 — 시야 목록이 후보
+    11,048개를 만들어 그중 370개만 그리고 있었다(060). 두 길의 값이 슬라이드
+    11개 전부에서 같은 것을 확인하고 SQL 쪽만 남겼다.
     """
     vps = Viewpoint.objects.filter(slide=slide)
     n_groups = vps.count()
     sizes = list(vps.values_list("n_frames", flat=True))
     n_img = sum(sizes)
 
-    if details is None:
-        r = _summary_by_sql(slide)
-        per_cls = r["per_cls"]
-        n_detected, n_auto = r["n_detected"], r["n_auto"]
-        n_labeled, n_counts = r["n_labeled"], r["detected_groups"]
-    else:
-        per_cls = {k["key"]: 0 for k in _class_rows()}
-        n_detected = n_auto = n_labeled = 0
-        for det in details:
-            n_detected += det["n_candidates"]
-            n_auto += det["n_auto"]
-            # 분류 지정은 **통과분만** 센다 — 탭 머리의 "사람지정" 과 같은 정의여야
-            # 화면끼리 어긋나지 않는다(지웠다가 분류가 남은 개체가 있다).
-            n_labeled += det["counts"].get("labeled", 0)
-            for k in per_cls:
-                per_cls[k] += det["counts"].get(k, 0)
-        n_counts = len(details)
+    r = _summary_by_sql(slide)
+    per_cls = r["per_cls"]
+    n_detected, n_auto = r["n_detected"], r["n_auto"]
+    n_labeled, n_counts = r["n_labeled"], r["detected_groups"]
     counts = [None] * n_counts     # 개수만 쓴다
 
     rv = ObjectReview.objects.filter(viewpoint__slide=slide)
@@ -1205,11 +1248,33 @@ def core_detail(site_code: str, core_code: str,
     }
 
 
-def _viewpoints_of(slide: Slide):
-    return (Viewpoint.objects.filter(slide=slide)
-            .select_related("sharpest_frame", "stack")
-            .prefetch_related("frames", "detections__candidates",
-                              "object_reviews"))
+def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False):
+    """시야와 그 아래를 한 번에 당겨 온다.
+
+    **`light` 는 검출을 아예 안 당긴다.** 시야 목록은 개체를 SQL 로 세고 마스크만
+    따로 받으므로(`_kept_masks`) 검출 행도 후보도 필요 없다(060).
+
+    **`only_current` 를 켜면 현재 검출의 후보만 당긴다.** 켜지 않으면 쌓아 둔
+    묶음(YOLO 등)의 후보까지 전부 올라온다 — `RS23-GC03 369cm` 에서 후보
+    28,697개 중 **17,649개가 YOLO 것**이고, 시야 목록은 그것을 한 개도 안 쓴다.
+    `Candidate.polygon` 이 JSONField 라 올리는 값이 파싱 비용으로 그대로 나온다
+    (059 에서 이 화면의 `json.raw_decode` 31,563회가 그것이었다).
+
+    **끄고 부르는 자리가 있다** — `engine_viewpoint` 는 `?batch=` 로 고른 묶음의
+    검출을 봐야 하므로 현재 검출만 당기면 화면이 빈다. 그래서 기본을 켜지 않고
+    부르는 쪽이 고르게 뒀다.
+    """
+    qs = (Viewpoint.objects.filter(slide=slide)
+          .select_related("sharpest_frame", "stack"))
+    if light:
+        return qs.prefetch_related("frames")
+    dets = Detection.objects.all()
+    if only_current:
+        dets = dets.filter(is_current=True)
+    return qs.prefetch_related(
+        "frames",
+        Prefetch("detections", queryset=dets.prefetch_related("candidates")),
+        "object_reviews")
 
 
 def dataset_detail(slug: str) -> dict | None:
@@ -1217,11 +1282,20 @@ def dataset_detail(slug: str) -> dict | None:
     if slide is None:
         return None
 
-    groups, details = [], []
-    for vp in _viewpoints_of(slide):
-        det = detection_for_viewpoint(vp)
-        if det:
-            details.append(det)
+    # **개체를 dict 로 만들지 않는다** (060). 이 화면이 개체에서 쓰는 것은
+    # 표지에 얹을 마스크와 그 수뿐인데, 예전에는 시야마다 `detection_for_viewpoint`
+    # 로 후보를 전부 만들어(이 슬라이드 11,048개) 그중 370개를 그렸다.
+    cover_masks, n_kept = _kept_masks(slide)
+    dets = {d["viewpoint_id"]: d for d in
+            Detection.objects.filter(viewpoint__slide=slide, is_current=True)
+            .values("viewpoint_id", "image_path", "width", "height")}
+    reviewed = set(ViewpointReview.objects
+                   .filter(viewpoint__slide=slide, done=True)
+                   .values_list("viewpoint_id", flat=True))
+
+    groups = []
+    for vp in _viewpoints_of(slide, light=True):
+        det = dets.get(vp.id)
         st = getattr(vp, "stack", None)
 
         # 목록의 대표 그림은 합성본이 원칙이다 — 그룹을 대표하는 그림이 검출을
@@ -1236,12 +1310,9 @@ def dataset_detail(slug: str) -> dict | None:
         # 표지에 검출 마스크를 얹는다. 검출을 돌린 이미지와 표지가 같을 때만 —
         # 다른 이미지의 좌표를 얹으면 조용히 어긋난 그림이 된다.
         masks, size = [], None
-        if det and cover_rel and det.get("stem") == Path(cover_rel).stem:
-            size = det.get("size")
-            for c in det.get("candidates") or []:
-                pts = mask_points(c)
-                if pts:
-                    masks.append({"points": pts, "cls": mask_class(c)})
+        if det and cover_rel and Path(det["image_path"]).stem == Path(cover_rel).stem:
+            size = [det["width"], det["height"]]
+            masks = cover_masks.get(vp.id, [])
 
         groups.append({
             "id": vp.idx,
@@ -1253,8 +1324,8 @@ def dataset_detail(slug: str) -> dict | None:
             "cover_size": size,
             "masks": masks,
             "has_stack": st is not None,
-            "n_detected": (det or {}).get("n_candidates"),
-            "reviewed": bool((det or {}).get("review_done")),
+            "n_detected": n_kept.get(vp.id, 0) if det else None,
+            "reviewed": vp.id in reviewed,
         })
 
     return {
@@ -1270,7 +1341,7 @@ def dataset_detail(slug: str) -> dict | None:
         "sample_kind": slide.sample_kind,
         "um_per_pixel": scales_by_slide().get(slide.slug),
         "groups": groups,
-        **_slide_summary(slide, details),
+        **_slide_summary(slide),
     }
 
 
@@ -1331,7 +1402,8 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
     slide = Slide.objects.filter(slug=slug).first()
     if slide is None:
         return None
-    vp = _viewpoints_of(slide).filter(idx=gid).first()
+    # 묶음 갈래는 위에서 이미 돌아갔다 — 여기는 현재 검출만 본다
+    vp = _viewpoints_of(slide, only_current=True).filter(idx=gid).first()
     if vp is None:
         return None
 
