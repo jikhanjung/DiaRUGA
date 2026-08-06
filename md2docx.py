@@ -79,6 +79,18 @@ def set_paper(doc, paper: str, landscape: bool):
 # 것보다 낫다. 굽는 데 헤드리스 크롬이 필요해서 어느 장비에나 있지는 않다.
 #
 #   npm i @mermaid-js/mermaid-cli && MMDC=$(pwd)/node_modules/.bin/mmdc python md2docx.py …
+#
+# **크로미움을 따로 받지 않아도 된다.** playwright 가 이미 하나 깔아 두었으므로
+# 그것을 가리키면 된다 — 400 MB 를 두 벌 두지 않는다 (`node_modules` 는 08-05
+# 디스크 정리에 지워졌고, 그래서 도표가 코드 블록으로 떨어진 docx 가 한 번 나왔다):
+#
+#   PUPPETEER_SKIP_DOWNLOAD=1 npm i @mermaid-js/mermaid-cli
+#   export MMDC=$(pwd)/node_modules/.bin/mmdc
+#   export PUPPETEER_EXECUTABLE_PATH=~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome
+#   export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt   # 사내망 TLS
+#
+# **도표가 코드 블록으로 나왔으면 위를 안 한 것이다.** 변환은 실패하지 않고
+# 그냥 못생긴 문서를 낸다 — 파일 크기로 눈치챈다(ERD 가 750 KB vs 315 KB).
 MMDC = os.environ.get("MMDC") or "mmdc"
 # 구운 그림을 두는 곳. 원본이 같으면 다시 굽지 않는다(해시로 가른다).
 ASSET_DIR = os.environ.get("MD2DOCX_ASSETS", "assets")

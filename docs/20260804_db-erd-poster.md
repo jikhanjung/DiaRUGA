@@ -1,6 +1,7 @@
 # DiaRUGA DB ERD — 한눈에
 
-**2026-08-04** (`Image` 반영 2026-08-05 — P06 · devlog 055) · A3 가로
+**2026-08-04** (`Image` 반영 2026-08-05 — P06 · devlog 055 ·
+**층 개편 2026-08-06 — `Locality`·`Sample`, devlog 063**) · A3 가로
 
 도표만 모았다. 칸의 뜻은 [DB 명세](20260804_db-specification.md), 관계 하나하나의
 방향·`on_delete`·`related_name` 은 [ERD 문서](20260804_db-erd.md)에 있다.
@@ -26,7 +27,7 @@ MMDC=$(pwd)/node_modules/.bin/mmdc python md2docx.py \
 
 ```mermaid
 flowchart LR
-    Site[Site<br/>지역] --> Core[Core<br/>코어] --> Slide[Slide<br/>슬라이드]
+    Site[Site<br/>지역] --> Loc[Locality<br/>지점] --> Smp[Sample<br/>시료] --> Slide[Slide<br/>관찰]
     Slide --> VP[Viewpoint<br/>시야] --> Frame[Frame<br/>사진]
     VP --> Stack[Stack<br/>합성본 1:1]
     VP --> Img[Image<br/>stack·frame·depth] --> Det[Detection<br/>is_current] --> Cand[Candidate<br/>개체]
@@ -45,7 +46,7 @@ flowchart LR
     classDef human fill:#fce8e6,stroke:#ea4335,stroke-width:2px
     classDef det fill:#e6f4ea,stroke:#34a853
     classDef side fill:#f8f9fa,stroke:#9aa0a6,color:#5f6368
-    class Site,Core,Slide,VP,Frame stem
+    class Site,Loc,Smp,Slide,VP,Frame stem
     class OR,VR human
     class Det,Cand,Stack,Img det
     class RB,Run,TS,CD,ST side
@@ -58,8 +59,9 @@ flowchart LR
 ```mermaid
 erDiagram
     direction LR
-    Site ||--o{ Core : cores
-    Core ||--o{ Slide : slides
+    Site ||--o{ Locality : localities
+    Locality ||--o{ Sample : samples
+    Sample ||--o{ Slide : slides
     Slide ||--o{ Viewpoint : viewpoints
     Slide ||--o{ Frame : frames
     Slide ||--o{ Run : runs
@@ -144,12 +146,12 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    S["Site<br/>5"] --> C["Core<br/>5"] --> SL["Slide<br/>10"] --> VP["Viewpoint<br/>452"]
-    VP --> F["Frame<br/>1,318<br/><small>평균 2.9장/시야</small>"]
-    VP --> ST["Stack<br/>317<br/><small>싱글턴 135는 없다</small>"]
+    S["Site<br/>5"] --> C["Locality<br/>5"] --> SM["Sample<br/>10"] --> SL["Slide<br/>11"] --> VP["Viewpoint<br/>508"]
+    VP --> F["Frame<br/>1,444<br/><small>평균 2.8장/시야</small>"]
+    VP --> ST["Stack<br/>355<br/><small>싱글턴 153은 없다</small>"]
     VP --> VR["ViewpointReview<br/>432"]
     VP --> IM["Image<br/>1,952"]
-    IM --> OR["ObjectReview<br/>6,738"]
-    IM --> D["Detection<br/>2,076"] --> CA["Candidate<br/>91,603<br/><small>평균 44개/검출</small>"]
-    RB["RunBatch<br/>2"] --> R["Run<br/>171"]
+    IM --> OR["ObjectReview<br/>7,472"]
+    IM --> D["Detection<br/>2,132"] --> CA["Candidate<br/>97,299<br/><small>평균 46개/검출</small>"]
+    RB["RunBatch<br/>2"] --> R["Run<br/>178"]
 ```

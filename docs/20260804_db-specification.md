@@ -1,8 +1,10 @@
 # DiaRUGA DB 명세
 
-**2026-08-04** (`Image` 반영 2026-08-05 — P06 · devlog 055)
+**2026-08-04** (`Image` 반영 2026-08-05 — P06 · devlog 055 ·
+**층 개편 2026-08-06 — `Locality`·`Sample`, devlog 063**)
 
-남극 시추코어 규조류 분석 파이프라인이 쓰는 데이터베이스의 명세다. 테이블 하나하나가
+규조류 분석 파이프라인이 쓰는 데이터베이스의 명세다. 남극 시추코어에서
+시작했고 육상 노두(북평분지)가 들어와 있다. 테이블 하나하나가
 무엇을 담는지, 서로 어떻게 매이는지, 그리고 **왜 그렇게 두었는지**를 적는다.
 
 > **원본은 `web/viewer/models.py` 다.** 이 문서는 그것을 읽기 좋게 편 것이고,
@@ -74,7 +76,7 @@ sqlite 백업 API 로 뜨고, 검증을 통과한 뒤에야 제 이름을 준다
 
 ```mermaid
 flowchart LR
-    Site[Site<br/>지역] --> Core[Core<br/>코어] --> Slide[Slide<br/>슬라이드]
+    Site[Site<br/>지역] --> Loc[Locality<br/>지점] --> Smp[Sample<br/>시료] --> Slide[Slide<br/>관찰]
     Slide --> VP[Viewpoint<br/>시야] --> Frame[Frame<br/>사진]
     VP --> Stack[Stack<br/>합성본 1:1]
     VP --> Img[Image<br/>stack·frame·depth] --> Det[Detection<br/>is_current] --> Cand[Candidate<br/>개체]
@@ -95,7 +97,7 @@ flowchart LR
     classDef human fill:#fce8e6,stroke:#ea4335,stroke-width:2px
     classDef det fill:#e6f4ea,stroke:#34a853
     classDef side fill:#f8f9fa,stroke:#9aa0a6,color:#5f6368
-    class Site,Core,Slide,VP,Frame stem
+    class Site,Loc,Smp,Slide,VP,Frame stem
     class OR,VR human
     class Det,Cand,Stack,Img det
     class RB,Run,TS,CD,ST side
@@ -110,9 +112,26 @@ flowchart LR
 `target`(`stack|frame`) + nullable `frame` 으로 다형 연관을 흉내 냈다 — 합성본이
 `Frame` 이 아니라 테이블이 둘이었기 때문이다.
 
-굵은 줄기는 **지역 → 코어 → 슬라이드 → 시야 → 사진**이다. 폴더 이름
+굵은 줄기는 **지역 → 지점 → 시료 → 관찰 → 시야 → 사진**이다. 폴더 이름
 `RS23-GC03 71cm` 을 통짜 문자열로 두지 않고 갈라 담은 결과이고, 그래야 "같은
-코어에서 깊이에 따른 군집 변화" 나 "지역별 차이" 를 질의할 수 있다.
+지점에서 위치에 따른 군집 변화" 나 "지역별 차이" 를 질의할 수 있다.
+
+**시료 층은 2026-08-06 에 생겼다** (devlog 063). 그전에는 `Slide` 하나가 시료와
+관찰을 겸해서 소속(`core`·`depth_cm`·`sample_kind`)이 **관찰 행마다** 앉아 있었고,
+그래서 **같은 시료의 관찰 둘이 서로 다른 소속을 가질 수 있었다** — 실제로 한
+관찰이 아무 데도 안 붙어 화면에서 통째로 사라졌다. 시료 행이 있으면 관찰은 그것을
+가리키기만 하므로 어긋날 수가 없다.
+
+```
+권역   한국 · 남극                       Site.area
+ └ 지역   BP(북평분지) · RS23            Site
+    └ 지점   BP09(노두) · GC03(시추코어)  Locality   ← 예전 이름이 Core 였다
+       └ 시료   0901 · 71cm              Sample
+          └ 관찰   (1) · (2)             Slide
+```
+
+**"코어" 라고 부르지 않는다** — 노두는 시추한 것이 아니다. 어느 쪽인지는
+`Locality.kind` 가 말하고 그것은 **지점의 성질**이다.
 
 관계 하나하나(방향·필수 여부·`on_delete`)는 [ERD 문서](20260804_db-erd.md)에 있다.
 
@@ -144,21 +163,55 @@ flowchart LR
   따로 돌아서, 파이프라인이 옛 코드일 때 `Site` 를 만들면 이 칸을 안 보내고
   `NOT NULL constraint failed` 로 죽는다 — 실제로 NAS 반입이 그렇게 막혔다.
 
-#### `Core` — 시추코어
+#### `Locality` — 지점 (시추코어 하나 또는 노두 하나)
 
-폴더명의 가운데 토막(`GC03`). `(site, code)` 가 unique.
+**예전 이름이 `Core` 였다** (2026-08-06 개편, devlog 063). 육상 노두가 들어오면서
+"코어" 가 안 맞았다 — 노두는 시추한 것이 아니다. `(site, code)` 가 unique.
 
-`code` · `kind`(gravity core 등, 사람이 채움) · `lat` · `lon` ·
-`water_depth_m` · `collected_at` · `note`.
+| 칸 | 형 | 비고 |
+|---|---|---|
+| `code` | char(32) | `GC03` · `BP09` |
+| `kind` | char(12) | **`core` \| `outcrop`.** 지점의 성질이다 — 한 지점이 둘일 수 없다 |
+| `collect_kind` | char(64) | 채취 방식(`gravity core`). **사람이 적는 자유 문자열** — 예전 `Core.kind` 가 이것이다 |
+| `lat` / `lon` / `water_depth_m` / `collected_at` / `note` | | 사람이 채운다 |
 
-#### `Slide` — 슬라이드글라스 = 폴더 하나
+**`kind` 와 `collect_kind` 를 가른 이유**: 앞은 화면이 갈래를 짓는 두 값이고
+(노두면 깊이 축을 안 그리고 `OC` 를 찍는다) 뒤는 사람이 아무 말이나 적는 칸이다.
+한 칸에 두면 화면이 문자열을 뜯어봐야 한다.
+
+**유형이 `Slide` 가 아니라 여기 있는 이유**: 예전에는 `Slide.sample_kind` 로
+관찰마다 따로 들고 있어서 **같은 지점의 관찰 둘이 다른 값을 가질 수 있었다.**
+
+#### `Sample` — 시료 (지점에서 한 자리를 떠 온 것)
+
+`(locality, code)` 가 unique.
+
+| 칸 | 형 | 비고 |
+|---|---|---|
+| `code` | char(64) | 폴더에서 온 시료 코드. `71cm` · `0901`. **화면에 그대로 쓴다** |
+| `depth_cm` | float null | **시추코어 지점에만.** 기준점에서의 깊이 |
+| `sample_no` | uint null | **노두 지점에만.** 단면상의 위치 |
+| `note` | text | |
+
+**위치 칸이 둘이고 지점 유형에 따라 하나만 쓴다.** 한 칸에 몰지 않는 이유는
+`depth_cm` 을 문자열로 안 바꾼 것과 같다 — "369cm" 와 "단면 9번" 을 같은 축에
+그리게 된다. 지점은 코어이거나 노두이거나 둘 중 하나라 정렬할 때는 어차피 한
+칸만 본다(`Sample.position` 이 고른다).
+
+`sample_no` 는 사람이 부여한 숫자 코드에서 **지점 번호가 되풀이되는 자리를 뗀
+것**이다 — `BP09` + `0901` → `1` (`naming.sample_no_from`).
+
+#### `Slide` — 관찰 = 폴더 하나 = 슬라이드글라스 하나
+
+**이 표는 관찰만 담는다.** 시료가 어느 지점의 무엇인가는 `Sample` 이 안다.
 
 | 칸 | 형 | 비고 |
 |---|---|---|
 | `name` / `slug` | char | `slug` unique — URL 에 쓴다 |
 | `image_dir` | char(500) | `DATA_ROOT` 기준 상대경로 |
-| `core` | FK null | 폴더 이름이 규칙을 안 따르면 안 붙는다 |
-| `depth_cm` | float | 코어 안에서 이 값으로 정렬 |
+| `sample` | FK null **SET_NULL** | 폴더 이름이 규칙을 안 따르면 안 붙는다. **지우면 예외가 안 나고 조용히 소속을 잃는다** |
+| `obs_no` / `obs_label` | uint / char(10) | 관찰 번호(폴더 접미사에서 자동) · 이름표(사람) |
+| `hide_in_list` / `exclude_from_totals` | bool | 사람이 고른다 |
 | `description` | text | 사람이 적는다 — `state_note` 와 갈라 둔다 |
 | `um_per_pixel_override` | float | 사람이 박는 배율 |
 | `corr_thresh` | float | 그룹핑 상관 문턱 |
@@ -166,6 +219,13 @@ flowchart LR
 | `state_note` | text | **자동 처리가 덮어쓴다** |
 | `discovered_at` / `copied_at` / `processed_at` | datetime | NAS 반입 이력 |
 | `created_at` / `updated_at` | datetime | 이 칸이 생기기 전 행은 `updated_at` 이 비어 있다 |
+
+**지름길 property 가 넷 있다** — `slide.locality` · `slide.site` ·
+`slide.depth_cm` · `slide.sample_kind`. 시료를 거쳐 가고, **소속이 없는 관찰에서
+터지지 않게 한 겹 막아 두었다.** 질의에는 `sample__locality__site` 로 조인한다.
+
+**이름을 `Observation` 으로 안 바꿨다** — 슬라이드글라스라는 물건이 실재하고 폴더
+하나가 그것 하나다. 관찰은 그 위에 얹힌 뜻이지 다른 물건이 아니다.
 
 **배율을 사람이 박을 수 있게 둔 이유:** ZEN 이 소프트웨어에서 선택된 대물렌즈를
 적어서 실제와 어긋난 적이 있다(260731 이 100x 로 기록돼 µm/px 가 2.5배 작았다).
@@ -457,29 +517,33 @@ flowchart TB
 
 ---
 
-## 6. 지금 담긴 것 (2026-08-05)
+## 6. 지금 담긴 것 (2026-08-06)
 
 | 테이블 | 행 |
 |---|---|
-| `Site` / `Core` / `Slide` | 5 / 5 / 10 |
-| `Viewpoint` / `Frame` / `Stack` | 452 / 1 318 / 317 |
-| **`Image`** | **1 952** (프레임 1 318 · 합성본 317 · 깊이맵 317) |
-| `Detection` / `Candidate` | 2 076 / 91 603 |
-| `ObjectReview` / `ViewpointReview` | 6 738 / 432 (완료 395) |
-| `Run` / `RunBatch` | 171 / 2 |
+| `Site` / **`Locality`** / **`Sample`** / `Slide` | 5 / 5 / 10 / 11 |
+| `Viewpoint` / `Frame` / `Stack` | 508 / 1,444 / 355 |
+| **`Image`** | **2,154** (프레임 1,444 · 합성본 355 · 깊이맵 355) |
+| `Detection` / `Candidate` | 2,132 / 97,299 |
+| `ObjectReview` / `ViewpointReview` | 7,472 / 508 (**완료 508 — 전수**) |
+| `Run` / `RunBatch` | 178 / 2 |
 | `ThresholdSet` / `ClassDef` / `Setting` | 2 / 6 / 2 |
 
-**교정 6 738건의 속내** — 삭제 5 452 · 되살림 640 · 분류 지정 1 255 · 메모 2.
-바인딩은 전부 `exact` 다.
+**지점 5곳 · 시료 10개** — 시추코어 4곳(RS23-GC03 ·
+WAP13-GC47 · AM22-GC10B · GC03-C1)과 **노두 1곳**(BP-BP09). 노두 시료 `0901` 에
+관찰이 둘이다(`BP09-0901` · `BP09-0901 (1)`).
 
-**실행 171건** — detect 108 · ingest 29 · stack 16 · group 11 · refilter 5 · export 2.
+**교정 7,472건의 속내** — 삭제 6,071 · 되살림 720 ·
+분류 지정 1,371 · 메모 2. 바인딩은 전부 `exact` 다.
+
+**실행 178건** — detect 110, ingest 30, stack 18, group 13, refilter 5, export 2.
 
 **묶음 둘** — `sam2-전수` · `yolo-3차` (`yolo-1차`·`2차` 는 046 에서 걷었다).
 
 **분류 여섯** — 원형 · 원형 파편 · 봉상 · 봉상 파편 · Eucampia · Chaetoceros
 (뒤의 둘이 `is_taxon`, 파편 둘이 `counted=False`).
 
-> 이 교정은 사람이 124 시야를 전수 검토해 만든 것이고 **다시 만들 수 없다.**
+> 이 교정은 사람이 **508 시야를 전수 검토**해 만든 것이고 **다시 만들 수 없다.**
 > `stacked/`·`out/` 은 다시 돌리면 나오고 원본 사진은 NAS 에 있지만, 이것만은
 > 아니다. 큰 작업 전에는 반드시 `backup_db.py` 로 사본을 뜬다.
 
