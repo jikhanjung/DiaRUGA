@@ -175,9 +175,11 @@
   <button type="button" class="navbtn" data-nav="pshot" title="이전 사진 (←)">&lsaquo;</button>
 
   <div class="strip" id="strip-{{ uid }}"
-       {# 어디로 갈지는 화면이 정한다. 검토 화면은 /d/, 검출 화면은 /engine/ 안에
-          머문다 — 여기에 주소를 박아 두었더니 /engine/ 에서 "다음 시야" 를 누를
-          때마다 검토 화면으로 튀어나갔다 #}
+       {% comment %}
+         어디로 갈지는 화면이 정한다. 검토 화면은 /d/, 검출 화면은 /engine/ 안에
+         머문다 — 여기에 주소를 박아 두었더니 /engine/ 에서 "다음 시야" 를 누를
+         때마다 검토 화면으로 튀어나갔다
+       {% endcomment %}
        {% comment %}
          주소에 이미 쿼리가 붙어 있을 수 있다 — 검토 화면에서 엔진을 갈아 낀
          상태가 `?batch=N` 이다. `?` 를 그냥 이어 붙이면 `?batch=5?shot=last`

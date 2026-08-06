@@ -87,14 +87,24 @@ class World:
 # --- 분류표 ----------------------------------------------------------------
 
 # `ClassDef` 는 여덟 칸을 전부 채워야 한다 — 하나라도 비면 **예외는 안 나고 그
-# 분류만 조용히 다르게 구른다**(038~040). 시험 자료도 예외가 아니다. 실제 표의
-# 뼈대를 따라 최소 넷만 둔다.
+# 분류만 조용히 다르게 구른다**(038~040).
+#
+# **운영의 분류표를 그대로 옮겨 적는다.** 아무 값이나 쓰면 안 되는 이유가 하나
+# 있다 — `badge` 와 `color` 는 `base.html` 의 CSS 와 짝이고(`.badge.<badge>`),
+# 그 짝이 맞는지가 `test_classdef_css.py` 의 시험 대상이다. 지어낸 배지를 쓰면
+# 그 시험이 **늘 실패하거나 늘 통과하거나** 둘 중 하나가 되어 아무것도 안 본다.
+#
+# **옮겨 적은 것이라 한계가 있다** — 운영에 분류가 늘어도 여기는 모른다.
+# 그쪽은 `check_db.py` 의 "4. 분류" 가 본다(운영 DB 를 직접 읽는다).
+# 여기가 잡는 것은 반대 방향이다: **`base.html` 의 CSS 가 지워지거나 바뀌는 것.**
 CLASSES = [
-    # key,          label,    short, badge, color,           hotkey, counted, taxon
-    ("round",       "원형",    "원",  "R",   "80,200,255",    "1",    True,    False),
-    ("round_frag",  "원형조각", "원조", "r",  "80,140,180",    "2",    False,   False),
-    ("rod",         "봉상",    "봉",  "B",   "255,180,80",    "3",    True,    False),
-    ("rod_frag",    "봉상조각", "봉조", "b",  "180,130,60",    "4",    False,   False),
+    # key,          label,        short, badge, color,          hotkey, counted, taxon
+    ("round",       "원형",        "원",   "rnd",  "60,220,120",   "q",   True,   False),
+    ("round_frag",  "원형조각",     "원조",  "rndf", "140,235,170",  "q",   False,  False),
+    ("rod",         "봉상",        "봉",   "rod",  "70,140,255",   "w",   True,   False),
+    ("rod_frag",    "봉상조각",     "봉조",  "rodf", "120,195,255",  "w",   False,  False),
+    ("eucampia",    "Eucampia",   "Euc",  "euc",  "255,110,190",  "e",   True,   True),
+    ("chaetoceros", "Chaetoceros", "Cha",  "cha",  "150,225,75",   "r",   True,   True),
 ]
 
 

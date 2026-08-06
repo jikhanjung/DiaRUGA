@@ -150,7 +150,7 @@ class ReadOnlyScreenTest(BrowserTestCase):
         없는 것보다 나쁘다** — 덮은 줄 알게 한다.
         """
         self.click_image(cx, cy)                    # 고른다
-        for key in ("1", "2", "Space"):             # 분류 · 오검출 삭제
+        for key in ("q", "w", "Space"):             # 분류 · 오검출 삭제
             self.page.keyboard.press(key)
             self.page.wait_for_timeout(120)
         self.page.wait_for_timeout(1200)            # 지연 저장 400 ms
