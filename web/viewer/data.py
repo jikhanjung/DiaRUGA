@@ -1493,7 +1493,45 @@ def dataset_detail(slug: str) -> dict | None:
     }
 
 
-def _frames(vp: Viewpoint, det: dict | None, frame_det_id) -> list[dict]:
+def _review_shot(d: dict, image_id: int) -> dict:
+    """캐러셀이 판을 바꿀 때 갈아 끼울 것 — **교정 상태까지 통째로**.
+
+    `/engine/` 쪽(`engine_viewpoint._shot`)은 그릴 것만 넘기면 됐다. 읽기 전용이라
+    사람이 표시할 것이 없어서다. 검토 화면은 **판마다 교정이 따로**이므로
+    지운 것·되살린 것·분류·코멘트가 함께 가야 하고, 저장이 어느 이미지로 갈지도
+    (`image`) 실려야 한다 (P09 1단계).
+
+    `image` 가 빠지면 화면은 프레임을 보여 주면서 저장은 대표 이미지로 간다 —
+    **예외도 경고도 없이** 사람이 보고 있던 것과 다른 자리에 판단이 쌓인다.
+    """
+    c = d["counts"]
+    parts = [f"{k} {c[k]}" for k in ("rod", "round", "rod_frag",
+                                     "round_frag", "eucampia") if c.get(k)]
+    return {
+        "image": image_id,
+        "candidates": d["candidates"],
+        "gone": d["removed_candidates"],
+        "rejected": d["rejected"],
+        "accepted": d["accepted_keys"],
+        "labels": d["labels"],
+        "notes": d["notes"],
+        "summary": (f"후보 {d['n_candidates']}개"
+                    + (f" ({', '.join(parts)})" if parts else "")
+                    + f" · 원시 {d['n_raw_masks']}"
+                    + (f" → 크기통과 {d['n_sized']}" if d["n_sized"] else "")
+                    + f" · 탈락 {len(d['rejected'])}개"),
+    }
+
+
+def _frames(vp: Viewpoint, by_path: dict) -> list[dict]:
+    """프레임 목록. `by_path` 는 이미지 경로 → `(이미지 pk, 검출 dict)`.
+
+    **프레임마다 자기 검출을 담는다** (P09 1단계). 예전에는 현재 검출이 프레임에
+    붙은 싱글턴 시야일 때만 한 장이 받았다 — 시야마다 검출이 하나라는 전제다.
+
+    **경로로 맞춘다.** `Image.path` 가 유일 열쇠라 `Frame.path` 와 그대로 만난다 —
+    프레임마다 `frame.image` 를 되짚으면 시야 하나에 질의가 프레임 수만큼 는다.
+    """
     frames = list(vp.frames.all())
     values = [f.sharpness for f in frames if f.sharpness is not None]
     top = max(values) if values else 0
@@ -1512,8 +1550,10 @@ def _frames(vp: Viewpoint, det: dict | None, frame_det_id) -> list[dict]:
             "is_sharpest": f.is_sharpest,
             "rel": f.path,
             "exists": (Path(settings.DATA_ROOT) / f.path).exists(),
-            # 싱글턴 시야는 합성본이 없어 프레임에 검출이 붙는다
-            "detection": det if f.id == frame_det_id else None,
+            # 그 프레임 이미지에 붙은 현재 검출. 없으면 None 이고, 캐러셀에서
+            # 그 판으로 가면 마스크가 비워진다(`swapDet`).
+            "detection": (by_path.get(f.path) or (None, None))[1],
+            "image_id": (by_path.get(f.path) or (None, None))[0],
         })
     return out
 
@@ -1573,9 +1613,60 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
     ahead = [i for i in todo if i > gid]
     todo_id = ahead[0] if ahead else (todo[0] if todo else None)
 
-    cur = next((d for d in vp.detections.all() if d.is_current), None)
-    det = detection_for_viewpoint(vp)
+    # **이미지마다 자기 검출을 만든다** (P09 1단계). 시야 하나에 현재 검출이
+    # 여럿일 수 있고(합성본 하나 + 프레임마다 하나) 캐러셀이 그 사이를 오간다.
+    # 교정은 `_with_reviews` 가 `(image, batch)` 로 걸러 얹는다 — 안 거르면
+    # 합성본에서 한 판단이 프레임 화면에 얹혀 보인다.
+    dets = current_detections(vp)
+    bmap = batch_ids_of(dets)
+    by_path = {d.image.path: (d.image_id, _with_reviews(vp, d, bmap[d.pk]))
+               for d in dets if d.image_id}
+
     st = getattr(vp, "stack", None)
+
+    frames = _frames(vp, by_path)
+    # 검출이 아직 없으면 빈 검출을 넘겨 같은 화면을 쓴다 (도구만 잠근다)
+    stack = (_stack_dict(st, (by_path.get(st.focused_path) or (None, None))[1]
+                             or preview_detection(vp))
+             if st else None)
+
+    # **캐러셀이 갈아 끼울 판들.** `/engine/` 과 같은 구조인데(`engine_viewpoint`)
+    # 교정 상태와 저장 대상(`image`)까지 실린다 — 그 화면은 읽기 전용이라 그릴
+    # 것만 넘기면 됐다.
+    shots, pool = {}, []
+    if stack and st and st.focused_path in by_path:
+        stack["detkey"] = STACK_KEY
+        iid, sd = by_path[st.focused_path]
+        shots[STACK_KEY] = _review_shot(sd, iid)
+        pool.append({"key": STACK_KEY, "rel": st.focused_path, "det": sd,
+                     "image": iid, "name": "합성본"})
+    for f in frames:
+        if f["detection"] and f["image_id"]:
+            shots[f["name"]] = _review_shot(f["detection"], f["image_id"])
+            pool.append({"key": f["name"], "rel": f["rel"],
+                         "det": f["detection"], "image": f["image_id"],
+                         "name": f["name"]})
+
+    # **처음 열리는 판.** 집계가 세는 대표(`representative_detection`)와 **다른
+    # 일이다** — 저쪽은 밀도를 위해 늘 합성본을 골라야 하고, 이쪽은 사람에게
+    # 무엇을 먼저 보일지를 정한다.
+    #
+    # 합성본에 개체가 있으면 합성본이다. 아니면 **개체가 가장 많은 판**으로
+    # 물러난다. `engine_viewpoint` 가 실측으로 정한 규칙 그대로다 — "합성본이
+    # 있으면" 으로 하면 합성본만 비고 프레임에는 개체가 있는 시야에서 **빈 판이
+    # 먼저 열려 검출이 아무것도 없는 줄 알게 된다.** YOLO 는 합성본 검출이
+    # 314개로 시야 355개보다 적어 그 상태가 실제로 41개 난다.
+    stack_p = next((p for p in pool if p["key"] == STACK_KEY
+                    and p["det"]["candidates"]), None)
+    best = stack_p or max(pool, key=lambda p: len(p["det"]["candidates"]),
+                          default=None)
+    # 검출이 아직 없는 시야 — 합성만 끝난 상태다. 빈 검출을 넘겨 **같은 화면을
+    # 쓴다**(사진은 보이고 도구만 잠긴다). 저장 대상은 없다.
+    if best is None and stack:
+        best = {"key": STACK_KEY, "rel": st.focused_path,
+                "det": stack["detection"], "image": None, "name": "합성본"}
+    det = best["det"] if best else None
+
     return {
         "slug": slug,
         "label": slide.name,
@@ -1584,14 +1675,17 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
         "tag": vp.tag,
         "span_sec": round(vp.span_sec or 0, 1),
         "sharpest": vp.sharpest_frame.name if vp.sharpest_frame else None,
-        "frames": _frames(vp, det,
-                          (cur.image.frame_id
-                           if cur and cur.image and cur.image.kind == "frame" else None)),
-        # 검출이 아직 없으면 빈 검출을 넘겨 같은 화면을 쓴다 (도구만 잠근다)
-        "stack": (_stack_dict(st, (det if cur and cur.image
-                                          and cur.image.kind == "stack"
-                                   else preview_detection(vp)))
-                  if st else None),
+        "frames": frames,
+        "stack": stack,
+        # 캐러셀이 판을 바꿀 때 갈아 끼울 자료. 판이 하나뿐이면 안 넘긴다 —
+        # `_detection.html` 의 `swapDet` 이 자료가 없으면 곧장 빠져나가므로
+        # 지금까지와 똑같이 돈다.
+        "shot_dets": shots if len(shots) > 1 else None,
+        # 처음 열리는 판. 캐러셀이 움직이면 JS 가 `image` 까지 따라 바꾼다.
+        "base_rel": best["rel"] if best else None,
+        "base_det": det,
+        "base_name": best["name"] if best else None,
+        "base_image": best["image"] if best else None,
         "prev_id": ids[pos - 1] if pos > 0 else None,
         "next_id": ids[pos + 1] if pos < len(ids) - 1 else None,
         "prev_url": (reverse("group", args=[slug, ids[pos - 1]])

@@ -120,12 +120,23 @@
     <div class="note">이 시야에는 고른 묶음의 검출이 없습니다.
       <a href="{% url 'group' slug id %}">현재 검출로 돌아가기</a></div>
   {% endif %}
-{% elif stack and stack.detection %}
-  {% include "viewer/_detection.html" with det=stack.detection base=stack.focused_rel uid="stack" title="검출결과 검토" shot="합성본" %}
-{% elif frames %}
-  {% for f in frames %}{% if f.detection %}
-    {% include "viewer/_detection.html" with det=f.detection base=f.rel uid=forloop.counter title="검출결과 검토" shot=f.name %}
-  {% endif %}{% endfor %}
+{% elif base_det %}
+  {% comment %}
+    **판 하나를 그리고 나머지는 캐러셀이 갈아 끼운다** (P09 1단계). 예전에는
+    합성본이면 한 장, 싱글턴이면 프레임을 훑어 그렸다 — 시야마다 검출이
+    하나라는 전제다. 프레임별 검출이 올라오면 판이 4~6개가 되는데, 세로로
+    늘어서면 **같은 자리에서 비교할 수가 없다.** "이 규조각이 어느 초점면에서
+    잡혔나" 는 자리가 안 움직여야 보인다.
+
+    `/engine/` 이 같은 이유로 이미 그렇게 한다(`engine_viewpoint`). 다른 점은
+    **저장이 따라가야 한다는 것** — `shot_dets` 에 교정 상태와 `image` 가 함께
+    실리고, 캐러셀이 판을 바꾸면 `swapDet` 이 저장 대상까지 옮긴다.
+    자료가 없으면(판이 하나) `swapDet` 이 곧장 빠져나가 지금까지와 똑같이 돈다.
+  {% endcomment %}
+  {% if shot_dets %}
+    <script type="application/json" id="shotdet-stack">{{ shot_dets|json_dumps }}</script>
+  {% endif %}
+  {% include "viewer/_detection.html" with det=base_det base=base_rel uid="stack" title="검출결과 검토" shot=base_name image_id=base_image %}
 {% endif %}
 
 {% if not readonly and not stack and not frames %}
