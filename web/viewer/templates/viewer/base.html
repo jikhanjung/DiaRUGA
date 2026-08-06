@@ -996,6 +996,28 @@
   .detview svg.masks polygon.eucampia   { fill: rgba(255,110,190,.45); }
   .detview svg.masks polygon.chaetoceros { fill: rgba(150,225,75,.45); }
   .detview svg.masks polygon.sel    { fill: rgba(255,210,63,.55); }
+  /* **그리는 중의 폴리곤** (P09 3단계). 아직 개체가 아니므로 분류 색을 안 쓴다 —
+     색은 "무엇인가" 를 말하는 자리다(039). 흰 선과 점으로만 그린다.
+
+     `vector-effect: non-scaling-stroke` 와 고정 반지름이라 **확대해도 손맛이
+     같다** — 확대하면 점이 커져 첫 점을 못 누르는 일이 없다. */
+  .detview svg.masks g.drawing polyline {
+    fill: none; stroke: rgba(255,255,255,.95); stroke-width: 1.6px;
+    stroke-dasharray: 6 4; vector-effect: non-scaling-stroke;
+  }
+  .detview svg.masks g.drawing circle {
+    fill: rgba(255,255,255,.9); stroke: rgba(0,0,0,.55);
+    stroke-width: 1px; vector-effect: non-scaling-stroke;
+  }
+  /* 첫 점 — 여기를 다시 누르면 닫힌다. 크기와 색으로 그것을 말한다. */
+  .detview svg.masks g.drawing circle.first {
+    fill: rgba(90,200,250,.95); stroke: rgba(255,255,255,.9);
+  }
+  /* 그리는 중에는 커서가 달라야 한다 — 클릭이 선택이 아니라 점 찍기다.
+     **클래스가 `.detview` 자신에 붙는다** (`#dv-<uid>`) — `.detview .view` 로
+     적으면 그런 요소가 없어 아무 일도 안 일어난다. */
+  .detview.drawing, .detview.drawing .canvas, .detview.drawing img { cursor: crosshair; }
+  .detview .tools button.on { border-color: var(--accent); color: var(--accent); }
   /* fill 을 끄면 마스크를 테두리만 그린다. 채운 색을 그대로 선으로 옮기되
      불투명하게 올린다 — 얇은 선은 반투명하면 잘 안 보인다.
      두께는 non-scaling-stroke 라 확대해도 화면에서 같게 보인다. */

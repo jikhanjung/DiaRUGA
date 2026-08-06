@@ -116,6 +116,7 @@
     <button type="button" data-act="none">해제</button>
     <button type="button" data-act="reset">배율 초기화</button>
     <button type="button" data-act="ghosts">삭제분 숨기기</button>
+    <button type="button" data-act="draw">✎ 마스크 그리기</button>
     <button type="button" data-act="undo">↶ 실행취소</button>
     <button type="button" class="danger" data-act="clear">검토 전체 초기화</button>
   </div>
@@ -340,6 +341,12 @@
     var b = c.bbox_xywh;
     return b.map(function (v) { return Math.round(v); }).join('_');
   }
+
+  // **사람이 그린 개체인가** (P09 3단계). 분류·코멘트가 가는 길이 다르다 —
+  // `labels`·`notes` 지도는 엔진 개체의 것이고, 그린 개체는 `drawn` 이 통째로
+  // 나른다. 지도에 실으면 그 키가 되돌아오는데 `batch=NULL` 이라 서버의 엔진
+  // 쪽 `known` 에 없다 → **한 번 그리면 그 시야를 더 저장할 수 없게 된다.**
+  function isManual(c) { return !!(c && c.source === 'manual'); }
 
   // 서버에 저장된 교정 상태를 그대로 이어받는다.
   var goneList = JSON.parse(document.getElementById('gone-' + uid).textContent || '[]');
@@ -1076,6 +1083,7 @@
         c.cls = it.cls;
         c.cls_user = it.user;
         if (it.auto === undefined) delete c.cls_auto; else c.cls_auto = it.auto;
+        if (it.manual) return;             // 그린 개체는 drawn 이 나른다
         if (it.user) labels[it.key] = it.cls; else delete labels[it.key];
       });
     } else if (last.type === 'gnote') {
@@ -1084,8 +1092,13 @@
     } else if (last.type === 'note') {
       var cn = cands[last.i];
       if (cn) {
-        if (last.text) { notes[last.key] = last.text; cn.note = last.text; }
-        else { delete notes[last.key]; delete cn.note; }
+        if (last.text) {
+          if (!isManual(cn)) notes[last.key] = last.text;
+          cn.note = last.text;
+        } else {
+          if (!isManual(cn)) delete notes[last.key];
+          delete cn.note;
+        }
       }
       renderNotes();
     } else if (last.type === 'accept') {
@@ -1186,6 +1199,16 @@
         // 여기도 따라 바뀐다. 비어 있으면 안 보내고 서버가 대표 이미지로 받는다 —
         // 판이 하나뿐인 화면과 배포 중에 열려 있던 옛 탭이 그 갈래로 간다.
         image: curImage === '' ? null : Number(curImage),
+        // **사람이 그린 개체는 통째로 보낸다** (P09 3단계). `cands` 안에 있는
+        // 것이 곧 화면의 전부이므로 거기서 뽑는다 — 따로 목록을 들면 둘이
+        // 어긋나고, 어긋난 쪽이 저장된다.
+        //
+        // **판마다 다르다.** 캐러셀이 판을 바꾸면 `cands` 가 그 판의 것으로
+        // 갈리므로 이 목록도 함께 간다.
+        drawn: cands.filter(isManual).map(function (c) {
+          return { key: keyOf(c), polygon: c.polygon,
+                   cls: c.cls || '', note: c.note || '' };
+        }),
         done: reviewDone,
         removed: Array.from(removed),
         accepted: Array.from(accepted),
@@ -1233,15 +1256,15 @@
       var c = cands[i];
       if (!c) return;
       var key = keyOf(c);
-      touched.push({ i: i, key: key, cls: c.cls,
+      touched.push({ i: i, key: key, cls: c.cls, manual: isManual(c),
                      user: !!c.cls_user, auto: c.cls_auto });
       if (cls) {
         if (c.cls_auto === undefined) c.cls_auto = c.cls || null;
-        labels[key] = cls;
+        if (!isManual(c)) labels[key] = cls;
         c.cls = cls;
         c.cls_user = true;
       } else {
-        delete labels[key];
+        if (!isManual(c)) delete labels[key];
         if (c.cls_auto !== undefined) c.cls = c.cls_auto;
         c.cls_user = false;
       }
@@ -1282,6 +1305,23 @@
     if (ask) return;                    // 확인 창이 떠 있으면 그쪽이 먼저다
     var t = document.activeElement;
     if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+
+    // **그리는 중에는 그리기가 먼저다** (P09 3단계). 분류 단축키가 여기 있는데,
+    // 그리다가 `q` 를 누르면 아직 만들지도 않은 개체에 분류를 지정하려 든다.
+    if (drawing) {
+      if (e.key === 'Enter') { e.preventDefault(); drawFinish(); }
+      else if (e.key === 'Escape') { e.preventDefault(); drawCancel(); }
+      else if (e.key === 'Backspace') {
+        // **그리는 중의 무르기는 `history` 와 따로다.** 그리다 만 것과 저장된
+        // 교정은 다른 층이라, 섞으면 Ctrl+Z 가 어느 쪽을 되돌리는지 모호해진다.
+        e.preventDefault();
+        drawing.pts.pop();
+        drawRender(); drawStatus();
+      }
+      return;
+    }
+    if (e.key === 'd') { e.preventDefault(); drawStart(); return; }
+
     var ring = HOTKEYS[(e.key || '').toLowerCase()];
     if (!ring || !ring.length) return;
 
@@ -1405,10 +1445,12 @@
     var c = cands[i];
     if (!c) return;
     var key = keyOf(c);
-    history.push({ type: 'note', i: i, key: key, text: notes[key] });
+    history.push({ type: 'note', i: i, key: key,
+                   text: isManual(c) ? c.note : notes[key] });
     text = (text || '').trim();
-    if (text) { notes[key] = text; c.note = text; }
-    else { delete notes[key]; delete c.note; }
+    // 그린 개체의 코멘트는 개체가 들고 `drawn` 이 나른다 (isManual 주석)
+    if (text) { if (!isManual(c)) notes[key] = text; c.note = text; }
+    else { if (!isManual(c)) delete notes[key]; delete c.note; }
     renderNotes();
     redraw();
     save();
@@ -1903,6 +1945,143 @@
     if (e.key === 'Escape') { closeMenu(); closeSpread(); closeAsk(); closeNoteEdit(); }
   });
 
+  // --- 마스크 그리기 (P09 3단계) --------------------------------------------
+  //
+  // **점 찍기다.** 브러시는 버렸다 — 지우개·굵기 같은 상태가 붙고 실행취소
+  // 단위가 모호해진다. 규조각 윤곽은 매끈해서 점 10~20개면 충분하고, 실측으로
+  // 엔진이 내는 폴리곤도 중앙 13점이다(P09 5.11).
+  //
+  // **그리는 중의 실행취소는 `history` 와 따로다.** 그리다 만 것과 저장된
+  // 교정은 다른 층이라, 섞으면 Ctrl+Z 한 번이 어느 쪽을 되돌리는지 모호해진다.
+  // 여기서는 Backspace 가 점 하나를 무른다.
+  var drawing = null;
+  var drawG = null;
+  // 첫 점을 다시 눌러 닫는다. 화면 화소 기준이라 확대해도 손맛이 같다.
+  var CLOSE_PX = 12;
+
+  function drawKey() {
+    // **불투명한 키** — bbox 를 넣으면 "키가 곧 기하" 라는 죽은 규약이 이어져
+    // 4단계에서 경계를 고쳤을 때 파싱한 쪽이 틀린 값을 얻는다 (P09 5.4).
+    var a = new Uint8Array(4);
+    if (window.crypto && window.crypto.getRandomValues) crypto.getRandomValues(a);
+    else for (var i = 0; i < 4; i++) a[i] = Math.floor(Math.random() * 256);
+    return 'm' + Array.prototype.map.call(a, function (v) {
+      return ('0' + v.toString(16)).slice(-2);
+    }).join('');
+  }
+
+  function drawLayer() {
+    if (!drawG) {
+      drawG = document.createElementNS(SVGNS, 'g');
+      drawG.setAttribute('class', 'drawing');
+      svg.appendChild(drawG);
+    }
+    // **늘 맨 위에 둔다.** `build()` 가 마스크를 다시 붙이면 문서 순서상 뒤로
+    // 가는데, SVG 는 나중 것이 위에 그려져 그리던 점이 마스크에 묻힌다.
+    svg.appendChild(drawG);
+    return drawG;
+  }
+
+  function drawRender() {
+    var g = drawLayer();
+    g.textContent = '';
+    if (!drawing) return;
+    var pts = drawing.pts;
+    if (pts.length > 1) {
+      var line = document.createElementNS(SVGNS, 'polyline');
+      line.setAttribute('points', pts.map(function (p) {
+        return p[0] + ',' + p[1];
+      }).join(' '));
+      g.appendChild(line);
+    }
+    pts.forEach(function (p, i) {
+      var c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', p[0]);
+      c.setAttribute('cy', p[1]);
+      // 첫 점은 크게 — 여기를 다시 누르면 닫힌다는 것이 보여야 한다
+      c.setAttribute('r', i === 0 ? 5 : 3.2);
+      if (i === 0) c.setAttribute('class', 'first');
+      g.appendChild(c);
+    });
+  }
+
+  function drawStatus() {
+    if (!saveState) return;
+    if (!drawing) return;
+    var n = drawing.pts.length;
+    saveState.textContent = n < 3
+      ? '마스크 그리는 중 — 점 ' + n + '개 (최소 3개) · Esc 취소'
+      : '마스크 그리는 중 — 점 ' + n + '개 · 첫 점을 다시 누르거나 Enter 로 닫는다'
+        + ' · Backspace 무르기 · Esc 취소';
+  }
+
+  function drawStart() {
+    if (readOnly) return;
+    drawing = { pts: [] };
+    view.classList.add('drawing');
+    sel.clear();
+    closeMenu(); closeSpread(); closeNoteEdit();
+    drawRender(); redraw(); drawStatus();
+  }
+
+  function drawCancel() {
+    if (!drawing) return;
+    drawing = null;
+    view.classList.remove('drawing');
+    drawRender(); redraw();
+  }
+
+  function drawFinish() {
+    if (!drawing) return;
+    var pts = drawing.pts;
+    if (pts.length < 3) { drawCancel(); return; }
+    var poly = [];
+    pts.forEach(function (p) { poly.push(p[0], p[1]); });
+    var xs = pts.map(function (p) { return p[0]; });
+    var ys = pts.map(function (p) { return p[1]; });
+    var x0 = Math.floor(Math.min.apply(null, xs));
+    var y0 = Math.floor(Math.min.apply(null, ys));
+    var x1 = Math.ceil(Math.max.apply(null, xs));
+    var y1 = Math.ceil(Math.max.apply(null, ys));
+    // **서버가 다시 잰다.** 여기 값은 그리는 데만 쓴다 — 클라이언트가 보낸
+    // 면적을 믿으면 브라우저마다 다른 숫자가 DB 에 앉는다 (P09 5.8).
+    var c = {
+      key: drawKey(),
+      source: 'manual',
+      orphan: true,
+      polygon: poly,
+      bbox_xywh: [x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0)],
+      center_xy: [x0 + ((x1 - x0) >> 1), y0 + ((y1 - y0) >> 1)],
+      cls: null
+    };
+    drawing = null;
+    view.classList.remove('drawing');
+    cands.push(c);
+    drawRender();
+    build();
+    // 방금 그린 것을 골라 둔다 — 분류를 바로 지정하는 것이 다음 동작이다.
+    sel.clear(); sel.add(cands.length - 1);
+    redraw();
+    save();
+  }
+
+  function drawPoint(p) {
+    var pts = drawing.pts;
+    if (pts.length >= 3) {
+      // 첫 점 근처면 닫는다. **화면 화소로 잰다** — 이미지 좌표로 재면 확대
+      // 배율에 따라 손맛이 달라진다(확대할수록 닫기가 어려워진다).
+      //
+      // 배율은 svg 의 실제 화면 폭에서 얻는다 — `transform` 이 이미 반영되어
+      // 있어서 `k` 를 따로 곱하면 두 번 세게 된다.
+      var box = svg.getBoundingClientRect();
+      var scale = W ? box.width / W : 1;
+      var d = Math.hypot(p.x - pts[0][0], p.y - pts[0][1]) * scale;
+      if (d <= CLOSE_PX) { drawFinish(); return; }
+    }
+    pts.push([Math.round(p.x), Math.round(p.y)]);
+    drawRender(); drawStatus();
+  }
+
   // --- 마우스: 선택 / 범위선택 / 이동 / 삭제 -------------------------------
   var down = null, mode = null;
 
@@ -1949,6 +2128,13 @@
     band.style.display = 'none';
 
     if (m === 'pan') return;
+
+    // **그리는 중에는 클릭이 점 찍기다** (P09 3단계). 선택·범위선택으로
+    // 흘려보내면 그리다가 개체가 골라지고, 그 상태에서 분류 단축키가 먹는다.
+    if (drawing) {
+      if (m === null && d.btn === 0) drawPoint(toImage(e));
+      return;
+    }
 
     if (m === 'band') {
       var p = toImage(e);
@@ -2051,6 +2237,11 @@
     else if (act === 'none') { sel.clear(); redraw(); }
     else if (act === 'reset') { k = 1; tx = 0; ty = 0; applyTransform(); build(); }
     else if (act === 'undo') { undo(); }
+    else if (act === 'draw') {
+      // 누르면 켜고 다시 누르면 끈다 — 켜 놓고 잊는 것이 가장 흔한 실수다.
+      if (drawing) drawCancel(); else drawStart();
+      e.target.classList.toggle('on', !!drawing);
+    }
     else if (act === 'ghosts') {
       showGone = !showGone;
       e.target.textContent = showGone ? '삭제분 숨기기' : '삭제분 보기';
