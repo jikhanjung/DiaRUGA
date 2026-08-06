@@ -227,3 +227,63 @@ class SummaryCountsOneImageTest(DiaRUGATestCase):
         self.assertEqual(s["n_detected"], 3, "옛 묶음의 교정이 행을 불렸다")
         self.assertEqual(s["n_labeled"], 0,
                          "옛 묶음의 분류가 이번 회차 집계에 섞였다")
+
+
+class OrphanReviewSurvivesTest(DiaRUGATestCase):
+    """**후보가 없는 교정은 화면에 안 나오고, 그래서 다음 저장에 지워진다.**
+
+    `_apply_review` 가 `det.candidates.all()` 만 도므로 고아 교정(`orphan`)과
+    사람이 그린 개체는 **그려지지 않는다.** 화면은 자기가 아는 키만 보내고,
+    `save_review` 의 마지막 줄은 payload 에 없는 키를 지운다 —
+    **재생성 불가한 판단이 사람이 아무것도 안 해도 사라진다.**
+
+    017·027·053 과 같은 자리이고, 다른 점은 **엉뚱한 화면이 아니라 제 화면에서
+    난다**는 것이다. 지금은 고아가 0이라 안 밟히지만, 재검출 한 번이면 생긴다
+    (실측: 재검출에서 exact 26 · iou 40 · 고아 1).
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=3)
+
+    def setUp(self):
+        self.c = Client()
+
+    def orphan(self):
+        """현재 검출에 대응 후보가 없는 교정 — 사람의 판단만 남은 것."""
+        det = self.w.detection()
+        return ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=det.image, batch=det.batch,
+            mask_key="900_900_50_50", bind_method="orphan", label="eucampia",
+            note="엔진이 놓친 것", geom={"bbox": [900, 900, 50, 50],
+                                      "polygon": [900, 900, 950, 900,
+                                                  950, 950, 900, 950]})
+
+    def test_고아_교정이_화면에_나온다(self):
+        o = self.orphan()
+        d = data.detection_for_viewpoint(self.w.vp)
+        keys = [data.cand_key(c) for c in d["candidates"]]
+        self.assertIn(o.mask_key, keys,
+                      "고아 교정이 화면에 안 나온다 — 다음 저장에 지워진다")
+
+    def test_화면이_보낸_그대로_저장해도_고아가_남는다(self):
+        """**사람이 아무것도 안 해도 사라지는가.**
+
+        화면이 그리는 것을 그대로 되돌려 보낸다 — 검토 화면이 여는 즉시 하는
+        일이고, "검토 완료" 만 눌러도 같은 payload 가 나간다.
+        """
+        o = self.orphan()
+        d = data.detection_for_viewpoint(self.w.vp)
+        keys = [data.cand_key(c) for c in d["candidates"]]
+        r = self.c.post(
+            reverse("save_review"),
+            data=json.dumps({"stem": self.w.stem(), "slug": self.w.slug,
+                             "gid": self.w.vp.idx, "done": True,
+                             "removed": [], "accepted": [],
+                             "labels": {k: "rod" for k in keys if k == o.mask_key},
+                             "notes": {}}),
+            content_type="application/json")
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.assertTrue(ObjectReview.objects.filter(pk=o.pk).exists(),
+                        "검토 완료를 누른 것만으로 고아 교정이 사라졌다")

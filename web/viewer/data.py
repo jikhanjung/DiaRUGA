@@ -138,8 +138,23 @@ CAND_KEY = re.compile(r"^-?\d+_-?\d+_-?\d+_-?\d+$")
 
 
 def cand_key(c) -> str:
-    """마스크의 안정적인 식별자. dict 와 Candidate 둘 다 받는다."""
-    b = (c.get("bbox_xywh") or [0, 0, 0, 0]) if isinstance(c, dict) else c.bbox_xywh
+    """마스크의 안정적인 식별자. dict 와 Candidate 둘 다 받는다.
+
+    **dict 에 `key` 가 있으면 그것이 먼저다** (P09 2단계). 지금까지는 키가 곧
+    bbox 문자열이라 기하에서 다시 만들어도 같았다. 그런데 **후보 없이 교정만
+    남은 개체**는 그 등식이 깨질 수 있다 — 사람이 기하를 고치면(4단계) bbox 는
+    바뀌고 키는 그대로여야 한다. 기하에서 키를 만들면 그 순간 **다른 개체가
+    되어 옛 행이 지워진다.**
+
+    화면의 `keyOf()` 도 같은 규칙이다. 둘이 갈라지면 화면이 보내는 키와 서버가
+    아는 키가 어긋나고, `/review` 는 모르는 키를 지운다.
+    """
+    if isinstance(c, dict):
+        if c.get("key"):
+            return c["key"]
+        b = c.get("bbox_xywh") or [0, 0, 0, 0]
+    else:
+        b = c.bbox_xywh
     return "_".join(str(int(v)) for v in b)
 
 
@@ -184,6 +199,64 @@ def _cand_dict(c: Candidate) -> dict:
         d["id"] = c.raw_id
     if c.reject:
         d["reject"] = c.reject
+    return d
+
+
+def _key_bbox(key: str):
+    """`mask_key` 에서 bbox 를 되살린다. 키가 `x_y_w_h` 일 때만 된다.
+
+    `rebind.key_to_bbox` 와 같은 규칙이다. 저쪽을 임포트하지 않는 것은 뷰어가
+    저장소 뿌리의 스크립트에 매이지 않게 하려는 것이고(컨테이너 안에서 코드가
+    `/app` 이다), 규칙이 **되살리기 전용의 보조**라 갈라져도 값이 안 틀린다 —
+    맞으면 쓰고 아니면 `geom` 을 본다.
+    """
+    try:
+        x, y, w, h = (int(v) for v in key.split("_"))
+    except ValueError:
+        return None
+    return [x, y, w, h]
+
+
+def _orphan_dict(key: str, o) -> dict | None:
+    """**후보 없이 교정만 남은 개체**를 화면이 그릴 수 있는 모양으로 (P09 2단계).
+
+    두 가지가 여기로 온다.
+
+    - **고아**(`bind_method="orphan"`) — 재검출에서 대응 후보를 못 찾은 것.
+      사람의 판단은 살아 있는데 엔진이 그 자리에 아무것도 안 냈다
+    - **사람이 그린 개체**(`source="manual"`) — 3단계부터 생긴다
+
+    **안 그리면 다음 저장에 지워진다.** 화면은 자기가 아는 키만 보내고
+    `save_review` 의 마지막 줄은 payload 에 없는 키를 지운다 — 사람이 아무것도
+    안 하고 "검토 완료" 만 눌러도 사라진다. 시험이 그것을 재현해 두었다.
+
+    기하가 없으면 `None` 이다. 그릴 것이 없으면 화면에 낼 수 없고, 그 상태는
+    `check_db.py` 의 "교정이 기하를 갖고 있다" 가 따로 센다.
+    """
+    geom = o.geom or {}
+    bbox = geom.get("bbox") or _key_bbox(key)
+    if not bbox or len(bbox) != 4:
+        return None
+    x, y, w, h = (int(v) for v in bbox)
+    poly = geom.get("polygon") or []
+    d = {
+        # **키를 실어 보낸다.** 기하에서 다시 만들면 안 된다 — 4단계에서 사람이
+        # 경계를 고치면 bbox 가 바뀌는데 키는 그대로여야 한다 (`cand_key`).
+        "key": key,
+        "bbox_xywh": [x, y, w, h],
+        "center_xy": [x + w // 2, y + h // 2],
+        "area_px": geom.get("area_px") or 0,
+        "shape_ok": False,
+        "polygon": list(poly),
+        # **엔진이 낸 것이 아니라는 표시.** 화면이 이것으로 갈라 그린다 —
+        # 지표가 비어 있는 이유이기도 하다(`Candidate` 가 없어 잰 적이 없다).
+        "orphan": True,
+        "source": o.source,
+    }
+    for f in NUM_FIELDS:
+        d.setdefault(f, None)
+    if o.label:
+        d["cls"] = o.label
     return d
 
 
@@ -252,6 +325,22 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
             kept.append(d)
         else:
             rejected.append(d)
+
+    # **후보가 없는 교정도 그린다** (P09 2단계). 재검출이 낳은 고아와, 3단계부터
+    # 사람이 그린 개체가 여기로 온다.
+    #
+    # **안 그리면 다음 저장에 지워진다** — 화면은 자기가 아는 키만 보내고
+    # `save_review` 는 payload 에 없는 키를 지운다. 사람이 아무것도 안 하고
+    # "검토 완료" 만 눌러도 사라진다. 시험이 그 갈래를 재현해 둔다
+    # (`OrphanReviewSurvivesTest`).
+    seen = {c.mask_key for c in det.candidates.all()}
+    for key, o in reviews.items():
+        if key in seen:
+            continue
+        d = _orphan_dict(key, o)
+        if d is None:
+            continue
+        (gone if o.removed else kept).append(d)
 
     # 사람이 지정한 분류·메모를 얹는다. 원래 값은 cls_auto 로 남긴다.
     for d in kept + gone:

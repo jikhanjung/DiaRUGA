@@ -1156,6 +1156,23 @@
   /* 막대는 아래에 붙인다 — 막대가 있는 썸네일끼리도 높이가 맞는다. */
   .strip .shot .bar { height: 3px; margin: auto 7px 7px; }
   .detview .box.manual { border-style: dashed; border-color: #ffb454; }
+  /* **엔진이 안 낸 개체** (P09 2단계) — 재검출에서 임자를 잃은 고아, 그리고
+     3단계부터는 사람이 그린 것. 분류 색은 그대로 두고 **테두리로만** 가른다:
+     색은 "무엇인가" 를 말하는 자리라(039) 빌려 쓰면 규조각 종류를 잘못 읽는다.
+
+     **`.detview` 를 붙인다** — `.box` 만 적으면 `.detview .box.<분류>` 가
+     특이도에서 이겨 아무 일도 안 일어난다(051 에서 그렇게 도구를 감춘 줄
+     알았다). 굵기를 올려 분류 테두리보다 먼저 눈에 들어오게 한다. */
+  .detview .box.orphan {
+    border-style: dashed; border-width: 2px;
+    box-shadow: 0 0 0 calc(1px * var(--inv, 1)) rgba(255,255,255,.35);
+  }
+  .detview .box.orphan::before {
+    content: "?"; position: absolute;
+    left: calc(2px * var(--inv, 1)); top: calc(-1px * var(--inv, 1));
+    font: 700 calc(10px * var(--inv, 1))/1 ui-sans-serif, system-ui;
+    color: rgba(255,255,255,.9);
+  }
   /* 오검출로 지운 것 — 흔적만 남겨 클릭 한 번으로 되살릴 수 있게 한다.
      채우면 아래 이미지가 가려져 지운 게 맞는지 확인할 수 없으므로 테두리만 그린다. */
   .detview .box.gone {
@@ -1293,8 +1310,10 @@
   .detview.hide-box .box.round_frag,
   .detview.hide-box .box.eucampia,
   .detview.hide-box .box.chaetoceros,
+  .detview.hide-box .box.orphan,
   .detview.hide-box .box.gone { border-color: transparent; background: none; }
-  .detview.hide-box .box.gone::after { display: none; }
+  .detview.hide-box .box.gone::after,
+  .detview.hide-box .box.orphan::before { display: none; box-shadow: none; }
   .detview.hide-box .box.hot { border-color: rgba(255,255,255,.8); }
   .detview.hide-box .box.sel { border-color: #ffd23f; background: rgba(255,210,63,.18); }
   .detview.hide-mask svg.masks polygon:not(.reject) { display: none; }

@@ -327,7 +327,19 @@
       apply(true);
     });
   })();
-  function keyOf(c) { var b = c.bbox_xywh; return b.map(function (v) { return Math.round(v); }).join('_'); }
+  // **서버가 키를 실어 보냈으면 그것이 먼저다** (P09 2단계). 지금까지는 키가 곧
+  // bbox 문자열이라 기하에서 다시 만들어도 같았는데, **후보 없이 교정만 남은
+  // 개체**는 그 등식이 깨질 수 있다 — 사람이 경계를 고치면(4단계) bbox 는
+  // 바뀌고 키는 그대로여야 한다. 기하에서 만들면 그 순간 **다른 개체가 되어**
+  // 저장이 옛 행을 지우고 새 행을 만든다.
+  //
+  // 서버의 `data.cand_key()` 와 같은 규칙이다. 갈라지면 화면이 보내는 키와
+  // 서버가 아는 키가 어긋나고, `/review` 는 모르는 키를 지운다.
+  function keyOf(c) {
+    if (c.key) return c.key;
+    var b = c.bbox_xywh;
+    return b.map(function (v) { return Math.round(v); }).join('_');
+  }
 
   // 서버에 저장된 교정 상태를 그대로 이어받는다.
   var goneList = JSON.parse(document.getElementById('gone-' + uid).textContent || '[]');
@@ -370,6 +382,14 @@
         (CLS_FULL[c.cls_auto] || '미분류') + '</div>' : '') +
       (c.note ? '<div style="margin:3px 0;white-space:pre-wrap">📝 ' + c.note + '</div>' : '') +
       (c.reject ? '<div class="dim">탈락사유: ' + c.reject + '</div>' : '') +
+      // **왜 지표가 비었는지 적는다** (P09 2단계). 이 개체는 `Candidate` 가 없어
+      // 잰 적이 없다 — 빈칸만 보이면 고장으로 읽힌다. 아래 표를 감추지는
+      // 않는다: 칸이 사라지면 "이 개체는 다르게 생겼다" 가 아니라 "화면이
+      // 덜 그려졌다" 로 보인다.
+      (c.orphan ? '<div class="dim">' +
+        (c.source === 'manual' ? '사람이 그린 개체'
+                               : '이번 검출에 대응 개체가 없다') +
+        ' — 지표를 잰 적이 없어 아래가 비어 있다</div>' : '') +
       '<table>' +
       '<tr><td>장축 / 단축</td><td>' + num(c.major_um, 1) + ' / ' + num(c.minor_um, 1) + ' µm</td></tr>' +
       '<tr><td>면적</td><td>' + num(c.area_um2, 1) + ' µm²</td></tr>' +
@@ -981,9 +1001,12 @@
       var gone = removed.has(keyOf(c));
       if (gone && !showGone) return;
       var el = document.createElement('div');
+      // **엔진이 안 낸 개체는 지운 것에도 표시가 남는다** (P09 2단계). 고아는
+      // 되살릴 후보가 없어서, 지운 상태로 두면 화면에서 영영 안 보인다 —
+      // "지웠다" 는 것과 "엔진이 안 냈다" 는 다른 이야기이고 둘 다 보여야 한다.
       el.className = 'box' + (gone ? ' gone'
         : (c.cls ? ' ' + c.cls : '') + (c.manual ? ' manual' : '') +
-          (c.cls_user ? ' userset' : ''));
+          (c.cls_user ? ' userset' : '')) + (c.orphan ? ' orphan' : '');
       boxStyle(el, c.bbox_xywh);
       el.dataset.i = i;
       el.dataset.gone = gone ? '1' : '';
