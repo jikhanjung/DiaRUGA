@@ -13,7 +13,7 @@
 (`segment_diatoms.py`·YOLO 클래스·NAS 의 `DiatomPhotos/`). devlog 와 `docs/` 의
 지난 기록은 그때 이름 그대로 두었다.
 
-**브랜치** main · 판 `v0.6.0` (파이프라인 `v0.3.0`)
+**브랜치** main · 판 `v0.6.1` (파이프라인 `v0.3.0`)
 
 ---
 
@@ -610,6 +610,13 @@ SQLite 를 다시 볼 문제가 된다.
 - **값이 안 바뀐 것을 확인하는 편이 빠르게 만드는 것보다 어렵다.** `judge` 가 그
   값으로 판정하므로 달라지면 검출·문턱 이력과 어긋난다. `cv2.fitEllipse` 는 좌표를
   옮기기만 해도 1e-7 이 달라지고 그것이 1 픽셀로 증폭된다 (030)
+- **유일 제약을 옮기면 그것을 짚어 쓰던 질의도 함께 옮긴다** (058). 055 가 교정의
+  열쇠를 `(viewpoint, mask_key)` → `(image, mask_key)` 로 옮겼는데 목록 집계는
+  `viewpoint` 로 상관하고 있었다 — **코드는 한 글자도 안 바뀌었는데 밟고 서 있던
+  인덱스가 없어져** 첫 페이지가 0.5 → 2.0초가 됐다. 053 의 반대편이다
+- **성능을 잰 파일에 인덱스를 만들어 놓고 잊지 말 것** (058). 시험용 인덱스가
+  든 사본을 다시 복사해 쓰다가 "파일 배치 탓" 으로 30분을 갔다. `VACUUM` 이
+  파일을 절반으로 줄이고도 0 ms 도 못 줄인 것이 오히려 답을 좁혀 줬다
 
 **GPU·의존성**
 
@@ -802,7 +809,7 @@ docker compose -f deploy/docker-compose.yml build web         # 이미지 굽기
 /srv/DiaRUGA/bin/deploy.sh <태그>                               # pull → 스냅샷 → 교체 → 게이트
 ```
 
-**지금 도는 판**: `IMAGE_TAG=v0.6.0` · `PIPELINE_TAG=v0.3.0`.
+**지금 도는 판**: `IMAGE_TAG=v0.6.1` · `PIPELINE_TAG=v0.3.0`.
 뷰어 판은 `.env` 와 `/healthz` 가 알려 준다 — 이 문서보다 그쪽이 늘 옳다.
 
 > **되돌릴 때: 이미지는 돌아가지만 마이그레이션은 따라 내려가지 않는다.**
@@ -963,7 +970,7 @@ python db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손으로
 
 ```bash
 /srv/DiaRUGA/bin/smoke.sh            # .env 의 IMAGE_TAG 를 기대값으로
-/srv/DiaRUGA/bin/smoke.sh v0.6.0
+/srv/DiaRUGA/bin/smoke.sh v0.6.1
 ```
 
 `/healthz` 200 · `status=ok` · 판 일치 · **행 수 > 0** · nginx 경유 200 을 본다.
