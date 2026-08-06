@@ -186,7 +186,7 @@ docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
 **자동 시험이 있다 — 고치고 나면 이것부터 돌린다** (P08 · 064).
 
 ```bash
-python web/manage.py test viewer --exclude-tag browser   # 85개 · 0.5초
+python web/manage.py test viewer --exclude-tag browser   # 93개 · 0.5초
 python web/manage.py test viewer                         # 110개 (브라우저 포함)
 ```
 

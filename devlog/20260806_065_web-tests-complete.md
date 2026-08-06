@@ -6,7 +6,7 @@
 **P08 이 끝났다. 110개다.**
 
 ```bash
-python web/manage.py test viewer --exclude-tag browser   # 85개 · 0.5초
+python web/manage.py test viewer --exclude-tag browser   # 93개 · 0.5초
 python web/manage.py test viewer                         # 110개 · 10초
 ```
 
