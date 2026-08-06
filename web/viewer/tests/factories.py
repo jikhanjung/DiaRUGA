@@ -207,12 +207,22 @@ def _make_detection(vp, img, *, n_candidates):
     # 기본값이 바뀔 때 시험만 옛 값을 증언한다.
     ts, _ = ThresholdSet.objects.get_or_create(name="시험 기본",
                                                defaults={"is_default": True})
+    # **현재 검출은 묶음에 들어 있다** (P09 0단계). 교정의 열쇠가
+    # `(image, batch, mask_key)` 라 묶음 없는 검출에는 저장을 받지 않는다 —
+    # `batch=None` 은 사람이 그린 개체의 자리이기 때문이다(P09 5.2).
+    #
+    # 운영 DB 의 현재 검출 508개가 전부 `sam2-전수` 에 들어 있다. 픽스처가 그
+    # 사실을 안 지키면 **시험이 현실에 없는 상태를 만들어 놓고 통과한다** —
+    # 실제로 그렇게 짜여 있었고, 0단계에서 가드가 5개를 세워 드러났다.
+    batch, _ = RunBatch.objects.get_or_create(kind="detect", label="sam2-시험")
+    run = Run.objects.create(kind="detect", batch=batch, slide=vp.slide,
+                             status="done")
     det = Detection.objects.create(
         viewpoint=vp, image=img, image_path=img.path,
         width=img.width or IMG_W, height=img.height or IMG_H,
         scale=1.0, um_per_pixel=0.1, um_per_pixel_source="xml",
         n_raw_masks=n_candidates + 1, n_sized=n_candidates,
-        thresholds=ts, is_current=True)
+        thresholds=ts, run=run, is_current=True)
 
     for i in range(n_candidates):
         # bbox 는 전부 이미지 안이어야 한다 (IMG_W x IMG_H).
@@ -326,8 +336,8 @@ def add_review(vp, mask_key, *, removed=False, accepted=False, label="",
     if cand is not None:
         geom = {"bbox": cand.bbox_xywh, "polygon": list(cand.polygon)}
     return ObjectReview.objects.create(
-        viewpoint=vp, image=det.image, mask_key=mask_key, candidate=cand,
-        bind_method="exact" if cand else "orphan", geom=geom,
+        viewpoint=vp, image=det.image, batch=det.batch, mask_key=mask_key,
+        candidate=cand, bind_method="exact" if cand else "orphan", geom=geom,
         removed=removed, accepted=accepted, label=label, note=note)
 
 

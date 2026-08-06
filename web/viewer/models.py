@@ -705,6 +705,18 @@ class Detection(models.Model):
     class Meta:
         indexes = [models.Index(fields=["viewpoint", "is_current"])]
 
+    @property
+    def batch(self):
+        """이 검출이 속한 묶음. **교정의 열쇠에 들어간다** (P09 5.1).
+
+        `run` 도 `Run.batch` 도 없을 수 있어 `None` 이 나온다 — 묶음에 안 든
+        `detect` 실행이 70개 있고 전부 검출을 하나도 안 남긴 것들이다. 그런
+        검출에 교정이 앉으면 batch 없는 교정이 되므로 `check_db.py` 가 센다.
+
+        조인이 둘 걸린다 — 여럿을 돌 때는 `select_related("run__batch")`.
+        """
+        return self.run.batch if self.run_id else None
+
     def __str__(self):
         return f"{self.image_path} ({'현재' if self.is_current else '이전'})"
 
@@ -793,12 +805,28 @@ class ViewpointReview(models.Model):
 class ObjectReview(models.Model):
     """개체 단위 교정. **재생성 불가한 자료다.**
 
-    `candidate` 는 바인딩 결과일 뿐이고 진짜 키는 `(viewpoint, mask_key)` 다.
-    `geom` 에 기하를 스스로 들고 있어 검출기가 바뀌어도 읽을 수 있다 —
+    `candidate` 는 바인딩 결과일 뿐이고 진짜 키는 **`(image, batch, mask_key)`**
+    다. `geom` 에 기하를 스스로 들고 있어 검출기가 바뀌어도 읽을 수 있다 —
     지운 것까지 전부 저장한다(학습의 어려운 음성 표본이다).
+
+    **회차가 돌면 이 표가 사실상 정답 자료 표가 된다** (P09 1). 이름이 뜻보다
+    좁아진 것이지 구조가 틀린 것은 아니다.
+
+    ## 무엇이 무엇에 속하는가 (P09 5.2)
+
+    | 칸 | 무엇에 대한 판단인가 | 속하는 곳 |
+    |---|---|---|
+    | `removed`·`accepted` | 그 batch 가 낸 그 마스크가 틀렸다/맞다 | **batch** |
+    | `label`·`note` | 이 규조각이 Eucampia 다 | 개체 — batch 를 갈아도 참이다 |
+    | 사람이 그린 마스크 | 여기 규조각이 있다 | 이미지 — **어느 batch 에도 없다** |
+
+    그래서 batch 를 갈 때 `removed`·`accepted` 는 안 따라가고 `label`·`note` 는
+    IoU 로 물려주되 **사람이 확인한다.** 옮기는 것을 안 가리고 통째로 잠그면
+    막아야 할 것과 살려야 할 것을 함께 막는다.
     """
 
     BIND = [(b, b) for b in ("exact", "iou", "manual", "orphan")]
+    SOURCE = [(s, s) for s in ("engine", "manual")]
 
     # **편의용으로 남는다.** 진짜 열쇠는 `(image, mask_key)` 다 — 화면·목록이
     # 시야로 묶어 보는 일이 많아 조인을 줄이려고 둔다. `image.viewpoint` 와
@@ -815,6 +843,23 @@ class ObjectReview(models.Model):
     # `viewpoint` 를 타고도 어차피 지워진다 — 새로 생기는 삭제 길이 아니다.
     image = models.ForeignKey("Image", on_delete=models.CASCADE,
                               related_name="object_reviews")
+    # **어느 검출을 보고 한 판단인가** (P09 5.1). 열쇠에 들어간다.
+    #
+    # 없이 두면 엔진을 갈 때 옛 판단이 새 검출에 IoU 로 옮겨 붙는다 — 실측으로
+    # SAM2 → YOLO 에서 **`removed` 1,076건이 YOLO 의 통과 후보에 얹혔다**.
+    # 사람은 자기가 지우지 않은 것이 지워져 있는 것을 보게 된다.
+    #
+    # **`Candidate` 에 매는 것과 다르다.** `Candidate` 는 회차마다 새로 생기고
+    # 옛 것은 뒤로 밀리지만, `RunBatch` 는 검출을 쌓아 두므로 **지나가면 안
+    # 바뀌는 사건의 이름**이다 — "교정을 재생성 가능한 것에 매지 않는다" 는
+    # 규칙을 어기지 않는다.
+    #
+    # **`NULL` 은 사람이 그린 개체다.** 엔진에 대한 판단이 아니라 이미지에 대한
+    # 사실이라 어느 batch 에도 속하지 않는다 — 그래서 batch 를 갈아도 안 사라진다.
+    # `PROTECT` 인 것은 batch 를 지우면 그 회차의 교정이 통째로 날아가서다.
+    batch = models.ForeignKey("RunBatch", null=True, blank=True,
+                              on_delete=models.PROTECT,
+                              related_name="object_reviews")
     mask_key = models.CharField(max_length=64)
     candidate = models.ForeignKey(Candidate, null=True, blank=True,
                                   on_delete=models.SET_NULL,
@@ -823,6 +868,20 @@ class ObjectReview(models.Model):
     bind_score = models.FloatField(null=True, blank=True)
     # {"bbox": [x,y,w,h], "polygon": [...]}
     geom = models.JSONField(default=dict, blank=True)
+
+    # 사람이 그린 개체인가 (P09 5.2). `batch is None` 에서 파생시킬 수도 있지만
+    # 두 칸을 따로 두어 **검사가 둘을 대조할 수 있게** 한다 — 한쪽만 맞는 행은
+    # 어딘가에서 잘못 만든 것이다 (`check_db.py` 8번).
+    #
+    # **`db_default` 를 함께 준다.** `rebind` 가 파이프라인 컨테이너에서 이 표를
+    # 쓰는데 뷰어와 파이프라인은 판이 다르다 — Django 의 `default` 는 파이썬
+    # 쪽이라 옛 판의 INSERT 에는 칼럼이 아예 안 들어간다 (HANDOFF 3.7).
+    source = models.CharField(max_length=8, choices=SOURCE, default="engine",
+                              db_default="engine")
+    # 엔진이 낸 기하를 사람이 고쳤다 (P09 5.7). **회차별 수렴 지표가 된다** —
+    # "사람이 손댄 비율" 이 줄면 그것이 수렴이다. 기하만 조용히 덮어쓰면 다음
+    # 회차에 엔진이 얼마나 나아졌는지를 못 잰다.
+    geom_edited = models.BooleanField(default=False, db_default=False)
 
     # 둘을 한 칼럼으로 합치지 않는다 — 되살렸다가 다시 지운 개체가 있고,
     # "사람이 지웠다가 이긴다" 는 규칙이 두 값의 조합으로 표현된다.
@@ -833,11 +892,27 @@ class ObjectReview(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["image", "mask_key"],
-                                               name="uniq_objreview_key")]
+        constraints = [
+            # **batch 가 열쇠에 들어간다** (P09 5.1). 같은 이미지의 같은 마스크라도
+            # 어느 검출을 보고 한 판단인지가 다르면 다른 행이다.
+            models.UniqueConstraint(
+                fields=["image", "batch", "mask_key"],
+                condition=models.Q(batch__isnull=False),
+                name="uniq_objreview_key"),
+            # **사람이 그린 것은 `batch` 가 NULL 이라 위 제약이 안 잡는다** —
+            # SQLite 는 NULL 끼리 부딪히지 않는다고 보므로 같은 키가 여럿 설 수
+            # 있다. 조건을 뒤집은 부분 제약을 따로 둔다.
+            models.UniqueConstraint(
+                fields=["image", "mask_key"],
+                condition=models.Q(batch__isnull=True),
+                name="uniq_objreview_manual"),
+        ]
         indexes = [
             models.Index(fields=["viewpoint", "bind_method"]),
             models.Index(fields=["bind_method"]),
+            # 삭제 범위와 화면 조회가 전부 이 짝으로 짚는다 (P09 5.1)
+            models.Index(fields=["image", "batch"]),
+            models.Index(fields=["source"]),
         ]
 
     def __str__(self):

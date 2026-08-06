@@ -132,14 +132,33 @@ def fetch(conn, slide_slug=None) -> dict:
             v["done"] = bool(r["done"])
             v["note"] = r["note"] or ""
 
-    # `image_id` 는 P06 2단계(0019)에서 생겼다. **옛 DB(백업 파일)에는 없다** —
-    # 이 스크립트는 두 시점을 견주는 도구라 옛 판도 읽어야 한다.
+    # `image_id` 는 P06 2단계(0019)에서, `batch_id`·`source`·`geom_edited` 는
+    # P09 0단계(0025)에서 생겼다. **옛 DB(백업 파일)에는 없다** — 이 스크립트는
+    # 두 시점을 견주는 도구라 옛 판도 읽어야 한다.
     cols = {r[1] for r in conn.execute("PRAGMA table_info(viewer_objectreview)")}
-    img_col = "image_id" if "image_id" in cols else "NULL AS image_id"
+
+    def col(name, default="NULL"):
+        return name if name in cols else f"{default} AS {name}"
+
+    img_col = col("image_id")
+    batch_col = col("batch_id")
+    src_col = col("source", "'engine'")
+    edit_col = col("geom_edited", "0")
+
+    # **묶음은 id 가 아니라 이름으로 적는다.** 감사 기록은 사람이 읽고 두 DB 를
+    # 견주는 물건이라, 저장소마다 달라지는 id 를 적으면 diff 가 거짓말을 한다.
+    batch_name = {}
+    if "batch_id" in cols:
+        try:
+            batch_name = {r[0]: r[1] for r in
+                          conn.execute("SELECT id, label FROM viewer_runbatch")}
+        except sqlite3.Error:
+            pass
 
     for r in conn.execute(f"""
         SELECT viewpoint_id, mask_key, removed, accepted, label, note,
-               geom, bind_method, bind_score, {img_col}
+               geom, bind_method, bind_score, {img_col}, {batch_col},
+               {src_col}, {edit_col}
           FROM viewer_objectreview
     """):
         v = views.get(r["viewpoint_id"])
@@ -149,12 +168,19 @@ def fetch(conn, slide_slug=None) -> dict:
         # 기록인지를 바로 말해야 diff 가 읽힌다.
         obj = {
             "key": r["mask_key"],
+            # **어느 검출을 보고 한 판단인가** (P09 5.1). 키의 일부다.
+            # 사람이 그린 개체는 어느 묶음에도 안 속해 빈 문자열이 온다.
+            "batch": batch_name.get(r["batch_id"], "") if r["batch_id"] else "",
             "removed": bool(r["removed"]),
             "accepted": bool(r["accepted"]),
             "label": r["label"] or "",
             "note": r["note"] or "",
             "bind": r["bind_method"] or "",
         }
+        if (r["source"] or "engine") != "engine":
+            obj["source"] = r["source"]
+        if r["geom_edited"]:
+            obj["geom_edited"] = True
         if r["bind_score"] is not None:
             obj["bind_score"] = round(r["bind_score"], 4)
         # 기하는 마지막이다 — 길고, 사람이 눈으로 읽는 것이 아니다.
@@ -163,7 +189,10 @@ def fetch(conn, slide_slug=None) -> dict:
         except (TypeError, ValueError):
             obj["geom"] = {}
         v["objects"].append(obj)
-        v["images"].add(r["image_id"])
+        # **열쇠가 `(image, batch, mask_key)` 라 짝으로 센다** (P09 5.1).
+        # 이미지가 하나여도 묶음이 둘이면 format 2 는 같은 병을 앓는다 —
+        # 파일 하나 안에서 `key` 가 겹치고 어느 검출의 판단인지 사라진다.
+        v["images"].add((r["image_id"], r["batch_id"]))
 
     # **표시가 하나도 없는 시야는 내보내지 않는다.** 452개 중 432개만 자료가
     # 있는데, 빈 파일 20개를 두면 "아직 안 본 것" 과 "봤는데 고칠 게 없던 것" 이
@@ -177,22 +206,27 @@ def fetch(conn, slide_slug=None) -> dict:
         v["objects"].sort(key=lambda o: o["key"])
         out[(v["slide"], v["gid"])] = v
 
-    # **format 2 는 시야 하나에 이미지 하나를 전제한다.** 프레임별 검토를 쓰기
-    # 시작하면 그 전제가 깨지고, 이 형식은 **조용히 못 쓰게 된다**:
+    # **format 2 는 시야 하나에 `(이미지, 묶음)` 하나를 전제한다.** 프레임별
+    # 검토를 쓰거나 **묶음을 갈아타면** 그 전제가 깨지고, 이 형식은 **조용히
+    # 못 쓰게 된다**:
     #
-    #   - 파일 하나 안에서 `key` 가 겹친다 (mask_key 가 프레임끼리 45% 겹친다)
-    #   - 어느 이미지를 보고 한 판단인지 안 남는다 → 되살릴 수 없다
+    #   - 파일 하나 안에서 `key` 가 겹친다 (mask_key 가 프레임끼리 45% 겹치고,
+    #     묶음이 둘이면 같은 개체에 판단이 둘이다)
+    #   - 어느 이미지·어느 검출을 보고 한 판단인지 안 남는다 → 되살릴 수 없다
     #   - `done`·`note` 가 시야당 하나라 이미지별 검토 완료를 못 담는다
+    #
+    # `batch` 칸을 개체마다 적는 것은 **이름을 남기는 것**이지 이 전제를 푸는
+    # 것이 아니다. 푸는 것은 형식 3 이다.
     #
     # 셋 다 **예외 없이 그럴듯한 파일이 나오는** 종류라 여기서 세워야 한다.
     # 형식을 올릴 때(2 → 3) 이 검사도 함께 걷는다.
     if spread:
         head = ", ".join(f"{s} g{g}({n}개)" for s, g, n in spread[:5])
         sys.exit(
-            f"교정이 이미지 여럿에 걸친 시야가 {len(spread)}개다: {head}\n"
-            "  format 2 는 시야 하나에 이미지 하나를 전제한다 — 그대로 쓰면\n"
-            "  한 파일 안에서 key 가 겹치고 어느 이미지의 판단인지 사라진다.\n"
-            "  형식을 3 으로 올려야 한다 (P06 5단계).")
+            f"교정이 (이미지, 묶음) 여럿에 걸친 시야가 {len(spread)}개다: {head}\n"
+            "  format 2 는 시야 하나에 그 짝 하나를 전제한다 — 그대로 쓰면\n"
+            "  한 파일 안에서 key 가 겹치고 어느 검출의 판단인지 사라진다.\n"
+            "  형식을 3 으로 올려야 한다 (P06 5단계 · P09 1단계).")
     return out
 
 

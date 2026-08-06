@@ -1556,13 +1556,23 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     if vp is None:
         return None
 
-    # **어느 이미지에 대한 교정인가** (P06 5a). 열쇠가 `(image, mask_key)` 라
-    # 이것이 없으면 행을 만들 수도, 지울 범위를 정할 수도 없다. 화면이 그리는
-    # 것은 현재 검출이므로 그 검출의 이미지다.
+    # **어느 이미지·어느 묶음에 대한 교정인가** (P06 5a · P09 5.1). 열쇠가
+    # `(image, batch, mask_key)` 라 이것이 없으면 행을 만들 수도, 지울 범위를
+    # 정할 수도 없다. 화면이 그리는 것은 현재 검출이므로 그 검출의 이미지·묶음이다.
     cur = next((d for d in vp.detections.all() if d.is_current), None)
     if cur is None or cur.image_id is None:
         raise ValueError("이 시야에는 현재 검출이 없다 — 저장하지 않았다")
     image = cur.image
+    batch = cur.batch
+    # **묶음이 없으면 받지 않는다.** `batch=None` 은 **사람이 그린 개체의
+    # 자리다**(P09 5.2) — 엔진 교정을 거기 앉히면 두 종류가 한 이름 아래 섞이고,
+    # 아래 삭제 줄이 사람이 그린 것을 쓸어 간다. 지금 현재 검출은 전부 묶음에
+    # 들어 있으므로 이 갈래는 안 밟히지만, 밟히면 **오류로 말한다** — 조용히
+    # 저장한 척하는 갈래를 남기지 않는다.
+    if batch is None:
+        raise ValueError(
+            "이 시야의 현재 검출이 묶음(batch)에 안 들어 있다 — 저장하지 "
+            "않았다. batch_runs.py 로 묶은 뒤 다시 시도할 것")
 
     removed, accepted = set(removed), set(accepted)
     keys = removed | accepted | set(labels) | set(notes)
@@ -1581,7 +1591,8 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     #
     # 이미 교정 행이 있는 키는 통과시킨다 — 재바인딩에서 고아가 된 것들이
     # 그렇고, 그것들은 사람이 화면에서 지울 수 있어야 한다.
-    known = set(by_key) | set(ObjectReview.objects.filter(image=image)
+    known = set(by_key) | set(ObjectReview.objects
+                              .filter(image=image, batch=batch)
                               .values_list("mask_key", flat=True))
     unknown = keys - known
     if unknown:
@@ -1595,7 +1606,7 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     for key in keys:
         cand = by_key.get(key)
         obj, _ = ObjectReview.objects.get_or_create(
-            image=image, mask_key=key,
+            image=image, batch=batch, mask_key=key,
             defaults={"viewpoint": vp, "candidate": cand,
                       "bind_method": "exact" if cand else "orphan",
                       "bind_score": 1.0 if cand else None})
@@ -1615,11 +1626,17 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
 
     # 표시가 사라진 행은 지운다.
     #
-    # **범위가 시야가 아니라 이미지다** (P06 5a). 시야로 지우면 프레임별 검토를
-    # 붙이는 날 **그 시야의 다른 이미지 교정까지 쓸어 간다** — 017·027·053 이
-    # 전부 이 줄에서 났다. 지금은 시야마다 이미지가 하나라 결과가 같지만,
-    # 같아 보일 때 고쳐 두는 것이 요점이다.
-    ObjectReview.objects.filter(image=image).exclude(mask_key__in=keys).delete()
+    # **범위가 시야가 아니라 `(이미지, 묶음)` 이다** (P06 5a · P09 5.1). 시야로
+    # 지우면 프레임별 검토를 붙이는 날 **그 시야의 다른 이미지 교정까지 쓸어
+    # 간다** — 017·027·053 이 전부 이 줄에서 났다. 묶음까지 넣으면 **다른 엔진을
+    # 보고 있는 화면의 payload 가 이 묶음의 교정에 닿을 수가 없다** — 027 이
+    # 구조적으로 불가능해진다.
+    #
+    # **`batch=None` 인 행은 안 지운다.** 사람이 그린 개체이고, 그것은 어느
+    # 묶음에도 속하지 않아 이 payload 가 대표하지 않는다 (P09 5.2). 지우는 것은
+    # 3단계에서 `drawn` 목록이 맡는다.
+    (ObjectReview.objects.filter(image=image, batch=batch)
+     .exclude(mask_key__in=keys).delete())
     return {"removed": len(removed), "accepted": len(accepted),
             "labels": len(labels), "notes": len(notes)}
 

@@ -144,17 +144,33 @@ def check_reviews(slug=None):
 
     진짜 고아는 **가리키는 개체가 아예 없는 것**이다. 지우지 않는다 —
     재생성 불가한 자료이고 `geom` 에 기하를 스스로 들고 있다.
+
+    ## 무엇을 세지 않는가 (P09 0단계)
+
+    - **사람이 그린 개체**(`source="manual"`)는 후보가 없는 것이 정상이다.
+      세면 마스크 편집을 쓰는 만큼 이 검사가 빨개진다
+    - **지금 안 보고 있는 묶음의 교정**도 고아가 아니다. YOLO 로 갈아타면 SAM2
+      시절 교정이 통째로 "현재 검출 밖" 이 되는데 그것은 **보존이지 고장이
+      아니다**(P09 5.1). 현재 검출이 속한 묶음의 교정만 본다
     """
     qs = ObjectReview.objects.select_related("viewpoint")
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
-    reviews = list(qs)
+    all_reviews = list(qs)
 
     # 현재 검출에 속한 개체 id 집합. 교정이 이 밖을 가리키면 옛 검출에 남은 것이다.
-    current = set(Candidate.objects.filter(
-        detection__is_current=True,
-        **({"detection__viewpoint__slide__slug": slug} if slug else {})
-    ).values_list("id", flat=True))
+    cur_det = Detection.objects.filter(
+        is_current=True,
+        **({"viewpoint__slide__slug": slug} if slug else {}))
+    current = set(Candidate.objects.filter(detection__in=cur_det)
+                  .values_list("id", flat=True))
+    # 지금 화면이 보고 있는 묶음들. 이 밖의 교정은 다른 회차의 기록이다.
+    cur_batches = {b for b in cur_det.select_related("run")
+                   .values_list("run__batch_id", flat=True) if b}
+
+    reviews = [o for o in all_reviews
+               if o.source != "manual" and o.batch_id in cur_batches]
+    other = len(all_reviews) - len(reviews)
 
     orphan, mismatch, nogeom = [], [], []
     for o in reviews:
@@ -162,6 +178,7 @@ def check_reviews(slug=None):
             orphan.append(o)
         elif o.candidate_id not in current:
             mismatch.append(o)
+    for o in all_reviews:            # geom 은 모든 행이 들고 있어야 한다
         if not o.geom:
             nogeom.append(o)
 
@@ -171,9 +188,23 @@ def check_reviews(slug=None):
     report("교정의 candidate 링크가 맞다", len(mismatch), len(reviews),
            "옛 검출의 개체를 가리킨다 — 재바인딩이 중간에 끊겼는가",
            [f"{o.viewpoint} {o.mask_key}" for o in mismatch])
-    report("교정이 기하(geom)를 갖고 있다", len(nogeom), len(reviews),
+    report("교정이 기하(geom)를 갖고 있다", len(nogeom), len(all_reviews),
            "검출기가 바뀌면 그릴 것이 없어진다 (P02 §2.7)",
            [f"{o.viewpoint} {o.mask_key}" for o in nogeom])
+    if other:
+        print(f"     (위 셋에서 뺀 교정 {other}건 — 사람이 그린 것과 지금 안 "
+              f"보고 있는 묶음의 것. 고장이 아니다)")
+
+    # --- batch·source 가 서로 맞는가 (P09 0단계) -----------------------------
+    # 두 칸을 따로 둔 값이 여기서 나온다 — 한쪽만 맞는 행은 어딘가에서 잘못
+    # 만든 것이고, **예외는 안 나고 그냥 틀린 상태**로 남는다.
+    bad_src = [o for o in all_reviews
+               if (o.source == "manual") != (o.batch_id is None)]
+    report("사람이 그린 교정만 묶음이 비어 있다", len(bad_src), len(all_reviews),
+           "`source` 와 `batch` 가 어긋난다 — 엔진 교정이 사람이 그린 자리에 "
+           "앉았거나 그 반대다 (P09 5.2)",
+           [f"{o.viewpoint} {o.mask_key} source={o.source} batch={o.batch_id}"
+            for o in bad_src])
 
     # bind_method 분포는 정보로만
     dist = Counter(o.bind_method for o in reviews)

@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """검출을 다시 돌려도 사람의 교정이 개체를 계속 가리키게 한다.
 
-교정은 `Candidate` 가 아니라 **`(viewpoint, mask_key)`** 에 붙는다. 그래서 검출을
-다시 돌려 `Candidate` 행이 통째로 바뀌어도 교정 자체는 사라지지 않는다. 다만
-`ObjectReview.candidate` 링크는 끊기므로 다시 맺어 줘야 하고, 그것이 이 파일이다.
+교정은 `Candidate` 가 아니라 **`(image, batch, mask_key)`** 에 붙는다. 그래서
+검출을 다시 돌려 `Candidate` 행이 통째로 바뀌어도 교정 자체는 사라지지 않는다.
+다만 `ObjectReview.candidate` 링크는 끊기므로 다시 맺어 줘야 하고, 그것이 이
+파일이다.
+
+**한 묶음 안에서만 다시 맺는다** (P09 0단계). 묶음을 넘는 것은 이 파일이 하는
+일이 아니다 — `removed`·`accepted` 는 애초에 넘으면 안 되고, `label`·`note` 는
+넘되 **사람의 확인을 거친다.**
 
 세 가지로 맺는다:
 
@@ -70,16 +75,42 @@ def review_bbox(review):
 
 
 def rebind_viewpoint(viewpoint, detection, iou_min: float = 0.5) -> Counter:
-    """이 시야의 교정을 새 검출의 개체에 다시 맺는다.
+    """**그 이미지·그 묶음의** 교정을 새 검출의 개체에 다시 맺는다.
 
     **부르는 쪽이 `is_current` 이동과 같은 트랜잭션에 넣어야 한다.** 중간에
     끊기면 뷰어가 "교정이 붙지 않은 새 검출"을 보여준다.
+
+    ## 범위가 시야가 아니다 (P09 0단계)
+
+    예전에는 `filter(viewpoint=…)` 로 **그 시야의 교정을 전부** 가져왔다.
+    `save_review` 는 P06 5a 에서 이미지로 좁혔는데 여기는 같이 안 좁혔고,
+    시야마다 이미지가 하나라 안 드러났다.
+
+    프레임별 검토로 가면 그 길로 **합성본 위의 교정이 프레임 검출에 옮겨
+    붙는다** — 같은 시야라 좌표계가 같아서 IoU 가 실제로 맞는다. 묶음도 마찬가지다:
+    SAM2 에 대고 "오검출" 이라 한 판단이 YOLO 의 통과 후보에 얹히면 사람은
+    **자기가 지우지 않은 것이 지워져 있는 것**을 본다(실측 1,076건).
+
+    **`batch` 가 없는 교정은 건드리지 않는다** — 사람이 그린 개체다(P09 5.2).
+    엔진에 대한 판단이 아니라 이미지에 대한 사실이라 다시 맺을 것이 없다.
+
+    > **다른 묶음으로 넘어가는 `label`·`note` 물려주기는 여기가 아니다.** 그것은
+    > 새 행을 만드는 일이고 **사람의 확인을 거친다**. 이 함수는 한 묶음 안에서
+    > 검출을 다시 돌렸을 때 링크를 잇는 것만 한다.
 
     바뀐 행만 저장한다. 돌려주는 Counter 에 방법별 개수가 담긴다.
     """
     from viewer.models import ObjectReview          # 순환 임포트를 피한다
 
-    reviews = list(ObjectReview.objects.filter(viewpoint=viewpoint))
+    batch = detection.batch
+    if batch is None:
+        # 묶음에 안 든 검출이다. 그 검출을 보고 한 교정도 batch 가 없는데,
+        # 그 자리는 사람이 그린 개체의 자리이기도 하다 — 섞으면 안 된다.
+        # 이런 실행은 지금까지 전부 검출을 하나도 안 남겼다(HANDOFF).
+        return Counter()
+
+    reviews = list(ObjectReview.objects.filter(image_id=detection.image_id,
+                                               batch=batch))
     if not reviews:
         return Counter()
 
