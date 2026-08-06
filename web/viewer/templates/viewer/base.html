@@ -130,7 +130,18 @@
 
   header .sub { font-size: 13px; color: var(--dim); min-width: 0; }
   header .sub b { color: var(--fg); font-weight: 650; }
-  header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
+  header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px;
+               align-items: center; }
+  /* 다음 미검토 — 옆 시야로 한 칸 가는 링크와 하는 일이 달라서 눈에 달리
+     보여야 한다. 테두리를 줘 버튼처럼 읽히게 한다. */
+  header nav .todo {
+    padding: 3px 10px; border-radius: 6px; border: 1px solid var(--accent);
+    color: var(--accent); text-decoration: none; white-space: nowrap;
+  }
+  header nav .todo:hover { background: var(--panel); }
+  header nav .todo .dim { font-size: 11.5px; margin-left: 4px; }
+  /* 다 본 상태. 누를 것이 없으니 테두리도 색도 물러난다 */
+  header nav .todo.none { border-color: var(--line); color: var(--dim); }
   /* 미리보기 갤러리로 가는 길. **구석에 작게.**
      `nav` 가 `margin-left:auto` 로 오른쪽에 붙으므로 그 뒤가 곧 오른쪽 끝이다.
      nav 가 빈 화면에서도 오른쪽으로 가도록 여기에도 auto 를 준다. */
@@ -167,6 +178,11 @@
     border-radius: 9px; overflow: hidden; display: block; color: inherit;
   }
   .tile:hover { border-color: var(--accent); text-decoration: none; }
+  /* **`.tile` 의 `display: block` 이 `[hidden]` 을 이긴다** — 브라우저 기본
+     `[hidden] { display: none }` 은 특이도가 (0,0,1) 이라 (0,1,0) 인 위 규칙에
+     진다. 감추라고 해 놓고 그대로 보이는, 예외도 경고도 없는 종류의 고장이다.
+     이 저장소가 `.tools` 에서 같은 자리를 한 번 밟았다. */
+  .grid .tile[hidden] { display: none; }
   .tile img { width: 100%; aspect-ratio: 2752/2208; object-fit: cover; display: block; background: #000; }
   /* 표지 + 검출 마스크. 마스크가 있어야 목록에서 "무엇이 잡혔는지" 가 보인다. */
   .tile .thumbwrap {
@@ -845,6 +861,23 @@
     padding-bottom: 6px; border-bottom: 1px solid var(--line);
   }
   .notes .ghead { margin-top: 9px; }
+  /* 화면 조정 — 밝기·대비. 코멘트 목록보다 위에 두되 자리를 조금만 쓴다 */
+  .notes .adjhead { display: flex; align-items: baseline; gap: 7px; }
+  .notes .adjreset {
+    margin-left: auto; font: inherit; font-size: 11px; font-weight: 400;
+    padding: 1px 7px; border-radius: 5px; cursor: pointer;
+    background: transparent; color: var(--dim); border: 1px solid var(--line);
+  }
+  .notes .adjreset:hover { color: inherit; border-color: var(--accent); }
+  /* 켜져 있으면 눈에 띄어야 한다 — 원본과 다르게 보고 있다는 표시다 */
+  .notes .adjreset.on { color: var(--accent); border-color: var(--accent); }
+  .notes .adj { flex: 0 0 auto; margin-bottom: 11px; }
+  .notes .adj label {
+    display: block; font-size: 11.5px; color: var(--dim); margin-bottom: 5px;
+  }
+  .notes .adj input[type=range] {
+    display: block; width: 100%; margin-top: 2px; accent-color: var(--accent);
+  }
   .notes .nlist { flex: 1 1 auto; min-height: 60px; overflow-y: auto; }
   /* 그 자리에서 바로 적는다 — 팝업을 열지 않는다. 높이는 고정. */
   .notes .gnote {

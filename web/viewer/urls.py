@@ -13,6 +13,9 @@ urlpatterns = [
     path("core/<str:site_code>/<str:core_code>/", views.core_page, name="core"),
     path("d/<slug:slug>/", views.dataset, name="dataset"),
     path("d/<slug:slug>/edit/", views.dataset_edit, name="dataset_edit"),
+    # 시야 전체를 검토/미검토로. **POST 전용이다** — 주소를 누르는 것만으로
+    # 슬라이드 하나의 판단이 뒤집히면 안 된다.
+    path("d/<slug:slug>/mark-all/", views.mark_all, name="mark_all"),
     path("d/<slug:slug>/detections/", views.detections, name="detections"),
     path("d/<slug:slug>/crops/", views.crops, name="crops"),
     # 시험용 — is_current 가 아닌 검출(다른 엔진)을 보는 길. 읽기 전용이다.

@@ -20,6 +20,25 @@
   {% endcomment %}
   {% if prev_url %}<a href="{{ prev_url }}">← g{{ prev_id }}</a>{% endif %}
   {% if next_url %}<a href="{{ next_url }}">g{{ next_id }} →</a>{% endif %}
+  {% comment %}
+    **다음 미검토.** 옆 시야로 한 칸 가는 것과 다른 일이다 — 검토가 드문드문
+    남으면 한 칸씩 눌러 이미 본 것을 계속 지나야 한다.
+
+    뒤에 없으면 앞으로 돌아간다. 그때는 그렇게 적는다(`todo_back`) — 말없이
+    뒤로 보내면 같은 자리를 도는 것으로 읽힌다.
+
+    `?batch=` 로 다른 엔진을 보는 중에는 나오지 않는다. 그 화면은 읽기 전용이라
+    검토를 이어갈 자리가 아니다 — `data.group_detail` 이 그 갈래에서
+    `todo_url` 을 안 만든다.
+  {% endcomment %}
+  {% if todo_url %}
+    <a class="todo" href="{{ todo_url }}"
+       title="검토 완료로 표시되지 않은 다음 시야로 갑니다{% if todo_back %} (뒤에 남은 것이 없어 앞으로 돌아갑니다){% endif %}">
+      {% if todo_back %}↩{% else %}⏭{% endif %} 다음 미검토 g{{ todo_id }}
+      <span class="dim">{{ todo_left }}개 남음</span></a>
+  {% elif not review_blocked %}
+    <span class="todo none" title="이 슬라이드의 시야를 모두 검토 완료로 표시했습니다">✓ 미검토 없음</span>
+  {% endif %}
 {% endblock %}
 
 {% block content %}

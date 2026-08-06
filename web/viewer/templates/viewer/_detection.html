@@ -128,6 +128,25 @@
   대한 말인지 바로 짚을 수 있어야 한다.
 {% endcomment %}
 <aside class="notes" id="notes-{{ uid }}">
+  {% comment %}
+    화면 조정 — 밝기·대비. **사진에만 건다**(`filter` 를 `<img>` 에만).
+    마스크는 형제 `<svg>` 라 안 물든다: 마스크 색이 분류를 나타내는 판정 근거라
+    사진을 어둡게 했다고 함께 어두워지면 무엇으로 지정했는지가 안 읽힌다.
+
+    **DB 에 안 남는다.** 보는 방식이지 자료가 아니다 — 원본 화소는 그대로이고,
+    계측·판정은 서버가 원본으로 한다. 값은 브라우저에만 남겨(`localStorage`)
+    시야를 옮겨도 따라온다. 슬라이드 하나를 훑는 동안 한 번만 맞추면 된다.
+  {% endcomment %}
+  <div class="nhead adjhead">화면 조정
+    <button type="button" class="adjreset" id="adjreset-{{ uid }}"
+            title="밝기·대비를 100% 로">되돌리기</button></div>
+  <div class="adj" id="adj-{{ uid }}">
+    <label>밝기 <span class="dim" id="brival-{{ uid }}">100%</span>
+      <input type="range" id="bri-{{ uid }}" min="20" max="250" step="5" value="100"></label>
+    <label>대비 <span class="dim" id="conval-{{ uid }}">100%</span>
+      <input type="range" id="con-{{ uid }}" min="20" max="250" step="5" value="100"></label>
+  </div>
+
   <div class="nhead">개체 코멘트 <span class="dim" id="ncount-{{ uid }}"></span></div>
   <div class="nlist" id="nlist-{{ uid }}"></div>
   {% comment %}
@@ -244,6 +263,55 @@
   var imgEl = document.getElementById('img-' + uid);
   // 지금 확정된(클릭으로 고른) 이미지. 미리보기 중에도 이 값은 바뀌지 않는다.
   var committedSrc = imgEl.getAttribute('src');
+
+  // --- 밝기·대비 -------------------------------------------------------------
+  //
+  // **`<img>` 에만 건다.** 마스크는 형제 `<svg>` 라 안 물든다 — 마스크 색이
+  // 분류를 나타내는 판정 근거여서, 사진을 어둡게 했다고 함께 어두워지면
+  // 무엇으로 지정했는지가 안 읽힌다. `canvas` 에 걸면 둘 다 물든다.
+  //
+  // **자료가 아니라 보는 방식이라 DB 로 안 간다.** 원본 화소는 그대로이고
+  // 계측·판정은 서버가 원본으로 한다. 브라우저에만 남겨 시야를 옮겨도 따라오게
+  // 한다 — 슬라이드 하나를 훑는 동안 한 번만 맞추면 된다.
+  (function () {
+    var bri = document.getElementById('bri-' + uid),
+        con = document.getElementById('con-' + uid),
+        briv = document.getElementById('brival-' + uid),
+        conv = document.getElementById('conval-' + uid),
+        rst = document.getElementById('adjreset-' + uid);
+    if (!bri || !con) return;
+    var KEY = 'diaruga.imgadjust';
+
+    function read() {
+      try {
+        var v = JSON.parse(localStorage.getItem(KEY) || '{}');
+        return [+v.b || 100, +v.c || 100];
+      } catch (e) { return [100, 100]; }
+    }
+    function apply(save) {
+      var b = +bri.value, c = +con.value;
+      imgEl.style.filter = (b === 100 && c === 100)
+        ? '' : 'brightness(' + b + '%) contrast(' + c + '%)';
+      briv.textContent = b + '%';
+      conv.textContent = c + '%';
+      // 100·100 이면 표식을 지운다 — 켜져 있는지 한눈에 보여야 한다
+      rst.classList.toggle('on', b !== 100 || c !== 100);
+      if (save) {
+        try { localStorage.setItem(KEY, JSON.stringify({ b: b, c: c })); }
+        catch (e) { /* 사생활 모드 등 — 조정은 그대로 되고 기억만 안 된다 */ }
+      }
+    }
+    var was = read();
+    bri.value = was[0];
+    con.value = was[1];
+    apply(false);
+    bri.addEventListener('input', function () { apply(true); });
+    con.addEventListener('input', function () { apply(true); });
+    rst.addEventListener('click', function () {
+      bri.value = con.value = 100;
+      apply(true);
+    });
+  })();
   function keyOf(c) { var b = c.bbox_xywh; return b.map(function (v) { return Math.round(v); }).join('_'); }
 
   // 서버에 저장된 교정 상태를 그대로 이어받는다.

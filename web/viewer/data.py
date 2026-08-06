@@ -17,8 +17,9 @@ from pathlib import Path
 
 from django.conf import settings
 from django.urls import reverse
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Count, Prefetch, Q
+from django.utils import timezone
 
 from . import antarctica, korea
 from .models import (Candidate, ClassDef, Core, Detection, Frame, ObjectReview,
@@ -1411,6 +1412,20 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
                .order_by("idx").values_list("idx", flat=True))
     pos = ids.index(gid)
 
+    # **다음 미검토 시야.** 옆 시야로 한 칸씩 가는 것과 다른 일이다 — 검토가
+    # 드문드문 남으면(`am22-gc10b_25cm` 이 22/30 이었다) 한 칸씩 눌러 이미 본
+    # 것을 계속 지나야 한다.
+    #
+    # **뒤를 먼저 보고, 없으면 앞으로 돌아간다.** 뒤만 보면 뒤쪽을 다 본 순간
+    # 버튼이 죽는데 앞쪽에 남은 것이 있다. 돌아갔다는 것은 화면이 말한다 —
+    # 말없이 뒤로 보내면 같은 자리를 도는 것으로 읽힌다.
+    done = set(ViewpointReview.objects
+               .filter(viewpoint__slide=slide, done=True)
+               .values_list("viewpoint__idx", flat=True))
+    todo = [i for i in ids if i not in done and i != gid]
+    ahead = [i for i in todo if i > gid]
+    todo_id = ahead[0] if ahead else (todo[0] if todo else None)
+
     cur = next((d for d in vp.detections.all() if d.is_current), None)
     det = detection_for_viewpoint(vp)
     st = getattr(vp, "stack", None)
@@ -1436,9 +1451,53 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
                      if pos > 0 else None),
         "next_url": (reverse("group", args=[slug, ids[pos + 1]])
                      if pos < len(ids) - 1 else None),
+        # 다음 미검토. `todo_left` 는 지금 시야를 뺀 수다 — 이 시야를 아직 안
+        # 끝냈을 수도 있어서, "남은 것" 에 지금 보고 있는 것을 세면 눌러 갈 곳의
+        # 수와 안 맞는다.
+        "todo_id": todo_id,
+        "todo_url": (reverse("group", args=[slug, todo_id])
+                     if todo_id is not None else None),
+        "todo_left": len(todo),
+        "todo_back": todo_id is not None and todo_id < gid,
         # 자동 처리가 안 끝났으면 검토를 막는다 (P01 §1). 저장도 서버에서 거절한다.
         "review_blocked": review_blocked(slide),
     }
+
+
+def mark_all_reviewed(slug: str, done: bool) -> dict | None:
+    """슬라이드의 시야 전체를 검토 완료로 / 미검토로 돌린다.
+
+    **`done` 만 건드린다.** 같은 행의 `note`(시야 코멘트)도, `ObjectReview`
+    (삭제·되살림·분류·코멘트)도 손대지 않는다 — 그쪽이 재생성 불가한 자료다.
+    미검토로 돌릴 때 행을 지우면 적어 둔 시야 코멘트가 함께 날아간다. 그래서
+    지우지 않고 깃발만 내린다 (`ClassDef` 를 지우지 않고 `active=False` 로
+    끄는 것과 같은 결이다).
+
+    돌려주는 것은 **실제로 바뀐 수**다. 이미 그 상태이던 것은 안 센다 — "30개를
+    표시했습니다" 가 사실은 8개였다면 사람이 무엇을 한 것인지 알 수 없다.
+    """
+    slide = Slide.objects.filter(slug=slug).first()
+    if slide is None:
+        return None
+    ids = list(Viewpoint.objects.filter(slide=slide)
+               .values_list("id", flat=True))
+    with transaction.atomic():
+        # 검토로 표시할 때만 없는 행을 만든다. 미검토로 돌릴 때는 만들 것이
+        # 없다 — 행이 없는 것이 곧 미검토다.
+        made = 0
+        if done:
+            have = set(ViewpointReview.objects.filter(viewpoint_id__in=ids)
+                       .values_list("viewpoint_id", flat=True))
+            missing = [i for i in ids if i not in have]
+            ViewpointReview.objects.bulk_create(
+                [ViewpointReview(viewpoint_id=i, done=True) for i in missing])
+            made = len(missing)
+        # `.update()` 는 `auto_now` 를 안 태운다 — 손으로 찍는다. 언제 뒤집혔는지
+        # 모르면 나중에 되짚을 수가 없다.
+        changed = (ViewpointReview.objects
+                   .filter(viewpoint_id__in=ids, done=not done)
+                   .update(done=done, updated_at=timezone.now()))
+    return {"changed": changed + made, "total": len(ids)}
 
 
 # --- 교정 저장 --------------------------------------------------------------

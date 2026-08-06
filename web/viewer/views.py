@@ -185,7 +185,40 @@ def dataset(request, slug):
     ctx = data.dataset_detail(slug)
     if ctx is None:
         raise Http404(f"unknown dataset: {slug}")
+    # 방금 무엇을 했는지. 바뀐 수를 주소에 실어 새로고침해도 남게 한다 —
+    # POST 뒤에 redirect 하므로(뒤로 가기가 다시 쓰지 않게) 이 길밖에 없다.
+    ctx["marked"] = request.GET.get("marked") or ""
+    ctx["marked_n"] = request.GET.get("n") or ""
     return render(request, "viewer/dataset.html", ctx)
+
+
+@require_POST
+def mark_all(request, slug):
+    """시야 전체를 검토 완료로 / 미검토로. **POST 로만 온다.**
+
+    GET 으로 열어 두면 주소를 누르는 것만으로 508 시야의 판단이 뒤집힌다 —
+    브라우저의 미리 가져오기나 링크 검사기도 그것을 누른다.
+
+    `done` 깃발만 뒤집고 시야 코멘트·개체 교정은 안 건드린다
+    (`data.mark_all_reviewed` 머리말).
+    """
+    want = (request.POST.get("act") or "").strip()
+    if want not in ("done", "undone"):
+        raise Http404("unknown act")
+
+    # 자동 처리가 안 끝났으면 검토를 막는 규칙이 여기에도 걸린다 (P01 §1) —
+    # 한 시야씩은 막아 놓고 전체 표시로는 뚫리면 막은 뜻이 없다.
+    slide = Slide.objects.filter(slug=slug).first()
+    if slide is None:
+        raise Http404(f"unknown dataset: {slug}")
+    if data.review_blocked(slide):
+        return redirect(f"{reverse('dataset', args=[slug])}?marked=blocked")
+
+    out = data.mark_all_reviewed(slug, done=(want == "done"))
+    if out is None:
+        raise Http404(f"unknown dataset: {slug}")
+    return redirect(f"{reverse('dataset', args=[slug])}"
+                    f"?marked={want}&n={out['changed']}")
 
 
 def core_page(request, site_code, core_code):
