@@ -22,6 +22,7 @@ from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 
 from . import antarctica, korea, outcrop
+from . import shape
 from .models import (Candidate, ClassDef, Detection, Frame, Locality,
                      ObjectReview,
                      Run, Site, Slide, Stack, Viewpoint, ViewpointReview)
@@ -217,7 +218,7 @@ def _key_bbox(key: str):
     return [x, y, w, h]
 
 
-def _orphan_dict(key: str, o) -> dict | None:
+def _orphan_dict(key: str, o, um_per_px=None) -> dict | None:
     """**후보 없이 교정만 남은 개체**를 화면이 그릴 수 있는 모양으로 (P09 2단계).
 
     두 가지가 여기로 온다.
@@ -253,8 +254,15 @@ def _orphan_dict(key: str, o) -> dict | None:
         "orphan": True,
         "source": o.source,
     }
+    # **지표는 저장하지 않고 그때그때 잰다** (P09 3단계). 폴리곤이 원본이고
+    # 지표는 거기서 나오는 값이라, 따로 넣어 두면 **기하를 고쳤을 때 낡는다**
+    # (4단계에서 사람이 경계를 고친다). 개체 하나에 점 13~19개라 재는 값이
+    # 싸고, 뷰어에 numpy·cv2 를 안 들이는 경계도 지킨다(`shape.py` 머리말).
+    m = shape.measure(d["polygon"], um_per_px) if d["polygon"] else {}
     for f in NUM_FIELDS:
-        d.setdefault(f, None)
+        d[f] = m.get(f)
+    if m.get("area_px"):
+        d["area_px"] = m["area_px"]
     if o.label:
         d["cls"] = o.label
     return d
@@ -337,7 +345,7 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
     for key, o in reviews.items():
         if key in seen:
             continue
-        d = _orphan_dict(key, o)
+        d = _orphan_dict(key, o, det.um_per_pixel)
         if d is None:
             continue
         (gone if o.removed else kept).append(d)
@@ -399,8 +407,16 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
         "rejected": rejected,
         "n_removed": len(removed),
         "accepted_keys": sorted(accepted),
-        "labels": {k: o.label for k, o in reviews.items() if o.label},
-        "notes": {k: o.note for k, o in reviews.items() if o.note},
+        # **사람이 그린 개체는 여기 안 담는다** (P09 3단계). 이 둘은 화면이 저장
+        # payload 로 되돌려 보내는 지도인데, 그린 개체의 분류·코멘트는 `drawn`
+        # 이 통째로 나른다 — 양쪽에 실으면 `save_review` 가 같은 키로 **엔진
+        # 쪽 행을 하나 더 만든다**(`batch` 가 달라 유일 제약에 안 걸린다).
+        #
+        # 분류·코멘트 자체는 개체 dict 의 `cls`·`note` 로 이미 화면에 간다.
+        "labels": {k: o.label for k, o in reviews.items()
+                   if o.label and o.source != "manual"},
+        "notes": {k: o.note for k, o in reviews.items()
+                  if o.note and o.source != "manual"},
         "review_done": bool(vr and vr.done),
         "review_note": (vr.note if vr else ""),
         "source_dir": "out",
@@ -747,8 +763,13 @@ def _with_reviews(vp: Viewpoint, det, batch_id) -> dict:
 
     둘 다 예외가 안 나고 **그럴듯한 화면**이 나오는 종류다.
     """
+    # **사람이 그린 개체는 묶음을 안 가린다** (P09 5.2). `batch=NULL` 은 어느
+    # 회차에도 안 속한다 — 엔진에 대한 판단이 아니라 **이미지에 대한 사실**이라
+    # 회차를 갈아타도 그 자리에 있어야 한다. 거르면 화면에서 사라지고, 사라지면
+    # 다음 저장에 지워진다(2단계에서 본 그 길이다).
     reviews = {o.mask_key: o for o in vp.object_reviews.all()
-               if o.image_id == det.image_id and o.batch_id == batch_id}
+               if o.image_id == det.image_id
+               and (o.batch_id == batch_id or o.batch_id is None)}
     vr = next(iter(ViewpointReview.objects.filter(viewpoint=vp)), None)
     return _apply_review(det, reviews, vr)
 
@@ -977,6 +998,28 @@ LEFT JOIN viewer_objectreview r
       AND r.batch_id IS rep.batch_id
 WHERE {where}
 GROUP BY v.slide_id, eff_cls
+
+UNION ALL
+
+-- **사람이 그린 개체** (P09 3단계). `Candidate` 가 없어 위 질의가 못 본다 —
+-- 화면에는 보이는데 목록의 숫자에는 없는 상태가 된다.
+--
+-- 이것도 **대표 이미지에서만** 센다. 엔진 개체와 같은 규칙이어야 목록과 상세
+-- 화면이 안 어긋난다 — 프레임에 그린 것은 안 세어진다는 뜻이고, 그것이 밀도의
+-- 정의(시야 하나에 판 하나)와 맞는다.
+--
+-- `n_auto` 는 0 이다. 엔진이 낸 것이 아니라 사람이 만든 것이라, "자동 검출
+-- 몇 개" 에 섞이면 엔진 성적을 잘못 읽는다.
+SELECT v.slide_id AS slide_id,
+       COALESCE(NULLIF(r.label, ''), '') AS eff_cls,
+       COUNT(*)                                                  AS n_kept,
+       0                                                         AS n_auto,
+       COUNT(*) FILTER (WHERE r.label IS NOT NULL AND r.label <> '') AS n_labeled
+FROM viewer_objectreview r
+JOIN rep ON rep.image_id = r.image_id AND rep.rn = 1
+JOIN viewer_viewpoint v ON v.id = rep.viewpoint_id
+WHERE r.batch_id IS NULL AND r.source = 'manual' AND {where}
+GROUP BY v.slide_id, eff_cls
 """
 
 
@@ -1051,7 +1094,8 @@ def _summary_rows(where: str, params: list) -> dict[int, dict]:
     """
     out: dict[int, dict] = {}
     with connection.cursor() as cur:
-        cur.execute(_SUMMARY_SQL.format(where=where), params)
+        # `{where}` 가 두 번 들어간다 (UNION 의 양쪽) — 파라미터도 두 벌이다.
+        cur.execute(_SUMMARY_SQL.format(where=where), list(params) * 2)
         for slide_id, eff_cls, n_kept, n_auto, n_labeled in cur.fetchall():
             r = out.setdefault(slide_id, {"per_cls": {}, "n_detected": 0,
                                           "n_auto": 0, "n_labeled": 0})
@@ -1832,7 +1876,8 @@ def mark_all_reviewed(slug: str, done: bool) -> dict | None:
 
 # --- 교정 저장 --------------------------------------------------------------
 def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
-                labels: dict, notes: dict, image=None) -> dict | None:
+                labels: dict, notes: dict, image=None,
+                drawn=None) -> dict | None:
     """뷰어가 보낸 교정을 DB 에 쓴다. 예전에는 review/<stem>_review.json 이었다.
 
     키(mask_key)마다 한 행이고, 아무 표시도 남지 않은 행은 지운다 — 그래야
@@ -1950,8 +1995,88 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # 3단계에서 `drawn` 목록이 맡는다.
     (ObjectReview.objects.filter(image=image, batch=batch)
      .exclude(mask_key__in=keys).delete())
-    return {"removed": len(removed), "accepted": len(accepted),
-            "labels": len(labels), "notes": len(notes)}
+
+    n_drawn = _save_drawn(vp, image, drawn, (cur.width, cur.height))
+    out = {"removed": len(removed), "accepted": len(accepted),
+           "labels": len(labels), "notes": len(notes)}
+    if n_drawn is not None:
+        out["drawn"] = n_drawn
+    return out
+
+
+# 사람이 그린 개체의 키. **불투명하다** — bbox 를 넣으면 "키가 곧 기하" 라는
+# 죽은 규약이 이어져서, 사람이 경계를 고쳤을 때(4단계) 키를 파싱한 쪽이 실제
+# 모양과 다른 값을 얻는다 (P09 5.4).
+MANUAL_KEY = re.compile(r"^m[0-9a-f]{8}$")
+# 폴리곤 점 수의 상한. 점 찍기로 만드는 것이라 수십을 넘을 이유가 없고(엔진이
+# 내는 것도 중앙 13~19점이다), 상한이 없으면 한 번의 POST 로 DB 를 부풀릴 수 있다.
+MAX_POINTS = 400
+
+
+def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0)) -> int | None:
+    """사람이 그린 개체를 저장한다 (P09 3단계). 돌려주는 것은 남은 개수다.
+
+    **`None` 이면 손대지 않는다.** payload 에 `drawn` 이 아예 없는 것과 빈
+    목록인 것은 다르다 — 앞은 **그리기를 모르는 옛 화면**(배포 중에 열려 있던
+    탭)이고 뒤는 "그린 것이 하나도 없다" 는 말이다. 둘을 같이 다루면 옛 탭의
+    저장 한 번이 사람이 그린 개체를 전부 지운다.
+
+    **`batch` 가 `None` 이다.** 엔진에 대한 판단이 아니라 이미지에 대한 사실이라
+    어느 회차에도 안 속한다 — 그래서 묶음을 갈아타도 안 사라진다 (P09 5.2).
+
+    **지우는 것은 행을 지우는 것이다.** 엔진이 낸 것은 `removed=True` 로 남겨
+    음성 표본이 되지만, 사람이 그리다 만 것을 그렇게 남기면 **"여기 규조각
+    없다" 를 다음 회차에 가르치게 된다** (P09 5.10).
+    """
+    if drawn is None:
+        return None
+
+    keep = []
+    for item in drawn:
+        key = str(item.get("key") or "")
+        if not MANUAL_KEY.match(key):
+            raise ValueError(f"사람이 그린 개체의 키가 규칙에 안 맞는다: {key!r}")
+        poly = item.get("polygon") or []
+        if len(poly) < shape.MIN_POINTS * 2 or len(poly) > MAX_POINTS * 2:
+            raise ValueError(
+                f"폴리곤의 점 수가 {shape.MIN_POINTS}~{MAX_POINTS} 를 벗어난다 "
+                f"({len(poly) // 2}점, 키 {key})")
+        try:
+            poly = [float(v) for v in poly]
+        except (TypeError, ValueError):
+            raise ValueError(f"폴리곤에 숫자가 아닌 값이 있다 (키 {key})")
+
+        box = shape.bbox(shape.points(poly))
+        if box is None:
+            raise ValueError(f"폴리곤에서 상자를 못 만든다 (키 {key})")
+        # **이미지 밖은 안 받는다.** 밖에 있는 개체는 그릴 수도 잴 수도 없고,
+        # 학습 자료로 나가면 좌표가 뒤집힌 라벨이 된다.
+        #
+        # 크기는 **검출**에서 받는다 — `Image.width`·`height` 는 nullable 이라
+        # 안 채워진 행이 있고(그러면 검사가 조용히 통과한다), 화면이 좌표를
+        # 만드는 근거도 검출의 `size` 다.
+        w, h = size
+        if w and h and (box[0] < 0 or box[1] < 0
+                        or box[0] + box[2] > w or box[1] + box[3] > h):
+            raise ValueError(f"폴리곤이 이미지 밖으로 나간다 (키 {key})")
+
+        keep.append((key, {"bbox": box, "polygon": poly},
+                     item.get("cls") or "", item.get("note") or ""))
+
+    for key, geom, cls, note in keep:
+        obj, _ = ObjectReview.objects.get_or_create(
+            image=image, batch=None, mask_key=key,
+            defaults={"viewpoint": vp, "source": "manual",
+                      "bind_method": "manual"})
+        obj.source = "manual"
+        obj.geom = geom
+        obj.label = cls
+        obj.note = note
+        obj.save()
+
+    (ObjectReview.objects.filter(image=image, batch__isnull=True)
+     .exclude(mask_key__in=[k for k, *_ in keep]).delete())
+    return len(keep)
 
 
 # --- 기하 (DB 와 무관, 예전 그대로) -----------------------------------------

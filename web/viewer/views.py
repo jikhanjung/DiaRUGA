@@ -1320,10 +1320,30 @@ def save_review(request):
         except (TypeError, ValueError):
             return HttpResponseBadRequest("bad image")
 
+    # **사람이 그린 개체** (P09 3단계). `[{key, polygon, cls, note}]` 이고
+    # 기하는 서버가 다시 잰다 — 클라이언트가 보낸 면적을 믿으면 브라우저마다
+    # 다른 숫자가 DB 에 앉는다(P09 5.8).
+    #
+    # **없는 것과 빈 것은 다르다.** 없으면 `None` 으로 넘겨 손대지 않고, 빈
+    # 목록이면 "그린 것이 하나도 없다" 로 받아 지운다 — 둘을 같이 다루면
+    # **그리기를 모르는 옛 탭의 저장 한 번**이 그린 개체를 전부 지운다.
+    drawn = payload.get("drawn")
+    if drawn is not None:
+        if not isinstance(drawn, list) or len(drawn) > 500:
+            return HttpResponseBadRequest("bad drawn")
+        clean = []
+        for it in drawn:
+            if not isinstance(it, dict):
+                return HttpResponseBadRequest("bad drawn item")
+            cls = as_label(it.get("cls")) or ""
+            clean.append({"key": it.get("key"), "polygon": it.get("polygon"),
+                          "cls": cls, "note": as_note(it.get("note")) or ""})
+        drawn = clean
+
     try:
         saved = data.save_review(vp, done=done, note=note, removed=removed,
                                  accepted=accepted, labels=labels, notes=notes,
-                                 image=image_id)
+                                 image=image_id, drawn=drawn)
     except ValueError as e:
         # 현재 검출에 없는 키가 섞여 왔다. 아무것도 바꾸지 않고 돌려보낸다 —
         # 그대로 두면 그 시야의 교정이 통째로 지워진다 (data.save_review 주석).
