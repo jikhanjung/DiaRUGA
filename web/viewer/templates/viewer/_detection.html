@@ -2038,20 +2038,28 @@
         + ' · Backspace 무르기 · Esc 취소';
   }
 
+  // **단추와 상태를 한 자리에서 맞춘다.** 따로 두면 Esc 로 끄고도 단추가
+  // 눌린 채로 남아 "켜져 있는 줄 알고" 사진을 누르게 된다 — 그러면 선택이
+  // 되고, 켠 줄 알았던 사람은 왜 안 그려지는지 모른다.
+  function syncDrawBtn() {
+    var b = tools && tools.querySelector('button[data-act="draw"]');
+    if (b) b.classList.toggle('on', !!(drawing || editing));
+  }
+
   function drawStart() {
     if (readOnly) return;
     drawing = { pts: [] };
     view.classList.add('drawing');
     sel.clear();
     closeMenu(); closeSpread(); closeNoteEdit();
-    drawRender(); redraw(); drawStatus();
+    drawRender(); redraw(); drawStatus(); syncDrawBtn();
   }
 
   function drawCancel() {
     if (!drawing) return;
     drawing = null;
     view.classList.remove('drawing');
-    drawRender(); redraw();
+    drawRender(); redraw(); syncDrawBtn();
   }
 
   function drawFinish() {
@@ -2084,7 +2092,7 @@
     build();
     // 방금 그린 것을 골라 둔다 — 분류를 바로 지정하는 것이 다음 동작이다.
     sel.clear(); sel.add(cands.length - 1);
-    redraw();
+    redraw(); syncDrawBtn();
     save();
   }
 
@@ -2131,7 +2139,7 @@
     editing = { i: i, key: keyOf(c), pts: pts, grab: -1 };
     view.classList.add('drawing');
     sel.clear(); sel.add(i);
-    editRender(); redraw();
+    editRender(); redraw(); syncDrawBtn();
     if (saveState) {
       saveState.textContent = '마스크 고치는 중 — 점을 끌어 옮긴다 · 선분을 '
         + '누르면 점이 늘고 · 점을 더블클릭하면 준다 · Enter 마침 · Esc 취소';
@@ -2191,7 +2199,7 @@
     if (!editing) return;
     editing = null;
     view.classList.remove('drawing');
-    editRender(); redraw();
+    editRender(); redraw(); syncDrawBtn();
   }
 
   function editFinish() {
@@ -2222,7 +2230,7 @@
     editing = null;
     view.classList.remove('drawing');
     editRender();
-    build(); redraw(); save();
+    build(); redraw(); syncDrawBtn(); save();
   }
 
   function editRevert(i) {
@@ -2428,7 +2436,6 @@
     else if (act === 'draw') {
       // 누르면 켜고 다시 누르면 끈다 — 켜 놓고 잊는 것이 가장 흔한 실수다.
       if (drawing) drawCancel(); else drawStart();
-      e.target.classList.toggle('on', !!drawing);
     }
     else if (act === 'ghosts') {
       showGone = !showGone;

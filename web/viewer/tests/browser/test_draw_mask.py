@@ -154,3 +154,30 @@ class DrawMaskTest(BrowserTestCase):
                          "그린 뒤로 엔진 교정 저장이 막혔다")
         self.assertTrue(ObjectReview.objects.filter(source="manual").exists(),
                         "엔진 교정 저장이 그린 개체를 지웠다")
+
+    def test_단추가_상태를_따라간다(self):
+        """따로 두면 Esc 로 끄고도 단추가 눌린 채로 남는다 — 켜져 있는 줄 알고
+        사진을 누르면 선택이 되고, 사람은 왜 안 그려지는지 모른다.
+
+        **미리보기를 띄워 보고서야 눈에 들어왔다.** 시험이 통과해도 화면은
+        다를 수 있다는 자리다.
+        """
+        page = self.open_review()
+        btn = 'button[data-act="draw"].on'
+        self.assertIsNone(page.query_selector(btn), "처음부터 켜져 있다")
+
+        self.start()
+        self.assertIsNotNone(page.query_selector(btn), "켰는데 단추가 안 눌린다")
+
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+        self.assertIsNone(page.query_selector(btn),
+                          "Esc 로 껐는데 단추가 눌린 채로 남았다")
+
+    def test_다_그리고_나면_단추가_꺼진다(self):
+        page = self.open_review()
+        self.start()
+        self.put()
+        self.close_here()
+        self.assertIsNone(page.query_selector('button[data-act="draw"].on'),
+                          "다 그렸는데 단추가 켜진 채로 남았다")
