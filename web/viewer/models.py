@@ -11,7 +11,14 @@
 **2. 검출은 덮어쓰지 않고 쌓는다.** `Detection.is_current` 가 뷰어가 볼 것을 가리킨다.
 교체 전후를 같은 시야로 비교해야 하기 때문이다(P01 §3).
 """
+import re
+
 from django.db import models
+
+# 관찰 접미사 `(1)`·`(2)`. **정본은 `group_focus_series.OBS_SUFFIX` 다** — 고칠 때
+# 셋을 함께 본다(`import_json.py` 에도 한 벌 있다). 여기서 임포트하지 않는 이유는
+# 그 모듈이 cv2 를 끌고 오기 때문이다 — 뷰어 컨테이너에는 없다(`requirements-web`).
+OBS_SUFFIX = re.compile(r"\s*\((\d+)\)\s*$")
 
 # 실행 종류. RunBatch 와 Run 이 함께 쓰므로 위로 뺀다.
 RUN_KIND = [(k, k) for k in
@@ -259,6 +266,34 @@ class Slide(models.Model):
         `0` 이라도 낸다("원본" 이라고 적을 수 있다).
         """
         return self.obs_label or (f"#{self.obs_no}" if self.obs_no else "")
+
+    @property
+    def base_name(self) -> str:
+        """관찰 접미사를 뗀 폴더 이름 — 같은 시료의 관찰들이 공유하는 것이다.
+
+        **슬러그가 아니라 이름으로 짚는다.** 슬러그에는 촬영일이 붙어
+        (`group_focus_series.slide_slug`) 같은 시료를 다른 날 올린 관찰끼리
+        안 맞는다.
+        """
+        return OBS_SUFFIX.sub("", self.name or "").strip()
+
+    def sibling_observations(self):
+        """같은 시료의 다른 관찰들. 번호순이다.
+
+        **`Sample` 모델이 없어서 이 이름이 유일한 연결 고리다**(위 머리말).
+        `(코어, 깊이)` 로 묶으면 코어가 안 붙은 슬라이드(`BP09-0901`)와 깊이가
+        없는 노두는 서로 못 묶인다 — 그 둘이 겹치는 자리가 실제로 있었다.
+
+        `name__startswith` 로 좁히고 접미사를 떼어 정확히 맞는 것만 남긴다 —
+        `BP09-0901` 이 `BP09-09010` 을 줍지 않게.
+        """
+        base = self.base_name
+        if not base:
+            return []
+        qs = (Slide.objects.filter(name__startswith=base)
+              .exclude(pk=self.pk).select_related("core", "core__site")
+              .order_by("obs_no", "id"))
+        return [s for s in qs if s.base_name == base]
 
 
 class Viewpoint(models.Model):

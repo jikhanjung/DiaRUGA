@@ -122,8 +122,35 @@
   <section data-pane="core">
     <h3>코어 <span class="dim">{{ core_code }}</span></h3>
     {% if no_core %}
-      <p class="dim">이 슬라이드에는 <b>코어가 붙어 있지 않습니다.</b> 아래에 코어
-        코드를 넣으면 위 지역 아래에 새로 만들어 붙입니다.</p>
+      {% comment %}
+        **붙이기가 먼저다.** 예전에는 빈 칸 둘(지역 코드·코어 코드)뿐이라, 이미
+        있는 코어에 넣으려면 두 코드를 정확히 맞혀 적어야 했다. 코어 코드만 적으면
+        아무 일도 안 일어나고 "저장했습니다" 가 떴다 — `BP09-0901 (1)` 을 `BP09`
+        코어에 넣으려다 그렇게 한 번 헛돌았다.
+
+        고른 코어에 붙일 때는 아래 칸들을 **저장에 쓰지 않는다**(views 의
+        `own_core`). 이 칸들은 코어가 없는 채로 그려져 전부 비어 있어서, 그대로
+        쓰면 남이 채워 둔 좌표·수심·해역이 지워진다.
+      {% endcomment %}
+      <p class="dim">이 슬라이드에는 <b>코어가 붙어 있지 않습니다.</b></p>
+      <label class="attach">기존 코어에 붙이기
+        <select name="attach_core" id="attachcore">
+          <option value="">(고르지 않음 — 아래에 코드를 적어 새로 만듭니다)</option>
+          {% for c in core_choices %}
+            <option value="{{ c.pk }}" {% if c.pk == sibling_core_pk %}selected{% endif %}>
+              {{ c.site_code }} · {{ c.code }}{% if c.label %} ({{ c.label }}){% endif %} — 슬라이드 {{ c.n_slides }}개</option>
+          {% endfor %}
+        </select>
+        <span class="hint">고르면 그 코어에 그대로 매답니다. <b>코어와 지역의
+          속성은 건드리지 않습니다</b> — 아래 칸들은 비어 있어서 그대로 저장하면
+          이미 채워 둔 값이 지워집니다.
+          {% if sibling %}<br><b>같은 시료의 다른 관찰</b>
+            <code class="mono">{{ sibling.name }}</code> 이(가)
+            <code class="mono">{{ sibling.core.site.code }} · {{ sibling.core.code }}</code>
+            에 붙어 있어 그것을 미리 골라 두었습니다.{% endif %}</span></label>
+      <p class="dim sep">또는 — 아래에 코어 코드를 넣으면 <b>지역 탭의 지역 코드</b>
+        아래에 새로 만들어 붙입니다. <b>지역 코드를 비워 두면 아무것도 붙지
+        않습니다.</b></p>
     {% else %}
       <p class="dim">같은 코어를 쓰는 슬라이드 <b>{{ n_slides_core }}</b>개에 함께 반영됩니다.</p>
     {% endif %}
@@ -235,6 +262,29 @@
   show((location.hash || '#slide').slice(1));
 })();
 
+// 기존 코어를 고르면 코어·지역 칸을 잠근다. **서버가 그 칸들을 이미 무시한다**
+// (views 의 `own_core`·`own_site`) — 여기서 잠그는 것은 화면이 **되는 것처럼
+// 보이지 않게** 하기 위해서다. 빈 칸이 살아 있으면 "여기 적으면 그 코어에 적히나"
+// 로 읽히는데 실제로는 안 적힌다.
+(function () {
+  var sel = document.getElementById('attachcore');
+  if (!sel) return;                      // 이미 코어가 붙은 슬라이드에는 없다
+  var form = document.getElementById('propform');
+  var panes = [form.querySelector('section[data-pane="core"]'),
+               form.querySelector('section[data-pane="site"]')];
+  function apply() {
+    var on = !!sel.value;
+    panes.forEach(function (pane) {
+      if (!pane) return;
+      pane.classList.toggle('locked', on);
+      [].forEach.call(pane.querySelectorAll('input, textarea, select'),
+        function (el) { if (el !== sel) { el.disabled = on; } });
+    });
+  }
+  sel.addEventListener('change', apply);
+  apply();
+})();
+
 // 노두를 고르면 깊이 칸을 잠근다. **비우지는 않는다** — 잘못 골랐다가 되돌릴 때
 // 값을 다시 적게 하지 않는다. JS 가 없어도 폼은 그대로 돈다(잠기지 않을 뿐이고,
 // 서버가 노두면 깊이를 무시한다).
@@ -285,7 +335,19 @@
   /* 노두를 고르면 깊이 칸이 뜻을 잃는다. **지우지 않고 잠근다** — 잘못 골랐다가
      되돌릴 때 값을 다시 적게 하지 않는다. 잠긴 칸은 브라우저가 안 보내므로
      서버 쪽도 노두면 깊이를 건드리지 않는다(views.dataset_edit). */
-  .propform input:disabled { opacity: .45; cursor: not-allowed; }
+  .propform input:disabled, .propform textarea:disabled,
+  .propform select:disabled { opacity: .45; cursor: not-allowed; }
+  /* 기존 코어에 붙이는 칸. 아래 빈 칸들보다 먼저 읽혀야 해서 테두리를 준다 */
+  .propform label.attach {
+    border: 1px solid var(--accent); border-radius: 7px;
+    padding: 10px 12px; margin-bottom: 12px;
+  }
+  .propform .sep { margin: 0 0 12px; padding-top: 2px; }
+  /* 잠긴 칸 무더기는 통째로 물러나 보여야 한다 — 낱개로 흐려 놓으면 무엇이
+     잠겼는지가 안 읽힌다 */
+  .propform section.locked > label:not(.attach),
+  .propform section.locked > .two,
+  .propform section.locked > p.sep { opacity: .5; }
   .propform .hint { display: block; margin-top: 3px; font-size: 11px; color: var(--dim); }
   .propform .two { display: flex; gap: 12px; }
   .propform .two label { flex: 1; }

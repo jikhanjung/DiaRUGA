@@ -49,9 +49,9 @@ from django.utils import timezone                                   # noqa: E402
 
 import runlog                                                       # noqa: E402
 import scan_nas                                                     # noqa: E402
-from group_focus_series import (parse_sample_name, parse_obs_no,    # noqa: E402
+from group_focus_series import (sample_fields, parse_obs_no,        # noqa: E402
                                 slide_slug, git_version, rel)
-from viewer.models import Core, Run, Site, Slide                    # noqa: E402
+from viewer.models import Run, Slide                                # noqa: E402
 
 COPY_EXT = (".jpg", ".jpeg", "_metadata.xml")
 
@@ -129,12 +129,6 @@ def main():
             src = Path(r["nas_path"])
             dst = data_root / r["local"]
             folder = dst.name
-            site_code, core_code, depth = parse_sample_name(folder)
-            core = None
-            if site_code and core_code:
-                site, _ = Site.objects.get_or_create(code=site_code)
-                core, _ = Core.objects.get_or_create(site=site, code=core_code)
-
             note = ""
             if r["xmls"] < r["jpgs"]:
                 note = (f"XML 이 모자란다 ({r['xmls']}/{r['jpgs']}) — "
@@ -142,8 +136,11 @@ def main():
 
             slide, _ = Slide.objects.update_or_create(
                 slug=slide_slug(dst),
-                defaults=dict(name=folder, image_dir=r["local"], core=core,
-                              depth_cm=depth, state="copying", state_note=note,
+                defaults=dict(name=folder, image_dir=r["local"],
+                              state="copying", state_note=note,
+                              # 시료 소속. **빈 dict 면 아무것도 안 쓴다** —
+                              # 사람이 채운 코어를 자동값이 지우지 않는다
+                              **sample_fields(folder),
                               # 자동값만. `obs_label` 은 사람 것이라 안 건드린다
                               obs_no=parse_obs_no(folder),
                               discovered_at=timezone.now()))

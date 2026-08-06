@@ -226,6 +226,60 @@ def parse_obs_no(folder: str) -> int:
     return int(m.group(1)) if m else 0
 
 
+def base_name(folder: str) -> str:
+    """관찰 접미사를 뗀 이름 — 같은 시료의 관찰들이 공유하는 것이다.
+
+    `BP09-0901 (1)` → `BP09-0901`. 슬러그가 아니라 **폴더 이름**으로 짚는다:
+    슬러그에는 촬영일이 붙어(`slide_slug`) 같은 시료를 다른 날 올린 관찰끼리
+    안 맞는다.
+    """
+    return OBS_SUFFIX.sub("", folder or "").strip()
+
+
+def sample_fields(folder: str) -> dict:
+    """`Slide` 의 시료 소속 칸을 정한다. `update_or_create` 의 `defaults` 에 얹는다.
+
+    **비어 있으면 아무것도 안 쓴다 — 이것이 이 함수의 요점이다.** 예전에는
+    `core=None`·`depth_cm=None` 을 그대로 실어서, 이름이 규칙에 안 맞는
+    슬라이드를 다시 그룹핑하거나 다시 반입하면 **사람이 속성 편집에서 넣은
+    코어가 지워졌다.** `obs_label` 을 defaults 에서 빼 둔 것과 같은 이유다 —
+    자동값이 사람이 채운 것을 덮으면 안 된다.
+
+    순서가 있다.
+
+    1. 이름이 `<지역>-<코어> <깊이>cm` 규칙에 맞으면 거기서 만든다
+    2. 안 맞으면 **같은 시료의 다른 관찰에서 물려받는다.** 관찰은 정의상 같은
+       시료이므로 코어·깊이·종류가 같아야 한다. `BP09-0901 (1)` 이 이 길로
+       코어 BP09 를 받는다 — 폴더명이 규칙에 안 맞아(노두라 `cm` 이 없다)
+       1번이 아무것도 못 주고, 사람이 `BP09-0901` 에 손으로 넣어 둔 것만이
+       유일한 근거다
+    3. 둘 다 아니면 빈 dict — 있던 값을 그대로 둔다
+
+    **접미사가 없는 슬라이드는 2번으로 안 간다**(`base == folder`). 기준이 되는
+    쪽이 관찰들 사이에서 값을 주워 오면 사람이 고친 것이 돌고 돌아 되살아난다.
+    """
+    site_code, core_code, depth = parse_sample_name(folder)
+    if site_code and core_code:
+        site, _ = Site.objects.get_or_create(code=site_code)
+        core, _ = Core.objects.get_or_create(site=site, code=core_code)
+        return {"core": core, "depth_cm": depth}
+
+    base = base_name(folder)
+    if not base or base == folder:
+        return {}
+    # `name__startswith` 로 좁히고 접미사를 떼어 정확히 맞는 것만 남긴다 —
+    # `BP09-0901` 이 `BP09-09010` 을 줍지 않게. 관찰이 이미 여럿이면 번호가
+    # 작은 쪽(보통 접미사 없는 원본)을 따른다.
+    sibs = [s for s in Slide.objects.filter(name__startswith=base)
+            .exclude(core=None).order_by("obs_no", "id")
+            if base_name(s.name) == base]
+    if not sibs:
+        return {}
+    sib = sibs[0]
+    return {"core": sib.core, "depth_cm": sib.depth_cm,
+            "sample_kind": sib.sample_kind}
+
+
 def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run):
     """Slide·Viewpoint·Frame 을 만든다. 통째로 한 트랜잭션이다.
 
@@ -233,19 +287,17 @@ def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run)
     나머지 절반이 조용히 빠진다.
     """
     folder = slide_dir.name
-    site_code, core_code, depth = parse_sample_name(folder)
-    core = None
-    if site_code and core_code:
-        site, _ = Site.objects.get_or_create(code=site_code)
-        core, _ = Core.objects.get_or_create(site=site, code=core_code)
-
     slug = slide_slug(slide_dir)
 
     with transaction.atomic():
         slide, _ = Slide.objects.update_or_create(
             slug=slug,
-            defaults=dict(name=folder, image_dir=rel(slide_dir), core=core,
-                          depth_cm=depth, corr_thresh=args.corr_thresh,
+            defaults=dict(name=folder, image_dir=rel(slide_dir),
+                          # 시료 소속(코어·깊이·종류)은 여기서 정한다. **빈
+                          # dict 면 아무것도 안 쓴다** — 사람이 채운 것을
+                          # 자동값이 지우지 않는다 (`sample_fields` 머리말)
+                          **sample_fields(folder),
+                          corr_thresh=args.corr_thresh,
                           # 자동값만 쓴다. `obs_label` 은 사람 것이라 defaults 에
                           # 넣지 않는다 — 넣으면 다시 그룹핑할 때 지워진다
                           obs_no=parse_obs_no(folder),

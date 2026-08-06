@@ -317,6 +317,12 @@ def dataset_edit(request, slug):
     core = slide.core
     site = core.site if core else None
 
+    # 이 슬라이드가 처음부터 들고 있던 코어인가. **폼의 코어·지역 칸을 저장에
+    # 쓸지 말지가 여기서 갈린다** — 화면은 이 시점의 `core`·`site` 로 그려지므로,
+    # 코어가 없던 슬라이드의 코어 탭은 **빈 칸**이다. 그 빈 칸을 남의 코어에
+    # 그대로 쓰면 이미 채워 둔 좌표·수심·해역이 지워진다 (아래 `own_*`).
+    had_core, had_site = core is not None, site is not None
+
     errors, saved = [], False
     if request.method == "POST":
         p = request.POST
@@ -331,7 +337,22 @@ def dataset_edit(request, slug):
         site_code = (p.get("site_code") or "").strip()
         core_code = (p.get("core_code") or "").strip()
         made_site = made_core = False
-        if site is None and site_code:
+
+        # **이미 있는 코어에 그대로 붙이는 길.** 코드를 두 칸에 다시 받아 적게
+        # 하는 것이 코드를 맞히기 놀이가 됐다 — `BP09-0901 (1)` 을 `BP09` 코어에
+        # 넣으려고 코어 코드만 적으면 **아무 일도 안 일어나고 "저장했습니다" 가
+        # 뜬다**(지역이 비어 있어 아래 갈래가 통째로 건너뛴다). 실제로 그렇게
+        # 한 번 헛돌았다. 골라서 붙이는 길을 따로 둔다.
+        attach = (p.get("attach_core") or "").strip()
+        if core is None and attach:
+            core = (Core.objects.select_related("site")
+                    .filter(pk=attach).first())
+            if core is None:
+                errors.append("고른 코어를 찾지 못했습니다.")
+            else:
+                site = core.site
+
+        if core is None and site is None and site_code:
             site = Site.objects.filter(code=site_code).first()
             if site is None:
                 site, made_site = Site(code=site_code), True
@@ -340,6 +361,16 @@ def dataset_edit(request, slug):
                     if site.pk else None)
             if core is None:
                 core, made_core = Core(site=site, code=core_code), True
+        # 코어 코드만 적고 지역을 비운 경우. 예전에는 조용히 통과했다 —
+        # **아무것도 안 한 저장이 성공으로 보이면 사람이 같은 일을 다시 한다.**
+        if core is None and core_code and not attach:
+            errors.append(
+                "코어를 붙이려면 지역도 함께 정해야 합니다 — 위의 "
+                "**기존 코어에 붙이기** 에서 고르거나, 지역 탭에 지역 코드를 "
+                "넣으세요.")
+
+        # 남의 코어·지역에 붙기만 하는 것인가. 그렇다면 폼의 빈 칸을 쓰지 않는다.
+        own_core, own_site = had_core or made_core, had_site or made_site
         try:
             slide.name = (p.get("slide_name") or slide.name).strip()
             # 목록·상세가 깊이 칸을 가르는 값이라 아무 문자열이나 들어오면
@@ -362,7 +393,11 @@ def dataset_edit(request, slug):
             # 체크박스는 안 켜면 아무것도 안 보낸다 — 없는 것이 곧 꺼짐이다.
             slide.hide_in_list = bool(p.get("hide_in_list"))
             slide.exclude_from_totals = bool(p.get("exclude_from_totals"))
-            if core:
+            # **붙이기만 할 때는 코어·지역 칸을 안 쓴다.** 그 칸들은 이 슬라이드에
+            # 코어가 없던 시점에 그려져 전부 비어 있다 — 그대로 저장하면 남이
+            # 채워 둔 좌표·수심·해역·권역이 빈 값으로 덮인다. 같은 코어를 쓰는
+            # 슬라이드 전부가 함께 당한다.
+            if core and own_core:
                 core.code = (p.get("core_code") or core.code).strip()
                 core.kind = (p.get("core_kind") or "").strip()
                 core.lat = _num(p.get("core_lat"))
@@ -371,7 +406,7 @@ def dataset_edit(request, slug):
                 d = (p.get("core_collected_at") or "").strip()
                 core.collected_at = date.fromisoformat(d) if d else None
                 core.note = (p.get("core_note") or "").strip()
-            if site:
+            if site and own_site:
                 site.code = (p.get("site_code") or site.code).strip()
                 site.name = (p.get("site_name") or "").strip()
                 site.region = (p.get("site_region") or "").strip()
@@ -390,15 +425,18 @@ def dataset_edit(request, slug):
             # 셋을 한 덩어리로 저장한다. 코어만 바뀌고 지역이 안 바뀌면
             # 화면에 보이는 것과 저장된 것이 어긋난다.
             try:
+                attached = core is not None and slide.core_id != core.pk
                 with transaction.atomic():
-                    if site:
+                    # 붙이기만 하는 코어·지역은 저장하지 않는다 — 이 폼에서 온
+                    # 값이 하나도 없어 쓸 것이 없다
+                    if site and own_site:
                         site.save()
-                    if core:
+                    if core and own_core:
                         # 새로 만든 지역이면 이제야 pk 가 생긴다
                         core.site = site
                         core.save()
                     # 코어가 없던 슬라이드를 이제 매단다
-                    if core and slide.core_id != core.pk:
+                    if attached:
                         slide.core = core
                     slide.save()
                 saved = True
@@ -407,11 +445,33 @@ def dataset_edit(request, slug):
                         x for x in (f"지역 {site.code}" if made_site else "",
                                     f"코어 {core.code}" if made_core else "") if x)
                     messages_made = f"{made} 을(를) 새로 만들어 붙였습니다."
+                elif attached:
+                    # **무엇에 붙었는지 적는다.** 코드를 고르는 화면이라 엉뚱한
+                    # 코어를 골랐을 때 사람이 알아챌 자리가 여기밖에 없다
+                    messages_made = (f"{site.code} · {core.code} 코어에 "
+                                     f"붙였습니다.")
                 else:
                     messages_made = ""
             except IntegrityError as e:
                 errors.append(f"같은 코드가 이미 있습니다: {e}")
                 messages_made = ""
+
+    # 붙일 수 있는 코어 목록. 코어가 이미 있으면 안 만든다 — 코어를 **옮기는**
+    # 것은 다른 일이다(같은 코어를 쓰는 슬라이드 전부가 걸린 값을 건드린다).
+    core_choices, sibling = [], None
+    if core is None:
+        for c in (Core.objects.select_related("site")
+                  .order_by("site__code", "code")):
+            core_choices.append({
+                "pk": c.pk, "site_code": c.site.code, "code": c.code,
+                "label": c.site.region or c.site.name or "",
+                "n_slides": c.slides.count(),
+            })
+        # 같은 시료의 다른 관찰이 이미 어딘가 붙어 있으면 그것이 답이다.
+        # `BP09-0901 (1)` 이 `BP09-0901` 을 찾아내는 자리 — 폴더 이름이 규칙에
+        # 안 맞아 파이프라인이 아무것도 못 붙인 슬라이드의 유일한 근거다.
+        sibling = next((s for s in slide.sibling_observations() if s.core_id),
+                       None)
 
     scales = data.scales_by_slide()
     return render(request, "viewer/dataset_edit.html", {
@@ -420,6 +480,9 @@ def dataset_edit(request, slug):
         "slide": slide,
         "core": core,
         "site": site,
+        "core_choices": core_choices,
+        "sibling": sibling,
+        "sibling_core_pk": sibling.core_id if sibling else None,
         "core_code": core.code if core else "-",
         "site_code": site.code if site else "-",
         "n_slides_core": core.slides.count() if core else 0,
