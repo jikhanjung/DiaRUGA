@@ -21,7 +21,7 @@ from django.db import connection, transaction
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 
-from . import antarctica, korea
+from . import antarctica, korea, outcrop
 from .models import (Candidate, ClassDef, Detection, Frame, Locality,
                      ObjectReview,
                      Run, Site, Slide, Stack, Viewpoint, ViewpointReview)
@@ -1268,6 +1268,8 @@ def locality_detail(site_code: str, loc_code: str,
         "core": loc,
         "locality": loc,
         "is_outcrop": loc.kind == "outcrop",
+        # 노두 현장 사진. 시추코어면 빈 목록이고, 그 자리는 암상 띠가 쓴다.
+        "photos": outcrop.photos(loc),
         "rows": rows,
         "n": len(rows),
         # **켜 놓았을 때도 실제 숨김 수를 센다** — `len(all_rows) - len(rows)` 로

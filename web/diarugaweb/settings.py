@@ -157,6 +157,18 @@ STACK_DIR = "stacked"
 REVIEW_ROOT = PROJECT_ROOT
 REVIEW_DIR = "review"
 
+# 노두 현장 사진. **DATA_ROOT 밖이다** — NAS 공유에 사람이 직접 올린다
+# (`N:\DiaRUGA\outcrop`). 파일 이름이 `<지점코드> (n).jpg` 꼴이고, 지점 유형이
+# 노두인 지점 페이지가 그 이름으로 찾아 낸다 (`data.outcrop_photos`).
+#
+# **읽기 전용으로만 쓴다.** 우리가 만든 자료가 아니라 사람이 올려 둔 것이라
+# 지우거나 고치지 않는다. 컨테이너에도 `:ro` 로 물린다.
+#
+# **없어도 죽지 않아야 한다.** NAS 가 안 붙은 날에 지점 페이지가 500 이 되면
+# 안 된다 — 읽는 쪽이 `OSError` 를 삼키고 빈 목록을 낸다.
+OUTCROP_DIR = Path(os.environ.get("DIARUGA_OUTCROP_DIR",
+                                  "/nfs/temp-share/DiaRUGA/outcrop"))
+
 # 썸네일 캐시. 원본이 2752x2208 이라 그리드에 원본을 그대로 물리면 못 쓴다.
 #
 # 컨테이너에서는 이미지 안(/app)이 읽기 전용이나 마찬가지라 여기 못 쓴다.

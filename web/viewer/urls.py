@@ -14,6 +14,14 @@ urlpatterns = [
     # 옛 주소. **지우지 않는다** — 적어 둔 링크와 브라우저 기록이 깨진다.
     # 이름(`core`)은 그대로 둔다: 템플릿의 `{% url 'core' %}` 가 새 주소를 낸다.
     path("core/<str:site_code>/<str:core_code>/", views.core_redirect),
+    # 관리 화면 — 층을 만들고 고치고 지운다. 쓰기는 전부 POST 다.
+    path("manage/", views.manage, name="manage"),
+    # 노두 현장 사진. **파일 이름이 주소에 없다** — 지점과 순번으로만 짚는다.
+    path("loc/<str:site_code>/<str:core_code>/photo/<int:index>",
+         views.outcrop_photo, name="outcrop_photo"),
+    # 올리기·지우기. POST 전용이다.
+    path("loc/<str:site_code>/<str:core_code>/photos/",
+         views.outcrop_edit, name="outcrop_edit"),
     path("d/<slug:slug>/", views.dataset, name="dataset"),
     path("d/<slug:slug>/edit/", views.dataset_edit, name="dataset_edit"),
     # 시야 전체를 검토/미검토로. **POST 전용이다** — 주소를 누르는 것만으로

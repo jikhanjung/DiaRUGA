@@ -16,7 +16,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import antarctica, data, korea, regroup, thresholds as th
+from . import (antarctica, data, korea, manage_data, outcrop,
+               regroup, thresholds as th)
 from .models import (Detection, Locality, ObjectReview, Run,  # noqa: E501
                      Sample, Site,
                      Slide, ThresholdSet, Viewpoint)
@@ -241,8 +242,12 @@ def core_page(request, site_code, core_code):
     ctx = data.locality_detail(site_code, core_code, with_hidden)
     if ctx is None:
         raise Http404(f"unknown locality: {site_code}/{core_code}")
-    return render(request, "viewer/core.html", {**ctx,
-                                                "with_hidden": with_hidden})
+    return render(request, "viewer/core.html", {
+        **ctx, "with_hidden": with_hidden,
+        # 사진을 올리거나 지운 뒤 여기로 돌아온다 (POST → redirect)
+        "msg": request.GET.get("msg", ""), "err": request.GET.get("err", ""),
+        "max_photos": outcrop.MAX_PHOTOS,
+    })
 
 
 def group(request, slug, gid):
@@ -558,6 +563,52 @@ def dataset_edit(request, slug):
         "no_sample": sample is None,
     })
 
+
+
+def manage(request):
+    """관리 화면 — 지역·지점·시료를 만들고 고치고 지운다. 소속도 여기서 옮긴다.
+
+    **관찰은 여기서 안 만들고 안 지운다.** 폴더가 만드는 것이고 그 아래에
+    재생성 불가한 교정이 달려 있다 — 옮기고 떼는 것만 된다.
+
+    **쓰기는 전부 POST 다.** GET 으로 열어 두면 주소를 누르는 것만으로 지워진다.
+    지우기에는 문턱이 따로 있다 (`manage_data` 머리말).
+    """
+    msg, err = "", ""
+    if request.method == "POST":
+        p = request.POST
+        act = (p.get("act") or "").strip()
+        if act == "create":
+            ok, m = manage_data.create((p.get("kind") or "").strip(), p)
+        elif act == "delete":
+            ok, m = manage_data.delete((p.get("kind") or "").strip(),
+                                       _num(p.get("pk"), int) or 0)
+        elif act == "move_slide":
+            ok, m = manage_data.move_slide(_num(p.get("slide"), int) or 0,
+                                           _num(p.get("sample"), int))
+        elif act == "move_sample":
+            ok, m = manage_data.move_sample(_num(p.get("sample"), int) or 0,
+                                            _num(p.get("locality"), int) or 0)
+        else:
+            ok, m = False, "모르는 동작입니다."
+        # POST 뒤에 redirect 한다 — 새로 고침이 같은 일을 다시 하면 안 된다.
+        return redirect(f"{reverse('manage')}?{'msg' if ok else 'err'}={m}")
+
+    msg, err = request.GET.get("msg", ""), request.GET.get("err", "")
+    ctx = manage_data.overview()
+    # 지우기 문턱을 **미리** 계산해 행에 달아 둔다. 눌러 보고 "지울 수 없습니다"
+    # 를 만나면 무엇을 먼저 치워야 하는지 알 수 없다. 템플릿 필터를 새로 만들지
+    # 않으려고 dict 가 아니라 객체에 붙인다.
+    for kind, rows in (("site", ctx["sites"]), ("locality", ctx["localities"]),
+                       ("sample", ctx["samples"])):
+        for row in rows:
+            row.block_why = " · ".join(manage_data.deletable(kind, row.pk)[1])
+    return render(request, "viewer/manage.html", {
+        **ctx,
+        "site_areas": Site.AREA,
+        "locality_kinds": Locality.KIND,
+        "msg": msg, "err": err,
+    })
 
 
 # 표 한 장에 몇 줄까지 낼 것인가. 369cm 슬라이드가 1,166줄이라 전부 내면
@@ -1047,6 +1098,76 @@ def image(request):
     if thumb is None:
         return _jpeg(request, path)
     return _jpeg(request, thumb)
+
+
+def _locality(site_code, core_code, outcrop_only=True):
+    qs = Locality.objects.select_related("site").filter(
+        site__code=site_code, code=core_code)
+    if outcrop_only:
+        qs = qs.filter(kind="outcrop")
+    loc = qs.first()
+    if loc is None:
+        raise Http404(f"unknown outcrop locality: {site_code}/{core_code}")
+    return loc
+
+
+def outcrop_photo(request, site_code, core_code, index):
+    """노두 지점의 현장 사진 한 장. `?w=` 로 축소본.
+
+    **파일 이름을 URL 로 안 받는다.** 서버가 그 지점의 사진 목록을 만들고 순번
+    하나를 고를 뿐이라 `../` 로 바깥을 가리킬 방법이 없다.
+    """
+    path = outcrop.photo_path(_locality(site_code, core_code), index)
+    if path is None:
+        raise Http404("outcrop photo not found")
+    raw = request.GET.get("w")
+    if not raw:
+        return _jpeg(request, path)
+    try:
+        width = max(32, min(int(raw), 2048))
+    except ValueError:
+        raise Http404("bad width")
+    thumb = _thumbnail(path, width)
+    return _jpeg(request, thumb or path)
+
+
+@require_POST
+def outcrop_edit(request, site_code, core_code):
+    """현장 사진을 올리거나 지운다. 노두 지점에만 있다.
+
+    **POST 전용이다.** GET 으로 열어 두면 주소를 누르는 것만으로 지워진다.
+
+    올린 파일은 **줄여서 JPEG 으로 다시 쓴다**(`outcrop.save_upload`) — 카메라
+    원본이 장당 12 MB 라 그대로 두면 여럿이 쓰는 NAS 공유가 금방 찬다.
+    이름도 우리가 짓는다(`<지점코드> (n).jpg`).
+    """
+    loc = _locality(site_code, core_code)
+    act = (request.POST.get("act") or "").strip()
+    here = reverse("core", args=[site_code, core_code])
+
+    if act == "delete":
+        try:
+            i = int(request.POST.get("i") or "")
+        except ValueError:
+            raise Http404("bad index")
+        ok, m = outcrop.delete_photo(loc, i)
+    elif act == "upload":
+        files = request.FILES.getlist("photo")
+        if not files:
+            ok, m = False, "고른 파일이 없습니다."
+        else:
+            done, msgs = 0, []
+            for f in files:
+                good, m1 = outcrop.save_upload(loc, f)
+                done += 1 if good else 0
+                if not good:
+                    msgs.append(m1)
+            ok = done > 0
+            m = (f"{done}장을 올렸습니다." if done else "") + \
+                (" " + " · ".join(msgs) if msgs else "")
+    else:
+        raise Http404("unknown act")
+    return redirect(f"{here}?{'msg' if ok else 'err'}={m.strip()}")
 
 
 def _thumbnail(path, width):

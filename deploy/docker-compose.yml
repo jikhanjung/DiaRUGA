@@ -45,6 +45,10 @@ x-common: &common
     - /srv/DiaRUGA/db:/srv/DiaRUGA/db
     # 사진·산출물
     - /data3/DiaRUGA:/data3/DiaRUGA
+    # 노두 현장 사진. **읽기 전용이 아니다** — 지점 페이지에서 올리고 지운다
+    # (`viewer/outcrop.py`). 쓰는 곳은 그 파일 하나뿐이고, 이름도 서버가
+    # 짓는다(`<지점코드> (n).jpg`) — 화면이 준 이름은 확장자조차 안 쓴다.
+    - /nfs/temp-share/DiaRUGA/outcrop:/nfs/temp-share/DiaRUGA/outcrop
 
 services:
   web:

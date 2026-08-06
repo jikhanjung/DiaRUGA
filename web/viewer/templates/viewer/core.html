@@ -20,6 +20,8 @@
 {% block subtitle %}{{ site_label }} · <b>{{ core.code }}</b>{% if is_outcrop %} <span class="dim">노두</span>{% endif %} · 관찰 {{ n }}개{% endblock %}
 
 {% block content %}
+{% if msg %}<div class="okbar">{{ msg }}</div>{% endif %}
+{% if err %}<div class="errbar">{{ err }}</div>{% endif %}
 <div class="crumb"><a href="{% url 'index' %}">데이터셋</a> / {{ core.code }}</div>
 <h2>{{ core.code }} <span class="dim" style="font-size:14px;font-weight:400">{{ site_label }}</span></h2>
 <p class="dim" style="font-size:12px;margin-bottom:14px">
@@ -41,8 +43,85 @@
 
 <div class="corepage">
 
-  {% comment %} --- 왼쪽: 깊이 축 + 암상 띠 --- {% endcomment %}
+  {% comment %} --- 왼쪽: 깊이 축 + 암상 띠 (노두면 현장 사진) --- {% endcomment %}
   <div class="corelog">
+    {% comment %}
+      **노두 지점에는 깊이 축이 안 선다.** 단면상의 위치는 "몇 번째로 딴 것"
+      이지 거리가 아니라 cm 축에 얹으면 없는 간격을 지어내게 된다. 그래서 그
+      자리가 통째로 비어 있었는데, 시추코어 쪽에는 암상 띠가 들어올 자리로
+      잡혀 있으니 노두 쪽도 제 것이 있어야 한다 — **현장 사진이다.**
+
+      사진은 NAS 공유에 사람이 올린다. 이름이 `<지점코드> (n).jpg` 이고 그것이
+      지점과 사진을 잇는 유일한 근거다 — DB 에는 아무것도 안 남는다. 새 노두
+      지점을 만들고 사진만 올려 두면 저절로 나타난다.
+
+      **없으면 그렇게 적는다.** 빈 자리만 두면 "아직 안 만든 화면" 으로 읽힌다.
+    {% endcomment %}
+    {% if is_outcrop %}
+      <div class="ocphotos">
+        <div class="ochead">현장 사진
+          <span class="dim">{% if photos %}{{ photos|length }}장{% else %}없음{% endif %}</span></div>
+        {% if not photos %}
+          <div class="ocempty">아직 사진이 없습니다.</div>
+        {% endif %}
+        {% if photos %}
+          {% for ph in photos %}
+            <figure class="ocfig">
+              {% comment %}
+                축소본을 건다 — 원본을 그대로 물리면 이 화면 하나가 수십 MB 다.
+                누르면 원본이 새 탭에서 열린다.
+              {% endcomment %}
+              <a href="{% url 'outcrop_photo' site_code core.code ph.i %}"
+                 target="_blank" rel="noopener"
+                 title="원본 열기 ({{ ph.mb }} MB)">
+                <img loading="lazy"
+                     src="{% url 'outcrop_photo' site_code core.code ph.i %}?w=520"
+                     alt="{{ core.code }} 현장 사진 {{ forloop.counter }}">
+              </a>
+              <figcaption>{{ forloop.counter }}{% if photos|length > 1 %} / {{ photos|length }}{% endif %}
+                <span class="dim">{{ ph.mb }} MB</span>
+                <form method="post" class="ocdel"
+                      action="{% url 'outcrop_edit' site_code core.code %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="act" value="delete">
+                  <input type="hidden" name="i" value="{{ ph.i }}">
+                  <button type="submit"
+                          data-ask="{{ ph.name }} 을(를) 지웁니다. 되돌릴 수 없습니다. 계속할까요?"
+                          title="이 사진을 지웁니다">지우기</button>
+                </form></figcaption>
+            </figure>
+          {% endfor %}
+        {% endif %}
+
+        {% comment %}
+          올리기. **파일 이름은 서버가 짓는다** (`<지점코드> (n).jpg`) — 화면이
+          보내는 이름은 확장자조차 안 쓴다. 올린 것은 긴 변 2400px 로 줄여
+          다시 쓴다: 카메라 원본이 장당 12 MB 라 그대로 두면 여럿이 쓰는 NAS
+          공유가 금방 찬다 (실측 12 MB → 1 MB).
+
+          **탐색기로 직접 올려도 된다.** 파일이 곧 자료라(DB 에 행이 없다)
+          이름만 맞으면 화면에 나타난다 — 여기는 그 일을 편하게 해 줄 뿐이다.
+        {% endcomment %}
+        {% if photos|length < max_photos %}
+        <form class="ocup" id="ocup" method="post" enctype="multipart/form-data"
+              action="{% url 'outcrop_edit' site_code core.code %}">
+          {% csrf_token %}
+          <input type="hidden" name="act" value="upload">
+          <input type="file" name="photo" id="ocfile" accept="image/jpeg,image/png"
+                 multiple hidden>
+          <div class="ocdrop" id="ocdrop" tabindex="0" role="button"
+               title="누르거나 사진을 끌어다 놓으세요">
+            <b>사진 올리기</b>
+            <span class="dim">끌어다 놓거나 눌러서 고르세요 ·
+              {{ photos|length }}/{{ max_photos }}장</span>
+          </div>
+        </form>
+        {% else %}
+          <div class="ocfull dim">사진은 지점마다 {{ max_photos }}장까지입니다 —
+            더 올리려면 하나를 지우세요.</div>
+        {% endif %}
+      </div>
+    {% endif %}
     {% if axis %}
     <div class="loghead">
       <span class="lh-depth">깊이</span>
@@ -91,8 +170,13 @@
         </div>
       {% endfor %}
     </div>
-    {% else %}
-      <div class="note">깊이가 적힌 슬라이드가 없어 축을 그릴 수 없습니다.
+    {% elif not is_outcrop %}
+      {% comment %}
+        **노두에는 안 낸다.** 노두 지점에 깊이가 없는 것은 채워야 할 것이 빠진
+        상태가 아니라 그 지점의 성질이다 — "깊이를 채우면 나옵니다" 라고 적으면
+        사람이 없는 값을 채우러 간다. 아래 노두 안내가 이미 그 자리를 설명한다.
+      {% endcomment %}
+      <div class="note">깊이가 적힌 시료가 없어 축을 그릴 수 없습니다.
         속성 편집에서 깊이를 채우면 여기 나옵니다.</div>
     {% endif %}
 
@@ -196,4 +280,55 @@
     </section>
   </div>
 </div>
+<script>
+// 끌어다 놓기. **입력 칸은 그대로 살아 있다** — 드래그가 안 되는 환경(터치·
+// 원격 데스크톱)에서도 눌러서 고를 수 있어야 한다. JS 가 없으면 파일 칸이
+// 감춰진 채로 남는데, 그때는 `hidden` 을 떼어 평범한 폼이 된다.
+(function () {
+  var form = document.getElementById('ocup');
+  if (!form) return;                      // 세 장이 다 찼거나 시추코어 지점이다
+  var input = document.getElementById('ocfile');
+  var zone = document.getElementById('ocdrop');
+  input.hidden = false;
+  input.style.display = 'none';           // JS 가 있을 때만 감춘다
+
+  function pick() { input.click(); }
+  zone.addEventListener('click', pick);
+  zone.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+  });
+  // 고르는 즉시 올린다 — 버튼을 한 번 더 누르게 하지 않는다
+  input.addEventListener('change', function () {
+    if (input.files.length) { form.submit(); }
+  });
+
+  ['dragenter', 'dragover'].forEach(function (t) {
+    zone.addEventListener(t, function (e) {
+      e.preventDefault(); zone.classList.add('over');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    zone.addEventListener(t, function () { zone.classList.remove('over'); });
+  });
+  zone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+    input.files = e.dataTransfer.files;
+    form.submit();
+  });
+  // **문서 전체의 기본 동작을 막는다.** 안 막으면 옆에 떨어뜨렸을 때 브라우저가
+  // 그 사진으로 페이지를 갈아치운다 — 보던 화면이 통째로 사라진다.
+  ['dragover', 'drop'].forEach(function (t) {
+    document.addEventListener(t, function (e) {
+      if (!zone.contains(e.target)) { e.preventDefault(); }
+    });
+  });
+})();
+
+// 지우기는 되돌릴 수 없다. 누르기 전에 묻는다.
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button[data-ask]');
+  if (b && !window.confirm(b.dataset.ask)) { e.preventDefault(); }
+});
+</script>
 {% endblock %}
