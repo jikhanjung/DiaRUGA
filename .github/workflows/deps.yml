@@ -38,12 +38,16 @@ jobs:
       # PyPI 와 download.pytorch.org 둘 다 PEP 658 메타데이터를 내주므로
       # (2026-08-06 확인: `data-core-metadata`) 2.5 GB 짜리 휠을 안 받고
       # 메타데이터만 읽는다. SAM-2 줄만 뺀다 — 위 머리말 참고.
+      # **거른 파일을 저장소 안에 쓴다.** `/tmp` 에 두면 안에 있는
+      # `-r requirements-web.txt` 가 **그 파일 기준 상대경로**로 풀려
+      # `/tmp/requirements-web.txt` 를 찾다가 죽는다 (실제로 그렇게 짰었다).
       - name: 휠 해결 (SAM-2 제외)
         run: |
-          grep -v '^SAM-2' requirements-pipeline.txt > /tmp/wheels.txt
+          grep -v '^SAM-2' requirements-pipeline.txt > .wheels-check.txt
           pip install --dry-run --ignore-installed \
               --extra-index-url https://download.pytorch.org/whl/cu126 \
-              -r /tmp/wheels.txt
+              -r .wheels-check.txt
+          rm -f .wheels-check.txt
 
       - name: YOLO 백엔드 (--no-deps 로 얹는 것)
         run: pip install --dry-run --ignore-installed --no-deps -r requirements-yolo.txt
