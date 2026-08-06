@@ -13,7 +13,7 @@
 (`segment_diatoms.py`·YOLO 클래스·NAS 의 `DiatomPhotos/`). devlog 와 `docs/` 의
 지난 기록은 그때 이름 그대로 두었다.
 
-**브랜치** main · 판 `v0.6.3` (파이프라인 `v0.3.0`)
+**브랜치** main · 판 `v0.6.4` (파이프라인 `v0.3.0`)
 
 ---
 
@@ -809,7 +809,7 @@ docker compose -f deploy/docker-compose.yml build web         # 이미지 굽기
 /srv/DiaRUGA/bin/deploy.sh <태그>                               # pull → 스냅샷 → 교체 → 게이트
 ```
 
-**지금 도는 판**: `IMAGE_TAG=v0.6.3` · `PIPELINE_TAG=v0.3.0`.
+**지금 도는 판**: `IMAGE_TAG=v0.6.4` · `PIPELINE_TAG=v0.3.0`.
 뷰어 판은 `.env` 와 `/healthz` 가 알려 준다 — 이 문서보다 그쪽이 늘 옳다.
 
 > **되돌릴 때: 이미지는 돌아가지만 마이그레이션은 따라 내려가지 않는다.**
@@ -970,7 +970,7 @@ python db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손으로
 
 ```bash
 /srv/DiaRUGA/bin/smoke.sh            # .env 의 IMAGE_TAG 를 기대값으로
-/srv/DiaRUGA/bin/smoke.sh v0.6.3
+/srv/DiaRUGA/bin/smoke.sh v0.6.4
 ```
 
 `/healthz` 200 · `status=ok` · 판 일치 · **행 수 > 0** · nginx 경유 200 을 본다.
