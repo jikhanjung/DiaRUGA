@@ -90,7 +90,17 @@ OUT = ROOT / "review"
 
 # 내보내는 형식의 판. **올릴 때는 읽는 쪽을 함께 본다** — 감사 기록이라
 # 옛 파일이 계속 남아 있고, 판이 없으면 어느 형식인지 알 수 없다.
-FORMAT = 2
+#
+# **3 — 시야 하나에 `(이미지, 묶음)` 여럿** (P09 1단계). 형식 2 는 그 짝이 시야마다
+# 하나라는 전제였고, 깨지면 한 파일 안에서 `key` 가 겹쳐 어느 검출의 판단인지가
+# 사라졌다. 그래서 2 는 깨진 DB 를 만나면 **쓰지 않고 멈췄다.**
+#
+# 프레임별 검토와 묶음 갈아타기가 그 전제를 깬다: 프레임 검출을 올리면 시야마다
+# 이미지가 3.6장이 되고, 회차를 돌리면 같은 이미지에 묶음이 여럿 앉는다.
+FORMAT = 3
+
+# 묶음(그룹) 정렬 — 합성본이 먼저다. **차례가 정해져 있어야 diff 가 읽힌다.**
+_KIND_ORDER = {"stack": 0, "frame": 1, "depth": 2}
 
 
 def connect(path: Path) -> sqlite3.Connection:
@@ -122,9 +132,10 @@ def fetch(conn, slide_slug=None) -> dict:
           {where}
     """, args):
         views[r["id"]] = {"slide": r["slug"], "gid": r["idx"], "tag": r["tag"],
-                          "done": False, "note": "", "objects": [],
-                          # 이 시야의 교정이 걸쳐 있는 이미지들. 아래에서 센다.
-                          "images": set()}
+                          "done": False, "note": "",
+                          # `(이미지 경로, 묶음 이름)` → 그 짝의 교정들.
+                          # 형식 3 이 담는 것이 이 갈래다 (P09 1단계).
+                          "groups": {}}
 
     for r in conn.execute("SELECT viewpoint_id, done, note FROM viewer_viewpointreview"):
         v = views.get(r["viewpoint_id"])
@@ -155,6 +166,17 @@ def fetch(conn, slide_slug=None) -> dict:
         except sqlite3.Error:
             pass
 
+    # **이미지도 id 가 아니라 경로로 적는다.** 같은 이유다 — 감사 기록은 두 DB 를
+    # 견주는 물건이라 저장소마다 달라지는 id 를 적으면 diff 가 거짓말을 한다.
+    # 그리고 `Image` 의 열쇠가 원래 `path` 다 (P06 §"열쇠는 path 다").
+    images = {}
+    if "image_id" in cols:
+        try:
+            images = {r[0]: (r[1], r[2]) for r in
+                      conn.execute("SELECT id, path, kind FROM viewer_image")}
+        except sqlite3.Error:
+            pass
+
     for r in conn.execute(f"""
         SELECT viewpoint_id, mask_key, removed, accepted, label, note,
                geom, bind_method, bind_score, {img_col}, {batch_col},
@@ -168,9 +190,6 @@ def fetch(conn, slide_slug=None) -> dict:
         # 기록인지를 바로 말해야 diff 가 읽힌다.
         obj = {
             "key": r["mask_key"],
-            # **어느 검출을 보고 한 판단인가** (P09 5.1). 키의 일부다.
-            # 사람이 그린 개체는 어느 묶음에도 안 속해 빈 문자열이 온다.
-            "batch": batch_name.get(r["batch_id"], "") if r["batch_id"] else "",
             "removed": bool(r["removed"]),
             "accepted": bool(r["accepted"]),
             "label": r["label"] or "",
@@ -188,63 +207,74 @@ def fetch(conn, slide_slug=None) -> dict:
             obj["geom"] = json.loads(r["geom"]) if r["geom"] else {}
         except (TypeError, ValueError):
             obj["geom"] = {}
-        v["objects"].append(obj)
-        # **열쇠가 `(image, batch, mask_key)` 라 짝으로 센다** (P09 5.1).
-        # 이미지가 하나여도 묶음이 둘이면 format 2 는 같은 병을 앓는다 —
-        # 파일 하나 안에서 `key` 가 겹치고 어느 검출의 판단인지 사라진다.
-        v["images"].add((r["image_id"], r["batch_id"]))
+        # **열쇠가 `(image, batch, mask_key)` 라 그 짝으로 묶는다** (P09 5.1).
+        # 묶음 이름은 개체마다가 아니라 **그룹 머리에 한 번** 적는다 — 같은
+        # 그룹의 모든 개체가 같은 값이라 개체마다 실으면 diff 만 시끄러워진다.
+        # 사람이 그린 개체는 어느 묶음에도 안 속해 빈 문자열이다.
+        path, kind = images.get(r["image_id"], ("", ""))
+        label = batch_name.get(r["batch_id"], "") if r["batch_id"] else ""
+        g = v["groups"].setdefault((path, label),
+                                   {"image": path, "kind": kind,
+                                    "batch": label, "objects": []})
+        g["objects"].append(obj)
 
     # **표시가 하나도 없는 시야는 내보내지 않는다.** 452개 중 432개만 자료가
     # 있는데, 빈 파일 20개를 두면 "아직 안 본 것" 과 "봤는데 고칠 게 없던 것" 이
     # 파일 있음/없음으로 구분되지 않는다. 후자는 `done` 이 켜져 있다.
-    out, spread = {}, []
+    out = {}
     for v in views.values():
-        if not v["objects"] and not v["done"] and not v["note"]:
+        if not v["groups"] and not v["done"] and not v["note"]:
             continue
-        if len(v["images"]) > 1:
-            spread.append((v["slide"], v["gid"], len(v["images"])))
-        v["objects"].sort(key=lambda o: o["key"])
+        # **차례를 못 박는다** — 합성본 먼저, 그다음 프레임을 경로순으로.
+        # dict 가 넣은 순서를 기억한다고 기대면 DB 의 행 순서가 바뀔 때마다
+        # 파일 전체가 다시 써져 **diff 가 자료 변화를 못 보여 준다.**
+        v["groups"] = sorted(
+            v["groups"].values(),
+            key=lambda g: (_KIND_ORDER.get(g["kind"], 9), g["image"], g["batch"]))
+        for g in v["groups"]:
+            g["objects"].sort(key=lambda o: o["key"])
         out[(v["slide"], v["gid"])] = v
 
-    # **format 2 는 시야 하나에 `(이미지, 묶음)` 하나를 전제한다.** 프레임별
-    # 검토를 쓰거나 **묶음을 갈아타면** 그 전제가 깨지고, 이 형식은 **조용히
-    # 못 쓰게 된다**:
+    # 형식 2 는 여기서 **쓰지 않고 멈췄다** — 시야 하나에 `(이미지, 묶음)` 하나를
+    # 전제했고, 깨지면 한 파일 안에서 `key` 가 겹쳐(프레임끼리 45%) 어느 검출의
+    # 판단인지가 사라졌다. 형식 3 은 그 짝으로 묶어 담으므로 멈출 이유가 없다.
     #
-    #   - 파일 하나 안에서 `key` 가 겹친다 (mask_key 가 프레임끼리 45% 겹치고,
-    #     묶음이 둘이면 같은 개체에 판단이 둘이다)
-    #   - 어느 이미지·어느 검출을 보고 한 판단인지 안 남는다 → 되살릴 수 없다
-    #   - `done`·`note` 가 시야당 하나라 이미지별 검토 완료를 못 담는다
-    #
-    # `batch` 칸을 개체마다 적는 것은 **이름을 남기는 것**이지 이 전제를 푸는
-    # 것이 아니다. 푸는 것은 형식 3 이다.
-    #
-    # 셋 다 **예외 없이 그럴듯한 파일이 나오는** 종류라 여기서 세워야 한다.
-    # 형식을 올릴 때(2 → 3) 이 검사도 함께 걷는다.
-    if spread:
-        head = ", ".join(f"{s} g{g}({n}개)" for s, g, n in spread[:5])
-        sys.exit(
-            f"교정이 (이미지, 묶음) 여럿에 걸친 시야가 {len(spread)}개다: {head}\n"
-            "  format 2 는 시야 하나에 그 짝 하나를 전제한다 — 그대로 쓰면\n"
-            "  한 파일 안에서 key 가 겹치고 어느 검출의 판단인지 사라진다.\n"
-            "  형식을 3 으로 올려야 한다 (P06 5단계 · P09 1단계).")
+    # **`done`·`note` 는 여전히 시야당 하나다.** 검토 완료의 단위를 시야로 두기로
+    # 했기 때문이다(P06 §8) — 그 시야의 이미지를 다 봐야 완료다.
     return out
 
 
 def render(v: dict) -> str:
     """개체 하나가 한 줄인 JSON. `json.dumps(indent=…)` 로는 안 된다 —
     폴리곤 좌표까지 한 줄씩 쪼개져 개체 하나가 40줄이 된다.
+
+    형식 3 은 그 위에 **`(이미지, 묶음)` 묶음 한 겹**이 더 있다. 묶음 머리도 한
+    줄로 적어 — 그래야 `git diff` 에서 "어느 판의 교정이 달라졌나" 가 한 줄로
+    보인다. 개체를 들여쓰기로만 가르면 어느 판에 속하는지 찾으려고 위로 거슬러
+    올라가야 한다.
     """
+    n_obj = sum(len(g["objects"]) for g in v["groups"])
     head = {"format": FORMAT, "slide": v["slide"], "gid": v["gid"],
             "tag": v["tag"], "done": v["done"], "note": v["note"],
-            "n_objects": len(v["objects"])}
+            "n_images": len(v["groups"]), "n_objects": n_obj}
     lines = ["{"]
     for k, val in head.items():
         lines.append(f"  {json.dumps(k)}: {json.dumps(val, ensure_ascii=False)},")
-    lines.append('  "objects": [')
-    for i, o in enumerate(v["objects"]):
-        comma = "" if i == len(v["objects"]) - 1 else ","
-        lines.append("    " + json.dumps(o, ensure_ascii=False,
-                                         separators=(", ", ": ")) + comma)
+    lines.append('  "images": [')
+    for gi, g in enumerate(v["groups"]):
+        gcomma = "" if gi == len(v["groups"]) - 1 else ","
+        lines.append("    {")
+        for k in ("image", "kind", "batch"):
+            lines.append(f"      {json.dumps(k)}: "
+                         f"{json.dumps(g[k], ensure_ascii=False)},")
+        lines.append(f'      "n_objects": {len(g["objects"])},')
+        lines.append('      "objects": [')
+        for i, o in enumerate(g["objects"]):
+            comma = "" if i == len(g["objects"]) - 1 else ","
+            lines.append("        " + json.dumps(o, ensure_ascii=False,
+                                                 separators=(", ", ": ")) + comma)
+        lines.append("      ]")
+        lines.append("    }" + gcomma)
     lines.append("  ]")
     lines.append("}")
     return "\n".join(lines) + "\n"
@@ -270,7 +300,7 @@ def main():
     finally:
         conn.close()
 
-    n_obj = sum(len(v["objects"]) for v in views.values())
+    n_obj = sum(len(g["objects"]) for v in views.values() for g in v["groups"])
     print(f"{args.db}\n  시야 {len(views)} · 교정 {n_obj}")
 
     want = {path_for(out_dir, slug, gid): render(v)
