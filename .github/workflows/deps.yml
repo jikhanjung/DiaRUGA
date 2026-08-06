@@ -30,8 +30,8 @@ jobs:
     name: 휠을 아직 받을 수 있는가
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -56,7 +56,7 @@ jobs:
     name: SAM-2 핀이 아직 있는가
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 핀한 커밋을 GitHub 에 물어본다
         run: |
           # requirements 에서 SHA 를 읽는다 — 여기 베껴 두면 핀을 옮길 때
