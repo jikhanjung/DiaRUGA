@@ -118,12 +118,43 @@ elif [ -n "$PY" ]; then
     fi
 fi
 
-# --- 5) nginx 를 거쳐서도 사는가 -------------------------------------------
+# --- 5) nginx 를 거쳐서도 사는가 · 링크를 만들 수 있는가 -------------------
 # 컨테이너만 보면 앞단이 끊긴 것을 못 본다. 사람이 실제로 쓰는 길로 한 번 더.
-site_code=$(curl -s -o /dev/null --max-time 10 -w '%{http_code}' \
+#
+# **여기서 목록을 한 번 그려 보는 것이 값을 한다** (057). 슬러그 하나가 URL 규칙
+# (`urls.py` 의 `<slug:slug>`)을 어기면 목록 템플릿이 링크를 만들다 죽어
+# **모든 화면이 500** 이 된다. `/healthz` 는 링크를 안 만들어 그때도 `ok` 였다.
+#
+# 그리고 **200 은 "떴다" 일 뿐이다.** 목록이 멀쩡해도 상세가 죽을 수 있으므로
+# 목록에서 링크를 하나 뽑아 따라가 본다 — 링크를 만들 수 있는가와 그 화면이
+# 그려지는가는 다른 물음이다.
+resp=$(curl -s --max-time 10 -w '\n%{http_code}' \
     -H "Host: $SMOKE_HOST" "$SITE" 2>/dev/null || true)
+site_code=$(printf '%s' "$resp" | tail -n1)
+site_html=$(printf '%s' "$resp" | sed '$d')
 case "$site_code" in
-    200) ok "nginx 경유 $SITE 200" ;;
+    200)
+        ok "nginx 경유 $SITE 200"
+        link=$(printf '%s' "$site_html" \
+               | grep -oE 'href="[^"]*/d/[^"/]+/"' | head -n1 \
+               | sed 's/^href="//; s/"$//')
+        if [ -z "$link" ]; then
+            # 자료가 있는데 링크가 없으면 목록이 반만 그려진 것이다.
+            # 자료 자체가 없는 경우는 4번이 이미 잡았다.
+            if [ "${S_SLIDE:-0}" -gt 0 ]; then
+                bad "목록이 200 인데 슬라이드 링크가 하나도 없다 (슬라이드 ${S_SLIDE}장)"
+            fi
+        else
+            origin=$(printf '%s' "$SITE" | grep -oE '^https?://[^/]+')
+            d_code=$(curl -s -o /dev/null --max-time 10 -w '%{http_code}' \
+                -H "Host: $SMOKE_HOST" "$origin$link" 2>/dev/null || true)
+            if [ "$d_code" = "200" ]; then
+                ok "시야 목록 $link 200"
+            else
+                bad "시야 목록이 200 이 아니다 (받은 것: ${d_code:-없음}) — $link"
+            fi
+        fi
+        ;;
     503) echo "  ! nginx 가 503 — 유지보수 안내 중이다 (깃발을 볼 것)" ;;
     *)   bad "nginx 경유가 200 이 아니다 (받은 것: ${site_code:-없음}) — $SITE" ;;
 esac

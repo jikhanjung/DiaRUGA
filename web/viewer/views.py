@@ -1134,7 +1134,10 @@ def healthz(request):
     if flags and info["status"] == "ok":
         info["status"] = "degraded"
     for f in flags:
-        notes.append(f"백업 실패 깃발 [{f['source']} {f['time']}] {f['reason']}")
+        # **"백업 실패" 라고 적지 않는다.** 깃발을 세우는 주인이 백업만이 아니다 —
+        # 폴러도 자동 처리 뒤 화면이 안 뜨면 여기 세운다(061). 원인을 짐작해 적으면
+        # 엉뚱한 곳을 파게 만든다(026 에서 그렇게 4시간 반을 잃었다).
+        notes.append(f"무결성 깃발 [{f['source']} {f['time']}] {f['reason']}")
 
     # 3) 백업 신선도. 문턱을 안 주면 알려만 준다 (settings.BACKUP_MAX_AGE_H 주석).
     age_h = None

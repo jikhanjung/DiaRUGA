@@ -29,6 +29,11 @@
 set -euo pipefail
 
 DEPLOY_DIR=/srv/DiaRUGA
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# 깃발을 세울 때만 쓴다. `db_sentinel.py` 는 Django 를 임포트하지 않고 DB 옆에
+# 텍스트 파일 한 줄을 놓으므로 호스트에서 도는 것이 규약에 걸리지 않는다
+# (`backup_db.py` 가 cron 으로 도는 것과 같은 이유).
+HOST_PY="${DIARUGA_PY:-$HOME/venv/DiaRUGA/bin/python}"
 LOG_DIR=/data3/DiaRUGA/logs
 LOCK=/tmp/DiaRUGA-poll.lock
 STABLE_MIN="${STABLE_MIN:-5}"   # 이만큼(분) 폴더가 안 변해야 가져온다
@@ -133,4 +138,30 @@ echo "$TODO" | while IFS=$'\t' read -r slug state image_dir; do
     fi
     say "$slug: 끝"
 done
+
+# 5) 자료를 바꿨으면 **화면이 그것을 그릴 수 있는지** 본다.
+#
+# **반입만으로 뷰어가 통째로 500 이 된 적이 있다** (057). 슬러그 하나가 URL 규칙
+# (`urls.py` 의 `<slug:slug>`)을 어기자 목록 템플릿이 링크를 만들다 죽었다 —
+# 그 슬라이드 한 장이 아니라 **모든 화면**이 안 떴고, 11분 36초 동안 아무도 몰랐다.
+#
+# `smoke.sh` 가 그 검사를 하고 있었지만 **배포할 때만 돈다.** 이 고장은 배포와
+# 무관하게 났다 — 자료가 들어오면서 났다. **자료를 바꾸는 자리가 여기다.**
+#
+# `/healthz` 로는 안 걸린다. 링크를 안 만드는 경로라 그때도 `ok` 였다.
+SITE="${DIARUGA_SITE:-http://127.0.0.1/DiaRUGA/}"
+SMOKE_HOST="${DIARUGA_SMOKE_HOST:-172.16.116.98}"
+page=$(curl -s -o /dev/null --max-time 20 -w '%{http_code}' \
+    -H "Host: $SMOKE_HOST" "$SITE" 2>/dev/null || true)
+if [ "$page" = "200" ]; then
+    say "뷰어 목록 200"
+else
+    say "!! 뷰어가 목록을 못 낸다 (HTTP ${page:-없음}) — 방금 반입·처리한 것을 볼 것"
+    # 로그에만 적으면 읽는 사람이 없는 동안 꺼진 안전망이다. `/healthz` 까지
+    # 나른다 — 뷰어의 상태와 `smoke.sh` 가 그 깃발을 본다 (034 · db_sentinel).
+    "$HOST_PY" "$REPO/db_sentinel.py" raise poll_nas \
+        "목록 페이지가 ${page:-무응답} 이다 (자동 처리 뒤). 새 슬라이드의 슬러그를 볼 것" \
+        >>"$LOG" 2>&1 || say "깃발을 세우지 못했다"
+fi
+
 say "=== 처리 끝 ==="
