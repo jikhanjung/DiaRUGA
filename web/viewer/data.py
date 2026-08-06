@@ -1959,14 +1959,27 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
             "않았다. batch_runs.py 로 묶은 뒤 다시 시도할 것")
 
     removed, accepted = set(removed), set(accepted)
-    # **고친 기하도 표시다** (P09 4단계). `keys` 에 안 넣으면 아래 삭제 줄이
-    # "표시가 사라진 행" 으로 보고 지운다 — 사람이 고친 마스크가 그 저장에서
-    # 곧바로 사라진다.
+    keys = removed | accepted | set(labels) | set(notes)
+
+    # **없는 것과 빈 것이 다르다** (`_save_drawn` 과 같은 규칙). `edits` 가 아예
+    # 없으면 **고치기를 모르는 옛 화면**이다 — 배포 중에 열려 있던 탭이 그렇고,
+    # 그 저장 한 번이 사람이 고친 기하를 전부 지우면 안 된다. 그때는 이미 고쳐
+    # 둔 행의 키를 `keys` 에 얹어 삭제 대상에서 뺀다.
+    #
+    # 있으면 **그것이 전부다** — 화면은 늘 전체를 보낸다(`drawn` 과 같다).
+    # 거기 없는 키는 고친 적이 없다는 말이고, `keys` 에 안 들어가면 아래 삭제
+    # 줄이 지운다.
+    if edits is None:
+        keys |= set(ObjectReview.objects
+                    .filter(image=image, batch=batch, geom_edited=True)
+                    .values_list("mask_key", flat=True))
     edits = {str(k): list(v or []) for k, v in (edits or {}).items()}
     for k, poly in edits.items():
         if poly:                       # 빈 것은 "엔진 것으로 되돌린다" 는 말이다
             check_polygon(poly, (cur.width, cur.height), k)
-    keys = removed | accepted | set(labels) | set(notes) | set(edits)
+    # **고친 기하도 표시다.** `keys` 에 안 넣으면 같은 저장의 마지막 줄이
+    # "표시가 사라진 행" 으로 보고 지운다.
+    keys |= set(edits)
     # **그 검출의 개체만 본다.** 예전에는 시야의 현재 검출 전부를 훑었는데,
     # 시야마다 현재 검출이 하나일 때만 같은 뜻이다 — 여럿이면 **프레임 A 의 키가
     # 프레임 B 의 화면에서 통과한다.** `mask_key` 는 프레임끼리 45% 겹치므로

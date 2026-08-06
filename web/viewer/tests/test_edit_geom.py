@@ -159,3 +159,39 @@ class EditGeomTest(DiaRUGATestCase):
         self.post(expect=409, edits={self.key: bad})
         self.post(expect=409, drawn=[{"key": "m0a1b2c3", "polygon": bad,
                                       "cls": "", "note": ""}])
+
+    # --- 화면을 나갔다 들어온 뒤 -------------------------------------------
+
+    def test_화면이_전체를_보내면_둘_다_남는다(self):
+        """**`edits` 는 전체 상태다** — `drawn` 과 같은 규칙.
+
+        사용자가 미리보기에서 잡은 것이 이 갈래였다: "다른 마스크를 수정하고
+        나갔다 들어오면 앞의 것이 되어 있는 경우도 있고 아닌 경우도 있다."
+        화면이 **이번에 고친 것만** 보내고 있었고, `save_review` 는 `keys` 에
+        없는 행을 지운다. 분류·코멘트가 함께 붙어 있으면 `labels`·`notes` 를
+        타고 살아남아서 **되는 경우와 안 되는 경우가 갈렸다.**
+        """
+        k0, k1 = self.w.keys()[0], self.w.keys()[1]
+        other = [170, 140, 200, 140, 200, 170, 170, 170]
+        self.post(edits={k0: TIGHT})
+        # 화면이 아는 전부 — 앞서 고친 것까지 함께 보낸다
+        self.post(edits={k0: TIGHT, k1: other})
+
+        self.assertTrue(
+            ObjectReview.objects.filter(mask_key=k0, geom_edited=True).exists(),
+            "앞서 고친 마스크가 사라졌다")
+        self.assertTrue(
+            ObjectReview.objects.filter(mask_key=k1, geom_edited=True).exists())
+
+    def test_edits_가_없으면_고친_것을_안_지운다(self):
+        """**고치기를 모르는 옛 화면**이다 — 배포 중에 열려 있던 탭이 그렇고,
+        그 저장 한 번이 사람이 고친 기하를 전부 지우면 안 된다.
+
+        `drawn` 과 같은 규칙이다: 없는 것과 빈 것은 다른 말이다.
+        """
+        self.post(edits={self.key: TIGHT})
+        self.post(done=True)                    # edits 를 아예 안 보낸다
+        self.assertTrue(
+            ObjectReview.objects.filter(mask_key=self.key,
+                                        geom_edited=True).exists(),
+            "옛 탭의 저장이 고친 기하를 지웠다")

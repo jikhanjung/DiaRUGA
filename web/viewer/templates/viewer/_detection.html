@@ -1211,7 +1211,29 @@
         // 갈리므로 이 목록도 함께 간다.
         // **엔진 개체의 고친 기하** (P09 4단계). `{키: 폴리곤}` 이고 빈 배열은
         // "엔진 것으로 되돌린다" 는 말이다.
-        edits: edits,
+        //
+        // **화면이 아는 전부를 보낸다 — `edits` 만 보내면 안 된다.** 그 지도는
+        // *이번에 연 화면에서* 고친 것만 담는다. 화면을 나갔다 들어오면 비어
+        // 있고, 그 상태에서 다른 마스크를 고치면 payload 에 그것 하나만 실린다 —
+        // `save_review` 는 `keys` 에 없는 행을 지우므로 **앞서 고친 것이
+        // 사라진다.** 분류·코멘트가 함께 붙어 있으면 `labels`·`notes` 를 타고
+        // 살아남아서, "되는 경우도 있고 아닌 경우도" 가 된다.
+        //
+        // `drawn` 이 `cands` 에서 뽑히는 것과 같은 규칙으로 맞춘다 —
+        // **뷰어는 늘 전체를 보낸다.**
+        edits: (function () {
+          var out = {};
+          cands.forEach(function (c) {
+            if (!isManual(c) && c.geom_edited && c.polygon && c.polygon.length) {
+              out[keyOf(c)] = c.polygon;
+            }
+          });
+          // 되돌리기(빈 배열)는 개체에 안 남으므로 지도 쪽이 이긴다.
+          Object.keys(edits).forEach(function (k) {
+            if (!edits[k] || !edits[k].length) out[k] = [];
+          });
+          return out;
+        })(),
         drawn: cands.filter(isManual).map(function (c) {
           return { key: keyOf(c), polygon: c.polygon,
                    cls: c.cls || '', note: c.note || '' };
