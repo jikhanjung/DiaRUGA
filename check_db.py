@@ -39,7 +39,8 @@ from django.db.models import Count                                  # noqa: E402
 
 import judge                                                        # noqa: E402
 from viewer.models import (Candidate, ClassDef, Detection, Frame,    # noqa: E402
-                           ObjectReview, Slide, Stack, Viewpoint,
+                           Locality, ObjectReview, Sample, Slide,
+                           Stack, Viewpoint,
                            ViewpointReview)
 
 VERBOSE = False
@@ -278,6 +279,51 @@ def check_skeleton(slug=None):
 
 
 # --- 6. 문턱이 갈라져 있는가 -------------------------------------------------
+def check_layers(slug=None):
+    """층이 앞뒤가 맞는가 — 지역 → 지점 → 시료 → 관찰 (P07).
+
+    **여기서 잡는 것은 예외가 안 나고 그냥 틀린 상태다.** 소속을 잃은 관찰은
+    어느 권역 탭에도 안 나와 화면에서 통째로 사라진다(`BP09-0901 (1)` 이 그랬다).
+    500 도 404 도 아니고, 목록을 세어 보기 전에는 알 수가 없다.
+    """
+    qs = Slide.objects.all()
+    if slug:
+        qs = qs.filter(slug=slug)
+    sl = list(qs.select_related("sample__locality__site"))
+
+    orphan = [s for s in sl if not s.sample_id]
+    report("관찰에 시료가 붙어 있다", len(orphan), len(sl),
+           "어느 권역 탭에도 안 나와 화면에서 사라진다",
+           [s.slug for s in orphan])
+
+    # 지점 유형과 시료의 위치 칸이 맞는가. 노두인데 깊이가 있거나 그 반대면
+    # 정렬이 엉키고 축이 없는 값을 그리려 든다.
+    sm = Sample.objects.select_related("locality")
+    if slug:
+        sm = sm.filter(slides__slug=slug).distinct()
+    sm = list(sm)
+    bad = [x for x in sm
+           if (x.locality.kind == "outcrop" and x.depth_cm is not None)
+           or (x.locality.kind == "core" and x.sample_no is not None)]
+    report("시료의 위치 칸이 지점 유형과 맞는다", len(bad), len(sm),
+           "노두에 깊이가 있거나 시추코어에 단면 번호가 있다",
+           [f"{x.locality.code}/{x.code}" for x in bad])
+
+    # 위치가 아예 없는 시료. 정렬에서 뒤로 밀리고 축에 안 놓인다 — 틀린 것은
+    # 아니지만 사람이 채워야 할 자리라 세어 준다.
+    nopos = [x for x in sm if x.position is None]
+    report("시료에 위치가 있다", len(nopos), len(sm),
+           "축에 안 놓이고 정렬에서 뒤로 밀린다",
+           [f"{x.locality.code}/{x.code}" for x in nopos])
+
+    # 시료가 하나도 없는 지점. 지우다 만 자리이거나 사람이 미리 만든 것이다.
+    empty = [c for c in Locality.objects.all() if not c.samples.exists()]
+    if not slug:
+        report("지점에 시료가 있다", len(empty), Locality.objects.count(),
+               "빈 지점이 목록·지도에 자리만 차지한다",
+               [f"{c.site.code}/{c.code}" for c in empty])
+
+
 def check_thresholds(slug=None):
     """문턱은 **슬라이드 안에서** 하나여야 한다.
 
@@ -335,6 +381,8 @@ def main():
     check_skeleton(args.slide)
     print("\n=== 6. 문턱 ===")
     check_thresholds(args.slide)
+    print("\n=== 7. 층 (지역·지점·시료·관찰) ===")
+    check_layers(args.slide)
 
     print()
     if problems:

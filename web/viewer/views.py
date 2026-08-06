@@ -17,7 +17,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import antarctica, data, korea, regroup, thresholds as th
-from .models import (Core, Detection, ObjectReview, Run, Site,  # noqa: E501
+from .models import (Detection, Locality, ObjectReview, Run,  # noqa: E501
+                     Sample, Site,
                      Slide, ThresholdSet, Viewpoint)
 
 import sys
@@ -77,7 +78,7 @@ def index(request):
         "datasets": shown,
         # 표·카드 둘 다 코어로 묶어 낸다. 코어가 분석의 단위이고(깊이에 따른
         # 변화가 목적이다) 슬라이드가 늘수록 평평한 목록은 못 읽는다.
-        "groups": data.datasets_by_core(rows, with_hidden),
+        "groups": data.datasets_by_locality(rows, with_hidden),
         "area": area,
         "show_map": show_map,
         # **합계만은 숨긴 것까지 센다** — 토글이 숫자를 흔들면 안 된다.
@@ -221,16 +222,25 @@ def mark_all(request, slug):
                     f"?marked={want}&n={out['changed']}")
 
 
-def core_page(request, site_code, core_code):
-    """코어 하나 — 깊이 방향으로 본 화면. 근거는 `data.core_detail()` 머리말.
+def core_redirect(request, site_code, core_code):
+    """옛 `/core/…` 주소를 새 `/loc/…` 로 보낸다.
 
-    **읽기 전용이다.** 속성은 `/d/<slug>/edit/` 이 고친다 — 같은 `Core`·`Site`
-    행에 쓰는 문을 둘로 만들지 않는다.
+    **301 이 아니라 302 다.** 영구 리다이렉트는 브라우저가 캐시해서, 나중에
+    주소 규칙을 다시 손볼 때 되돌릴 방법이 없다.
+    """
+    return redirect("core", site_code=site_code, core_code=core_code)
+
+
+def core_page(request, site_code, core_code):
+    """지점 하나 — 위치 방향으로 본 화면. 근거는 `data.locality_detail()` 머리말.
+
+    **읽기 전용이다.** 속성은 `/d/<slug>/edit/` 이 고친다 — 같은 `Locality`·
+    `Site` 행에 쓰는 문을 둘로 만들지 않는다.
     """
     with_hidden = _with_hidden(request)
-    ctx = data.core_detail(site_code, core_code, with_hidden)
+    ctx = data.locality_detail(site_code, core_code, with_hidden)
     if ctx is None:
-        raise Http404(f"unknown core: {site_code}/{core_code}")
+        raise Http404(f"unknown locality: {site_code}/{core_code}")
     return render(request, "viewer/core.html", {**ctx,
                                                 "with_hidden": with_hidden})
 
@@ -333,113 +343,123 @@ def _num(raw, cast=float):
 
 
 def dataset_edit(request, slug):
-    """슬라이드·코어·지역의 속성을 사람이 채우는 화면.
+    """관찰·시료·지점·지역의 속성을 사람이 채우는 화면. 층 넷을 한 폼으로 낸다.
 
-    폴더 이름에서 뽑을 수 있는 것(지역 코드·코어 코드·깊이)은 파이프라인이 채워
+    폴더 이름에서 뽑을 수 있는 것(지역·지점·시료 코드·위치)은 파이프라인이 채워
     두었고, 뽑을 수 없는 것(정식 명칭·좌표·수심·채취일)은 비어 있다. 코드만으로
     "RS = 로스해" 를 단정하지 않는다 — `models.Site` 머리말이 정한 방침이다.
     화면에서는 그것을 **추천으로만** 보여 주고 사람이 확인해 넣게 한다.
 
-    **지역과 코어는 여러 슬라이드가 공유한다.** 여기서 고치면 같은 코어의 다른
-    깊이 슬라이드에도 반영되므로, 몇 개가 함께 바뀌는지 미리 알린다.
+    **위 세 층은 여러 관찰이 공유한다.** 여기서 고치면 같은 시료의 다른 관찰,
+    같은 지점의 다른 시료에도 반영되므로 몇 개가 함께 바뀌는지 미리 알린다.
+
+    **소속이 없으면 붙이거나 만든다.** 폴더 이름이 규칙에 안 맞으면 파이프라인이
+    아무것도 못 붙이는데(실제로 `BP09-0901` 이 그랬다), 여기서 만들 수 없으면
+    영영 붙일 길이 없다 — 지역이 없는 관찰은 어느 권역 탭에도 안 나온다.
     """
-    slide = Slide.objects.filter(slug=slug).select_related(
-        "core", "core__site").first()
+    slide = (Slide.objects.filter(slug=slug)
+             .select_related("sample__locality__site").first())
     if slide is None:
         raise Http404(f"unknown dataset: {slug}")
-    core = slide.core
-    site = core.site if core else None
+    sample = slide.sample
+    loc = sample.locality if sample else None
+    site = loc.site if loc else None
 
-    # 이 슬라이드가 처음부터 들고 있던 코어인가. **폼의 코어·지역 칸을 저장에
-    # 쓸지 말지가 여기서 갈린다** — 화면은 이 시점의 `core`·`site` 로 그려지므로,
-    # 코어가 없던 슬라이드의 코어 탭은 **빈 칸**이다. 그 빈 칸을 남의 코어에
-    # 그대로 쓰면 이미 채워 둔 좌표·수심·해역이 지워진다 (아래 `own_*`).
-    had_core, had_site = core is not None, site is not None
+    # 이 관찰이 처음부터 들고 있던 소속인가. **폼의 시료·지점·지역 칸을 저장에
+    # 쓸지 말지가 여기서 갈린다** — 화면은 이 시점의 값으로 그려지므로, 소속이
+    # 없던 관찰의 탭은 **빈 칸**이다. 그 빈 칸을 남의 행에 그대로 쓰면 이미
+    # 채워 둔 좌표·수심·해역이 지워지고, 그 행을 쓰는 관찰 전부가 함께 당한다.
+    had = {"sample": sample is not None, "loc": loc is not None,
+           "site": site is not None}
 
-    errors, saved = [], False
+    errors, saved, messages_made = [], False, ""
     if request.method == "POST":
         p = request.POST
-        # **없으면 만든다.** 폴더 이름이 `<지역>-<코어> <깊이>cm` 꼴이 아니면
-        # 파이프라인이 코어를 못 붙인다(실제로 `BP09-0901` 이 그랬다). 그런
-        # 슬라이드는 어느 권역 탭에도 안 나오는데, 여기서 지역을 만들 수 없으면
-        # 영영 붙일 길이 없다 — 안내문이 "속성 편집에서 지정하면" 이라고 적어
-        # 놓고 실제로는 안 되는 상태였다.
+        made = {"sample": False, "loc": False, "site": False}
+
+        # --- 1) 이미 있는 시료에 그대로 붙이는 길 -------------------------
+        #
+        # 코드를 세 칸에 다시 받아 적게 하는 것이 코드를 맞히기 놀이가 됐다 —
+        # `BP09-0901 (1)` 을 붙이려고 시료 코드만 적으면 **아무 일도 안 일어나고
+        # "저장했습니다" 가 떴다.** 골라서 붙이는 길을 따로 둔다.
+        attach = (p.get("attach_sample") or "").strip()
+        if sample is None and attach:
+            sample = (Sample.objects.select_related("locality__site")
+                      .filter(pk=attach).first())
+            if sample is None:
+                errors.append("고른 시료를 찾지 못했습니다.")
+            else:
+                loc, site = sample.locality, sample.locality.site
+
+        # --- 2) 코드를 적어 새로 만드는 길 --------------------------------
         #
         # **같은 코드가 이미 있으면 그것에 붙인다.** 새로 만들면 unique 로 죽고,
-        # 무엇보다 같은 지역이 둘로 갈라진다.
+        # 무엇보다 같은 지역·지점이 둘로 갈라진다.
         site_code = (p.get("site_code") or "").strip()
-        core_code = (p.get("core_code") or "").strip()
-        made_site = made_core = False
-
-        # **이미 있는 코어에 그대로 붙이는 길.** 코드를 두 칸에 다시 받아 적게
-        # 하는 것이 코드를 맞히기 놀이가 됐다 — `BP09-0901 (1)` 을 `BP09` 코어에
-        # 넣으려고 코어 코드만 적으면 **아무 일도 안 일어나고 "저장했습니다" 가
-        # 뜬다**(지역이 비어 있어 아래 갈래가 통째로 건너뛴다). 실제로 그렇게
-        # 한 번 헛돌았다. 골라서 붙이는 길을 따로 둔다.
-        attach = (p.get("attach_core") or "").strip()
-        if core is None and attach:
-            core = (Core.objects.select_related("site")
-                    .filter(pk=attach).first())
-            if core is None:
-                errors.append("고른 코어를 찾지 못했습니다.")
-            else:
-                site = core.site
-
-        if core is None and site is None and site_code:
+        loc_code = (p.get("core_code") or "").strip()
+        sample_code = (p.get("sample_code") or "").strip()
+        if sample is None and site is None and site_code:
             site = Site.objects.filter(code=site_code).first()
             if site is None:
-                site, made_site = Site(code=site_code), True
-        if core is None and core_code and site is not None:
-            core = (Core.objects.filter(site=site, code=core_code).first()
-                    if site.pk else None)
-            if core is None:
-                core, made_core = Core(site=site, code=core_code), True
-        # 코어 코드만 적고 지역을 비운 경우. 예전에는 조용히 통과했다 —
-        # **아무것도 안 한 저장이 성공으로 보이면 사람이 같은 일을 다시 한다.**
-        if core is None and core_code and not attach:
-            errors.append(
-                "코어를 붙이려면 지역도 함께 정해야 합니다 — 위의 "
-                "**기존 코어에 붙이기** 에서 고르거나, 지역 탭에 지역 코드를 "
-                "넣으세요.")
+                site, made["site"] = Site(code=site_code), True
+        if sample is None and loc is None and loc_code and site is not None:
+            loc = (Locality.objects.filter(site=site, code=loc_code).first()
+                   if site.pk else None)
+            if loc is None:
+                loc, made["loc"] = Locality(site=site, code=loc_code), True
+        if sample is None and sample_code and loc is not None:
+            sample = (Sample.objects.filter(locality=loc, code=sample_code)
+                      .first() if loc.pk else None)
+            if sample is None:
+                sample = Sample(locality=loc, code=sample_code)
+                made["sample"] = True
 
-        # 남의 코어·지역에 붙기만 하는 것인가. 그렇다면 폼의 빈 칸을 쓰지 않는다.
-        own_core, own_site = had_core or made_core, had_site or made_site
+        # 아래 칸만 적고 위를 비운 경우. 예전에는 조용히 통과했다 —
+        # **아무것도 안 한 저장이 성공으로 보이면 사람이 같은 일을 다시 한다.**
+        if sample is None and (sample_code or loc_code) and not attach:
+            errors.append(
+                "시료를 붙이려면 지역·지점·시료 코드를 모두 채워야 합니다 — "
+                "위의 기존 시료에 붙이기 에서 고르는 쪽이 안전합니다.")
+
+        own = {k: had[k] or made[k] for k in had}
         try:
             slide.name = (p.get("slide_name") or slide.name).strip()
-            # 목록·상세가 깊이 칸을 가르는 값이라 아무 문자열이나 들어오면
-            # 안 된다. 모르는 값이 오면 조용히 바꾸지 않고 그대로 둔다
-            # (지역 권역을 다루는 방식과 같다).
-            k = (p.get("sample_kind") or "").strip()
-            if k in dict(Slide.KIND):
-                slide.sample_kind = k
-            # **노두 시료의 깊이는 건드리지 않는다.** 화면이 그 칸을 잠그면
-            # 브라우저가 값을 안 보내는데, 그것을 "비웠다" 로 읽으면 종류를
-            # 잘못 골랐다가 되돌릴 때 깊이가 이미 사라져 있다.
-            if slide.sample_kind != "outcrop":
-                slide.depth_cm = _num(p.get("depth_cm"))
             slide.description = (p.get("description") or "").strip()
             slide.um_per_pixel_override = _num(p.get("um_per_pixel_override"))
             # 관찰 이름표. **`obs_no` 는 여기서 못 고친다** — 폴더 접미사가
-            # 정하는 자동값이라 사람이 고쳐 봐야 다음 반입에 덮인다. 그래서
-            # 칸이 둘이고, 사람이 쓰는 것은 이쪽 하나다.
+            # 정하는 자동값이라 사람이 고쳐 봐야 다음 반입에 덮인다.
             slide.obs_label = (p.get("obs_label") or "").strip()[:10]
             # 체크박스는 안 켜면 아무것도 안 보낸다 — 없는 것이 곧 꺼짐이다.
             slide.hide_in_list = bool(p.get("hide_in_list"))
             slide.exclude_from_totals = bool(p.get("exclude_from_totals"))
-            # **붙이기만 할 때는 코어·지역 칸을 안 쓴다.** 그 칸들은 이 슬라이드에
-            # 코어가 없던 시점에 그려져 전부 비어 있다 — 그대로 저장하면 남이
-            # 채워 둔 좌표·수심·해역·권역이 빈 값으로 덮인다. 같은 코어를 쓰는
-            # 슬라이드 전부가 함께 당한다.
-            if core and own_core:
-                core.code = (p.get("core_code") or core.code).strip()
-                core.kind = (p.get("core_kind") or "").strip()
-                core.lat = _num(p.get("core_lat"))
-                core.lon = _num(p.get("core_lon"))
-                core.water_depth_m = _num(p.get("core_water_depth"))
+
+            # **붙이기만 할 때는 위 세 층의 칸을 안 쓴다** (`own`).
+            if sample and own["sample"]:
+                sample.code = (p.get("sample_code") or sample.code).strip()
+                sample.note = (p.get("sample_note") or "").strip()
+                # **지점 유형이 어느 칸을 쓸지 정한다.** 화면이 안 쓰는 칸을
+                # 잠그면 브라우저가 값을 안 보내는데, 그것을 "비웠다" 로 읽으면
+                # 유형을 잘못 골랐다 되돌릴 때 값이 이미 사라져 있다.
+                kind = (p.get("locality_kind") or "").strip()
+                kind = kind if kind in dict(Locality.KIND) else (
+                    loc.kind if loc else "core")
+                if kind == "outcrop":
+                    sample.sample_no = _num(p.get("sample_no"), int)
+                else:
+                    sample.depth_cm = _num(p.get("depth_cm"))
+            if loc and own["loc"]:
+                loc.code = (p.get("core_code") or loc.code).strip()
+                k = (p.get("locality_kind") or "").strip()
+                if k in dict(Locality.KIND):
+                    loc.kind = k
+                loc.collect_kind = (p.get("core_kind") or "").strip()
+                loc.lat = _num(p.get("core_lat"))
+                loc.lon = _num(p.get("core_lon"))
+                loc.water_depth_m = _num(p.get("core_water_depth"))
                 d = (p.get("core_collected_at") or "").strip()
-                core.collected_at = date.fromisoformat(d) if d else None
-                core.note = (p.get("core_note") or "").strip()
-            if site and own_site:
+                loc.collected_at = date.fromisoformat(d) if d else None
+                loc.note = (p.get("core_note") or "").strip()
+            if site and own["site"]:
                 site.code = (p.get("site_code") or site.code).strip()
                 site.name = (p.get("site_name") or "").strip()
                 site.region = (p.get("site_region") or "").strip()
@@ -455,55 +475,54 @@ def dataset_edit(request, slug):
             errors.append(f"값을 읽지 못했습니다: {e}")
 
         if not errors:
-            # 셋을 한 덩어리로 저장한다. 코어만 바뀌고 지역이 안 바뀌면
-            # 화면에 보이는 것과 저장된 것이 어긋난다.
+            # 넷을 한 덩어리로 저장한다. 아래만 바뀌고 위가 안 바뀌면 화면에
+            # 보이는 것과 저장된 것이 어긋난다.
             try:
-                attached = core is not None and slide.core_id != core.pk
+                attached = sample is not None and slide.sample_id != sample.pk
                 with transaction.atomic():
-                    # 붙이기만 하는 코어·지역은 저장하지 않는다 — 이 폼에서 온
-                    # 값이 하나도 없어 쓸 것이 없다
-                    if site and own_site:
+                    if site and own["site"]:
                         site.save()
-                    if core and own_core:
-                        # 새로 만든 지역이면 이제야 pk 가 생긴다
-                        core.site = site
-                        core.save()
-                    # 코어가 없던 슬라이드를 이제 매단다
+                    if loc and own["loc"]:
+                        loc.site = site          # 새로 만든 지역이면 이제야 pk
+                        loc.save()
+                    if sample and own["sample"]:
+                        sample.locality = loc
+                        sample.save()
                     if attached:
-                        slide.core = core
+                        slide.sample = sample
                     slide.save()
                 saved = True
-                if made_site or made_core:
-                    made = " · ".join(
-                        x for x in (f"지역 {site.code}" if made_site else "",
-                                    f"코어 {core.code}" if made_core else "") if x)
-                    messages_made = f"{made} 을(를) 새로 만들어 붙였습니다."
+                new = " · ".join(x for x in (
+                    f"지역 {site.code}" if made["site"] else "",
+                    f"지점 {loc.code}" if made["loc"] else "",
+                    f"시료 {sample.code}" if made["sample"] else "") if x)
+                if new:
+                    messages_made = f"{new} 을(를) 새로 만들어 붙였습니다."
                 elif attached:
-                    # **무엇에 붙었는지 적는다.** 코드를 고르는 화면이라 엉뚱한
-                    # 코어를 골랐을 때 사람이 알아챌 자리가 여기밖에 없다
-                    messages_made = (f"{site.code} · {core.code} 코어에 "
-                                     f"붙였습니다.")
-                else:
-                    messages_made = ""
+                    # **무엇에 붙었는지 적는다.** 고르는 화면이라 엉뚱한 시료를
+                    # 골랐을 때 사람이 알아챌 자리가 여기밖에 없다.
+                    messages_made = (f"{site.code} · {loc.code} · {sample.code} "
+                                     f"시료에 붙였습니다.")
             except IntegrityError as e:
                 errors.append(f"같은 코드가 이미 있습니다: {e}")
-                messages_made = ""
 
-    # 붙일 수 있는 코어 목록. 코어가 이미 있으면 안 만든다 — 코어를 **옮기는**
-    # 것은 다른 일이다(같은 코어를 쓰는 슬라이드 전부가 걸린 값을 건드린다).
-    core_choices, sibling = [], None
-    if core is None:
-        for c in (Core.objects.select_related("site")
-                  .order_by("site__code", "code")):
-            core_choices.append({
-                "pk": c.pk, "site_code": c.site.code, "code": c.code,
-                "label": c.site.region or c.site.name or "",
-                "n_slides": c.slides.count(),
+    # 붙일 수 있는 시료 목록. 이미 시료가 있으면 안 만든다 — 시료를 **옮기는**
+    # 것은 다른 일이다(관리 화면이 맡는다).
+    sample_choices, sibling = [], None
+    if sample is None:
+        for sm in (Sample.objects.select_related("locality__site")
+                   .order_by("locality__site__code", "locality__code",
+                             "depth_cm", "sample_no", "code")):
+            sample_choices.append({
+                "pk": sm.pk,
+                "site_code": sm.locality.site.code,
+                "loc_code": sm.locality.code,
+                "code": sm.code,
+                "label": sm.locality.site.region or sm.locality.site.name or "",
+                "n_slides": sm.slides.count(),
             })
         # 같은 시료의 다른 관찰이 이미 어딘가 붙어 있으면 그것이 답이다.
-        # `BP09-0901 (1)` 이 `BP09-0901` 을 찾아내는 자리 — 폴더 이름이 규칙에
-        # 안 맞아 파이프라인이 아무것도 못 붙인 슬라이드의 유일한 근거다.
-        sibling = next((s for s in slide.sibling_observations() if s.core_id),
+        sibling = next((s for s in slide.sibling_observations() if s.sample_id),
                        None)
 
     scales = data.scales_by_slide()
@@ -511,28 +530,34 @@ def dataset_edit(request, slug):
         "slug": slug,
         "label": slide.name,
         "slide": slide,
-        "core": core,
+        "sample": sample,
+        "core": loc,
         "site": site,
-        "core_choices": core_choices,
+        "locality_kinds": Locality.KIND,
+        "sample_choices": sample_choices,
         "sibling": sibling,
-        "sibling_core_pk": sibling.core_id if sibling else None,
-        "core_code": core.code if core else "-",
+        "sibling_sample_pk": sibling.sample_id if sibling else None,
+        "core_code": loc.code if loc else "-",
         "site_code": site.code if site else "-",
-        "n_slides_core": core.slides.count() if core else 0,
-        "n_slides_site": (Slide.objects.filter(core__site=site).count()
-                          if site else 0),
+        "sample_code": sample.code if sample else "-",
+        "n_slides_sample": sample.slides.count() if sample and sample.pk else 0,
+        "n_samples_loc": loc.samples.count() if loc and loc.pk else 0,
+        "n_slides_site": (Slide.objects.filter(
+            sample__locality__site=site).count() if site and site.pk else 0),
         "n_viewpoints": slide.viewpoints.count(),
         "n_frames": slide.frames.count(),
         "site_areas": Site.AREA,
         "um_per_pixel": scales.get(slug),
         "errors": errors,
         "saved": saved,
-        "made": locals().get("messages_made", ""),
-        # 지역·코어가 아직 없으면 화면이 그렇게 말해야 한다 — 빈 칸만 보이면
-        # "고치는 곳" 으로 읽히지 "만드는 곳" 으로는 안 읽힌다.
+        "made": messages_made,
+        # 아직 없는 층은 화면이 그렇게 말해야 한다 — 빈 칸만 보이면 "고치는 곳"
+        # 으로 읽히지 "만드는 곳" 으로는 안 읽힌다.
         "no_site": site is None,
-        "no_core": core is None,
+        "no_core": loc is None,
+        "no_sample": sample is None,
     })
+
 
 
 # 표 한 장에 몇 줄까지 낼 것인가. 369cm 슬라이드가 1,166줄이라 전부 내면

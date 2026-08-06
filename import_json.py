@@ -42,7 +42,8 @@ from django.utils import timezone                                   # noqa: E402
 
 from viewer.images import (ensure_frame_image, ensure_image,
                           ensure_stack_images)
-from viewer.models import (Candidate, ClassDef, Core, Detection,     # noqa: E402
+from viewer.models import (Candidate, ClassDef, Detection,           # noqa: E402
+                           Locality, Sample,
                            Frame, ObjectReview, Run, Setting, Site,
                            Slide, Stack, ThresholdSet, Viewpoint,
                            ViewpointReview)
@@ -73,36 +74,10 @@ def rel(p) -> str:
         return str(p)
 
 
-# "RS23-GC03 71cm" -> 지역 RS23 · 코어 GC03 · 깊이 71cm
-SAMPLE_NAME = re.compile(
-    r"^\s*(?P<site>[A-Za-z]+\d*)-(?P<core>[A-Za-z]+\d*)"
-    r"(?:\s+(?P<depth>[\d.]+)\s*cm)?", re.I)
-
-
-def parse_sample_name(name: str):
-    """폴더명에서 지역·코어·깊이를 뽑는다. 못 읽으면 (None, None, None).
-
-    통짜 문자열로 두면 깊이순 정렬도 지역별 묶음도 안 된다 — 같은 코어의 깊이
-    변화와 지역별 차이가 이 시료의 분석 목적이다.
-    """
-    m = SAMPLE_NAME.match(name or "")
-    if not m:
-        return None, None, None
-    depth = m.group("depth")
-    return (m.group("site").upper(), m.group("core").upper(),
-            float(depth) if depth else None)
-
-
-# 관찰 접미사 `(1)`·`(2)`. **정본은 `group_focus_series.parse_obs_no` 다** —
-# 고칠 때 둘을 함께 본다. 여기서 임포트하지 않는 이유는 그 모듈이 cv2 를 끌고
-# 오기 때문이다(이 스크립트는 그것 없이 도는 자리에서도 불린다). `parse_sample_name`
-# 이 이미 같은 이유로 두 벌이다.
-OBS_SUFFIX = re.compile(r"\s*\((\d+)\)\s*$")
-
-
-def parse_obs_no(folder: str) -> int:
-    m = OBS_SUFFIX.search(folder or "")
-    return int(m.group(1)) if m else 0
+# 폴더 이름 규칙은 `viewer/naming.py` 하나뿐이다. 예전에는 이 파일과
+# `group_focus_series.py` 에 같은 정규식이 두 벌 있었다 — 그쪽이 cv2 를 끌고 와서
+# 임포트할 수 없었기 때문인데, `naming` 은 Django 도 cv2 도 안 부른다.
+from viewer.naming import parse_folder, parse_obs_no                # noqa: E402,F401
 
 
 def mask_key(bbox) -> str:
@@ -165,15 +140,21 @@ def import_slides(only=None, read_xml=True):
         meta = json.loads(path.read_text(encoding="utf-8"))
         image_dir = meta["dir"]
         folder = Path(image_dir).name
-        site_code, core_code, depth = parse_sample_name(folder)
-        core = None
-        if site_code and core_code:
-            site, _ = Site.objects.get_or_create(code=site_code)
-            core, _ = Core.objects.get_or_create(site=site, code=core_code)
+        f = parse_folder(folder)
+        sample = None
+        if f["site_code"] and f["loc_code"] and f["sample_code"]:
+            site, _ = Site.objects.get_or_create(code=f["site_code"])
+            loc, _ = Locality.objects.get_or_create(
+                site=site, code=f["loc_code"],
+                defaults={"kind": f["loc_kind"] or "core"})
+            sample, _ = Sample.objects.get_or_create(
+                locality=loc, code=f["sample_code"],
+                defaults={"depth_cm": f["depth_cm"],
+                          "sample_no": f["sample_no"]})
         slide, _ = Slide.objects.update_or_create(
             slug=slug,
-            defaults=dict(name=folder, image_dir=image_dir, core=core,
-                          depth_cm=depth, obs_no=parse_obs_no(folder),
+            defaults=dict(name=folder, image_dir=image_dir, sample=sample,
+                          obs_no=parse_obs_no(folder),
                           corr_thresh=meta.get("corr_thresh"), state="done"))
         n_sl += 1
 
@@ -218,10 +199,10 @@ def import_slides(only=None, read_xml=True):
     run.counts = {"slides": n_sl, "viewpoints": n_vp, "frames": n_fr, "xml": n_xml}
     run.save()
     print(f"  슬라이드 {n_sl} · 시야 {n_vp} · 프레임 {n_fr} (XML 읽음 {n_xml})")
-    for c in Core.objects.select_related("site"):
-        depths = sorted(d for d in c.slides.values_list("depth_cm", flat=True) if d)
-        print(f"  {c.site.code} · 코어 {c.code} · 깊이 "
-              f"{', '.join(f'{d:g}cm' for d in depths) or '-'}")
+    for c in Locality.objects.select_related("site"):
+        codes = [sm.code for sm in c.samples.all()]
+        print(f"  {c.site.code} · 지점 {c.code}({c.kind}) · 시료 "
+              f"{', '.join(codes) or '-'}")
 
 
 # --- 2) stacked/ ----------------------------------------------------------

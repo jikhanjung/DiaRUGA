@@ -58,26 +58,14 @@ from django.utils import timezone                                   # noqa: E402
 import zen_meta                                                     # noqa: E402
 import runlog                                                       # noqa: E402
 from viewer.images import ensure_frame_image
-from viewer.models import (Core, Frame, Site, Slide, Viewpoint)     # noqa: E402
+from viewer.models import (Frame, Locality, Sample, Site,           # noqa: E402
+                           Slide, Viewpoint)
 # XML 을 찾는 규칙은 zen_meta 한 곳에만 둔다
 from zen_meta import read_timestamp                                 # noqa: E402
 
 THUMB_W = 256
 
-# "RS23-GC03 71cm" -> 지역 RS23 · 코어 GC03 · 깊이 71cm (import_json.py 와 같다)
 import re                                                           # noqa: E402
-SAMPLE_NAME = re.compile(
-    r"^(?P<site>[A-Za-z0-9]+)-(?P<core>[A-Za-z0-9]+)\s+(?P<depth>[\d.]+)\s*cm",
-    re.IGNORECASE)
-
-
-def parse_sample_name(folder: str):
-    m = SAMPLE_NAME.match(folder)
-    if not m:
-        return None, None, None
-    d = m.group("depth")
-    return (m.group("site").upper(), m.group("core").upper(),
-            float(d) if d else None)
 
 
 def git_version():
@@ -204,65 +192,47 @@ def slide_slug(slide_dir: Path) -> str:
     return re.sub(r"_+", "_", re.sub(r"[^a-z0-9_-]+", "_", raw)).strip("_")
 
 
-# 관찰 접미사 — 시료 하나를 처리 방법을 달리해 여러 번 관찰한 것.
-# **폴더에는 숫자만 받는다** (사용자 방침 2026-08-05). `(산처리)` 처럼 글자를
-# 받으면 슬러그가 뭉개져 서로 다른 관찰이 같은 슬러그로 부딪히고,
-# `update_or_create(slug=…)` 라 **한쪽이 다른 쪽을 덮어쓴다.**
-# 뜻은 사람이 속성 편집의 `obs_label` 에 적는다 — 폴더는 안 건드린다.
-OBS_SUFFIX = re.compile(r"\s*\((\d+)\)\s*$")
-
-
-def parse_obs_no(folder: str) -> int:
-    """폴더명 끝의 `(1)`·`(2)` 를 읽는다. 없으면 `0`.
-
-    **`0` 을 저장하고 화면에서만 감춘다.** 비워 두면 "아직 안 읽은 것" 과
-    "접미사가 없던 것" 이 구별되지 않는다.
-
-    깊이·코어를 뽑는 `parse_sample_name` 과 갈라 둔다 — 그 정규식은 `re.match`
-    라 뒤에 무엇이 붙어도 앞쪽을 그대로 뽑고, 이쪽은 끝만 본다. 한 함수로 묶으면
-    돌려주는 값이 넷이 되어 부르는 자리 셋을 전부 고쳐야 한다.
-    """
-    m = OBS_SUFFIX.search(folder or "")
-    return int(m.group(1)) if m else 0
-
-
-def base_name(folder: str) -> str:
-    """관찰 접미사를 뗀 이름 — 같은 시료의 관찰들이 공유하는 것이다.
-
-    `BP09-0901 (1)` → `BP09-0901`. 슬러그가 아니라 **폴더 이름**으로 짚는다:
-    슬러그에는 촬영일이 붙어(`slide_slug`) 같은 시료를 다른 날 올린 관찰끼리
-    안 맞는다.
-    """
-    return OBS_SUFFIX.sub("", folder or "").strip()
+# 폴더 이름 규칙은 `viewer/naming.py` 하나뿐이다 — 뷰어·파이프라인·마이그레이션이
+# 같은 것을 본다. 예전에는 이 파일과 `import_json.py` 에 두 벌이 있었고, 규칙이
+# 갈라지면 같은 폴더가 두 자리에 다르게 앉는다.
+from viewer.naming import (base_name, parse_folder,                 # noqa: E402
+                           parse_obs_no)                            # noqa: F401
 
 
 def sample_fields(folder: str) -> dict:
-    """`Slide` 의 시료 소속 칸을 정한다. `update_or_create` 의 `defaults` 에 얹는다.
+    """`Slide.sample` 을 정한다. `update_or_create` 의 `defaults` 에 얹는다.
 
     **비어 있으면 아무것도 안 쓴다 — 이것이 이 함수의 요점이다.** 예전에는
-    `core=None`·`depth_cm=None` 을 그대로 실어서, 이름이 규칙에 안 맞는
-    슬라이드를 다시 그룹핑하거나 다시 반입하면 **사람이 속성 편집에서 넣은
-    코어가 지워졌다.** `obs_label` 을 defaults 에서 빼 둔 것과 같은 이유다 —
-    자동값이 사람이 채운 것을 덮으면 안 된다.
+    `core=None` 을 그대로 실어서, 이름이 규칙에 안 맞는 슬라이드를 다시
+    그룹핑하거나 다시 반입하면 **사람이 속성 편집에서 넣은 소속이 지워졌다.**
+    `obs_label` 을 defaults 에서 빼 둔 것과 같은 이유다 — 자동값이 사람이 채운
+    것을 덮으면 안 된다.
 
     순서가 있다.
 
-    1. 이름이 `<지역>-<코어> <깊이>cm` 규칙에 맞으면 거기서 만든다
+    1. 폴더 이름이 규칙에 맞으면 지역·지점·시료를 만들거나 찾는다
+       (`naming.parse_folder`). 남극은 `<지역>-<지점> <깊이>cm`, 육상은
+       `<지점>-<시료>` 이고 가르는 표시는 `cm` 이 있느냐다
     2. 안 맞으면 **같은 시료의 다른 관찰에서 물려받는다.** 관찰은 정의상 같은
-       시료이므로 코어·깊이·종류가 같아야 한다. `BP09-0901 (1)` 이 이 길로
-       코어 BP09 를 받는다 — 폴더명이 규칙에 안 맞아(노두라 `cm` 이 없다)
-       1번이 아무것도 못 주고, 사람이 `BP09-0901` 에 손으로 넣어 둔 것만이
-       유일한 근거다
+       시료이므로 같은 행을 가리켜야 한다
     3. 둘 다 아니면 빈 dict — 있던 값을 그대로 둔다
 
-    **접미사가 없는 슬라이드는 2번으로 안 간다**(`base == folder`). 기준이 되는
-    쪽이 관찰들 사이에서 값을 주워 오면 사람이 고친 것이 돌고 돌아 되살아난다.
+    **접미사가 없는 폴더는 2번으로 안 간다**(`base == folder`). 기준이 되는 쪽이
+    관찰들 사이에서 값을 주워 오면 사람이 고친 것이 돌고 돌아 되살아난다.
+
+    **이미 있는 지점의 유형은 안 덮는다.** 폴더 규칙이 "cm 이 없으면 노두" 라고
+    읽는데, 사람이 관리 화면에서 고쳐 놓았다면 그쪽이 옳다.
     """
-    site_code, core_code, depth = parse_sample_name(folder)
-    if site_code and core_code:
-        site, _ = Site.objects.get_or_create(code=site_code)
-        core, _ = Core.objects.get_or_create(site=site, code=core_code)
-        return {"core": core, "depth_cm": depth}
+    f = parse_folder(folder)
+    if f["site_code"] and f["loc_code"] and f["sample_code"]:
+        site, _ = Site.objects.get_or_create(code=f["site_code"])
+        loc, _ = Locality.objects.get_or_create(
+            site=site, code=f["loc_code"],
+            defaults={"kind": f["loc_kind"] or "core"})
+        sample, _ = Sample.objects.get_or_create(
+            locality=loc, code=f["sample_code"],
+            defaults={"depth_cm": f["depth_cm"], "sample_no": f["sample_no"]})
+        return {"sample": sample}
 
     base = base_name(folder)
     if not base or base == folder:
@@ -271,13 +241,9 @@ def sample_fields(folder: str) -> dict:
     # `BP09-0901` 이 `BP09-09010` 을 줍지 않게. 관찰이 이미 여럿이면 번호가
     # 작은 쪽(보통 접미사 없는 원본)을 따른다.
     sibs = [s for s in Slide.objects.filter(name__startswith=base)
-            .exclude(core=None).order_by("obs_no", "id")
+            .exclude(sample=None).order_by("obs_no", "id")
             if base_name(s.name) == base]
-    if not sibs:
-        return {}
-    sib = sibs[0]
-    return {"core": sib.core, "depth_cm": sib.depth_cm,
-            "sample_kind": sib.sample_kind}
+    return {"sample": sibs[0].sample} if sibs else {}
 
 
 def save_grouping(slide_dir: Path, files, groups, sharps, times, args, sep, run):

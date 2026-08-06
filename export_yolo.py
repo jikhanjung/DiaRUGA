@@ -213,7 +213,7 @@ def main():
 
     vps = list(Viewpoint.objects
                .filter(review__done=True)
-               .select_related("slide", "slide__core", "slide__core__site")
+               .select_related("slide", "slide__sample__locality__site")
                .order_by("slide__slug", "idx"))
     print(f"검토완료 시야 {len(vps)}개")
     if not vps:

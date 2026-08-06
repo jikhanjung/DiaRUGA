@@ -11,14 +11,11 @@
 **2. 검출은 덮어쓰지 않고 쌓는다.** `Detection.is_current` 가 뷰어가 볼 것을 가리킨다.
 교체 전후를 같은 시야로 비교해야 하기 때문이다(P01 §3).
 """
-import re
-
 from django.db import models
 
-# 관찰 접미사 `(1)`·`(2)`. **정본은 `group_focus_series.OBS_SUFFIX` 다** — 고칠 때
-# 셋을 함께 본다(`import_json.py` 에도 한 벌 있다). 여기서 임포트하지 않는 이유는
-# 그 모듈이 cv2 를 끌고 오기 때문이다 — 뷰어 컨테이너에는 없다(`requirements-web`).
-OBS_SUFFIX = re.compile(r"\s*\((\d+)\)\s*$")
+# 폴더 이름 규칙은 `naming.py` 하나뿐이다 — 뷰어·파이프라인·마이그레이션이 같은
+# 것을 본다. 예전에는 `group_focus_series` 와 `import_json` 에 두 벌이 있었다.
+from .naming import base_name as _base_name
 
 # 실행 종류. RunBatch 와 Run 이 함께 쓰므로 위로 뺀다.
 RUN_KIND = [(k, k) for k in
@@ -123,18 +120,43 @@ class Site(models.Model):
         return self.name or self.code
 
 
-class Core(models.Model):
-    """시추코어 하나. 폴더명의 가운데 토막(GC03, GC47)이다.
+class Locality(models.Model):
+    """지점 하나 — **시추코어 하나이거나 노두 하나다.**
 
-    깊이별 슬라이드가 이 아래 달리므로, **같은 코어에서 깊이에 따른 군집 변화**를
-    질의할 수 있다. 지역별 차이는 Site 로 묶어 본다.
+    예전 이름은 `Core` 였다. 북평분지가 들어오면서 육상 시료가 이 층에 앉는데
+    "코어" 라는 말이 안 맞았다 — 노두는 시추한 것이 아니다. 지점은 둘을 함께
+    담는 넓은 말이고, **어느 쪽인지는 `kind` 가 말한다** (사용자 판단 2026-08-06).
+
+    **육상은 지점 = 노두 = 단면이 하나다.** 단면을 따로 층으로 두지 않는다
+    (사용자 확인 2026-08-06) — `BP09` 의 `09` 가 곧 그 노두이자 단면이다.
+
+    시료가 이 아래 달리므로 **한 지점에서 위치에 따른 군집 변화**를 질의할 수
+    있다. 시추코어는 깊이로, 노두는 단면상의 위치로 선다(`Sample`).
     """
 
-    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name="cores")
-    code = models.CharField(max_length=32)                  # GC03
-    # GC = gravity core 처럼 앞 글자가 채취 방식을 뜻하는 일이 많지만,
-    # 코드마다 다를 수 있어 사람이 채우도록 둔다.
-    kind = models.CharField(max_length=64, blank=True)
+    # 시추코어에서 뜬 것인가, 노두(outcrop)에서 뜬 것인가.
+    #
+    # **예전에는 `Slide.sample_kind` 였다.** 관찰마다 따로 들고 있어서 같은
+    # 지점의 관찰 둘이 다른 값을 가질 수 있었다 — 한 지점이 코어이면서 노두일
+    # 수는 없으므로 여기가 제자리다 (사용자 동의 2026-08-06). 실측에서 지점
+    # 다섯 곳 전부 한 가지로 모여 그대로 올렸다.
+    #
+    # **왜 이 칸이 필요한가.** 노두 시료에는 깊이가 없다. `depth_cm` 을 비워
+    # 두는 수밖에 없었는데, 그러면 화면에 `—` 로 나와 **"깊이가 없는 시료" 와
+    # "아직 안 채운 시료" 가 구별되지 않는다.** 화면은 이 값을 보고 `OC` 를 쓴다.
+    KIND = [("core", "시추코어"), ("outcrop", "노두")]
+
+    site = models.ForeignKey(Site, on_delete=models.CASCADE,
+                             related_name="localities")
+    code = models.CharField(max_length=32)                  # GC03 · BP09
+    # `db_default` 를 함께 준다 — 파이프라인 이미지는 굽는 주기가 달라 판이
+    # 같아질 일이 없고, 옛 이미지의 INSERT 에는 이 칼럼이 안 들어간다.
+    kind = models.CharField(max_length=12, choices=KIND,
+                            default="core", db_default="core")
+    # **채취 방식은 따로다** (`gravity core` · `outcrop sample`). 위의 `kind` 는
+    # "코어냐 노두냐" 라는 두 갈래이고 이쪽은 사람이 적는 자유 문자열이다.
+    # GC = gravity core 처럼 코드 앞 글자가 뜻을 갖는 일이 많지만 단정하지 않는다.
+    collect_kind = models.CharField(max_length=64, blank=True)
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)
     water_depth_m = models.FloatField(null=True, blank=True)
@@ -142,68 +164,109 @@ class Core(models.Model):
     note = models.TextField(blank=True)
 
     class Meta:
+        verbose_name = "지점"
         ordering = ["site", "code"]
         constraints = [models.UniqueConstraint(fields=["site", "code"],
-                                               name="uniq_core_code")]
+                                               name="uniq_locality_code")]
 
     def __str__(self):
         return f"{self.site.code}-{self.code}"
 
+    @property
+    def is_outcrop(self) -> bool:
+        return self.kind == "outcrop"
+
+
+class Sample(models.Model):
+    """시료 하나 — 지점에서 한 자리를 떠 온 것.
+
+    **관찰의 위가 여기다.** 예전에는 `Slide` 하나가 시료와 관찰을 겸했다
+    (`core`·`depth_cm`·`sample_kind` 가 관찰 행마다 앉아 있었다). 그래서 같은
+    시료의 관찰 둘이 **서로 다른 소속을 가질 수 있었고**, 실제로 그렇게 됐다 —
+    `BP09-0901` 은 지점에 붙어 있는데 `BP09-0901 (1)` 은 아무 데도 안 붙어
+    화면에서 사라졌다. 시료 행이 있으면 관찰은 그것을 가리키기만 하므로 애초에
+    어긋날 수가 없다.
+
+    **위치 칸이 둘이고 지점 유형에 따라 하나만 쓴다.** 한 칸에 몰지 않는 이유는
+    `depth_cm` 을 문자열로 안 바꾼 것과 같다 — 뜻이 다른 두 값이 한 칸에 앉으면
+    "369cm" 와 "단면 9번" 을 같은 축에 그리게 된다. 지점은 코어이거나 노두이거나
+    둘 중 하나라 정렬할 때는 어차피 한 칸만 본다.
+    """
+
+    locality = models.ForeignKey(Locality, on_delete=models.CASCADE,
+                                 related_name="samples")
+    # 폴더에서 온 시료 코드. `71cm` · `0901`. **화면에 그대로 쓴다** — 사람이
+    # 부르는 이름이라 숫자로 다시 만들면(`71.0cm`) 폴더와 안 맞아 보인다.
+    code = models.CharField(max_length=64)
+    # 기준점(해저면)에서부터의 깊이. **시추코어 지점에만 있다.**
+    depth_cm = models.FloatField(null=True, blank=True)
+    # 단면상의 위치. **노두 지점에만 있다.** 사람이 부여한 숫자 코드에서 지점
+    # 번호가 되풀이되는 자리를 뗀 것이다 — `BP09` + `0901` → `1`
+    # (`naming.sample_no_from`).
+    sample_no = models.PositiveIntegerField(null=True, blank=True)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "시료"
+        # 지점 안에서는 위치순 — 깊이에 따른 변화를 보는 것이 분석 목적이다.
+        # 노두는 깊이가 없어 `sample_no` 가 그 자리를 대신한다.
+        ordering = ["locality", "depth_cm", "sample_no", "code"]
+        constraints = [models.UniqueConstraint(fields=["locality", "code"],
+                                               name="uniq_sample_code")]
+        indexes = [models.Index(fields=["locality", "depth_cm"])]
+
+    def __str__(self):
+        return f"{self.locality}-{self.code}"
+
+    @property
+    def position(self):
+        """정렬·축에 쓰는 값 하나. 지점 유형이 어느 칸을 쓸지 정한다."""
+        return self.depth_cm if self.depth_cm is not None else self.sample_no
+
 
 class Slide(models.Model):
-    """슬라이드글라스 하나 = 폴더 하나. 그 안에 여러 시야가 들어 있다.
+    """관찰 하나 = 폴더 하나 = 슬라이드글라스 하나. 그 안에 여러 시야가 있다.
 
-    이름은 `<지역>-<코어> <깊이>cm` 꼴이다(RS23-GC03 71cm). 통짜 문자열로 두면
-    깊이순 정렬도 지역별 묶음도 안 되므로 갈라서 담는다.
+    **이 표는 관찰만 담는다.** 시료가 어느 지점의 몇 cm 인가는 `Sample` 이
+    안다 — 예전에는 `core`·`depth_cm`·`sample_kind` 가 여기 앉아 있어서 같은
+    시료의 관찰 둘이 서로 다른 소속을 가질 수 있었다(`Sample` 머리말).
+
+    **이름을 `Observation` 으로 안 바꾼다.** 슬라이드글라스라는 물건이 실재하고
+    폴더 하나가 그것 하나다 — 관찰은 그 위에 얹힌 뜻이지 다른 물건이 아니다.
     """
 
     STATE = [(s, s) for s in
              ("pending", "copying", "processing", "done", "failed")]
 
-    # 시추코어에서 뜬 것인가, 노두(outcrop)에서 뜬 것인가.
-    #
-    # **왜 칸을 따로 두는가.** 노두 시료에는 깊이가 없다. `depth_cm` 을 비워
-    # 두는 수밖에 없었는데, 그러면 화면에 `—` 로 나와 **"깊이가 없는 시료" 와
-    # "아직 안 채운 시료" 가 구별되지 않는다.**
-    #
-    # **`depth_cm` 을 문자열로 바꾸지 않는다.** 슬라이드 정렬이 이 값으로 서고
-    # (`Meta.ordering` · `data.py` 두 곳) `(core, depth_cm)` 인덱스가 걸려 있다.
-    # 종류를 따로 두고 화면이 그것을 읽는 쪽이 맞다.
-    KIND = [("core", "시추코어"), ("outcrop", "노두")]
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=120, unique=True)
     image_dir = models.CharField(max_length=500)
-    core = models.ForeignKey(Core, null=True, blank=True,
-                             on_delete=models.SET_NULL, related_name="slides")
-    # **`db_default` 를 함께 준다.** Django 의 `default` 는 파이썬 쪽이라 판이
-    # 다른 옛 이미지의 INSERT 에는 칼럼이 안 들어간다 — 뷰어와 파이프라인
-    # 이미지는 굽는 주기가 달라 판이 같아질 일이 없다.
-    sample_kind = models.CharField(max_length=12, choices=KIND,
-                                   default="core", db_default="core")
-    # 기준점(해저면)에서부터의 깊이. 코어 안에서 이 값으로 정렬한다.
-    # **노두 시료에는 없다** — `sample_kind` 를 함께 볼 것.
-    depth_cm = models.FloatField(null=True, blank=True)
+    # **`SET_NULL` 이다.** 시료를 지워도 관찰과 그 아래 검토가 남아야 한다 —
+    # 소속은 다시 붙일 수 있지만 교정은 재생성 불가다. 소속을 잃은 관찰은
+    # 관리 화면이 잡아낸다.
+    sample = models.ForeignKey("Sample", null=True, blank=True,
+                               on_delete=models.SET_NULL, related_name="slides")
 
     # --- 관찰 -------------------------------------------------------------
-    # 시료 하나를 **처리 방법이나 시료 특성을 달리해 여러 번 관찰한 것**.
+    # 시료 하나를 **처리 방법이나 관찰 회차를 달리해 여러 번 본 것**.
     # 폴더 이름 뒤에 `(1)`·`(2)` 를 붙여 올리고, 접미사가 없는 기존 것은 `0` 이다.
     #
-    # **`sample_kind` 와 헷갈리지 말 것.** 그쪽은 "시추코어냐 노두냐" 이고
-    # 이쪽은 "같은 시료를 몇 번째로 달리 관찰한 것이냐" 다.
+    # **지점 유형(`Locality.kind`)과 헷갈리지 말 것.** 그쪽은 "시추코어냐
+    # 노두냐" 이고 이쪽은 "같은 시료를 몇 번째로 달리 관찰한 것이냐" 다.
     #
     # **재촬영과도 다른 축이다.** 같은 폴더명을 다른 날 올리면 슬러그가 촬영일로
     # 갈리는데(`slide_slug`) 그것은 "같은 관찰을 다시 찍은 것" 이다. 접미사는
     # "다른 관찰" 이다 — 두 축을 한 칸에 섞지 않는다.
     #
-    # **`Slide` 의 칸으로 두고 `Sample` 모델을 뽑지 않는다**(사용자 판단
-    # 2026-08-05). 제대로 된 답은 `core`·`depth_cm`·`sample_kind` 를 `Sample` 로
-    # 올리는 것이지만 큰 이사다. 관찰을 가르는 속성이 정해지면 그때 뽑는다.
+    # **관찰끼리는 동등하다** (사용자 방침 2026-08-06). "대표 관찰" 을 두지 않고
+    # 이름표로 구분하며, 통계에 무엇을 넣을지는 아래 두 칸으로 사람이 고른다.
     #
     # **왜 칸이 둘인가.** 한 칸에 두면 폴더에서 다시 읽을 때 자동값이 사람이 적은
     # 것을 덮는다. 반입·그룹핑은 `obs_no` 만 쓰고 `obs_label` 은 절대 안 건드린다
     # (`update_or_create` 의 `defaults` 에서 뺀다).
     #
-    # `db_default` 를 함께 주는 이유는 `sample_kind` 와 같다 — 파이프라인 이미지는
+    # `db_default` 를 함께 주는 이유는 다른 칸과 같다 — 파이프라인 이미지는
     # 판이 따로 돌아 옛 INSERT 에 이 칼럼이 안 들어간다.
     obs_no = models.PositiveSmallIntegerField(default=0, db_default=0)
     # 사람이 붙이는 뜻(`산처리` · `체 20µm`). **폴더는 안 건드린다** — 이름표는
@@ -248,14 +311,37 @@ class Slide(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     class Meta:
-        # 코어 안에서는 깊이순 — 깊이에 따른 변화를 볼 때 그 순서가 자연스럽다.
-        # **같은 깊이에 관찰이 여럿 서면 번호순이다** — 이름으로 가르면 `(10)` 이
-        # `(2)` 앞에 온다(문자열 정렬).
-        ordering = ["core", "depth_cm", "obs_no", "name"]
-        indexes = [models.Index(fields=["core", "depth_cm"])]
+        verbose_name = "관찰"
+        # 시료순(그 안이 위치순이다 — `Sample.Meta.ordering`), 그 다음 관찰
+        # 번호순. **이름으로 가르지 않는다** — `(10)` 이 `(2)` 앞에 온다.
+        ordering = ["sample", "obs_no", "name"]
+        indexes = [models.Index(fields=["sample", "obs_no"])]
 
     def __str__(self):
         return self.name
+
+    # --- 시료를 거쳐 가는 지름길 -------------------------------------------
+    #
+    # **화면과 질의가 이것을 자주 쓴다.** 매번 `slide.sample.locality.site` 를
+    # 쓰면 `sample` 이 없는 슬라이드(소속을 잃은 관찰)에서 터진다 — 여기서 한 번만
+    # 막는다. `select_related("sample__locality__site")` 를 함께 걸 것.
+    @property
+    def locality(self):
+        return self.sample.locality if self.sample_id else None
+
+    @property
+    def site(self):
+        return self.sample.locality.site if self.sample_id else None
+
+    @property
+    def depth_cm(self):
+        """시료의 깊이. **시추코어 지점에만 있다.**"""
+        return self.sample.depth_cm if self.sample_id else None
+
+    @property
+    def sample_kind(self) -> str:
+        """지점 유형. 예전에는 이 표의 칸이었다 — 부르는 자리가 많아 남겨 둔다."""
+        return self.sample.locality.kind if self.sample_id else "core"
 
     @property
     def obs_badge(self) -> str:
@@ -275,24 +361,26 @@ class Slide(models.Model):
         (`group_focus_series.slide_slug`) 같은 시료를 다른 날 올린 관찰끼리
         안 맞는다.
         """
-        return OBS_SUFFIX.sub("", self.name or "").strip()
+        return _base_name(self.name)
 
     def sibling_observations(self):
         """같은 시료의 다른 관찰들. 번호순이다.
 
-        **`Sample` 모델이 없어서 이 이름이 유일한 연결 고리다**(위 머리말).
-        `(코어, 깊이)` 로 묶으면 코어가 안 붙은 슬라이드(`BP09-0901`)와 깊이가
-        없는 노두는 서로 못 묶인다 — 그 둘이 겹치는 자리가 실제로 있었다.
+        **`Sample` 이 생기고부터는 조인 한 번이다.** 예전에는 시료 행이 없어서
+        폴더 이름을 짐작으로 맞춰야 했다(`name__startswith` 로 좁히고 접미사를
+        떼어 비교) — 이름이 규칙에 안 맞으면 그대로 못 찾았다.
 
-        `name__startswith` 로 좁히고 접미사를 떼어 정확히 맞는 것만 남긴다 —
-        `BP09-0901` 이 `BP09-09010` 을 줍지 않게.
+        **시료가 없는 관찰은 이름으로 되짚는다.** 소속을 잃은 것을 관리 화면이
+        어디에 붙일지 추천해야 하는데, 그때는 이름밖에 근거가 없다.
         """
+        if self.sample_id:
+            return list(self.sample.slides.exclude(pk=self.pk)
+                        .order_by("obs_no", "id"))
         base = self.base_name
         if not base:
             return []
-        qs = (Slide.objects.filter(name__startswith=base)
-              .exclude(pk=self.pk).select_related("core", "core__site")
-              .order_by("obs_no", "id"))
+        qs = (Slide.objects.filter(name__startswith=base).exclude(pk=self.pk)
+              .select_related("sample__locality__site").order_by("obs_no", "id"))
         return [s for s in qs if s.base_name == base]
 
 

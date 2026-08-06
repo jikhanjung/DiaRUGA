@@ -8,9 +8,12 @@ urlpatterns = [
     path("crop", views.crop, name="crop"),
     path("healthz", views.healthz, name="healthz"),
     path("review", views.save_review, name="save_review"),
-    # 코어 하나 — 깊이 방향으로 본 화면. **코어 코드는 지역마다 겹칠 수 있다**
-    # (`Core` 의 unique 가 `(site, code)` 다). 주소도 그 짝이어야 한다.
-    path("core/<str:site_code>/<str:core_code>/", views.core_page, name="core"),
+    # 지점 하나 — 위치 방향으로 본 화면. **지점 코드는 지역마다 겹칠 수 있다**
+    # (`Locality` 의 unique 가 `(site, code)` 다). 주소도 그 짝이어야 한다.
+    path("loc/<str:site_code>/<str:core_code>/", views.core_page, name="core"),
+    # 옛 주소. **지우지 않는다** — 적어 둔 링크와 브라우저 기록이 깨진다.
+    # 이름(`core`)은 그대로 둔다: 템플릿의 `{% url 'core' %}` 가 새 주소를 낸다.
+    path("core/<str:site_code>/<str:core_code>/", views.core_redirect),
     path("d/<slug:slug>/", views.dataset, name="dataset"),
     path("d/<slug:slug>/edit/", views.dataset_edit, name="dataset_edit"),
     # 시야 전체를 검토/미검토로. **POST 전용이다** — 주소를 누르는 것만으로

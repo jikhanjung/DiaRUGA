@@ -22,7 +22,8 @@ from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 
 from . import antarctica, korea
-from .models import (Candidate, ClassDef, Core, Detection, Frame, ObjectReview,
+from .models import (Candidate, ClassDef, Detection, Frame, Locality,
+                     ObjectReview,
                      Run, Site, Slide, Stack, Viewpoint, ViewpointReview)
 
 # --- 분류 정의 -------------------------------------------------------------
@@ -340,14 +341,19 @@ def map_points(area: str | None = None,
     else:
         approx_sites, project = antarctica.APPROX_SITES, _polar_xy
 
-    sites = Site.objects.filter(area=area).prefetch_related("cores__slides")
+    sites = (Site.objects.filter(area=area)
+             .prefetch_related("localities__samples__slides"))
 
     def visible(qs):
         return [sl for sl in qs if with_hidden or not sl.hide_in_list]
 
+    def slides_of(loc):
+        """지점 아래의 관찰 전부. **시료를 한 겹 거친다** (P07)."""
+        return [sl for sm in loc.samples.all() for sl in visible(sm.slides.all())]
+
     out = []
     for site in sites:
-        slides = [sl for c in site.cores.all() for sl in visible(c.slides.all())]
+        slides = [sl for loc in site.localities.all() for sl in slides_of(loc)]
         if not slides:
             continue
         # 코드는 <지역><연도> 꼴이다 (RS23 · WAP13 · AM22). 뒤의 숫자를 떼고 찾는다.
@@ -361,17 +367,17 @@ def map_points(area: str | None = None,
             continue                    # 어디인지 짐작할 수도 없으면 안 찍는다
         x, y = project(lat, lon)
 
-        # 코어 아래에 슬라이드를 매단다. 깊이순이다 — 같은 코어에서 깊이에 따른
+        # 지점 아래에 관찰을 매단다. 시료의 위치순이다 — 한 지점에서 위치에 따른
         # 변화를 보는 것이 이 시료의 목적이라 그 순서로 읽혀야 한다.
+        # 시추코어는 깊이로, 노두는 단면상의 위치로 선다(`Sample.position`).
         cores = []
-        for core in sorted(site.cores.all(), key=lambda c: c.code):
-            rows = sorted(visible(core.slides.all()),
-                          key=lambda sl: (sl.depth_cm is None, sl.depth_cm or 0,
-                                          sl.obs_no))
+        for loc in sorted(site.localities.all(), key=lambda c: c.code):
+            rows = sorted(slides_of(loc), key=_slide_order)
             if not rows:
                 continue
             cores.append({
-                "code": core.code,
+                "code": loc.code,
+                "kind": loc.kind,
                 "n_slides": len(rows),
                 "slides": [{
                     "slug": sl.slug,
@@ -920,6 +926,20 @@ def _slide_summary(slide: Slide) -> dict:
     }
 
 
+def _slide_order(sl):
+    """관찰을 세우는 순서 — **시료의 위치, 그 다음 관찰 번호.**
+
+    시추코어는 깊이(cm)로, 노두는 단면상의 위치로 선다 — 어느 칸을 볼지는
+    `Sample.position` 이 정한다. 위치가 없는 것(소속을 잃었거나 아직 안 채운
+    것)은 뒤로 보낸다: 축에 놓을 자리가 없다.
+
+    **이름으로 가르지 않는다** — `(10)` 이 `(2)` 앞에 온다(문자열 정렬).
+    `Slide.Meta.ordering` 과 같은 규칙이어야 한다.
+    """
+    pos = sl.sample.position if sl.sample_id else None
+    return (pos is None, pos or 0, sl.obs_no, sl.name)
+
+
 def _obs(slide) -> dict:
     """행에 싣는 관찰 정보. 목록·코어 페이지가 같은 열쇠를 쓴다.
 
@@ -937,27 +957,32 @@ def _obs(slide) -> dict:
 def datasets(area: str | None = None) -> list[dict]:
     """**숨긴 슬라이드도 담아 돌려준다.**
 
-    거르는 자리는 `datasets_by_core()` 다. 여기서 걸러 버리면 합계가 보기 토글을
+    거르는 자리는 `datasets_by_locality()` 다. 여기서 걸러 버리면 합계가 보기 토글을
     따라 흔들린다 — `숨김` 은 보기 상태이고 `집계 제외` 가 자료의 성질이다.
     """
     # groups_*.json 은 파이프라인에서 빠졌다(P02 7단계). 목록에 파일 이름 대신
     # 시료가 무엇인지와 어떤 배율로 찍혔는지를 보인다 — 그쪽이 화면에서 쓸모 있다.
     scales = scales_by_slide()
     out = []
-    # 지역 → 코어 → 깊이 순. 들어온 순서(id)로 두면 같은 코어의 깊이들이 표에서
-    # 떨어져 놓인다 — 깊이에 따른 변화를 보는 것이 분석 목적이라 그게 제일 아프다.
-    # 지역·코어가 아직 안 붙은 슬라이드도 있어서 빈 값이 섞여도 죽지 않게 둔다.
-    # 같은 깊이에 관찰이 여럿 서면 번호순이다 — 이름으로 가르면 `(10)` 이 `(2)`
+    # 지역 → 지점 → 시료 위치 순. 들어온 순서(id)로 두면 같은 지점의 시료들이
+    # 표에서 떨어져 놓인다 — 위치에 따른 변화를 보는 것이 분석 목적이라 그게 제일
+    # 아프다. 소속이 아직 안 붙은 관찰도 있어서 빈 값이 섞여도 죽지 않게 둔다.
+    # 같은 시료에 관찰이 여럿 서면 번호순이다 — 이름으로 가르면 `(10)` 이 `(2)`
     # 앞에 온다(문자열 정렬). `Slide.Meta.ordering` 과 같은 규칙이어야 한다.
-    slides = (Slide.objects.select_related("core", "core__site")
-              .order_by("core__site__code", "core__code", "depth_cm",
-                        "obs_no", "name"))
-    # "전체" 는 거르지 않는다 — 지역이 안 붙은 슬라이드도 여기서는 보여야 한다.
+    #
+    # **`sample_no` 를 함께 태운다.** 노두는 깊이가 없어 그것만으로는 한 지점의
+    # 시료들이 순서 없이 선다.
+    slides = (Slide.objects.select_related("sample__locality__site")
+              .order_by("sample__locality__site__code",
+                        "sample__locality__code", "sample__depth_cm",
+                        "sample__sample_no", "obs_no", "name"))
+    # "전체" 는 거르지 않는다 — 지역이 안 붙은 관찰도 여기서는 보여야 한다.
     if area and area != AREA_ALL:
-        slides = slides.filter(core__site__area=area)
+        slides = slides.filter(sample__locality__site__area=area)
     for slide in slides:
-        core = slide.core
-        site = core.site if core else None
+        sample = slide.sample
+        loc = sample.locality if sample else None
+        site = loc.site if loc else None
         out.append({
             "slug": slide.slug,
             "label": slide.name,
@@ -965,12 +990,14 @@ def datasets(area: str | None = None) -> list[dict]:
             "corr_thresh": slide.corr_thresh,
             "site": (site.region or site.name or site.code) if site else "",
             # 화면에 내는 이름(`site`)과 주소·열쇠에 쓰는 코드는 다르다 —
-            # 지역 이름은 사람이 고칠 수 있고, 코어 페이지의 주소가 그때
+            # 지역 이름은 사람이 고칠 수 있고, 지점 페이지의 주소가 그때
             # 따라 바뀌면 적어 둔 링크가 깨진다.
             "site_code": site.code if site else "",
-            "core": core.code if core else "",
-            "depth_cm": slide.depth_cm,
-            "sample_kind": slide.sample_kind,
+            "core": loc.code if loc else "",
+            "sample_code": sample.code if sample else "",
+            "depth_cm": sample.depth_cm if sample else None,
+            "sample_no": sample.sample_no if sample else None,
+            "sample_kind": loc.kind if loc else "core",
             "description": slide.description,
             "um_per_pixel": scales.get(slide.slug),
             "state": slide.state,
@@ -1003,8 +1030,8 @@ def area_tabs(selected: str | None = None) -> dict:
     있어야 하는 이유다 — 새로 반입된 슬라이드는 지역이 정해지기 전까지 한국에도
     남극에도 없어서, 있다는 것만 알리고 열어 볼 길이 없었다.
     """
-    counts = dict(Slide.objects.filter(core__site__isnull=False)
-                  .values_list("core__site__area")
+    counts = dict(Slide.objects.filter(sample__locality__site__isnull=False)
+                  .values_list("sample__locality__site__area")
                   .annotate(n=Count("id")))
     tabs = [{"key": k, "label": v, "n": counts.get(k, 0)} for k, v in Site.AREA]
     tabs.append({"key": AREA_ALL, "label": "전체",
@@ -1021,7 +1048,7 @@ def area_tabs(selected: str | None = None) -> dict:
         # 권역을 물을 곳이 없는 슬라이드. 한국·남극 어느 탭에도 안 나오므로
         # 세어서 알리고 **전체 탭으로 가는 길을 함께 준다** — 알리기만 하고
         # 갈 곳이 없으면 안내가 아니라 막다른 길이다.
-        "orphans": Slide.objects.filter(core__site__isnull=True).count(),
+        "orphans": Slide.objects.filter(sample__isnull=True).count(),
     }
 
 
@@ -1059,10 +1086,10 @@ def datasets_total(rows: list[dict]) -> dict:
     return total
 
 
-def datasets_by_core(rows: list[dict], with_hidden: bool = False) -> list[dict]:
-    """목록을 코어로 묶는다. 표·카드 둘 다 이것을 쓴다.
+def datasets_by_locality(rows: list[dict], with_hidden: bool = False) -> list[dict]:
+    """목록을 지점으로 묶는다. 표·카드 둘 다 이것을 쓴다.
 
-    **묶는 열쇠는 지역이 아니라 코어다.** 지역은 머리줄에 함께 낸다. 지금은
+    **묶는 열쇠는 지역이 아니라 지점이다.** 지역은 머리줄에 함께 낸다. 지금은
     지역↔코어가 거의 1:1(5:5)이라 어느 쪽으로 묶어도 화면은 같지만, **먼저 오는
     것은 한 코어에서 슬라이드가 여럿이 되는 일이다** — 이미 RS23-GC03 이 셋이다.
     한 지역에 코어가 둘 되는 날은 그 다음이고, 그때는 층이 하나 더 생길 뿐 이
@@ -1088,7 +1115,7 @@ def datasets_by_core(rows: list[dict], with_hidden: bool = False) -> list[dict]:
     """
     out, at = [], {}
     for r in rows:
-        # 같은 코어 코드가 지역마다 따로 있을 수 있다(Core 의 unique 가
+        # 같은 지점 코드가 지역마다 따로 있을 수 있다(Locality 의 unique 가
         # (site, code) 인 이유). 열쇠도 그 짝이어야 한다.
         # **이름이 아니라 코드로 묶는다.** 지역 이름은 사람이 고칠 수 있는데,
         # 그것을 열쇠로 삼으면 이름을 고치는 순간 접어 둔 것이 풀린다.
@@ -1166,12 +1193,12 @@ def _axis_marks(rows: list[dict], bottom: float) -> list[dict]:
     return out
 
 
-def core_detail(site_code: str, core_code: str,
-                with_hidden: bool = False) -> dict | None:
-    """코어 하나 — 깊이 방향으로 본 화면.
+def locality_detail(site_code: str, loc_code: str,
+                    with_hidden: bool = False) -> dict | None:
+    """지점 하나 — 위치 방향으로 본 화면. 시추코어면 깊이, 노두면 단면상의 위치.
 
-    **목록의 부분집합이 아니어야 이 화면이 값을 한다.** 목록은 슬라이드끼리
-    비교하는 자리이고, 여기는 **깊이 축**이 주인공이다 — 암상 기재가 들어올
+    **목록의 부분집합이 아니어야 이 화면이 값을 한다.** 목록은 관찰끼리
+    비교하는 자리이고, 여기는 **위치 축**이 주인공이다 — 암상 기재가 들어올
     자리도 그 축 옆이다. 목록이 절대 못 보여주는 것이 그것이다.
 
     **암상은 아직 모델이 없다.** 구간 상·하한 · 암상 코드 · 색 · 조직 · 화석
@@ -1179,30 +1206,36 @@ def core_detail(site_code: str, core_code: str,
     박으면 나중에 이미 붙은 자료를 옮겨야 한다 — **축과 자리만 잡고 띠는 비워
     둔다.** 깊이는 DB 에 이미 있으니 축 자체는 진짜다.
 
-    **속성을 여기서 고치지 않는다.** `/d/<slug>/edit/` 이 이미 슬라이드·코어·
-    지역을 한 트랜잭션으로 저장한다. 여기에 폼을 하나 더 두면 같은 `Core`·
+    **축은 시추코어에만 선다.** 노두 지점의 시료는 단면상의 위치로 정렬되지만
+    그 값은 "몇 번째로 딴 것" 이지 거리가 아니다 — cm 축에 얹으면 없는 간격을
+    지어내게 된다. 그쪽은 순서대로 나열만 한다.
+
+    **속성을 여기서 고치지 않는다.** `/d/<slug>/edit/` 이 이미 관찰·지점·
+    지역을 한 트랜잭션으로 저장한다. 여기에 폼을 하나 더 두면 같은 `Locality`·
     `Site` 행에 쓰는 문이 둘이 된다 — 이 저장소가 두 번 당한 종류다.
 
     **합계와 보이는 줄을 가르는 규칙은 목록과 같다** — 숫자는 숨긴 것까지,
-    줄은 걸러서(`datasets_by_core()` 머리말).
+    줄은 걸러서(`datasets_by_locality()` 머리말).
     """
-    core = (Core.objects.select_related("site")
-            .filter(site__code=site_code, code=core_code).first())
-    if core is None:
+    loc = (Locality.objects.select_related("site")
+           .filter(site__code=site_code, code=loc_code).first())
+    if loc is None:
         return None
-    site = core.site
+    site = loc.site
     scales = scales_by_slide()
 
-    # 깊이순. 깊이가 없는 것(노두)은 뒤로 — 축에 놓을 자리가 없다.
-    # 같은 깊이에 관찰이 여럿이면 번호순 (`Slide.Meta.ordering` 과 같은 규칙).
-    slides = sorted(core.slides.all(),
-                    key=lambda sl: (sl.depth_cm is None, sl.depth_cm or 0,
-                                    sl.obs_no, sl.name))
+    # 위치순. 위치가 없는 것은 뒤로 — 축에 놓을 자리가 없다.
+    # 같은 시료에 관찰이 여럿이면 번호순 (`Slide.Meta.ordering` 과 같은 규칙).
+    slides = sorted(
+        (sl for sm in loc.samples.select_related("locality").all()
+         for sl in sm.slides.all()), key=_slide_order)
     all_rows = [{
         "slug": sl.slug,
         "label": sl.name,
-        "depth_cm": sl.depth_cm,
-        "sample_kind": sl.sample_kind,
+        "sample_code": sl.sample.code if sl.sample_id else "",
+        "depth_cm": sl.sample.depth_cm if sl.sample_id else None,
+        "sample_no": sl.sample.sample_no if sl.sample_id else None,
+        "sample_kind": loc.kind,
         "state": sl.state,
         "state_note": sl.state_note,
         "description": sl.description,
@@ -1230,7 +1263,11 @@ def core_detail(site_code: str, core_code: str,
         "site_code": site.code,
         "site_label": site.region or site.name or site.code,
         "site": site,
-        "core": core,
+        # 템플릿이 `core` 라는 이름으로 받는다 — 지점 하나를 가리키는 말이라
+        # 뜻은 같다. 화면 글자는 "지점" 이다.
+        "core": loc,
+        "locality": loc,
+        "is_outcrop": loc.kind == "outcrop",
         "rows": rows,
         "n": len(rows),
         # **켜 놓았을 때도 실제 숨김 수를 센다** — `len(all_rows) - len(rows)` 로
@@ -1243,8 +1280,8 @@ def core_detail(site_code: str, core_code: str,
         # 축에 못 놓는 것들. **버리지 않고 따로 낸다** — 안 보이면 이 코어에
         # 없는 시료가 된다.
         "unplaced": [r for r in rows if r["depth_cm"] is None],
-        # 편집은 기존 화면으로 보낸다. 슬라이드 하나를 지나가야 하는데,
-        # 그 화면의 코어·지역 칸은 어느 슬라이드에서 열어도 같은 행을 고친다.
+        # 편집은 기존 화면으로 보낸다. 관찰 하나를 지나가야 하는데,
+        # 그 화면의 지점·지역 칸은 어느 관찰에서 열어도 같은 행을 고친다.
         "edit_slug": rows[0]["slug"] if rows else "",
     }
 
@@ -1335,9 +1372,10 @@ def dataset_detail(slug: str) -> dict | None:
         # groups_*.json 은 파이프라인에서 빠졌다(P02 7단계). 파일 이름 대신
         # 시료가 무엇이고 어떤 배율로 찍혔는지를 보인다.
         "corr_thresh": slide.corr_thresh,
-        "site": (slide.core.site.region or slide.core.site.name
-                 or slide.core.site.code) if slide.core else "",
-        "core": slide.core.code if slide.core else "",
+        "site": (slide.site.region or slide.site.name
+                 or slide.site.code) if slide.site else "",
+        "core": slide.locality.code if slide.locality else "",
+        "sample_code": slide.sample.code if slide.sample_id else "",
         "depth_cm": slide.depth_cm,
         "sample_kind": slide.sample_kind,
         "um_per_pixel": scales_by_slide().get(slide.slug),
