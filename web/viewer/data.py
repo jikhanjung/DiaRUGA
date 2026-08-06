@@ -16,8 +16,8 @@ from pathlib import Path
 
 from django.conf import settings
 from django.urls import reverse
-from django.db.models import (Case, CharField, Count, Exists, F, OuterRef,
-                              Q, Subquery, Value, When)
+from django.db import connection
+from django.db.models import Count, Q
 
 from . import antarctica, korea
 from .models import (Candidate, ClassDef, Core, Detection, Frame, ObjectReview,
@@ -726,45 +726,19 @@ def _summary_by_sql(slide: Slide) -> dict:
       분류는 사람이 지정한 것이 먼저, 되살린 것은 신장비로 짐작, 나머지는 자동 판정
       "사람지정" 은 통과분만 센다
 
-    **교정은 `image` 로 짚는다 — `viewpoint` 가 아니다.** 후보 하나마다 이 상관
-    서브질의가 서너 번 돌므로 유일 인덱스를 타야 한다. 055 에서 교정의 열쇠가
-    `(viewpoint, mask_key)` 에서 `(image, mask_key)` 로 옮겨 갔고, 그때 이 줄이
-    따라가지 않아 **인덱스가 발밑에서 사라졌다** — 목록 화면이 0.5 → 2.0초가
-    됐다(058). `viewpoint` 로 짚으면 `(viewpoint_id, bind_method)` 인덱스로
-    시야까지만 좁힌 뒤 그 시야의 교정을 전부 훑으며 `mask_key` 를 비교한다.
+    **교정은 `(image, mask_key)` 로 짚는다 — `viewpoint` 가 아니다.** 055 에서
+    교정의 열쇠가 그리로 옮겨 갔는데 이 자리가 따라가지 않아 **인덱스가 발밑에서
+    사라졌고** 목록 화면이 0.5 → 2.0초가 됐다(058). 그리고 **프레임별 검토
+    (P06 5b)가 붙으면 `viewpoint` 는 값도 틀린다** — 한 시야에 이미지가 여럿이
+    되는 순간 다른 이미지의 교정까지 끌어온다.
 
-    **프레임별 검토(P06 5b)가 붙으면 `viewpoint` 는 값도 틀린다** — 한 시야에
-    이미지가 여럿이 되는 순간 다른 이미지의 교정까지 끌어온다.
+    세는 일은 `_summary_rows` 가 한다(원시 SQL 인 이유는 그쪽 머리말에).
     """
-    reviews = ObjectReview.objects.filter(
-        image=OuterRef("detection__image"), mask_key=OuterRef("mask_key"))
-    cands = (Candidate.objects
-             .filter(detection__viewpoint__slide=slide, detection__is_current=True)
-             .annotate(
-                 gone=Exists(reviews.filter(removed=True)),
-                 back=Exists(reviews.filter(accepted=True)),
-                 user_cls=Subquery(reviews.exclude(label="").values("label")[:1]),
-             ))
-    # 화면에 남는 개체: 통과분에서 지운 것을 빼고, 탈락분에서 되살린 것을 더한다
-    kept = Q(passed=True, gone=False) | Q(passed=False, back=True)
-
-    # 표시 분류. _guess_cls 와 같은 경계값이어야 한다.
-    guess = Case(When(elongation__lt=1.4, then=Value("round")),
-                 When(elongation__gte=2.0, elongation__lte=20.0, then=Value("rod")),
-                 default=Value(""), output_field=CharField())
-    eff = Case(
-        When(~Q(user_cls=None) & ~Q(user_cls=""), then=F("user_cls")),
-        When(passed=False, then=guess),          # 되살린 것 = 수동
-        default=F("cls"), output_field=CharField())
-
     per_cls = {r["key"]: 0 for r in _class_rows()}
-    agg = {k: Count("id", filter=kept & Q(eff_cls=k)) for k in per_cls}
-    row = cands.annotate(eff_cls=eff).aggregate(
-        n_detected=Count("id", filter=kept),
-        n_auto=Count("id", filter=Q(passed=True)),
-        n_labeled=Count("id", filter=kept & ~Q(user_cls=None) & ~Q(user_cls="")),
-        **agg)
-    per_cls = {k: row[k] for k in per_cls}
+    rows = _summary_rows("v.slide_id = %s", [slide.id])
+    row = rows.get(slide.id) or {"per_cls": {}, "n_detected": 0,
+                                 "n_auto": 0, "n_labeled": 0}
+    per_cls.update({k: v for k, v in row["per_cls"].items() if k in per_cls})
 
     # 검출이 돈 시야 수 — 평균의 분모다
     detected_groups = (Detection.objects
@@ -772,6 +746,65 @@ def _summary_by_sql(slide: Slide) -> dict:
     return {"per_cls": per_cls, "n_detected": row["n_detected"],
             "n_auto": row["n_auto"], "n_labeled": row["n_labeled"],
             "detected_groups": detected_groups}
+
+
+# 개체 하나하나를 파이썬으로 올리지 않고 세는 SQL. **원시 SQL 인 이유가 있다.**
+#
+# ORM 으로 쓰면 교정을 상관 서브질의로 찾게 되는데(`Exists`·`Subquery`), 그러면
+# **후보마다 서너 번**의 인덱스 조회가 돈다 — 후보 97,299개에 400,000 번이다.
+# 교정은 `(image, mask_key)` 가 유일하므로 **왼쪽 조인 한 번**이면 같은 값이
+# 나오고 행도 안 불어난다: 실측 500 → 50 ms (058).
+#
+# Django ORM 은 이 조인을 낼 수 없다. 관계가 FK 가 아니라 `(image_id, mask_key)`
+# 짝이기 때문이다 — `ObjectReview.candidate` FK 는 재검출에서 끊기라고 만든
+# 것이라 조인 열쇠로 쓰면 안 된다(P02).
+#
+# **판정 규칙은 `_apply_review`·`_guess_cls` 와 같아야 한다.** 아래 CASE 두 개가
+# 그 규칙이고, 경계값(1.4 · 2.0 · 20.0)까지 같아야 목록과 상세 화면의 숫자가
+# 어긋나지 않는다.
+_SUMMARY_SQL = """
+SELECT v.slide_id AS slide_id,
+       CASE WHEN r.label IS NOT NULL AND r.label <> '' THEN r.label
+            WHEN NOT c.passed THEN CASE
+                 WHEN c.elongation < 1.4 THEN 'round'
+                 WHEN c.elongation >= 2.0 AND c.elongation <= 20.0 THEN 'rod'
+                 ELSE '' END
+            ELSE c.cls END                                          AS eff_cls,
+       COUNT(*) FILTER (WHERE (c.passed AND NOT COALESCE(r.removed, 0))
+                           OR (NOT c.passed AND COALESCE(r.accepted, 0)))   AS n_kept,
+       COUNT(*) FILTER (WHERE c.passed)                                     AS n_auto,
+       COUNT(*) FILTER (WHERE ((c.passed AND NOT COALESCE(r.removed, 0))
+                            OR (NOT c.passed AND COALESCE(r.accepted, 0)))
+                          AND r.label IS NOT NULL AND r.label <> '')        AS n_labeled
+FROM viewer_candidate c
+JOIN viewer_detection d ON d.id = c.detection_id AND d.is_current
+JOIN viewer_viewpoint v ON v.id = d.viewpoint_id
+LEFT JOIN viewer_objectreview r
+       ON r.image_id = d.image_id AND r.mask_key = c.mask_key
+WHERE {where}
+GROUP BY v.slide_id, eff_cls
+"""
+
+
+def _summary_rows(where: str, params: list) -> dict[int, dict]:
+    """슬라이드 번호 → 집계. `eff_cls` 로 묶어 온 것을 파이썬에서 접는다.
+
+    **분류 목록을 SQL 에 박지 않는다.** `ClassDef` 에 행을 더하면 저절로 따라온다
+    (038~040 과 같은 방향). 모르는 분류로 나온 개체도 `n_detected` 에는 들어간다 —
+    화면의 분류 열에만 안 보인다.
+    """
+    out: dict[int, dict] = {}
+    with connection.cursor() as cur:
+        cur.execute(_SUMMARY_SQL.format(where=where), params)
+        for slide_id, eff_cls, n_kept, n_auto, n_labeled in cur.fetchall():
+            r = out.setdefault(slide_id, {"per_cls": {}, "n_detected": 0,
+                                          "n_auto": 0, "n_labeled": 0})
+            if n_kept:
+                r["per_cls"][eff_cls] = r["per_cls"].get(eff_cls, 0) + n_kept
+            r["n_detected"] += n_kept
+            r["n_auto"] += n_auto
+            r["n_labeled"] += n_labeled
+    return out
 
 
 def _slide_summary(slide: Slide, details: list | None = None) -> dict:
