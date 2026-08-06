@@ -223,7 +223,13 @@ def _make_detection(vp, img, *, n_candidates):
     # 운영 DB 의 현재 검출 508개가 전부 `sam2-전수` 에 들어 있다. 픽스처가 그
     # 사실을 안 지키면 **시험이 현실에 없는 상태를 만들어 놓고 통과한다** —
     # 실제로 그렇게 짜여 있었고, 0단계에서 가드가 5개를 세워 드러났다.
-    batch, _ = RunBatch.objects.get_or_create(kind="detect", label="sam2-시험")
+    # **검토 대상 묶음이 정해져 있다** (P10). 운영에는 늘 하나가 켜져 있고,
+    # 없으면 화면이 빈 목록을 본다 — 픽스처가 그 사실을 안 지키면 시험이
+    # 현실에 없는 상태를 만들어 놓고 통과한다(0단계에서 같은 일이 있었다).
+    batch, made = RunBatch.objects.get_or_create(kind="detect", label="sam2-시험")
+    if made and not RunBatch.objects.filter(for_review=True).exists():
+        batch.for_review = True
+        batch.save(update_fields=["for_review"])
     run = Run.objects.create(kind="detect", batch=batch, slide=vp.slide,
                              status="done")
     det = Detection.objects.create(

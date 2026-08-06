@@ -134,12 +134,22 @@ class ReviewBatchScopeTest(DiaRUGATestCase):
     def test_묶음_없는_검출에는_저장을_거절한다(self):
         """`batch=None` 자리는 사람이 그린 개체의 것이라 섞으면 안 된다.
 
-        **못 한 것은 오류로 말한다** — 저장한 척하는 갈래를 남기지 않는다.
+        **P10 이 이것을 구조로 막는다.** 화면이 보는 것은 `for_review` 와
+        `is_current` 가 **둘 다 켜진 것**이라, 묶음이 없는 검출은 **애초에
+        화면에 안 나온다** —
+        저장이 그것을 가리킬 수도 없다. 예전에는 `save_review` 안의 가드가
+        잡았고 지금은 그 앞에서 걸린다.
+
+        **못 한 것은 오류로 말한다** — 어느 쪽이든 409 이고, 저장한 척하는
+        갈래는 없다.
         """
+        # `stem`·`keys` 도 검토 대상을 지나므로 **먼저 받아 둔다** — 묶음을
+        # 떼고 나면 화면이 아무것도 안 보고, 그러면 payload 조차 못 만든다.
+        payload = self.full(labels={self.w.keys()[0]: "rod"})
         Detection.objects.filter(viewpoint=self.w.vp,
                                  is_current=True).update(run=None)
-        r = self.post(self.full(labels={self.w.keys()[0]: "rod"}), expect=409)
-        self.assertIn("묶음", r.json()["error"])
+        r = self.post(payload, expect=409)
+        self.assertIn("현재 검출이 없다", r.json()["error"])
         self.assertEqual(ObjectReview.objects.count(), 0)
 
 
@@ -203,3 +213,56 @@ class RebindScopeTest(DiaRUGATestCase):
         self.assertEqual(mine.candidate_id, cand.pk)
         self.assertEqual(mine.bind_method, "iou")
         self.assertEqual(stat["iou"], 1)
+
+
+class ForReviewProductTest(DiaRUGATestCase):
+    """화면이 보여줄 검출은 **`for_review` 와 `is_current` 가 둘 다 켜진 것**이다
+    (P10 3.1).
+
+    `is_current` 는 "그 묶음 **안에서** 최신" 이라는 좁은 뜻이고, 어느 묶음을
+    볼지는 묶음이 정한다. 묶음을 함께 안 보면 **나란히 쌓아 둔 다른 엔진의 검출이
+    화면에 함께 뜬다** — 지금 자료로도 시야마다 검출이 여럿이 된다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=3)
+
+    def test_검토_대상_묶음의_검출만_본다(self):
+        from .. import data
+        other = fx.add_other_engine(self.w.vp)          # is_current=False 로 쌓인다
+        Detection.objects.filter(run=other).update(is_current=True)
+
+        dets = data.current_detections(self.w.vp)
+        self.assertEqual(len(dets), 1, "다른 묶음의 검출이 화면에 섞였다")
+        self.assertEqual(dets[0].batch.label, "sam2-시험")
+
+    def test_검토_대상을_옮기면_화면도_따라간다(self):
+        from .. import data
+        other = fx.add_other_engine(self.w.vp)
+        Detection.objects.filter(run=other).update(is_current=True)
+
+        RunBatch.objects.filter(for_review=True).update(for_review=False)
+        RunBatch.objects.filter(pk=other.batch_id).update(for_review=True)
+
+        dets = data.current_detections(self.w.vp)
+        self.assertEqual(len(dets), 1)
+        self.assertEqual(dets[0].batch.pk, other.batch_id,
+                         "검토 대상을 옮겼는데 화면이 안 따라왔다")
+
+    def test_검토_대상이_없으면_빈_목록이다(self):
+        """**조용히 아무 묶음이나 보여주지 않는다** (P10 3.6).
+
+        무엇을 검토하는지 모른 채 교정을 쌓는 것보다 빈 화면이 낫다.
+        """
+        from .. import data
+        RunBatch.objects.filter(for_review=True).update(for_review=False)
+        self.assertEqual(data.current_detections(self.w.vp), [])
+
+    def test_검토_대상은_하나뿐이다(self):
+        """둘이면 화면이 어느 것을 그릴지 모른다 — DB 가 막는다."""
+        from django.db import IntegrityError
+        other = fx.add_other_engine(self.w.vp)
+        with self.assertRaises(IntegrityError):
+            RunBatch.objects.filter(pk=other.batch_id).update(for_review=True)

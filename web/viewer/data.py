@@ -25,7 +25,8 @@ from . import antarctica, korea, outcrop
 from . import shape
 from .models import (Candidate, ClassDef, Detection, Frame, Locality,
                      ObjectReview,
-                     Run, Site, Slide, Stack, Viewpoint, ViewpointReview)
+                     Run, RunBatch, Site, Slide, Stack, Viewpoint,
+                     ViewpointReview)
 
 # --- 분류 정의 -------------------------------------------------------------
 # ClassDef 테이블이 원본이다. 다만 매 요청마다 읽을 값이 아니라(거의 바뀌지 않고
@@ -720,6 +721,16 @@ def preview_detection(vp: Viewpoint) -> dict | None:
     }
 
 
+def review_batch_id():
+    """검토 대상 묶음의 pk. 없으면 `None` (P10).
+
+    **서버 설정이라 요청마다 한 번만 읽으면 된다.** 관리 화면이 바꾸면 다음
+    요청부터 따른다 — 프로세스가 여럿이라 캐시하면 판이 갈린다.
+    """
+    return (RunBatch.objects.filter(for_review=True)
+            .values_list("id", flat=True).first())
+
+
 def current_detections(vp: Viewpoint) -> list:
     """그 시야의 현재 검출들. **여럿일 수 있다** (P09 1단계).
 
@@ -730,7 +741,19 @@ def current_detections(vp: Viewpoint) -> list:
     **이미지마다 하나라는 것이 불변식이다.** 0025 마이그레이션이 그것을 확인하고
     통과했다 — 어긋나면 어느 묶음의 판단인지 정할 수 없어 교정을 못 앉힌다.
     """
-    return [d for d in vp.detections.all() if d.is_current]
+    dets = [d for d in vp.detections.all() if d.is_current]
+    # **`is_current` 하나로는 모자란다** (P10). 그것은 "그 묶음 안에서 최신"
+    # 이고, 어느 묶음을 볼지는 `RunBatch.for_review` 가 정한다 — 화면이 보는
+    # 것은 **둘 다 켜진 검출**이다.
+    #
+    # 검토 대상이 없으면 **빈 목록**이다. 조용히 아무 묶음이나 보여주면 사람이
+    # 무엇을 검토하고 있는지 모른 채 교정을 쌓는다 (P10 3.6). 그 상태는
+    # `check_db.py` 가 센다.
+    rb = review_batch_id()
+    if rb is None:
+        return []
+    bmap = batch_ids_of(dets)
+    return [d for d in dets if bmap.get(d.pk) == rb]
 
 
 def representative_detection(vp: Viewpoint, dets=None):

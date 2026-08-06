@@ -70,7 +70,8 @@ for_review = models.BooleanField(default=False, db_default=False)
 | `Detection.is_current` | **그 묶음 안에서** 이 이미지의 최신 검출 |
 | `RunBatch.for_review` | 뷰어가 **검토 대상**으로 삼는 묶음 |
 
-화면이 보는 것은 **둘의 곱**이다: `batch.for_review AND detection.is_current`.
+화면이 보여줄 검출은 **둘 다 켜진 것**이다 —
+`batch.for_review AND detection.is_current`.
 
 `Setting` 테이블(키·값)에 두는 쪽도 됐지만, 묶음이 스스로 아는 편이 낫다 —
 조인이 자연스럽고, **"하나뿐" 을 DB 가 강제**할 수 있다.
@@ -90,7 +91,7 @@ for_review = models.BooleanField(default=False, db_default=False)
 3. **묶음마다** 이미지별 최신 검출에 `is_current=True` 를 세운다
 
 3번이 필요한 이유: 지금 `yolo-3차` 의 검출 1,624개는 **전부 `is_current=False`**
-다(나란히 쌓기만 했으므로). 그대로 두고 `for_review` 만 옮기면 곱이 0이 되어
+다(나란히 쌓기만 했으므로). 그대로 두고 `for_review` 만 옮기면 둘 다 켜진 것이 없어
 **아무것도 안 보인다.**
 
 정규화가 끝나면 화면이 보는 것은 `sam2-전수` 의 508개 — **오늘과 똑같다.**
@@ -113,7 +114,7 @@ prune_detections.py · backfill_images.py · batch_runs.py · regroup.py · view
 
 | 무엇을 묻는 코드인가 | 무엇을 써야 하나 |
 |---|---|
-| "뷰어가 보여줄 검출" (`data`·`thresholds`·집계) | **`for_review` 곱** |
+| "뷰어가 보여줄 검출" (`data`·`thresholds`·집계) | **`for_review` 와 함께** |
 | "이 묶음 안의 최신" (`segment_diatoms`·`prune`·`rebind`) | `is_current` 그대로 |
 
 `Detection.objects.reviewing()` 하나를 만들어 앞쪽이 전부 그것을 지나게 한다.

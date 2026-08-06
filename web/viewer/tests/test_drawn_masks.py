@@ -118,14 +118,27 @@ class DrawnMaskTest(DiaRUGATestCase):
         self.assertTrue(ObjectReview.objects.filter(mask_key=KEY).exists())
 
     def test_묶음을_갈아타도_안_사라진다(self):
-        """어느 회차에도 안 속하므로 회차가 바뀌어도 그대로 있어야 한다."""
+        """어느 회차에도 안 속하므로 회차가 바뀌어도 그대로 있어야 한다.
+
+        **갈아타는 방법이 P10 에서 바뀌었다** — 예전에는 검출의 `is_current` 를
+        옮겼고, 지금은 `RunBatch.for_review` 를 옮긴다. 그린 개체는 `batch=NULL`
+        이라 어느 쪽이든 그대로 있어야 한다.
+        """
         self.post(drawn=[self.draw()])
-        other, _ = RunBatch.objects.get_or_create(kind="detect", label="yolo-다음")
+        key0 = self.w.keys()[0]
+
         det = self.w.detection()
+        other = RunBatch.objects.create(kind="detect", label="yolo-다음")
+        # 검출을 새 묶음으로 옮기고 검토 대상도 그리로 — 회차가 바뀐 모양이다
+        RunBatch.objects.filter(for_review=True).update(for_review=False)
         det.run.batch = other
         det.run.save(update_fields=["batch"])
-        self.post(labels={self.w.keys()[0]: "rod"})
-        self.assertTrue(ObjectReview.objects.filter(mask_key=KEY).exists())
+        other.for_review = True
+        other.save(update_fields=["for_review"])
+
+        self.post(labels={key0: "rod"})
+        self.assertTrue(ObjectReview.objects.filter(mask_key=KEY).exists(),
+                        "회차를 갈아타자 그린 개체가 사라졌다")
 
     # --- 못 받을 것은 오류로 ----------------------------------------------
 

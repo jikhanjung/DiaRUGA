@@ -39,13 +39,36 @@ class RunBatch(models.Model):
     # 사람이 고르는 이름. "yolo-v1seg" 처럼 무엇을 돌렸는지가 드러나야 한다
     label = models.CharField(max_length=120)
     note = models.TextField(blank=True)
+    # **뷰어가 검토 대상으로 삼는 묶음** (P10). 서버 설정이다 — 관리 화면에서
+    # 고르고, 모두가 같은 것을 본다.
+    #
+    # **`Detection.is_current` 와 다른 것을 말한다.** 겹치는 이름을 쓰면 읽는
+    # 사람이 반드시 헷갈려서 일부러 다르게 붙였다:
+    #
+    #   Detection.is_current   그 묶음 **안에서** 이 이미지의 최신 검출
+    #   RunBatch.for_review    뷰어가 **검토 대상**으로 삼는 묶음
+    #
+    # 화면이 보여줄 검출은 **둘 다 켜진 것**이다 — 이 묶음을 검토하고 있고,
+    # 그 묶음 안에서 최신인 검출 (`Detection.objects.reviewing()`).
+    #
+    # **URL·쿠키가 아니라 서버 설정인 이유** (P10 §2): 사람마다 다른 묶음을
+    # 보면 `/review` 가 017·027·053 계열의 사고를 새로 만든다. 그 POST 는 범위를
+    # 갈아치우고, 셋 다 "화면과 저장 대상이 어긋난" 사고였다.
+    for_review = models.BooleanField(default=False, db_default=False)
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-started_at"]
-        constraints = [models.UniqueConstraint(fields=["kind", "label"],
-                                               name="uniq_batch_label")]
+        constraints = [
+            models.UniqueConstraint(fields=["kind", "label"],
+                                    name="uniq_batch_label"),
+            # **검토 대상은 하나뿐이다.** 둘이면 화면이 어느 것을 그릴지 모르고,
+            # 그 상태는 예외가 안 나고 그냥 틀린다 — DB 가 막는다.
+            models.UniqueConstraint(fields=["for_review"],
+                                    condition=models.Q(for_review=True),
+                                    name="uniq_batch_for_review"),
+        ]
 
     def __str__(self):
         return f"{self.label} ({self.kind})"
@@ -665,12 +688,41 @@ class Setting(models.Model):
         return self.key
 
 
+class DetectionQuerySet(models.QuerySet):
+
+    def reviewing(self):
+        """**뷰어가 보여줄 검출** (P10). 검토 대상 묶음의, 그 묶음 안 최신 것.
+
+        `is_current=True` 를 코드 여기저기에 적지 않고 여기 하나로 모은다.
+        예전에는 12개 파일에 흩어져 있었고, **뜻이 바뀌는데 자리가 흩어져 있으면
+        전부 틀린다 — 그런데 예외가 안 난다.**
+
+        **묻는 것이 둘로 갈린다.** 이 메서드를 쓸 자리와 아닌 자리가 있다:
+
+        | 무엇을 묻는가 | 무엇을 쓰는가 |
+        |---|---|
+        | 뷰어가 보여줄 검출 (화면·집계·문턱) | **`reviewing()`** |
+        | 이 묶음 안의 최신 (파이프라인·prune·rebind) | `is_current` 그대로 |
+
+        뒤엣것까지 바꾸면 파이프라인이 **검토 대상이 아닌 묶음에 쌓을 때** 자기
+        검출을 못 찾는다.
+        """
+        return self.filter(is_current=True, run__batch__for_review=True)
+
+
 class Detection(models.Model):
     """이미지 한 장에 대한 검출 실행.
 
     재실행마다 새 행을 쌓는다 — 덮어쓰면 엔진 교체 전후를 비교할 수 없다.
-    뷰어는 `is_current=True` 인 것만 본다.
+
+    **뷰어가 보는 것은 `Detection.objects.reviewing()` 이다** (P10) —
+    `is_current` 하나가 아니라 **묶음의 `for_review` 와 함께 봐야** 한다.
+    `is_current` 는
+    "그 묶음 **안에서** 최신" 이라는 좁은 뜻이고, 어느 묶음을 볼지는
+    `RunBatch.for_review` 가 정한다.
     """
+
+    objects = DetectionQuerySet.as_manager()
 
     viewpoint = models.ForeignKey(Viewpoint, on_delete=models.CASCADE,
                                  related_name="detections")
