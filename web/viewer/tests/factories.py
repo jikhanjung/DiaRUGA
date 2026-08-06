@@ -70,9 +70,18 @@ class World:
         return self.slide.slug
 
     def detection(self, vp=None) -> Detection:
-        """그 시야의 현재 검출."""
-        vp = vp or self.vp
-        return vp.detections.get(is_current=True)
+        """그 시야의 **대표** 현재 검출 — 합성본이 있으면 합성본.
+
+        예전에는 `.get(is_current=True)` 였다. **시야마다 현재 검출이 하나**라는
+        전제인데, 프레임별 검출을 올리면 깨진다(P09 1단계 · `add_frame_detections`).
+        깨진 채로 두면 시험이 `MultipleObjectsReturned` 로 서는데, 그것은
+        **시험이 못 쓰게 된 것이지 코드가 틀렸다는 말이 아니라** 무엇이 문제인지를
+        가린다.
+
+        집계가 세는 것과 같은 규칙이다(`data.representative_detection`) — 규칙이
+        둘이 되면 시험이 화면과 다른 것을 증언한다.
+        """
+        return data.representative_detection(vp or self.vp)
 
     def keys(self, vp=None) -> list[str]:
         """그 시야 개체들의 `mask_key`. 화면이 보내는 것과 같은 것들이다."""
@@ -259,6 +268,29 @@ def _make_detection(vp, img, *, n_candidates):
     return det
 
 
+def add_frame_detections(vp, *, n_candidates=2):
+    """그 시야의 **프레임마다 현재 검출**을 하나씩 더 만든다 (P09 1단계).
+
+    합성본에 하나 + 프레임마다 하나 — **시야 하나에 현재 검출이 여럿인 상태**다.
+    YOLO 는 합성본이 아니라 원본 프레임을 보므로 갈아타면 그 모양이 된다
+    (실측: `yolo-3차` 는 시야 452개에 프레임 검출 1,310개).
+
+    **운영 DB 에는 아직 이 상태가 없다.** 그래서 시험이 먼저 만든다 — 없으면
+    "시야마다 이미지가 하나" 를 전제한 코드가 전부 통과한 채로 남고, 갈아타는
+    날 한꺼번에 드러난다. 그 날 잃는 것은 재생성 불가한 교정이다.
+
+    돌려주는 것은 `[(frame, image, detection), …]`.
+    """
+    out = []
+    for f in vp.frames.all():
+        img = Image.objects.get(path=f.path)
+        if vp.detections.filter(image=img, is_current=True).exists():
+            continue                     # 싱글턴 시야 — 이미 그 프레임이 대상이다
+        out.append((f, img, _make_detection(vp, img,
+                                            n_candidates=n_candidates)))
+    return out
+
+
 def add_other_engine(vp, *, label=None, n_candidates=2) -> Run:
     """같은 시야에 **다른 엔진의 검출**을 하나 더 쌓는다. `Run` 을 돌려준다.
 
@@ -322,15 +354,22 @@ def add_other_engine(vp, *, label=None, n_candidates=2) -> Run:
     return run
 
 
-def add_review(vp, mask_key, *, removed=False, accepted=False, label="",
-               note="") -> ObjectReview:
-    """교정 한 줄. **`(image, mask_key)` 가 열쇠다.**
+def add_review(vp, mask_key, *, image=None, removed=False, accepted=False,
+               label="", note="") -> ObjectReview:
+    """교정 한 줄. **`(image, batch, mask_key)` 가 열쇠다.**
 
     `geom` 을 반드시 채운다 — 교정은 기하를 스스로 들고 있어야 검출기가 바뀌어도
     읽힌다(CLAUDE.md). 빈 `geom` 으로 만들면 시험이 그 규칙을 안 지키는 자료를
     만들어 놓고 통과한다.
+
+    `image` 를 주면 그 이미지의 현재 검출에 붙인다. 안 주면 대표 이미지다 —
+    `World.detection()` 과 같은 규칙을 본다(둘로 갈라지면 어긋난다).
     """
-    det = vp.detections.get(is_current=True)
+    if image is None:
+        det = data.representative_detection(vp)
+    else:
+        image_id = getattr(image, "pk", image)
+        det = vp.detections.get(is_current=True, image_id=image_id)
     cand = det.candidates.filter(mask_key=mask_key).first()
     geom = {}
     if cand is not None:

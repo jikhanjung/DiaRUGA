@@ -586,12 +586,80 @@ def preview_detection(vp: Viewpoint) -> dict | None:
     }
 
 
-def detection_for_viewpoint(vp: Viewpoint) -> dict | None:
-    """시야에 붙은 현재 검출 결과 (교정 반영)."""
-    det = next((d for d in vp.detections.all() if d.is_current), None)
+def current_detections(vp: Viewpoint) -> list:
+    """그 시야의 현재 검출들. **여럿일 수 있다** (P09 1단계).
+
+    합성본에 하나 + 프레임마다 하나가 된다 — YOLO 는 합성본이 아니라 원본
+    프레임을 보므로 갈아타면 그 모양이다(실측: `yolo-3차` 는 시야 452개에 프레임
+    검출 1,310개, 합성본 검출 314개).
+
+    **이미지마다 하나라는 것이 불변식이다.** 0025 마이그레이션이 그것을 확인하고
+    통과했다 — 어긋나면 어느 묶음의 판단인지 정할 수 없어 교정을 못 앉힌다.
+    """
+    return [d for d in vp.detections.all() if d.is_current]
+
+
+def representative_detection(vp: Viewpoint, dets=None):
+    """집계가 세는 검출 하나 (P09 5.3).
+
+    **검토는 모든 이미지에서 하되 집계는 시야마다 하나에서 낸다.** 합성본 1 +
+    프레임 3.6 을 다 세면 같은 규조각이 4.6번 세어져 밀도가 그만큼 부푼다 —
+    **학습 자료로는 맞고 계측 통계로는 틀리다.**
+
+    합성본이 있으면 합성본이다. 없으면(싱글턴 시야 153개) 그 프레임이다.
+    지금 `is_current` 가 시야당 하나인 것이 하던 역할 그대로다.
+    """
+    dets = current_detections(vp) if dets is None else dets
+    return (next((d for d in dets if d.image and d.image.kind == "stack"), None)
+            or next(iter(dets), None))
+
+
+def batch_ids_of(dets) -> dict:
+    """검출 pk → 묶음 pk. **조인을 한 번에 한다.**
+
+    `Detection.batch` 는 `run` 을 타고 두 번 조인한다. 프레임마다 부르면 시야
+    하나에 조인이 열 번씩 걸린다 — 개수를 세려고 자료를 물질화하지 말라는 것과
+    같은 이야기다(CLAUDE.md).
+    """
+    run_ids = {d.run_id for d in dets if d.run_id}
+    if not run_ids:
+        return {d.pk: None for d in dets}
+    by_run = dict(Run.objects.filter(id__in=run_ids)
+                  .values_list("id", "batch_id"))
+    return {d.pk: by_run.get(d.run_id) for d in dets}
+
+
+def detection_for_viewpoint(vp: Viewpoint, image=None) -> dict | None:
+    """시야에 붙은 현재 검출 결과 (교정 반영).
+
+    **`image` 를 주면 그 이미지의 것을 낸다** (P09 1단계). 안 주면 대표 이미지의
+    것이다 — 합성본이 있으면 합성본, 없으면 그 프레임.
+    """
+    dets = current_detections(vp)
+    if image is not None:
+        image_id = getattr(image, "pk", image)
+        det = next((d for d in dets if d.image_id == image_id), None)
+    else:
+        det = representative_detection(vp, dets)
     if det is None:
         return None
-    reviews = {o.mask_key: o for o in vp.object_reviews.all()}
+    return _with_reviews(vp, det, batch_ids_of([det]).get(det.pk))
+
+
+def _with_reviews(vp: Viewpoint, det, batch_id) -> dict:
+    """검출 하나에 **그 검출의 교정만** 얹는다.
+
+    **교정을 `(image, batch)` 로 거른다.** 안 거르면 두 가지가 화면에 새어 든다:
+
+    - **다른 이미지의 교정** — 합성본에서 한 판단이 프레임 화면에 얹혀 보인다.
+      같은 시야라 좌표계가 같아서 `mask_key` 가 실제로 맞는다
+    - **다른 묶음의 교정** — SAM2 시절 "오검출" 이 YOLO 검출에 얹힌다. 사람은
+      **자기가 지우지 않은 것이 지워져 있는 것**을 본다(실측 1,076건, P09 4.4)
+
+    둘 다 예외가 안 나고 **그럴듯한 화면**이 나오는 종류다.
+    """
+    reviews = {o.mask_key: o for o in vp.object_reviews.all()
+               if o.image_id == det.image_id and o.batch_id == batch_id}
     vr = next(iter(ViewpointReview.objects.filter(viewpoint=vp)), None)
     return _apply_review(det, reviews, vr)
 
@@ -1542,7 +1610,7 @@ def mark_all_reviewed(slug: str, done: bool) -> dict | None:
 
 # --- 교정 저장 --------------------------------------------------------------
 def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
-                labels: dict, notes: dict) -> dict | None:
+                labels: dict, notes: dict, image=None) -> dict | None:
     """뷰어가 보낸 교정을 DB 에 쓴다. 예전에는 review/<stem>_review.json 이었다.
 
     키(mask_key)마다 한 행이고, 아무 표시도 남지 않은 행은 지운다 — 그래야
@@ -1552,14 +1620,34 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     stem 으로 찾았는데, 프레임 이름이 슬라이드끼리 겹쳐 **엉뚱한 시야가 잡히는
     길**이 있었다 — 이 함수는 마지막에 그 시야의 교정을 통째로 갈아치우므로
     잘못 짚으면 남의 판단이 사라진다.
+
+    **이미지도 부르는 쪽이 짚는다** (P09 1단계). 시야 하나에 현재 검출이 여럿일
+    수 있는데(합성본 하나 + 프레임마다 하나) 예전에는 여기서 `.is_current` 인 것 중
+    **아무거나** 집었다 — 시야마다 하나일 때만 맞는 코드다. 그대로 두고 YOLO 를
+    프레임 검출로 올리면 **합성본에서 한 교정이 프레임 행으로 앉거나 그 반대가
+    된다.** 053 과 같은 계열이고, 마지막 줄이 그 범위를 갈아치운다.
+
+    `image` 를 안 주면 대표 이미지다 — 옛 화면(배포 중에 열려 있던 탭)이 그렇고,
+    시야마다 이미지가 하나이던 시절과 결과가 같다.
     """
     if vp is None:
         return None
 
     # **어느 이미지·어느 묶음에 대한 교정인가** (P06 5a · P09 5.1). 열쇠가
     # `(image, batch, mask_key)` 라 이것이 없으면 행을 만들 수도, 지울 범위를
-    # 정할 수도 없다. 화면이 그리는 것은 현재 검출이므로 그 검출의 이미지·묶음이다.
-    cur = next((d for d in vp.detections.all() if d.is_current), None)
+    # 정할 수도 없다.
+    dets = current_detections(vp)
+    if image is None:
+        cur = representative_detection(vp, dets)
+    else:
+        image_id = getattr(image, "pk", image)
+        cur = next((d for d in dets if d.image_id == image_id), None)
+        if cur is None:
+            # **남의 이미지를 짚었거나 그 이미지에 현재 검출이 없다.** 둘 다
+            # 오류로 말한다 — 조용히 대표 이미지에 앉히면 사람이 보고 있던 것과
+            # 다른 자리에 판단이 쌓인다.
+            raise ValueError(
+                "그 이미지에는 이 시야의 현재 검출이 없다 — 저장하지 않았다")
     if cur is None or cur.image_id is None:
         raise ValueError("이 시야에는 현재 검출이 없다 — 저장하지 않았다")
     image = cur.image
@@ -1576,9 +1664,12 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
 
     removed, accepted = set(removed), set(accepted)
     keys = removed | accepted | set(labels) | set(notes)
-    by_key = {c.mask_key: c for c in
-              Candidate.objects.filter(detection__viewpoint=vp,
-                                       detection__is_current=True)}
+    # **그 검출의 개체만 본다.** 예전에는 시야의 현재 검출 전부를 훑었는데,
+    # 시야마다 현재 검출이 하나일 때만 같은 뜻이다 — 여럿이면 **프레임 A 의 키가
+    # 프레임 B 의 화면에서 통과한다.** `mask_key` 는 프레임끼리 45% 겹치므로
+    # 우연이 아니라 흔하게 통과하고, 아래 삭제 줄은 이미지로 좁혀져 있어
+    # **엉뚱한 이미지의 키로 만든 행이 남는다** (P09 1단계).
+    by_key = {c.mask_key: c for c in cur.candidates.all()}
 
     # **현재 검출에 없는 키는 받지 않는다.** 사람은 화면에 있는 것만 표시할 수
     # 있고, 화면은 현재 검출을 그린다. 그 밖의 키가 섞여 오면 다른 검출을 보고

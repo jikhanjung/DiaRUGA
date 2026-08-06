@@ -1307,9 +1307,23 @@ def save_review(request):
     if not isinstance(payload.get("note", ""), (str, type(None))):
         return HttpResponseBadRequest("bad note")
 
+    # **어느 이미지를 보고 한 교정인가** (P09 1단계). 시야 하나에 현재 검출이
+    # 여럿일 수 있으므로(합성본 하나 + 프레임마다 하나) 화면이 짚어서 보낸다.
+    #
+    # **이름이 아니라 id 다.** 프레임 이름은 슬라이드끼리 겹치고(143종) 053 이
+    # 정확히 그 자리에서 났다 — 이름은 겹쳐도 주소는 안 겹친다. 서버는 그 id 가
+    # **이 시야의 것인지** 다시 확인한다(`save_review` 안에서).
+    image_id = payload.get("image")
+    if image_id is not None:
+        try:
+            image_id = int(image_id)
+        except (TypeError, ValueError):
+            return HttpResponseBadRequest("bad image")
+
     try:
         saved = data.save_review(vp, done=done, note=note, removed=removed,
-                                 accepted=accepted, labels=labels, notes=notes)
+                                 accepted=accepted, labels=labels, notes=notes,
+                                 image=image_id)
     except ValueError as e:
         # 현재 검출에 없는 키가 섞여 왔다. 아무것도 바꾸지 않고 돌려보낸다 —
         # 그대로 두면 그 시야의 교정이 통째로 지워진다 (data.save_review 주석).
