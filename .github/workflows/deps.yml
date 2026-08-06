@@ -1,0 +1,69 @@
+# 파이프라인 의존성이 조용히 썩는 것을 본다 (P08 §5.3).
+#
+# **이미지를 굽지도 올리지도 않는다.** 파이프라인 이미지는 7.2 GB 고 러너에
+# GPU 가 없어 구워도 확인이 안 된다 — 여기서는 "받을 수 있는가" 만 묻는다.
+# 지금은 그것조차 안 봐서 **다음에 굽는 날에야** 알게 된다.
+#
+# ## 왜 두 조각인가
+#
+# 한 덩어리로 `pip install --dry-run -r requirements-pipeline.txt` 를 하면
+# 안 싸다. `SAM-2` 가 git 의존성이라 pip 이 메타데이터를 만들려고 격리 빌드
+# 환경을 세우는데, sam2 의 `[build-system] requires` 에 `torch>=2.5.1` 이 있어
+# **`--dry-run` 인데도 몇 GB 를 받는다.**
+#
+# 그런데 핀한 SHA 는 내용이 안 바뀐다. 거기서 실제로 깨지는 것은 "저장소가
+# 없어졌다 · 커밋이 GC 됐다" 뿐이고, 그것은 요청 하나로 확인된다.
+#
+# ## 이것이 못 잡는 것
+#
+# `apt-get` 층, CA 인증서 단계, 실제 설치가 되는지, 그리고 **GPU 에서 도는지.**
+# 굽기 전에 알 수 있는 것을 미리 아는 것이지 빌드의 대체가 아니다.
+name: 의존성 표류
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'      # 매주 월요일 07:00 KST (UTC+9)
+  workflow_dispatch:
+
+jobs:
+  wheels:
+    name: 휠을 아직 받을 수 있는가
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # PyPI 와 download.pytorch.org 둘 다 PEP 658 메타데이터를 내주므로
+      # (2026-08-06 확인: `data-core-metadata`) 2.5 GB 짜리 휠을 안 받고
+      # 메타데이터만 읽는다. SAM-2 줄만 뺀다 — 위 머리말 참고.
+      - name: 휠 해결 (SAM-2 제외)
+        run: |
+          grep -v '^SAM-2' requirements-pipeline.txt > /tmp/wheels.txt
+          pip install --dry-run --ignore-installed \
+              --extra-index-url https://download.pytorch.org/whl/cu126 \
+              -r /tmp/wheels.txt
+
+      - name: YOLO 백엔드 (--no-deps 로 얹는 것)
+        run: pip install --dry-run --ignore-installed --no-deps -r requirements-yolo.txt
+
+  sam2-pin:
+    name: SAM-2 핀이 아직 있는가
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 핀한 커밋을 GitHub 에 물어본다
+        run: |
+          # requirements 에서 SHA 를 읽는다 — 여기 베껴 두면 핀을 옮길 때
+          # 이 파일만 옛 SHA 를 증언한다.
+          sha=$(grep -oP 'sam2\.git@\K[0-9a-f]+' requirements-pipeline.txt)
+          if [ -z "$sha" ]; then
+              echo "requirements-pipeline.txt 에서 SAM-2 핀을 못 읽었다" >&2
+              exit 1
+          fi
+          echo "핀: $sha"
+          curl -sfo /dev/null \
+              "https://api.github.com/repos/facebookresearch/sam2/commits/$sha" \
+            || { echo "그 커밋을 못 찾는다 — 저장소가 없어졌거나 GC 됐다" >&2; exit 1; }
+          echo "있다."
