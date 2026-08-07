@@ -666,12 +666,41 @@
     return ks.length === 1 && ks[0] === STACK_KEY;
   }
 
+  // **지금 전역이 고른 판의 것인가, 지나가는 판의 것인가** (074).
+  //
+  // 미리보기는 그리기만 바꾸려고 전역(`cands`·`rejects`)을 갈아 끼운다. 그런데
+  // `stash()` 는 전역을 **`curKey` 의 것**으로 알고 담는다 — 커서가 옆 판을
+  // 스친 뒤에 판을 고르면 **옆 판의 마스크가 고른 판의 상태로 저장된다.**
+  //
+  // 실제로 그랬다: 프레임을 고른 뒤 합성본에 커서를 얹었다가 프레임을 누르면
+  // 프레임 자리에 합성본의 30개가 앉고, 이어서 합성본을 누르면 **합성본 자리에
+  // 프레임의 3개**가 나온다. 두 판의 상태가 통째로 뒤바뀐다.
+  //
+  // 그래서 **미리보기를 시작하기 전에 고른 판의 것을 먼저 갈무리하고**, 미리보기
+  // 중이라는 표시를 남긴다. 판을 고를 때는 그 표시를 보고 전역을 고른 판의
+  // 것으로 되돌린 다음에야 `stash()` 로 간다.
+  var previewing = false;
+
+  function unpreviewState() {
+    if (!previewing) return;
+    previewing = false;
+    var back = curKey && shotState[curKey];
+    if (!back) return;
+    cands = back.cands; rejects = back.rejects;
+    removed = back.removed; accepted = back.accepted;
+    labels = back.labels; notes = back.notes;
+    edits = back.edits || (back.edits = {});
+  }
+
   // `commit` 이 false 면 **그리기만** 바꾼다 (커서가 지나가는 미리보기).
   // 교정 상태와 저장 대상은 고른 판(`commit`)의 것으로 남는다.
   function swapDet(s, commit) {
     if (!shotDets || !s) return;      // 판이 하나뿐이면 여기서 끝난다 (지금까지 그대로)
     var key = s.dataset.detkey || null;
     if (commit === false) {
+      // **고른 판의 것을 먼저 담는다.** 사람이 방금 만진 것이 전역에만 있을 수
+      // 있고, 미리보기가 그것을 덮어쓴다 — 담아 두지 않으면 그대로 잃는다.
+      if (!previewing) { stash(); previewing = true; }
       var pkey = (key && shotDets[key]) ? key : (stackOnly() ? STACK_KEY : null);
       var pv = pkey && shotDets[pkey];
       cands = pv ? (pv.candidates || []).slice().concat(pv.gone || []) : [];
@@ -680,6 +709,8 @@
       build();
       return;
     }
+    // 지나가던 것은 여기서 끝난다 — 전역을 고른 판의 것으로 되돌린다.
+    unpreviewState();
     if (key === curKey) {
       // 커서가 지나가며 **그리기만** 바꿔 놓았을 수 있다(`unpreview` 가 여기로
       // 온다). 고른 판의 것으로 되돌린다 — 안 되돌리면 마우스를 캐러셀 위로
@@ -1317,6 +1348,11 @@
     // 대기 상태가 서면 화면이 "저장 중" 인 것처럼 굴고 `flushSave` 가 떠날 때
     // 또 부른다 — 보내지 않을 것을 예약해 둘 이유가 없다.
     if (readOnly) return;
+    // **지나가는 판에는 저장하지 않는다** (074). 커서가 캐러셀의 옆 판을 스치면
+    // 전역이 그 판의 개체를 들고 있는데 저장 대상(`curImage`)은 고른 판 그대로다
+    // — 그대로 보내면 **본 적 없는 이미지에 옆 판의 판단이 앉는다.** 눌린 키는
+    // 버리고 화면을 고른 판으로 되돌린다: 아무 일도 안 일어난 것으로 보여야 한다.
+    if (previewing) { unpreviewState(); build(); redraw(); return; }
     savePending = true;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function () { postReview(false); }, 400);
