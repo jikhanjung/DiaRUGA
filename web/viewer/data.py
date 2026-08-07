@@ -632,19 +632,25 @@ def candidate_rows(slug: str) -> list[dict]:
 
     rows = []
     for vp in _viewpoints_of(slide, only_current=True):
-        cur = next((d for d in vp.detections.all() if d.is_current), None)
-        det = detection_for_viewpoint(vp)
-        if det is None:
+        # **이미지마다 자기 검출을 만든다** (P09 1단계). 시야 하나에 현재 검출이
+        # 여럿일 수 있고(합성본 하나 + 프레임마다 하나), `_frames` 는 그것을
+        # 경로로 맞춘다 — 검토 화면(`viewpoint_detail`)과 같은 자료다.
+        dets = current_detections(vp)
+        if not dets:
             continue
+        bmap = batch_ids_of(dets)
+        by_path = {d.image.path: (d.image_id, _with_reviews(vp, d, bmap[d.pk]))
+                   for d in dets if d.image_id}
         st = getattr(vp, "stack", None)
         # 합성본 검출이 있으면 그쪽을, 없으면 각 프레임 검출을 훑는다.
-        if st and cur and cur.image and cur.image.kind == "stack":
-            sources = [(Path(st.focused_path).stem, det, st.focused_path)]
+        stacked = by_path.get(st.focused_path) if st else None
+        if stacked:
+            sources = [(Path(st.focused_path).stem, stacked[1], st.focused_path)]
         else:
-            sources = [(f["name"], det, f["rel"])
-                       for f in _frames(vp, det,
-                                        cur.image.frame_id if cur and cur.image else None)
-                       if f["detection"]]
+            # **프레임마다 자기 검출을 준다.** 예전에는 대표 검출 하나를 프레임
+            # 수만큼 되돌려 같은 개체가 여러 줄로 나왔다.
+            sources = [(f["name"], f["detection"], f["rel"])
+                       for f in _frames(vp, by_path) if f["detection"]]
         for stem, d, image_rel in sources:
             for c in d["candidates"]:
                 rows.append({
@@ -1717,9 +1723,14 @@ def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False
         # **검토 대상 묶음의 것만** (P10 1단계). `is_current` 만 걸면 나란히
         # 쌓아 둔 다른 엔진의 검출까지 딸려 와 화면이 섞인다.
         dets = dets.reviewing()
+    # **`image` 를 함께 당긴다.** 부르는 쪽이 `d.image.path` 로 검출을 이미지에
+    # 맞춘다(`by_path`) — 안 붙이면 검출마다 질의가 하나씩 붙고, 크롭 화면처럼
+    # 시야를 전부 훑는 자리에서 그대로 백 번이 된다.
     return qs.prefetch_related(
         "frames",
-        Prefetch("detections", queryset=dets.prefetch_related("candidates")),
+        Prefetch("detections",
+                 queryset=dets.select_related("image")
+                              .prefetch_related("candidates")),
         "object_reviews")
 
 

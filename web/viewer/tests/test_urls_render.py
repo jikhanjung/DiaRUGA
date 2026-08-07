@@ -29,6 +29,15 @@ class RenderAllPagesTest(DiaRUGATestCase):
         cls.kr = fx.make_world(slug="bp09-0901", area="kr", kind="outcrop",
                                site_code="BP", loc_code="BP09",
                                sample_code="0901", depth_cm=None)
+        # **합성본이 없는 싱글턴 시야도 세운다.** 검출이 프레임에 붙어 화면이
+        # `_frames` 갈래로 간다. 이 자료가 없어서 크롭 화면이 v0.8.0 내내
+        # `TypeError: _frames() takes 2 positional arguments` 로 500 이었는데도
+        # **이 시험은 통과하고 있었다** — 세운 자료가 전부 합성본이었다.
+        # 화면을 열어 보는 시험은 URL 이 아니라 **갈래**를 덮어야 한다.
+        cls.singleton = fx.make_world(slug="wap13-gc47_116cm", site_code="WAP13",
+                                      loc_code="GC47", sample_code="116cm",
+                                      depth_cm=116.0, n_viewpoints=2,
+                                      with_stack=False)
 
     def setUp(self):
         self.c = Client()
