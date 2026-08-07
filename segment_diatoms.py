@@ -27,6 +27,7 @@ import argparse
 import contextlib
 import fcntl
 import gc
+import hashlib
 import json
 import math
 import os
@@ -109,14 +110,49 @@ def load_generator(backend: str, device: str, args):
             min_mask_region_area=0,
         )
     if backend == "yolo":
-        return YoloGenerator(args.weights, device, conf=args.yolo_conf,
-                             imgsz=args.yolo_imgsz, iou=args.yolo_nms_iou)
+        return YoloGenerator(weights_path(args.weights), device,
+                             conf=args.yolo_conf, imgsz=args.yolo_imgsz,
+                             iou=args.yolo_nms_iou)
     if backend == "sam3":
         raise SystemExit(
             "sam3 백엔드는 HF gated 접근 권한(HF_TOKEN)이 필요합니다. "
             "huggingface.co/facebook/sam3 에서 승인 후 재시도하세요."
         )
     raise SystemExit(f"unknown backend: {backend}")
+
+
+def weights_path(weights: str) -> Path:
+    """가중치의 실제 자리. 상대경로면 **자료 뿌리 아래**에서 찾는다.
+
+    컨테이너 안팎의 경로가 같아(`/data3/DiaRUGA`) 명령을 그대로 옮겨 쓸 수 있지만,
+    작업 디렉토리는 `/app` 이라 상대경로가 저장소 안을 가리킨다 — 거기엔 가중치가
+    없다. 절대경로는 그대로 쓴다.
+    """
+    p = Path(weights)
+    if p.is_absolute():
+        return p
+    here = Path(settings.DATA_ROOT) / weights
+    return here if here.exists() else p
+
+
+def weights_stamp(path: Path) -> dict:
+    """**어느 가중치가 이 회차를 냈는가** (075). `Run.params` 에 남는다.
+
+    회차를 돌리면 가중치가 여럿이 된다. 이름만 남기면 같은 이름으로 다시 학습한
+    파일을 못 가르므로 **크기와 내용 해시**를 함께 적는다 — 파일이 사라진 뒤에도
+    "그 묶음이 무엇으로 나왔는지" 를 되짚을 수 있어야 한다.
+
+    이름 규칙은 `<모형>-<자료판>-<입력크기>[-<날짜>].pt` 다. 새로 학습할 때마다
+    날짜를 붙여 **덮어쓰지 않는다** — 덮어쓰면 옛 묶음의 근거가 사라진다.
+    """
+    if not path.exists():
+        return {"path": str(path), "missing": True}
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return {"path": str(path), "bytes": path.stat().st_size,
+            "mtime": int(path.stat().st_mtime), "sha256": h.hexdigest()[:16]}
 
 
 class YoloGenerator:
@@ -765,7 +801,21 @@ def save_detection(payload: dict, img_path: Path, run: Run, iou_min: float,
 
     # 두 번째 — 짧고, 반드시 한 덩어리여야 하는 부분
     with transaction.atomic():
-        old = list(vp.detections.filter(is_current=True))
+        # **같은 묶음 안에서만 인계한다** (P10). `is_current` 의 뜻이 좁아졌다 —
+        # 예전에는 "뷰어가 볼 것" 이라 시야에 하나였고, 이제는 **그 묶음 안에서
+        # 이 이미지의 최신**이다. 묶음을 안 가리고 끄면 나란히 쌓아 둔 다른
+        # 회차(yolo-3차 1,799개)의 현재 표시가 통째로 꺼지고 `superseded_by` 가
+        # 묶음을 가로질러 걸린다 — 그 묶음으로 갈아타는 날 화면이 빈다.
+        #
+        # 뷰어가 무엇을 보는지는 `RunBatch.for_review` 가 정하므로, 여기서 다른
+        # 묶음을 건드릴 이유가 애초에 없다.
+        # `Detection.batch` 는 `run.batch` 를 짚는 속성이라 `batch_id` 가 없다 —
+        # 실행을 타고 물어본다.
+        new_batch = det.run.batch_id if det.run_id else None
+        old = [d for d in vp.detections.filter(is_current=True)
+               .select_related("run")
+               if d.image_id == det.image_id
+               and (d.run.batch_id if d.run_id else None) == new_batch]
         Detection.objects.filter(pk__in=[d.pk for d in old]).update(
             is_current=False, superseded_by=det)
         det.is_current = True
@@ -903,10 +953,22 @@ def main():
                     help="떨어진 조각까지 마스크로 인정한다 (2026-07-31 이전 방식)")
     ap.add_argument("--backend", default="sam2",
                     choices=["sam2", "sam3", "yolo"])
-    ap.add_argument("--weights",
-                    default="runs/segment/11m-v1seg-1280/weights/best.pt",
-                    help="--backend yolo 일 때 쓸 가중치. 옆의 PROVENANCE.md 에 "
-                         "무엇으로 학습했고 문턱을 얼마로 써야 하는지가 있다")
+    # **시야마다 이미지 한 장** 이 기본이다 — SAM2 는 합성본만 보면 되고,
+    # 폴러가 그렇게 돈다. YOLO 회차는 프레임까지 봐야 하므로 이 표를 준다.
+    # 없을 때는 파일 목록을 손으로 만들어 돌려야 했다(070 에서 그렇게 했다).
+    ap.add_argument("--all-images", action="store_true",
+                    help="시야마다 합성본 + 프레임 전부에 돌린다 "
+                         "(YOLO 회차. 기본은 시야마다 한 장)")
+    # **자료 뿌리 아래의 실제 자리다.** 예전 기본값은 학습 산출 디렉토리
+    # (`runs/segment/…/weights/best.pt`)를 가리켰는데 그 경로는 이 기계에 없다 —
+    # `--backend yolo` 를 그냥 부르면 "가중치가 없다" 로 죽었다.
+    #
+    # **회차를 돌릴 것이므로 이름에 판을 적는다.** `<모형>-<자료판>-<입력크기>`
+    # 에 새로 학습할 때마다 날짜를 덧붙인다 (`11m-v2seg-1280-260815.pt`).
+    # 무엇이 무엇을 냈는지는 `Run.params.weights` 가 함께 남긴다.
+    ap.add_argument("--weights", default="models/11m-v1seg-1280.pt",
+                    help="--backend yolo 일 때 쓸 가중치. 자료 뿌리 기준 상대경로도 "
+                         "받는다. 새 회차는 이름에 날짜를 붙인다")
     # 낮게 뽑아 DB 에 넣고, 고르는 것은 나중에 한다. 운영점이 슬라이드마다
     # 다르다는 것을 devlog 025 §8 이 실측했다.
     ap.add_argument("--yolo-conf", type=float, default=0.01,
@@ -991,14 +1053,23 @@ def main():
         files = []
         for vp in slide.viewpoints.order_by("idx"):
             st = getattr(vp, "stack", None)
-            if st and st.focused_path:
+            if args.all_images:
+                # **합성본과 프레임 전부.** YOLO 는 합성본이 아니라 원본을 보고,
+                # 같은 개체가 어느 초점면에서 잡히는지가 다음 회차의 자료가 된다
+                # (실측: yolo-3차 는 시야 452개에 프레임 검출 1,310개).
+                if st and st.focused_path:
+                    files.append(data_root / st.focused_path)
+                files.extend(data_root / fr.path
+                             for fr in vp.frames.order_by("seq"))
+            elif st and st.focused_path:
                 files.append(data_root / st.focused_path)
             else:
                 fr = vp.sharpest_frame or vp.frames.order_by("seq").first()
                 if fr:
                     files.append(data_root / fr.path)
         files = [f for f in files if f.exists()]
-        print(f"{slide.slug}: 검출 대상 {len(files)}개", file=sys.stderr)
+        print(f"{slide.slug}: 검출 대상 {len(files)}개"
+              + (" (합성본+프레임)" if args.all_images else ""), file=sys.stderr)
     elif args.input:
         inp = Path(args.input)
         files = sorted(inp.glob("*.jpg")) if inp.is_dir() else [inp]
@@ -1047,7 +1118,13 @@ def main():
             params={"backend": args.backend, "scale": args.scale,
                     "points_per_side": args.points_per_side,
                     "min_um": args.min_um, "max_um": args.max_um,
-                    "rebind_iou": args.rebind_iou, "n_files": len(files)},
+                    "rebind_iou": args.rebind_iou, "n_files": len(files),
+                    "all_images": bool(args.all_images),
+                    # 회차를 돌리면 **무엇이 이 묶음을 냈는지**가 근거가 된다
+                    **({"weights": weights_stamp(weights_path(args.weights)),
+                        "yolo_conf": args.yolo_conf,
+                        "yolo_imgsz": args.yolo_imgsz}
+                       if args.backend == "yolo" else {})},
             host=socket.gethostname(), gpu=device, code_version=git_version())
 
     # 사람이 교정한 시야는 GPU 를 돌리기 **전에** 걸러 낸다.
@@ -1065,26 +1142,44 @@ def main():
         print("--keep-current: 새 검출을 is_current 로 올리지 않는다. "
               "뷰어와 교정은 그대로다", file=sys.stderr)
     elif not args.no_db and not args.force:
+        # **이미지마다, 그리고 이 묶음 안에서 본다** (P10 · 075).
+        #
+        # 예전에는 "이 **시야**에 현재 검출이 있는가" 였다. 그 물음은 시야마다
+        # 이미지가 한 장이고 묶음이 하나일 때만 맞다. 지금은 둘 다 아니다:
+        #
+        # - 묶음을 안 가리면 **새 묶음으로 전수 재검출이 아예 안 돈다** —
+        #   yolo-3차 가 덮은 시야가 전부 "이미 했다" 로 걸러진다
+        # - 이미지를 안 가리면 **프레임까지 도는 회차(YOLO)를 이어 돌릴 수
+        #   없다** — 합성본 하나가 되어 있으면 프레임 여섯 장이 통째로 빠진다
         keep, n_rev_skip, n_done_skip = [], 0, 0
+        batch_id = run.batch_id if run is not None else None
         for f in files:
             vp, _, _ = find_viewpoint(f.stem, slide_obj)
             if vp is None:
                 keep.append(f)
                 continue
-            if vp.object_reviews.exists():
+            # **이 묶음의 교정만 본다** (P10 · 075). 관문이 있는 이유는 재검출이
+            # `is_current` 를 옮기고 교정을 다시 맺기 때문인데, 둘 다 **묶음 안의
+            # 일**이 됐다. 다른 묶음으로 돌리는 것은 사람의 판단을 건드리지
+            # 않는다 — 오히려 그것이 회차의 목적이다(교정을 정답 삼아 새 회차를
+            # 견준다). 안 가리면 **검토를 마친 시야일수록 새 회차에서 빠진다.**
+            if vp.object_reviews.filter(batch_id=batch_id).exists():
                 n_rev_skip += 1
                 continue
-            # 이미 검출한 시야도 건너뛴다. 주기 실행이 중간에 끊겼을 때 다음
+            # 이미 검출한 이미지는 건너뛴다. 주기 실행이 중간에 끊겼을 때 다음
             # 주기가 처음부터 다시 돌리면 한 슬라이드에 몇 시간이 또 든다.
-            if vp.detections.filter(is_current=True).exists():
+            rel = str(f.relative_to(Path(settings.DATA_ROOT)))
+            if vp.detections.filter(is_current=True, image__path=rel,
+                                    run__batch_id=batch_id).exists():
                 n_done_skip += 1
                 continue
             keep.append(f)
         if n_rev_skip:
-            print(f"사람의 교정이 있는 시야 {n_rev_skip}개를 건너뛴다 "
+            print(f"이 묶음에 사람의 교정이 있는 시야 {n_rev_skip}개를 건너뛴다 "
                   f"(다시 검출하려면 --force)", file=sys.stderr)
         if n_done_skip:
-            print(f"이미 검출한 시야 {n_done_skip}개를 건너뛴다", file=sys.stderr)
+            print(f"이 묶음에서 이미 검출한 이미지 {n_done_skip}개를 건너뛴다",
+                  file=sys.stderr)
         files = keep
         if not files:
             print("검출할 것이 없다.", file=sys.stderr)
