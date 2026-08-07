@@ -21,7 +21,11 @@ from pathlib import Path
 
 import django
 
-APP = Path(os.environ.get("DIARUGA_APP", Path(__file__).resolve().parent / "web"))
+# **`check_db.py` 의 머리를 그대로 베낀다** (CLAUDE.md). 컨테이너 안에서는 코드가
+# `/app` 이고 이 스크립트만 `/srv/DiaRUGA/scripts` 에서 마운트되므로, 자기 옆의
+# `web/` 을 보게 짜면 `No module named 'diarugaweb'` 로 죽는다 — 실제로 그랬다.
+APP = Path(os.environ.get("DIARUGA_APP") or Path(__file__).resolve().parent)
+sys.path.insert(0, str(APP / "web"))
 sys.path.insert(0, str(APP))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
