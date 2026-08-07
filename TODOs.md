@@ -385,12 +385,41 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       docker info | grep "Root Dir"      # /data3/docker
       docker images | head               # 이미지가 그대로 보이는가
       cd /srv/DiaRUGA && docker compose up -d web && bin/smoke.sh
-      # 5) 다 확인한 뒤에 옛 자리를 지운다 — 되돌릴 지점이므로 서두르지 않는다
+      # 5) 다 확인한 뒤에 옛 자리를 **이름만 바꿔 둔다** (아직 지우지 않는다)
+      sudo mv /var/lib/docker /var/lib/docker.old
+      # 6) 며칠 돌려 보고 나서 지운다 — 되돌릴 지점이므로 서두르지 않는다
       sudo rm -rf /var/lib/docker.old
       ```
 
       **옮긴 뒤에도 값싼 것은 그대로 한다** — 굽고 나면
       `docker builder prune -a`, 파이프라인 판은 덜 자주 올리기.
+- [ ] **옛 `/var/lib/docker` 를 치운다 (약 72 GB)** — 위 5·6번이 아직 안 끝났다.
+      2026-08-08 확인: `/var/lib/docker` 가 그대로 있고 `.old` 는 없다. 데몬은
+      `/data3/docker` 에서 돈다.
+
+      ```bash
+      # ① 데몬이 정말 새 자리에서 도는지 먼저 본다 — 이것부터 확인하지 않으면
+      #    지우는 것이 곧 이미지·컨테이너를 통째로 지우는 일이 된다
+      docker info --format '{{.DockerRootDir}}'     # /data3/docker 여야 한다
+
+      # ② 이름만 바꾼다. **바로 지우지 않는다** — 되돌릴 길이
+      #    `daemon.json` 의 data-root 한 줄과 이름 되돌리기로 끝나야 한다
+      sudo mv /var/lib/docker /var/lib/docker.old
+
+      # ③ 네 프로젝트가 다 성한지 본다 (며칠 두고 본다)
+      docker ps          # diaruga · phyloserver · scoda-server · refserver
+      cd /srv/DiaRUGA && bin/smoke.sh
+      docker compose run --rm pipeline python -c "import torch; print(torch.cuda.is_available())"
+
+      # ④ 그 뒤에 지운다
+      sudo rm -rf /var/lib/docker.old
+      ```
+
+      **급하지 않다** — `/` 가 81%(42 GB 남음)이고 도커는 더 이상 그쪽을 안
+      키운다. 서두르는 것보다 되돌릴 수 있는 상태로 며칠 두는 편이 싸다.
+
+      ②를 건너뛰고 바로 지우고 싶어지는데, 그러면 **daemon.json 을 되돌려도
+      돌아갈 자리가 없다.** rsync 로 옮긴 것이라 원본이 유일한 대조본이기도 하다.
 - [ ] **배율이 다른 슬라이드를 `state="failed"` 로 세우기** — 지금은 경고만 찍고
       40x 로 계산하고 넘어간다 (devlog 015)
 - [x] **`/healthz` 가 백업·무결성 상태를 보게** — `db_sentinel.py` 가 DB 옆에
