@@ -64,6 +64,7 @@ from viewer.images import ensure_image
 from viewer.models import (Candidate, Detection, Frame, Run,        # noqa: E402
                            ThresholdSet, Viewpoint)
 from judge import classify, dedupe                 # noqa: F401,E402 (외부에서 쓴다)
+from judge import collapse_boxes as judge_collapse  # noqa: E402
 from judge import DEFAULTS as JUDGE_DEFAULTS       # noqa: E402
 from zen_meta import DEFAULT_UM_PER_PIXEL, ScaleLog, scaling_for    # noqa: E402
 
@@ -859,6 +860,12 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
                             keep_largest_body=not args.all_bodies)
     sized = filter_records(recs, args.min_um, args.max_um,
                            img_area=arr.shape[0] * arr.shape[1])
+    # **판정 전에 같은 bbox 를 접는다** (077). DB 의 열쇠가 bbox 라 같은 자리는
+    # 한 행밖에 못 들어가는데, 넣을 때 버리면 **판정이 본 집합과 저장된 집합이
+    # 달라진다** — 그러면 저장된 판정을 다시 계산해도 안 맞는다(`judge.collapse_boxes`).
+    sized, n_dup = judge_collapse(sized)
+    if n_dup:
+        print(f"  bbox 가 같은 마스크 {n_dup}개를 접었다 (판정 전)", file=sys.stderr)
 
     if args.no_shape_filter:
         kept, rejected = sized, []

@@ -207,3 +207,73 @@ class ApplyTest(SimpleTestCase):
 
     def test_빈_묶음도_받는다(self):
         self.assertEqual(judge.apply([], judge.Thresholds()), ([], []))
+
+
+class CollapseBoxesTest(SimpleTestCase):
+    """`collapse_boxes` — **판정 전에** 같은 bbox 를 하나로 접는다 (077).
+
+    DB 의 열쇠가 `mask_key`(= bbox 문자열)라 같은 자리는 한 행밖에 못 들어간다.
+    예전에는 **판정한 뒤** 넣으면서 버렸고, 그래서 판정이 본 집합(34개)과 저장된
+    집합(33개)이 달라졌다 — 저장된 판정을 다시 계산해도 안 맞는 상태가 된다.
+
+    실측으로 `yolo-3차` 검출 1,799개 중 18개가 하나씩 잃었고 **판정이 어긋난
+    8개가 전부 그 안에** 있었다.
+    """
+
+    def test_같은_bbox_는_하나로_접힌다(self):
+        a = rec(area_px=5000)
+        b = rec(area_px=4000)
+        out, n = judge.collapse_boxes([a, b])
+        self.assertEqual(len(out), 1)
+        self.assertEqual(n, 1)
+
+    def test_면적이_큰_쪽을_남긴다(self):
+        """같은 자리를 가리키는 둘 중에서는 마스크가 더 많이 잡힌 쪽이 근거가 많다."""
+        small = rec(area_px=4000, texture=9999.0)
+        big = rec(area_px=5000, texture=1.0)
+        out, _ = judge.collapse_boxes([small, big])
+        self.assertEqual(out[0]["area_px"], 5000)
+        # 순서를 뒤집어도 같은 답이어야 한다 — **결정적**이라는 것이 요점이다
+        out2, _ = judge.collapse_boxes([big, small])
+        self.assertEqual(out2[0]["area_px"], 5000)
+
+    def test_자리가_다르면_안_접는다(self):
+        a = rec(bbox_xywh=[0, 0, 100, 100])
+        b = rec(bbox_xywh=[0, 1, 100, 100])
+        out, n = judge.collapse_boxes([a, b])
+        self.assertEqual((len(out), n), (2, 0))
+
+    def test_소수점은_열쇠와_같은_규칙으로_깎는다(self):
+        """`mask_key` 가 `int()` 로 깎으므로 여기서도 그래야 한다 —
+        안 맞으면 접힌 줄 알고도 DB 에서 또 부딪힌다."""
+        a = rec(bbox_xywh=[10.0, 20.0, 30.0, 40.0])
+        b = rec(bbox_xywh=[10.4, 20.4, 30.4, 40.4])
+        out, n = judge.collapse_boxes([a, b])
+        self.assertEqual((len(out), n), (1, 1))
+
+    def test_순서를_지킨다(self):
+        """접은 것이 원래 자리에 남아야 뒤의 `id` 매김이 안 흔들린다."""
+        a = rec(bbox_xywh=[0, 0, 10, 10])
+        b = rec(bbox_xywh=[50, 50, 10, 10])
+        c = rec(bbox_xywh=[0, 0, 10, 10], area_px=9999)
+        out, _ = judge.collapse_boxes([a, b, c])
+        self.assertEqual([r["bbox_xywh"][0] for r in out], [0, 50])
+        self.assertEqual(out[0]["area_px"], 9999)
+
+    def test_접고_나면_판정과_저장이_같은_집합을_본다(self):
+        """**이것이 이 함수의 존재 이유다.**
+
+        접기 전에는 `apply` 가 둘을 보고 하나로 다른 하나를 누르는데, DB 에는
+        한 행만 들어가 그 판단을 되짚을 수 없다.
+        """
+        a = rec(area_px=5000)
+        b = rec(area_px=4000)
+        kept, rejected = judge.apply([a, b], judge.Thresholds())
+        keys = {tuple(r["bbox_xywh"]) for r in kept + rejected}
+        self.assertEqual(len(kept) + len(rejected), 2)
+        self.assertEqual(len(keys), 1, "같은 열쇠 둘이 판정을 받았다")
+
+        out, _ = judge.collapse_boxes([a, b])
+        kept2, rejected2 = judge.apply(out, judge.Thresholds())
+        self.assertEqual(len(kept2) + len(rejected2), 1,
+                         "접은 뒤에는 판정받은 수와 저장될 수가 같아야 한다")

@@ -97,6 +97,43 @@ def _cover(a, b):
     return ix * iy / max(aw * ah, 1)
 
 
+def collapse_boxes(records):
+    """**bbox 가 같은 레코드를 하나로 접는다.** `(남긴 것, 버린 수)` 를 돌려준다.
+
+    판정을 하기 **전에** 불러야 한다. DB 의 열쇠가 `mask_key`(= bbox 문자열)라
+    같은 bbox 는 한 행밖에 못 들어가는데, 예전에는 **판정한 뒤에** 넣으면서
+    버렸다(`segment_diatoms.save_detection` 의 `seen`). 그러면 판정은 34개를
+    보고 내렸는데 DB 에는 33개가 앉는다 —
+
+    - `dedupe` 가 A 로 B 를 눌렀는데 **A 가 저장되지 않으면**, 남은 자료만으로
+      다시 계산할 때 B 가 살아난다. 저장된 판정과 어긋난다
+    - `check_db.py` 의 "판정 == 지표 + 문턱" 이 그것을 잡는데, **자료가 상한
+      것이 아니라 본 집합이 다른 것**이라 아무리 다시 계산해도 안 맞는다
+
+    실측(2026-08-07, 배포 v0.8.0 직전): `yolo-3차` 의 검출 1,799개 중 18개가
+    넣을 때 하나씩 잃었고, **판정이 어긋난 8개가 전부 그 안에 있었다.** 전부
+    이미지 오른쪽 끝(x≈2700, 폭 2752)의 봉상 조각이다 — 가장자리에서 잘린
+    마스크를 `keep_largest_body` 로 본체만 남기면 서로 다른 마스크가 같은
+    bbox 로 수렴한다.
+
+    **면적이 큰 것을 남긴다.** 같은 자리를 가리키는 둘 중에서는 마스크가 더
+    많이 잡힌 쪽이 근거가 많다. 같으면 먼저 온 것을 둔다(정렬이 안정적이라
+    입력 순서가 곧 기준이다) — 어느 쪽이든 **결정적**이어야 한다는 것이 요점이다.
+    """
+    seen, out, dropped = {}, [], 0
+    for r in records:
+        key = tuple(int(v) for v in r["bbox_xywh"])
+        prev = seen.get(key)
+        if prev is None:
+            seen[key] = len(out)
+            out.append(r)
+            continue
+        dropped += 1
+        if (r.get("area_px") or 0) > (out[prev].get("area_px") or 0):
+            out[prev] = r
+    return out, dropped
+
+
 def dedupe(selected):
     """
     중첩 마스크 정리.
