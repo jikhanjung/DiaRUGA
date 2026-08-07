@@ -62,7 +62,12 @@ def report(name, bad, total, why="", examples=()):
 
 
 def dets(slug=None):
-    qs = (Detection.objects.filter(is_current=True)
+    """**뷰어가 보여줄 검출** — 검토 대상 묶음의, 그 묶음 안 최신 것 (P10).
+
+    `is_current` 만 걸면 나란히 쌓아 둔 다른 엔진의 검출까지 잡혀, 판정 캐시
+    검사가 **지금 화면과 무관한 것**까지 본다.
+    """
+    qs = (Detection.objects.reviewing()
           .select_related("thresholds", "viewpoint", "viewpoint__slide"))
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
@@ -114,21 +119,37 @@ def check_verdicts(slug=None):
 
 # --- 2. 시야마다 현재 검출이 정확히 하나인가 ---------------------------------
 def check_current(slug=None):
-    """뷰어는 `is_current=True` 인 것만 본다. 둘이면 어느 것을 보여줄지 모르고,
-    없으면 검출이 사라진 것처럼 보인다. 6단계에서 깨지기 쉬운 자리다."""
+    """뷰어가 보여줄 검출이 **이미지마다 하나 이하**인가 (P10).
+
+    예전에는 "시야마다 하나" 였다. 프레임별 검출이 올라오면 시야 하나에 여럿이
+    정상이다(합성본 하나 + 프레임마다 하나) — 세는 단위가 **이미지**로 내려간다.
+    한 이미지에 둘이면 화면이 어느 것을 그릴지 모르고, 그 상태는 예외가 안 난다.
+
+    **검토 대상 묶음 안에서만 센다.** 나란히 쌓아 둔 다른 엔진의 검출은 같은
+    이미지에 있는 것이 정상이고, 그것까지 세면 이 검사가 늘 빨갛다.
+    """
     qs = Viewpoint.objects.all()
     if slug:
         qs = qs.filter(slide__slug=slug)
-    counts = dict(Detection.objects.filter(is_current=True,
-                                           viewpoint__in=qs)
-                  .values_list("viewpoint").annotate(n=Count("id")))
-    many = [vp for vp in qs if counts.get(vp.id, 0) > 1]
-    report("시야마다 현재 검출이 하나 이하", len(many), qs.count(),
-           "is_current 가 둘 이상이다 — 어느 것을 보여줄지 알 수 없다",
-           [f"{vp}: {counts[vp.id]}개" for vp in many])
+    counts = dict(Detection.objects.reviewing().filter(viewpoint__in=qs)
+                  .values_list("image").annotate(n=Count("id")))
+    many = {i: n for i, n in counts.items() if n > 1}
+    report("이미지마다 보여줄 검출이 하나 이하", len(many), len(counts) or 1,
+           "한 이미지에 둘 이상이다 — 어느 것을 보여줄지 알 수 없다",
+           [f"image #{i}: {n}개" for i, n in list(many.items())[:5]])
+
+    # **검토 대상이 정해져 있는가** (P10). 없으면 뷰어가 아무것도 안 보여준다 —
+    # 500 도 404 도 아니고 그냥 빈 화면이라, 세어 보기 전에는 알 수가 없다.
+    from viewer.models import RunBatch
+    n_rev = RunBatch.objects.filter(for_review=True).count()
+    report("검토 대상 묶음이 하나 정해져 있다", 0 if n_rev == 1 else 1, 1,
+           f"검토 대상이 {n_rev}개다 — 0이면 화면이 비고, 둘이면 제약이 막았어야 한다",
+           [] if n_rev == 1 else [f"for_review={n_rev}"])
 
     # 검출이 아예 없는 시야는 정상일 수 있다(아직 안 돌린 것). 세어만 둔다.
-    none = [vp for vp in qs if counts.get(vp.id, 0) == 0]
+    with_det = set(Detection.objects.reviewing().filter(viewpoint__in=qs)
+                   .values_list("viewpoint_id", flat=True))
+    none = [vp for vp in qs if vp.id not in with_det]
     if none:
         print(f"     (검출이 없는 시야 {len(none)}개 — 아직 돌리지 않았다면 정상)")
 
@@ -159,8 +180,7 @@ def check_reviews(slug=None):
     all_reviews = list(qs)
 
     # 현재 검출에 속한 개체 id 집합. 교정이 이 밖을 가리키면 옛 검출에 남은 것이다.
-    cur_det = Detection.objects.filter(
-        is_current=True,
+    cur_det = Detection.objects.reviewing().filter(
         **({"viewpoint__slide__slug": slug} if slug else {}))
     current = set(Candidate.objects.filter(detection__in=cur_det)
                   .values_list("id", flat=True))
@@ -215,7 +235,8 @@ def check_reviews(slug=None):
 def check_classes(slug=None):
     """`ClassDef` 에 없는 분류가 붙어 있으면 화면에서 이름도 색도 없이 나온다."""
     known = set(ClassDef.objects.values_list("key", flat=True))
-    qs = Candidate.objects.filter(detection__is_current=True).exclude(cls="")
+    qs = Candidate.objects.filter(
+        detection__in=Detection.objects.reviewing()).exclude(cls="")
     if slug:
         qs = qs.filter(detection__viewpoint__slide__slug=slug)
     used = Counter(qs.values_list("cls", flat=True))
@@ -255,7 +276,7 @@ def check_skeleton(slug=None):
     from django.conf import settings
     root = Path(settings.DATA_ROOT)
 
-    qs = Detection.objects.filter(is_current=True)
+    qs = Detection.objects.reviewing()
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
     dl = list(qs)

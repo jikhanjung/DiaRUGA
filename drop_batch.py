@@ -11,8 +11,9 @@
 
 ## 막아 둔 것 둘
 
-- **`is_current=True` 인 검출이 하나라도 있으면 거부한다.** 그것은 뷰어가 보고
-  사람이 교정을 붙인 검출이다. 견주기용으로 쌓은 묶음은 전부 `is_current=False`
+- **뷰어가 보여줄 검출이 하나라도 있으면 거부한다.** 그것은 뷰어가 보고
+  사람이 교정을 붙인 검출이다. 무엇을 보여줄지는 `RunBatch.for_review` 가
+  정한다(P10) — 견주기용으로 쌓은 묶음은 그 깃발이 꺼져 있다
   이므로, 하나라도 켜져 있으면 그 묶음은 "쌓아 둔 것" 이 아니다
 - **그 개체를 가리키는 교정이 있으면 거부한다.** `ObjectReview.candidate` 는
   `SET_NULL` 이라 교정 행 자체는 살아남지만(진짜 키는 `mask_key` 다), 바인딩이
@@ -58,7 +59,9 @@ def survey(batches):
         "candidates": cands.count(),
         "runs": Run.objects.filter(batch__in=batches).count(),
         # 아래 둘이 0 이 아니면 지울 묶음이 아니다
-        "current": dets.filter(is_current=True).count(),
+        # **뷰어가 보고 있는 것** — P10 뒤로는 `for_review` 가 정한다.
+        # `is_current` 만 세면 정규화 뒤에 모든 묶음이 걸려 아무것도 못 지운다.
+        "current": dets.reviewing().count(),
         "bound_reviews": ObjectReview.objects.filter(candidate__in=cands).count(),
     }
 
@@ -80,7 +83,7 @@ def main():
             d = Detection.objects.filter(run__batch=b)
             print(f"{b.label:16s}{b.kind:8s}"
                   f"{Run.objects.filter(batch=b).count():5d}{d.count():7d}"
-                  f"{d.filter(is_current=True).count():6d}")
+                  f"{d.reviewing().count():6d}")
         if not args.batch:
             raise SystemExit("\n--batch <이름> 을 줄 것")
         return
@@ -99,7 +102,7 @@ def main():
     # 안전 고리 둘. 여기서 막는 것은 "예외가 안 나고 그냥 틀린 상태" 다.
     stop = []
     if s["current"]:
-        stop.append(f"is_current=True 인 검출이 {s['current']}개 있다 — 뷰어가 "
+        stop.append(f"뷰어가 보고 있는 검출이 {s['current']}개 있다 — "
                     f"보고 있는 검출이다. 견주기용으로 쌓은 묶음이 아니다")
     if s["bound_reviews"] and not args.force:
         stop.append(f"이 개체를 가리키는 교정이 {s['bound_reviews']}건 있다 — "
@@ -134,7 +137,7 @@ def main():
     print(f"\n지웠다 — Candidate {n_c:,} · Detection {n_d:,} · "
           f"Run {n_r} · RunBatch {n_b}")
     print(f"  남은 검출 {Detection.objects.count():,} · "
-          f"현재 {Detection.objects.filter(is_current=True).count():,} · "
+          f"현재 {Detection.objects.reviewing().count():,} · "
           f"교정 {ObjectReview.objects.count():,}")
 
 

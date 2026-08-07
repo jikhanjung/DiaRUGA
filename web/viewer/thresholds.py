@@ -41,7 +41,10 @@ def _records(rows):
 
 def load_pool(slug=None):
     """현재 검출의 개체를 시야별로 모은다. {detection_id: [record]}"""
-    qs = Candidate.objects.filter(detection__is_current=True)
+    # **검토 대상 묶음의 검출만** (P10 1단계). 나란히 쌓아 둔 다른 엔진까지
+    # 세면 문턱 미리보기의 숫자가 화면의 숫자와 안 맞는다.
+    qs = Candidate.objects.filter(
+        detection__in=Detection.objects.reviewing())
     if slug:
         qs = qs.filter(detection__viewpoint__slide__slug=slug)
     pool = {}
@@ -52,7 +55,7 @@ def load_pool(slug=None):
 
 def detection_index(slug=None):
     """detection_id -> 화면에 쓸 시야 정보."""
-    qs = Detection.objects.filter(is_current=True).select_related(
+    qs = Detection.objects.reviewing().select_related(
         "viewpoint", "viewpoint__slide", "viewpoint__stack", "thresholds")
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
@@ -78,7 +81,7 @@ def detection_index(slug=None):
 
 def current_values(slug=None) -> dict:
     """지금 쓰이는 문턱. 여러 개가 섞여 있으면 가장 많이 쓰이는 것을 준다."""
-    qs = Detection.objects.filter(is_current=True).select_related("thresholds")
+    qs = Detection.objects.reviewing().select_related("thresholds")
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
     counts = {}
@@ -94,7 +97,7 @@ def current_values(slug=None) -> dict:
 
 def threshold_spread(slug=None):
     """문턱이 갈라져 있는가. 갈라지면 시야 간 개수를 비교할 수 없다."""
-    qs = Detection.objects.filter(is_current=True)
+    qs = Detection.objects.reviewing()
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
     ids = set(qs.values_list("thresholds_id", flat=True))
@@ -190,7 +193,9 @@ def apply_values(values: dict, slug=None, run=None) -> dict:
     from django.db import transaction
 
     th = judge.Thresholds(**values)
-    qs = Detection.objects.filter(is_current=True).prefetch_related("candidates")
+    # **검토 대상 묶음에만 적용한다** (P10 1단계). 다른 묶음은 그때의 문턱으로
+    # 판정된 기록이고, 그것을 지금 값으로 다시 쓰면 회차 비교가 무의미해진다.
+    qs = Detection.objects.reviewing().prefetch_related("candidates")
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
 

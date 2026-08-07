@@ -18,7 +18,7 @@ from pathlib import Path
 from django.conf import settings
 from django.urls import reverse
 from django.db import connection, transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Case, Count, Prefetch, Q, When
 from django.utils import timezone
 
 from . import antarctica, korea, outcrop
@@ -669,7 +669,7 @@ def scales_by_slide() -> dict:
     # 것을 집으면 진행 상황에 따라 표시가 널뛴다 — 가장 많은 쪽을 쓴다.
     # 한 슬라이드 안이 갈라진 것 자체는 check_db 가 따로 잡는다.
     per = defaultdict(Counter)
-    for d in (Detection.objects.filter(is_current=True,
+    for d in (Detection.objects.reviewing().filter(
                                        um_per_pixel__isnull=False)
               .select_related("viewpoint__slide")):
         per[d.viewpoint.slide.slug][round(d.um_per_pixel, 9)] += 1
@@ -986,7 +986,7 @@ def _summary_by_sql(slide: Slide) -> dict:
     # 현재 검출이 여럿이면(합성본 + 프레임마다) 분모가 4.6배가 되어 시야당 평균이
     # 그만큼 작아진다. 분자는 대표 이미지 하나만 세므로 둘이 어긋난다 (P09 5.3).
     detected_groups = (Detection.objects
-                       .filter(viewpoint__slide=slide, is_current=True)
+                       .filter(viewpoint__slide=slide).reviewing()
                        .values("viewpoint_id").distinct().count())
     return {"per_cls": per_cls, "n_detected": row["n_detected"],
             "n_auto": row["n_auto"], "n_labeled": row["n_labeled"],
@@ -1027,7 +1027,10 @@ WITH rep AS (
       FROM viewer_detection d
       JOIN viewer_image i ON i.id = d.image_id
       LEFT JOIN viewer_run run ON run.id = d.run_id
-     WHERE d.is_current
+      LEFT JOIN viewer_runbatch rb ON rb.id = run.batch_id
+     -- **검토 대상 묶음의 것만** (P10 1단계). `is_current` 만 보면 나란히 쌓아
+     -- 둔 다른 엔진의 검출까지 세어 개수가 몇 배가 된다.
+     WHERE d.is_current AND rb.for_review
 )
 SELECT v.slide_id AS slide_id,
        CASE WHEN r.label IS NOT NULL AND r.label <> '' THEN r.label
@@ -1096,7 +1099,10 @@ WITH rep AS (
       FROM viewer_detection d
       JOIN viewer_image i ON i.id = d.image_id
       LEFT JOIN viewer_run run ON run.id = d.run_id
-     WHERE d.is_current
+      LEFT JOIN viewer_runbatch rb ON rb.id = run.batch_id
+     -- **검토 대상 묶음의 것만** (P10 1단계). `is_current` 만 보면 나란히 쌓아
+     -- 둔 다른 엔진의 검출까지 세어 개수가 몇 배가 된다.
+     WHERE d.is_current AND rb.for_review
 )
 SELECT rep.viewpoint_id, c.polygon,
        CASE WHEN r.label IS NOT NULL AND r.label <> '' THEN r.label
@@ -1602,7 +1608,9 @@ def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False
         return qs.prefetch_related("frames")
     dets = Detection.objects.all()
     if only_current:
-        dets = dets.filter(is_current=True)
+        # **검토 대상 묶음의 것만** (P10 1단계). `is_current` 만 걸면 나란히
+        # 쌓아 둔 다른 엔진의 검출까지 딸려 와 화면이 섞인다.
+        dets = dets.reviewing()
     return qs.prefetch_related(
         "frames",
         Prefetch("detections", queryset=dets.prefetch_related("candidates")),
@@ -1618,9 +1626,17 @@ def dataset_detail(slug: str) -> dict | None:
     # 표지에 얹을 마스크와 그 수뿐인데, 예전에는 시야마다 `detection_for_viewpoint`
     # 로 후보를 전부 만들어(이 슬라이드 11,048개) 그중 370개를 그렸다.
     cover_masks, n_kept = _kept_masks(slide)
-    dets = {d["viewpoint_id"]: d for d in
-            Detection.objects.filter(viewpoint__slide=slide, is_current=True)
-            .values("viewpoint_id", "image_path", "width", "height")}
+    # **검토 대상 묶음의 것만**, 그리고 시야마다 하나 (P10 1단계). 프레임별
+    # 검출이 올라오면 한 시야에 여럿이라 dict 가 아무거나 집는다 — 합성본을
+    # 먼저 놓아 `representative_detection` 과 같은 것을 고르게 한다.
+    dets = {}
+    for d in (Detection.objects.filter(viewpoint__slide=slide).reviewing()
+              .select_related("image")
+              .order_by("viewpoint_id",
+                        Case(When(image__kind="stack", then=0), default=1),
+                        "id")
+              .values("viewpoint_id", "image_path", "width", "height")):
+        dets.setdefault(d["viewpoint_id"], d)
     reviewed = set(ViewpointReview.objects
                    .filter(viewpoint__slide=slide, done=True)
                    .values_list("viewpoint_id", flat=True))
@@ -2343,7 +2359,7 @@ def _engine_pick(dets):
 def engine_runs() -> list[dict]:
     """검출을 **묶음 단위로** 낸다.
 
-    검토 화면은 `is_current=True` 인 것만 본다. 나란히 쌓아 둔 다른 엔진의
+    검토 화면은 **검토 대상 묶음의** 검출만 본다(P10). 나란히 쌓아 둔 다른 엔진의
     결과는 **어디에도 안 보인다** — 그것을 보려고 만든 목록이다.
 
     파이프라인이 슬라이드마다 도는 탓에 한 번의 작업이 실행 여럿으로 흩어진다.
@@ -2386,8 +2402,11 @@ def engine_runs() -> list[dict]:
             g["n_runs"] = 1
             all_ids = [ident]
             g["started_at"] = Run.objects.get(pk=ident).started_at
+        # **검토 대상 묶음의 검출 수** (P10 1단계). 정규화 뒤에는 모든 묶음이
+        # 자기 안에서 `is_current` 라, 그것으로 세면 어느 묶음이나 "현재" 로
+        # 보인다 — 화면이 그 수로 "지금 보고 있는 것" 을 말하므로 뜻이 뒤집힌다.
         g["n_current"] = Detection.objects.filter(
-            run_id__in=all_ids, is_current=True).count()
+            run_id__in=all_ids).reviewing().count()
         g["n_candidates"] = Candidate.objects.filter(
             detection__run_id__in=all_ids).count()
         g["slides"] = sorted(g["slides"])
@@ -2641,8 +2660,12 @@ def batches_for_viewpoint(slug: str, gid: int,
             "backend": (rep.run.params or {}).get("backend", "?"),
             "run_id": rep.run_id,
             "on": any(d.run_id in here for d in picked),
-            # 검토 화면이 이미 보여 주는 것인가 — 거기서 길을 낼 때 쓴다
-            "current": any(d.is_current for d in picked),
+            # **검토 대상 묶음인가** — 이 값이 읽기 전용을 가른다 (P10 1단계).
+            # 예전에는 `any(d.is_current …)` 였는데, 정규화 뒤에는 모든 묶음의
+            # 검출이 `is_current` 라 **전부 편집 가능해 보인다.** 어느 묶음을
+            # 검토하는지는 `RunBatch.for_review` 하나가 정한다.
+            "current": bool(rep.run and rep.run.batch_id
+                            and rep.run.batch.for_review),
             "n": Candidate.objects.filter(
                 detection__in=picked, passed=True).count(),
         })

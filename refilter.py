@@ -136,7 +136,11 @@ def main():
 
     if args.slide and not Slide.objects.filter(slug=args.slide).exists():
         raise SystemExit(f"슬라이드를 찾지 못했다: {args.slide}")
-    dets = (Detection.objects.filter(is_current=True)
+    # **검토 중인 묶음에만 적용한다** (P10 1단계). 다른 묶음은 그때의 문턱으로
+    # 판정된 기록이라, 지금 값으로 다시 쓰면 회차 비교가 무의미해진다.
+    # 그리고 정규화 뒤에는 모든 묶음의 검출이 자기 안에서 `is_current` 라,
+    # 그것만 걸면 **쌓아 둔 것 전부를 다시 판정한다.**
+    dets = (Detection.objects.reviewing()
             .select_related("thresholds", "viewpoint", "viewpoint__slide")
             .prefetch_related("candidates"))
     if args.slide:

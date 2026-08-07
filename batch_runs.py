@@ -165,7 +165,10 @@ def main():
                                              key=lambda kv: kv[0][2]):
         label = f"{backend}-{day}" if backend != "-" else f"{kind}-{day}"
         n_first = sum(1 for r in runs
-                      if Detection.objects.filter(run=r, is_current=True).exists())
+                      # 뷰어가 보여줄 검출을 낸 실행인가 (P10) — 정규화 뒤에는
+                      # 모든 묶음이 자기 안에서 `is_current` 라 그것만으론 못 가른다
+                      if Detection.objects.reviewing()
+                      .filter(run=r).exists())
         note = (f"{day} 의 {backend} {kind} 실행을 (종류·백엔드·날짜)로 묶은 것. "
                 f"같은 날 두 번 훑었다면 한 덩어리로 뭉쳐 있다 — "
                 f"{len(runs)}건 중 현재 검출을 가진 것은 {n_first}건.")

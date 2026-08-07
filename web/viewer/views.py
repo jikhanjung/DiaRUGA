@@ -145,7 +145,7 @@ def _map_ctx(area: str, pts: list) -> dict:
 
 # --- 시험용: 다른 엔진의 결과 보기 -------------------------------------------
 #
-# 뷰어는 `is_current=True` 인 검출만 본다. 나란히 쌓아 둔 다른 엔진의 결과는
+# 뷰어는 **검토 대상 묶음의** 검출만 본다(P10). 나란히 쌓아 둔 다른 엔진의 결과는
 # 어디에도 안 보이므로 이 길로만 볼 수 있다.
 #
 # **읽기 전용이다.** 교정을 저장하지 않는다 — 교정은 mask_key 로 붙는데 엔진이
@@ -1028,7 +1028,9 @@ def threshold_masks(request):
         det_id = int(request.GET.get("det", ""))
     except ValueError:
         return HttpResponseBadRequest("bad det")
-    det = Detection.objects.filter(pk=det_id, is_current=True).first()
+    # **검토 대상 묶음의 검출만** (P10 1단계). 정규화 뒤에는 쌓아 둔 것도
+    # 전부 `is_current` 라, 그것만 걸면 다른 엔진의 마스크가 나간다.
+    det = Detection.objects.reviewing().filter(pk=det_id).first()
     if det is None:
         raise Http404("unknown detection")
     masks = []
