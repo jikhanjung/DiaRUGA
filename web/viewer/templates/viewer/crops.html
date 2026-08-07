@@ -15,6 +15,17 @@
   규조각인가" 를 한 화면에서 훑는 것이 목적이다. 크기 내림차순이라 의심스러운
   것(작고 밋밋한 것)이 뒤쪽에 모인다.
 {% endcomment %}
+{% comment %}
+  **여기 늘어놓는 개체가 어느 회차의 것인지** (088). 이 화면은 머리글이 없어
+  (제목은 위 띠에 있다) 표시만 한 줄로 세운다.
+
+  **`.croptools` 안에 넣지 않는다.** 그 줄은 전부 누르면 걸러지는 칩이라, 그
+  사이에 끼우면 **묶음도 고르는 것으로 읽힌다** — 여기는 읽는 표시다.
+{% endcomment %}
+<div class="pagehead">
+  {% include "viewer/_batchtag.html" with review_batch=review_batch only %}
+</div>
+
 <div class="croptools">
   <span class="dim">형태</span>
   <a class="chip{% if not cls %} on{% endif %}" href="?">전체</a>

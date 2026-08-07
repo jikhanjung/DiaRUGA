@@ -682,6 +682,9 @@ def detections(request, slug):
         "viewer/detections.html",
         {"slug": slug, "label": label, "rows": page, "summary": summary,
          "total": total,
+         # **이 표가 어느 묶음의 개체인가** (088). `candidate_rows` 가
+         # `reviewing()` 을 지나므로 묶음을 갈면 표도 요약도 통째로 달라진다.
+         "review_batch": data.review_batch_label(),
          "shown_from": offset + 1 if page else 0,
          "shown_to": offset + len(page),
          "prev_url": (f"?offset={max(0, offset - DETECT_PER_PAGE)}"
@@ -755,6 +758,8 @@ def crops(request, slug):
             "slug": slug,
             "label": label,
             "rows": page,
+            # 같은 이유로 여기도 (088)
+            "review_batch": data.review_batch_label(),
             "cls": cls,
             "upright": upright,
             "n_upright": n_upright,

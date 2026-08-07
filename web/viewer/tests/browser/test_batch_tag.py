@@ -26,10 +26,13 @@ class BatchTagCssTest(BrowserTestCase):
                                site_code=f"RS{self.uniq}", n_candidates=3)
 
     def screens(self):
+        slug = self.w.slide.slug
         return [("데이터셋 목록", reverse("index")),
-                ("시야 목록", reverse("dataset", args=[self.w.slide.slug]))]
+                ("시야 목록", reverse("dataset", args=[slug])),
+                ("검출 갤러리", reverse("crops", args=[slug])),
+                ("계측 표", reverse("detections", args=[slug]))]
 
-    def test_두_화면에서_표시가_보이고_모양이_먹는다(self):
+    def test_네_화면에서_표시가_보이고_모양이_먹는다(self):
         for name, url in self.screens():
             with self.subTest(화면=name):
                 page = self.open(url)

@@ -6,7 +6,14 @@
 
 {% block content %}
 <div class="crumb"><a href="{% url 'index' %}">데이터셋</a> / <a href="{% url 'dataset' slug %}">{{ label }}</a> / 검출</div>
-<h2>검출 후보</h2>
+{% comment %}
+  **이 표의 개체가 어느 회차의 것인지** (088). 아래 요약(최소·중앙·최대 µm)도
+  이 묶음의 숫자다 — 묶음을 갈면 분포가 통째로 달라진다.
+{% endcomment %}
+<div class="pagehead">
+  <h2>검출 후보</h2>
+  {% include "viewer/_batchtag.html" with review_batch=review_batch only %}
+</div>
 
 {% if not rows %}
   <div class="note">아직 검출 결과가 없습니다.</div>

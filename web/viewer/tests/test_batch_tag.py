@@ -1,12 +1,12 @@
-"""목록과 시야 목록이 **지금 검토 중인 묶음**을 말하는가 (088).
+"""슬라이드를 보는 화면 넷이 **지금 검토 중인 묶음**을 말하는가 (088).
 
-이 두 화면의 숫자는 전부 검토 대상 묶음에서 나온다(`reviewing()`). 묶음을 갈면
+목록 · 시야 목록 · 검출 갤러리 · 계측 표. 넷의 숫자는 전부 검토 대상 묶음에서 나온다(`reviewing()`). 묶음을 갈면
 같은 슬라이드의 "검출" 칸이 통째로 달라지는데, 화면에 표시가 없으면 **자료가
 변한 것인지 묶음이 바뀐 것인지 가릴 수가 없다.**
 
 여기서 지키는 것 셋.
 
-1. **두 화면 다 이름을 낸다** — 한쪽만 고치기 쉬운 자리다
+1. **넷 다 이름을 낸다** — 한 화면만 고치기 쉬운 자리다
 2. **묶음이 안 켜져 있으면 그렇게 말한다** — 그 상태에서 뷰어는 검출을 하나도
    안 그린다(P10 3.6). 아무 표시가 없으면 "자료가 없다" 로 읽혀 사람이 파이프라인을
    돌리러 간다
@@ -36,9 +36,17 @@ class BatchTagTest(DiaRUGATestCase):
         self.c = Client()
 
     def urls(self):
-        """표시가 있어야 하는 화면 둘."""
+        """표시가 있어야 하는 화면 **넷**.
+
+        넷 다 검토 대상 묶음의 개체를 센다 — 목록의 "검출" 칸, 썸네일의 마스크,
+        갤러리에 늘어놓는 조각, 계측 표의 분포. **한 화면만 고치기 쉬운 자리라
+        목록을 여기 한 곳에 둔다.**
+        """
+        slug = self.w.slide.slug
         return [("데이터셋 목록", reverse("index")),
-                ("시야 목록", reverse("dataset", args=[self.w.slide.slug]))]
+                ("시야 목록", reverse("dataset", args=[slug])),
+                ("검출 갤러리", reverse("crops", args=[slug])),
+                ("계측 표", reverse("detections", args=[slug]))]
 
     def tag(self, url):
         """그 화면의 **표시 하나만** 뽑는다.
@@ -53,7 +61,7 @@ class BatchTagTest(DiaRUGATestCase):
         self.assertIsNotNone(m, f"{url} 에 검토 묶음 표시가 없다")
         return m.group(0)
 
-    def test_두_화면이_검토_중인_묶음_이름을_낸다(self):
+    def test_네_화면이_검토_중인_묶음_이름을_낸다(self):
         want = RunBatch.objects.get(for_review=True).label
         for name, url in self.urls():
             with self.subTest(화면=name):
