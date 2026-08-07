@@ -29,11 +29,6 @@ urlpatterns = [
     path("d/<slug:slug>/mark-all/", views.mark_all, name="mark_all"),
     path("d/<slug:slug>/detections/", views.detections, name="detections"),
     path("d/<slug:slug>/crops/", views.crops, name="crops"),
-    # 시험용 — is_current 가 아닌 검출(다른 엔진)을 보는 길. 읽기 전용이다.
-    path("engine/", views.engine_index, name="engine_index"),
-    path("engine/<int:run_id>/", views.engine_run, name="engine_run"),
-    path("engine/<int:run_id>/<slug:slug>/<int:gid>/", views.engine_view,
-         name="engine_view"),
     path("thresholds/", views.threshold_page, name="thresholds_all"),
     path("d/<slug:slug>/thresholds/", views.threshold_page, name="thresholds"),
     path("api/threshold/preview", views.threshold_preview, name="threshold_preview"),

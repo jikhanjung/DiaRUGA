@@ -186,9 +186,9 @@
 
   <div class="strip" id="strip-{{ uid }}"
        {% comment %}
-         어디로 갈지는 화면이 정한다. 검토 화면은 /d/, 검출 화면은 /engine/ 안에
-         머문다 — 여기에 주소를 박아 두었더니 /engine/ 에서 "다음 시야" 를 누를
-         때마다 검토 화면으로 튀어나갔다
+         어디로 갈지는 서버가 정한다(`data.group_detail` 이 `?batch=` 를 붙인다).
+         여기에 주소를 박아 두었더니 엔진을 갈아 낀 상태에서 "다음 시야" 를 누를
+         때마다 현재 검출로 튀어나갔다
        {% endcomment %}
        {% comment %}
          주소에 이미 쿼리가 붙어 있을 수 있다 — 검토 화면에서 엔진을 갈아 낀
@@ -223,7 +223,7 @@
   단축키 안내. 목록을 여기 적지 않는다 — 분류를 더하면서 안내만 옛 목록으로
   남는 일이 이미 두 번 있었다. ClassDef 의 hotkey 가 그린다. 키를 안 준 분류는
   여기 안 나오고, 그것이 곧 "아직 배정 안 했다" 는 표시다.
-  읽기 전용 화면(/engine/)에서는 키가 안 듣는다 — 안내도 내지 않는다.
+  읽기 전용(`?batch=` 로 다른 묶음을 볼 때)에서는 키가 안 듣는다 — 안내도 내지 않는다.
 {% endcomment %}
 {% comment %}
   삭제 키는 ClassDef 가 아니라 여기 적는다 — 오검출은 분류가 아니라 removed
@@ -603,7 +603,7 @@
     hoverSeq++;
     if (shots[current]) { paint(shots[current]); swapDet(shots[current]); }
   }
-  // 프레임마다 검출이 따로 있는 화면(/engine/)에서는 사진과 함께 개체도 바꾼다.
+  // 프레임마다 검출이 따로 있으면 사진과 함께 개체도 바꾼다.
   // 자료가 없으면 undefined 라 아래 swapDet 이 곧장 빠져나간다 — 검토 화면은
   // 지금까지와 똑같이 돈다.
   var shotDets = null;
@@ -1411,7 +1411,7 @@
   });
 
   var keyhint = document.getElementById('keyhint-' + uid);
-  // 읽기 전용 화면(/engine/)에서는 키가 안 듣는다. 안내가 남아 있으면 눌러
+  // 읽기 전용(`?batch=`)에서는 키가 안 듣는다. 안내가 남아 있으면 눌러
   // 보고 "안 되네" 가 된다 — 있는 기능인 줄 알고 헤매는 쪽이 더 나쁘다.
   if (keyhint && readOnly) keyhint.hidden = true;
 

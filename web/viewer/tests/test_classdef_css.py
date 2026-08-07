@@ -162,7 +162,6 @@ class TemplateHygieneTest(DiaRUGATestCase):
         return [
             reverse("index"),
             reverse("manage"),
-            reverse("engine_index"),
             reverse("thresholds_all"),
             reverse("dataset", args=[w.slug]),
             reverse("dataset_edit", args=[w.slug]),

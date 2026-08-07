@@ -1778,7 +1778,7 @@ def dataset_detail(slug: str) -> dict | None:
 def _review_shot(d: dict, image_id: int) -> dict:
     """캐러셀이 판을 바꿀 때 갈아 끼울 것 — **교정 상태까지 통째로**.
 
-    `/engine/` 쪽(`engine_viewpoint._shot`)은 그릴 것만 넘기면 됐다. 읽기 전용이라
+    읽기 전용 쪽(`engine_viewpoint._shot`)은 그릴 것만 넘기면 된다. 저장을 안 해
     사람이 표시할 것이 없어서다. 검토 화면은 **판마다 교정이 따로**이므로
     지운 것·되살린 것·분류·코멘트가 함께 가야 하고, 저장이 어느 이미지로 갈지도
     (`image`) 실려야 한다 (P09 1단계).
@@ -1915,7 +1915,7 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
                              or preview_detection(vp))
              if st else None)
 
-    # **캐러셀이 갈아 끼울 판들.** `/engine/` 과 같은 구조인데(`engine_viewpoint`)
+    # **캐러셀이 갈아 끼울 판들.** 읽기 전용 갈래와 같은 구조인데(`engine_viewpoint`)
     # 교정 상태와 저장 대상(`image`)까지 실린다 — 그 화면은 읽기 전용이라 그릴
     # 것만 넘기면 됐다.
     shots, pool = {}, []
@@ -2466,69 +2466,6 @@ def _engine_pick(dets):
     return by_frame, stack_det
 
 
-def engine_runs() -> list[dict]:
-    """검출을 **묶음 단위로** 낸다.
-
-    검토 화면은 **검토 대상 묶음의** 검출만 본다(P10). 나란히 쌓아 둔 다른 엔진의
-    결과는 **어디에도 안 보인다** — 그것을 보려고 만든 목록이다.
-
-    파이프라인이 슬라이드마다 도는 탓에 한 번의 작업이 실행 여럿으로 흩어진다.
-    묶음(`RunBatch`)이 있으면 그것으로 묶고, 없으면 실행 하나를 묶음처럼 낸다.
-
-    **묶음이 낸 것 전부를 센다.** 한때는 쌓인 것만 셌다 — 현재 검출은 검토
-    화면에서 본다는 뜻이었는데, SAM2 묶음은 대부분이 현재로 올라가 있어서 그
-    묶음이 거의 빈 것처럼 보였다. 현재로 올라간 수는 `n_current` 로 따로 낸다.
-    """
-    stacked = (Detection.objects.filter(run__kind="detect")
-               .select_related("run__batch", "viewpoint__slide"))
-    groups = {}
-    for d in stacked:
-        r = d.run
-        key = ("b", r.batch_id) if r.batch_id else ("r", r.pk)
-        g = groups.setdefault(key, {
-            "is_batch": bool(r.batch_id),
-            "label": r.batch.label if r.batch_id else f"실행 #{r.pk}",
-            "note": r.batch.note if r.batch_id else "",
-            "backend": (r.params or {}).get("backend", "?"),
-            "params": r.params or {},
-            "link_run": r.pk,
-            "n_detections": 0, "slides": set(), "run_ids": set(),
-        })
-        g["n_detections"] += 1
-        g["run_ids"].add(r.pk)
-        if d.viewpoint:
-            g["slides"].add(d.viewpoint.slide.slug)
-
-    out = []
-    for (kind, ident), g in groups.items():
-        # **실행 수는 묶음 전체로 센다.** 쌓인 검출이 있는 실행만 세면 묶음이
-        # 실제보다 작아 보인다 (SAM2 묶음은 11건 중 6건에만 쌓인 것이 있다).
-        if g["is_batch"]:
-            runs = Run.objects.filter(batch_id=ident)
-            g["n_runs"] = runs.count()
-            all_ids = list(runs.values_list("pk", flat=True))
-            g["started_at"] = runs.order_by("started_at").first().started_at
-        else:
-            g["n_runs"] = 1
-            all_ids = [ident]
-            g["started_at"] = Run.objects.get(pk=ident).started_at
-        # **검토 대상 묶음의 검출 수** (P10 1단계). 정규화 뒤에는 모든 묶음이
-        # 자기 안에서 `is_current` 라, 그것으로 세면 어느 묶음이나 "현재" 로
-        # 보인다 — 화면이 그 수로 "지금 보고 있는 것" 을 말하므로 뜻이 뒤집힌다.
-        g["n_current"] = Detection.objects.filter(
-            run_id__in=all_ids).reviewing().count()
-        g["n_candidates"] = Candidate.objects.filter(
-            detection__run_id__in=all_ids).count()
-        g["slides"] = sorted(g["slides"])
-        g["n_slides"] = len(g["slides"])
-        g["run_ids"] = sorted(g["run_ids"])
-        g["status"] = ", ".join(sorted(set(
-            Run.objects.filter(pk__in=all_ids).values_list("status", flat=True))))
-        out.append(g)
-    out.sort(key=lambda g: g["started_at"], reverse=True)
-    return out
-
-
 def engine_detection(det: Detection) -> dict:
     """`is_current` 가 아닌 검출 하나를 화면이 쓰는 dict 로.
 
@@ -2551,11 +2488,11 @@ def engine_viewpoint(slug: str, gid: int, run_id: int,
     프레임 하나하나에 각자의 검출이 붙는다 — `group_detail` 이 싱글턴에 쓰던
     길과 같다.
 
-    `link` 는 이웃 시야의 주소를 만드는 함수다. **화면마다 다르다** — 엔진 비교
-    화면(`/engine/`)은 거기 머물러야 하고, 검토 화면이 엔진을 갈아 끼운 상태
-    (`/d/…?batch=`)는 그 상태로 옆 시야로 가야 한다. 주소를 여기 박아 두면
-    한쪽에서 "다음 시야" 를 누를 때마다 다른 화면으로 튀어나간다(051 이전에
-    실제로 그랬다).
+    `link` 는 이웃 시야의 주소를 만드는 함수다. **부르는 쪽이 준다** — 엔진을
+    갈아 끼운 상태(`/d/…?batch=`)는 그 상태로 옆 시야로 가야 하기 때문이다.
+    주소를 여기 박아 두면 "다음 시야" 를 누를 때마다 현재 검출로 튀어나간다
+    (051 이전에 실제로 그랬다). 한때 `/engine/` 이라는 다른 화면도 이 함수를
+    썼고 그쪽은 거기 머물러야 했다 — 그 화면은 075 에서 지웠다.
     """
     slide = Slide.objects.filter(slug=slug).first()
     if slide is None:
@@ -2564,8 +2501,12 @@ def engine_viewpoint(slug: str, gid: int, run_id: int,
     if vp is None:
         return None
     if link is None:
+        # **여기서 만드는 주소는 검토 화면의 `?batch=` 다** (075). 예전에는
+        # `/engine/` 로 갔는데 그 화면을 지웠으므로, 남겨 두면 `NoReverseMatch`
+        # 로 **화면이 통째로 500** 이 된다. 들어오는 값이 404 가 되는 것과
+        # 나가는 값을 못 만드는 것은 고장의 크기가 다르다 (057).
         def link(i):
-            return reverse("engine_view", args=[run_id, slug, i])
+            return reverse("group", args=[slug, i]) + f"?batch={run_id}"
 
     # 묶음이면 형제 실행까지 본다 — 한 슬라이드가 한 실행이라 시야를 열면
     # 그 시야를 만든 실행은 하나뿐이지만, 주소의 실행 번호가 다른 슬라이드
@@ -2701,30 +2642,6 @@ def engine_run_ids(run_id: int) -> list[int]:
         return list(Run.objects.filter(batch_id=r.batch_id)
                     .values_list("pk", flat=True))
     return [r.pk]
-
-
-def engine_viewpoints(run_id: int) -> list[dict]:
-    """실행(또는 그 묶음)이 건드린 시야 목록. 어디부터 볼지 고르는 화면에 쓴다.
-
-    수는 `_engine_pick` 으로 고른 것만 센다 — 같은 자리에 쌓인 것을 다 더하면
-    목록이 시야 화면보다 커 보인다.
-    """
-    ids = engine_run_ids(run_id)
-    per = defaultdict(list)
-    for d in (Detection.objects.filter(run_id__in=ids, viewpoint__isnull=False)
-              .select_related("viewpoint__slide")
-              .annotate(n=Count("candidates", filter=Q(candidates__passed=True)))):
-        per[d.viewpoint].append(d)
-
-    rows = []
-    for vp, dets in per.items():
-        by_frame, stack_det = _engine_pick(dets)
-        picked = list(by_frame.values()) + ([stack_det] if stack_det else [])
-        rows.append({"slug": vp.slide.slug, "label": vp.slide.name,
-                     "idx": vp.idx, "tag": vp.tag,
-                     "n_detections": len(picked),
-                     "n_objects": sum(d.n for d in picked)})
-    return sorted(rows, key=lambda r: (r["slug"], r["idx"]))
 
 
 def batches_for_viewpoint(slug: str, gid: int,

@@ -8,10 +8,11 @@
 다르다"(CLAUDE.md). 이 파일이 보는 것은 **나가는 값** 쪽이다.
 """
 from django.test import Client
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from .base import DiaRUGATestCase
 from . import factories as fx
+from .. import data
 from ..models import Slide
 
 
@@ -40,7 +41,7 @@ class RenderAllPagesTest(DiaRUGATestCase):
     # --- 인자 없는 화면 ----------------------------------------------------
 
     def test_인자_없는_화면들이_그려진다(self):
-        for name in ("index", "manage", "engine_index", "thresholds_all"):
+        for name in ("index", "manage", "thresholds_all"):
             with self.subTest(name=name):
                 self.get(reverse(name))
 
@@ -161,3 +162,65 @@ class EmptyDatabaseTest(DiaRUGATestCase):
         r = Client().get(reverse("healthz"))
         self.assertEqual(r.status_code, 503, r.content[:200])
         self.assertEqual(r.json()["status"], "unhealthy")
+
+
+class NoEngineScreenTest(DiaRUGATestCase):
+    """`/engine/` 을 지웠다 (075) — **남은 길이 없어야 한다.**
+
+    `reverse()` 로 지운 이름을 부르는 자리가 하나라도 남으면 그 화면이 통째로
+    500 이 된다. 들어오는 값이 404 가 되는 것과 **나가는 값을 못 만드는 것**은
+    고장의 크기가 다르다 (057).
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        # **시야가 둘이어야 한다.** `link` 는 이웃 시야의 주소를 만드는 함수라
+        # 시야가 하나면 한 번도 안 불린다 — 지운 이름을 부르는 코드를 그대로
+        # 두고도 시험이 통과했다.
+        cls.w = fx.make_world(slug="rs23", n_viewpoints=2, n_candidates=2)
+        cls.other = fx.add_other_engine(cls.w.vp)
+
+    def test_이름이_사라졌다(self):
+        for name in ("engine_index", "engine_run", "engine_view"):
+            with self.subTest(name=name), self.assertRaises(NoReverseMatch):
+                reverse(name, args=[1, "rs23", 0][:3])
+
+    def test_주소가_404_다(self):
+        c = Client()
+        for path in ("/engine/", f"/engine/{self.other.pk}/",
+                     f"/engine/{self.other.pk}/rs23/0/"):
+            with self.subTest(path=path):
+                self.assertEqual(c.get(path).status_code, 404)
+
+    def test_목록에_링크가_없다(self):
+        body = Client().get(reverse("index")).content.decode()
+        self.assertNotIn("엔진 비교", body)
+
+    def test_비교_화면은_그대로_돈다(self):
+        """지운 것은 별도 화면이고, **라디오로 하는 비교는 남는다.**"""
+        c = Client()
+        url = reverse("group", args=["rs23", self.w.vp.idx])
+        r = c.get(url + f"?batch={self.other.pk}")
+        self.assertEqual(r.status_code, 200)
+        body = r.content.decode()
+        self.assertIn("Read only", body)
+        # 옆 시야로 가는 길이 `?batch=` 를 들고 간다 — 지운 이름을 안 부른다
+        d = data.group_detail("rs23", self.w.vp.idx, run_id=self.other.pk)
+        for key in ("prev_url", "next_url"):
+            if d.get(key):
+                self.assertIn("?batch=", d[key])
+
+    def test_링크를_안_주면_검토_화면으로_만든다(self):
+        """`engine_viewpoint` 의 기본 `link` — 여기가 지운 이름을 부르고 있었다.
+
+        `group_detail` 은 늘 `link` 를 주므로 이 갈래는 아무도 안 지난다.
+        **그래서 더 위험하다** — 다음에 부르는 사람이 500 을 만난다.
+        """
+        d = data.engine_viewpoint("rs23", self.w.vp.idx, self.other.pk)
+        self.assertIsNotNone(d)
+        self.assertTrue(d.get("next_url") or d.get("prev_url"),
+                        "이웃 시야가 없어 link 가 한 번도 안 불렸다")
+        for key in ("prev_url", "next_url"):
+            if d.get(key):
+                self.assertIn("?batch=", d[key])

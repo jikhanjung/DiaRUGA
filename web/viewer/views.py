@@ -143,46 +143,6 @@ def _map_ctx(area: str, pts: list) -> dict:
     }
 
 
-# --- 시험용: 다른 엔진의 결과 보기 -------------------------------------------
-#
-# 뷰어는 **검토 대상 묶음의** 검출만 본다(P10). 나란히 쌓아 둔 다른 엔진의 결과는
-# 어디에도 안 보이므로 이 길로만 볼 수 있다.
-#
-# **읽기 전용이다.** 교정을 저장하지 않는다 — 교정은 mask_key 로 붙는데 엔진이
-# 다르면 거의 전부 어긋나고, 여기서 저장하면 현재 검출에 엉뚱하게 얹힌다.
-def engine_index(request):
-    return render(request, "viewer/engine_index.html",
-                  {"runs": data.engine_runs()})
-
-
-def engine_run(request, run_id):
-    run = Run.objects.filter(pk=run_id).first()
-    if run is None:
-        raise Http404(f"unknown run: {run_id}")
-    return render(request, "viewer/engine_run.html", {
-        "run": run,
-        "title": run.batch.label if run.batch_id else f"실행 #{run.pk}",
-        "note": run.batch.note if run.batch_id else "",
-        "n_runs": len(data.engine_run_ids(run_id)),
-        "backend": (run.params or {}).get("backend", "?"),
-        "rows": data.engine_viewpoints(run_id),
-    })
-
-
-def engine_view(request, run_id, slug, gid):
-    ctx = data.engine_viewpoints and data.engine_viewpoint(slug, gid, run_id)
-    if ctx is None:
-        raise Http404(f"unknown: {slug}/{gid} in run {run_id}")
-    run = Run.objects.filter(pk=run_id).select_related("batch").first()
-    ctx["backend"] = (run.params or {}).get("backend", "?") if run else "?"
-    ctx["run_params"] = (run.params or {}) if run else {}
-    ctx["batch_label"] = (run.batch.label if run and run.batch_id
-                          else f"실행 #{run_id}")
-    # 같은 시야를 보면서 엔진을 갈아 끼울 수 있게 한다
-    ctx["batches"] = data.batches_for_viewpoint(slug, gid, run_id)
-    return render(request, "viewer/engine_view.html", ctx)
-
-
 def dataset(request, slug):
     ctx = data.dataset_detail(slug)
     if ctx is None:
@@ -253,9 +213,10 @@ def core_page(request, site_code, core_code):
 def group(request, slug, gid):
     """검토 화면. `?batch=<실행 번호>` 로 **엔진을 갈아 끼운다** (051).
 
-    검출 엔진 고르기는 `/engine/` 에만 있던 기능이다. 비교하려면 화면을 나갔다
-    들어와야 했고, 그때마다 어느 시야를 보고 있었는지 잃었다. 이제 검토 화면
-    안에서 고른다 — 시야는 그대로 두고 그림 위의 개체만 바뀐다.
+    검출 엔진 고르기는 `/engine/` 이라는 다른 화면에만 있던 기능이다. 비교하려면
+    화면을 나갔다 들어와야 했고, 그때마다 어느 시야를 보고 있었는지 잃었다. 이제
+    검토 화면 안에서 고른다 — 시야는 그대로 두고 그림 위의 개체만 바뀐다.
+    **그 화면은 075 에서 지웠다. 비교는 이 길 하나로만 한다.**
 
     **현재 검출(SAM2)일 때만 교정이 저장된다.** 다른 묶음을 고르면 읽기 전용이고
     화면 가운데 위에 그렇게 적힌다. 근거는 `data.group_detail` 머리말.
@@ -302,8 +263,8 @@ def split_group(request, slug, gid):
     한 번의 눌림으로 끝나면 안 된다. 첫 POST 는 **무엇이 사라지는지 보여 주기만**
     하고, `confirm=1` 이 실린 두 번째 POST 만 실제로 고친다.
 
-    **`/engine/` 에는 이 길이 없다.** 화면 조각을 `_detection.html`(엔진 화면과
-    공유한다)이 아니라 `group.html` 에만 두었고, 서버도 아래에서 다시 막는다 —
+    **읽기 전용(`?batch=`)에는 이 길이 없다.** 화면 조각을 `_detection.html`
+    (읽기 전용과 공유한다)이 아니라 `group.html` 에만 두었고, 서버도 다시 막는다 —
     027 이 정확히 그 자리에서 났다: "읽기 전용" 이라 적어 놓고 CSS 로 버튼만
     감췄더니 한 번의 클릭이 교정 37건을 지웠다. **화면에서 감추는 것은 막는 것이
     아니다.**
