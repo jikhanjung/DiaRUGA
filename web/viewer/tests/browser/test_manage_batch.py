@@ -27,7 +27,8 @@ class ManageBatchPickerTest(BrowserTestCase):
                       n_viewpoints=2)
 
     def open_manage(self):
-        return self.open(reverse("manage"))
+        # 묶음 고르기는 **운영 화면**으로 옮겼다 (083)
+        return self.open(reverse("manage_ops"))
 
     def rows(self):
         return self.page.query_selector_all("table.mtab tr")

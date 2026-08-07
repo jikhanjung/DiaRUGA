@@ -1,0 +1,96 @@
+{% extends "viewer/base.html" %}
+{% block title %}관리 · 학습 자료 — DiaRUGA{% endblock %}
+{% block subtitle %}<a href="{% url 'index' %}">데이터셋</a> / <b>관리</b> · 학습 자료{% endblock %}
+{% block content %}
+{% include "viewer/_managenav.html" with here="dataset" only %}
+
+{% comment %}
+  **가중치를 만드는 화면이 아니다** (083). 여기서 하는 일은 *검토가 끝난 결과에서
+  정답을 뽑는 것*이고, 학습은 그다음 별도의 일이다 — 이 구분이 흐려지면 "학습이
+  왜 안 좋지" 를 자료 문제와 학습 문제로 가를 수 없다.
+
+  세는 기준은 `export_yolo.py` 와 **같다**. 다르면 화면이 말한 수와 내보낸 수가
+  달라지고, 그때 어느 쪽이 맞는지 알 수가 없다.
+{% endcomment %}
+
+<section class="panel">
+  <h2>정답으로 쓸 수 있는 것</h2>
+  <p class="dim" style="font-size:12px;margin:2px 0 12px">
+    <b>{{ t.batch }}</b> 를 검토해 <b>검토 완료</b> 로 표시한 시야만 셉니다.
+    검토 완료는 묶음마다 따로이므로, 묶음을 바꾸면 이 수도 바뀝니다.
+  </p>
+  {% if t.n_viewpoints %}
+  <div class="tstat">
+    <div><b>{{ t.n_viewpoints }}</b><span>검토완료 시야</span></div>
+    <div><b>{{ t.n_objects }}</b><span>정답 개체</span></div>
+    <div><b>{{ t.n_removed }}</b><span>오검출로 지운 것</span></div>
+  </div>
+  <p class="dim" style="font-size:12px">
+    지운 <b>{{ t.n_removed }}</b> 건은 라벨을 안 만드는 것으로 쓰입니다 —
+    YOLO 는 라벨 없는 자리를 배경으로 배웁니다. 엔진이 실제로 헷갈린 자리라
+    무작위 배경보다 값어치가 큽니다.
+  </p>
+  {% if t.classes %}
+  <p style="font-size:12.5px;margin-top:10px">
+    {% for c in t.classes %}<span class="badge {{ c.key }}">{{ c.label }} {{ c.n }}</span> {% endfor %}
+  </p>
+  {% endif %}
+  {% else %}
+  <p class="dim">이 묶음에는 검토 완료로 표시한 시야가 없습니다 —
+     내보낼 것이 없습니다.</p>
+  {% endif %}
+</section>
+
+{% if t.slides %}
+<section class="panel">
+  <h2>슬라이드별</h2>
+  <p class="dim" style="font-size:12px;margin:2px 0 10px">
+    한 슬라이드가 자료의 절반을 넘으면 <b>그 슬라이드를 빼고</b> 검증해야
+    "새 슬라이드에 듣는가" 를 물을 수 있습니다 (<span class="mono">--holdout-slide</span>).
+  </p>
+  <table class="mtab">
+    <thead><tr><th>슬라이드</th><th class="num">시야</th><th class="num">개체</th><th class="num">비중</th></tr></thead>
+    <tbody>
+      {% for s in t.slides %}
+      <tr>
+        <td><a href="{% url 'dataset' s.slug %}">{{ s.label }}</a></td>
+        <td class="num">{{ s.n_viewpoints }}</td>
+        <td class="num">{{ s.n_objects }}</td>
+        <td class="num">{{ s.share }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="panel">
+  <h2>내보내기</h2>
+  {% comment %}
+    **화면에서 돌리지 않는다.** 이미지 수천 장을 복사하는 일이라 요청 하나가
+    몇 분씩 걸리고, 그동안 웹 일꾼 하나가 묶인다. 무엇을 돌릴지 화면이 정확히
+    적어 주고 사람이 붙여 넣는 편이 정직하다.
+  {% endcomment %}
+  <p class="dim" style="font-size:12px;margin:2px 0 10px">
+    아래 명령을 그대로 씁니다. <span class="mono">--dry-run</span> 으로 먼저
+    무엇이 나올지 봅니다.
+  </p>
+  <pre class="cmd">python export_yolo.py --out datasets/yolo/{{ suggest }} --seg --dry-run
+python export_yolo.py --out datasets/yolo/{{ suggest }} --seg</pre>
+  <p class="dim" style="font-size:12px">
+    검증은 둘로 나뉩니다 — <span class="mono">val</span>(시야 20%)은 학습이
+    되고 있는지, <span class="mono">val_slide</span>(슬라이드 통째)는
+    슬라이드를 외웠는지를 봅니다.
+  </p>
+</section>
+
+<style>
+  .tstat { display: flex; gap: 28px; margin: 6px 0 12px; }
+  .tstat div { display: flex; flex-direction: column; }
+  .tstat b { font-size: 26px; font-weight: 650; line-height: 1.1; }
+  .tstat span { font-size: 12px; color: var(--dim); }
+  .cmd { background: var(--field-bg); border: 1px solid var(--line);
+         border-radius: 7px; padding: 10px 12px; font-size: 12.5px;
+         overflow-x: auto; }
+</style>
+{% endblock %}

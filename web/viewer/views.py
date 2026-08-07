@@ -143,6 +143,70 @@ def _map_ctx(area: str, pts: list) -> dict:
     }
 
 
+def manage_ops(request):
+    """관리 · 운영 — 검토할 묶음과 조리법 (083).
+
+    **자료 화면과 갈라 둔다.** 묻는 것이 다르다: 저쪽은 "이 관찰이 어느 지점의
+    것인가"(새 슬라이드가 들어올 때), 이쪽은 "지금 무엇을 보고 있고 새 자료를
+    어떻게 채우는가"(회차를 돌릴 때). 한 화면에 있으면 자주 쓰는 것이 드물게
+    쓰는 것에 묻힌다 — 실제로 층 편집표 셋 아래에 묶음 고르기가 있었다.
+    """
+    if request.method == "POST":
+        p = request.POST
+        act = (p.get("act") or "").strip()
+        if act == "review_batch":
+            ok, m = manage_data.set_review_batch(_num(p.get("batch"), int) or 0)
+        elif act == "recipe":
+            ok, m = manage_data.set_recipe(_num(p.get("batch"), int) or 0, p)
+        else:
+            ok, m = False, "모르는 동작입니다."
+        return redirect(f"{reverse('manage_ops')}?{'msg' if ok else 'err'}={m}")
+
+    plan = []
+    for r in data.batches_to_run():
+        plan.append({**r, "args": " ".join(_recipe_args(r["recipe"]))})
+    return render(request, "viewer/manage_ops.html", {
+        "msg": request.GET.get("msg", ""), "err": request.GET.get("err", ""),
+        "batches": manage_data.batch_choices(),
+        "batches_all": manage_data.batches_with_recipe(),
+        "backends": manage_data.BACKENDS,
+        "plan": plan,
+    })
+
+
+def _recipe_args(recipe: dict) -> list:
+    """조리법을 명령줄 모양으로 — **화면이 보여줄 뿐 여기서 돌리지 않는다.**
+
+    `batch_plan.py` 와 같은 것을 내야 한다. 그쪽이 폴러가 실제로 먹는 것이고,
+    화면이 다른 것을 보여주면 사람이 화면을 믿고 틀린 명령을 만든다.
+    """
+    out = []
+    for k, flag in (("backend", "--backend"), ("scale", "--scale"),
+                    ("points_per_side", "--points-per-side"),
+                    ("min_um", "--min-um"), ("max_um", "--max-um"),
+                    ("weights", "--weights"), ("yolo_conf", "--yolo-conf"),
+                    ("yolo_imgsz", "--yolo-imgsz")):
+        if recipe.get(k) is not None:
+            out += [flag, str(recipe[k])]
+    if recipe.get("all_images"):
+        out.append("--all-images")
+    return out
+
+
+def manage_dataset(request):
+    """관리 · 학습 자료 — 검토가 끝난 결과에서 **정답을 뽑는** 자리 (083).
+
+    **가중치를 만드는 화면이 아니다.** 학습은 그다음 별도의 일이고, 이 구분이
+    흐려지면 "학습이 왜 안 좋지" 를 자료 문제와 학습 문제로 가를 수 없다.
+    """
+    t = manage_data.training_overview()
+    return render(request, "viewer/manage_dataset.html", {
+        "t": t,
+        # 내보낼 곳 이름을 제안한다 — 회차마다 새 이름이어야 덮어쓰지 않는다
+        "suggest": timezone.now().strftime("%y%m%d"),
+    })
+
+
 def dataset(request, slug):
     ctx = data.dataset_detail(slug)
     if ctx is None:
@@ -550,9 +614,6 @@ def manage(request):
         elif act == "move_sample":
             ok, m = manage_data.move_sample(_num(p.get("sample"), int) or 0,
                                             _num(p.get("locality"), int) or 0)
-        elif act == "review_batch":
-            # 검토할 묶음 (P10 3단계). **자료를 안 건드리고 깃발 하나를 옮긴다.**
-            ok, m = manage_data.set_review_batch(_num(p.get("batch"), int) or 0)
         else:
             ok, m = False, "모르는 동작입니다."
         # POST 뒤에 redirect 한다 — 새로 고침이 같은 일을 다시 하면 안 된다.
@@ -571,8 +632,6 @@ def manage(request):
         **ctx,
         "site_areas": Site.AREA,
         "locality_kinds": Locality.KIND,
-        # 고르면 무엇이 달라지는지를 **누르기 전에** 낸다 (P10 3.5)
-        "batches": manage_data.batch_choices(),
         "msg": msg, "err": err,
     })
 

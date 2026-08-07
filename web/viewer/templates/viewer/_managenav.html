@@ -1,0 +1,53 @@
+{% comment %}
+  관리 화면의 탭줄 (083). 셋으로 갈랐다 — **묻는 것이 다르기 때문**이다:
+
+  | 화면 | 무엇을 묻는가 | 얼마나 자주 |
+  |---|---|---|
+  | 자료 | 이 관찰이 어느 지점·시료의 것인가 | 새 슬라이드가 들어올 때 |
+  | 운영 | 지금 무엇을 보고 있고 새 자료를 어떻게 채우는가 | 회차를 돌릴 때 |
+  | 학습 자료 | 검토한 것에서 정답을 얼마나 뽑을 수 있는가 | 다음 회차를 준비할 때 |
+
+  한 화면에 다 있으면 **자주 쓰는 것이 드물게 쓰는 것에 묻힌다** — 층 편집표
+  셋 아래에 묶음 고르기가 있었다.
+{% endcomment %}
+<nav class="mnav">
+  <a href="{% url 'manage' %}"{% if here == "data" %} class="on"{% endif %}>자료</a>
+  <a href="{% url 'manage_ops' %}"{% if here == "ops" %} class="on"{% endif %}>운영</a>
+  <a href="{% url 'manage_dataset' %}"{% if here == "dataset" %} class="on"{% endif %}>학습 자료</a>
+</nav>
+<style>
+  /* **관리 화면 셋이 함께 쓰는 표 모양** (083). 자료 화면의 `<style>` 안에
+     있었는데, 묶음 표를 운영 화면으로 옮기자 **CSS 가 한 번도 안 먹었다** —
+     `.nowrow` 가 아무 일도 안 해서 "검토 중" 줄이 보통 줄과 같아 보였다.
+     051 의 `.tools` 와 같은 종류이고, `getComputedStyle` 시험이 잡았다.
+
+     세 화면이 다 이 조각을 부르므로 여기가 제자리다. */
+  .mtab { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .mtab th, .mtab td {
+    text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .mtab th { font-weight: 650; font-size: 11.5px; color: var(--dim); }
+  .mtab td.num, .mtab th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  /* 지금 검토 중인 묶음 — 한눈에 갈려야 한다. `--panel` 을 안 쓴다:
+     `tbody tr:hover` 가 그 색이라 마우스만 올려도 같아 보인다(063 과 같은 자리). */
+  .mtab tr.nowrow > td { background: rgba(90,200,250,.10); }
+  .nowtag { display: inline-block; margin-left: 6px; padding: 1px 7px;
+            border-radius: 999px; font-size: 11px; font-weight: 600;
+            color: var(--accent); border: 1px solid var(--accent); }
+  .mtab td.act { text-align: right; white-space: nowrap; }
+  .mtab tr:last-child td { border-bottom: none; }
+
+  .mnav { display: flex; gap: 2px; margin: 0 0 16px; border-bottom: 1px solid var(--line); }
+  .mnav a {
+    padding: 8px 16px; font-size: 13.5px; color: var(--dim); text-decoration: none;
+    border: 1px solid transparent; border-bottom: none; border-radius: 7px 7px 0 0;
+    position: relative; top: 1px;
+  }
+  .mnav a:hover { color: var(--fg); }
+  /* 지금 보는 탭은 **아래 줄을 끊어** 본문과 이어 붙인다 */
+  .mnav a.on {
+    color: var(--fg); background: var(--panel);
+    border-color: var(--line); border-bottom: 1px solid var(--panel);
+  }
+</style>

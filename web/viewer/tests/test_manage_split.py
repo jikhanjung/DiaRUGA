@@ -1,0 +1,175 @@
+"""관리 화면을 셋으로 갈랐다 (083) — **묻는 것이 다르기 때문**이다.
+
+| 화면 | 무엇을 묻는가 | 얼마나 자주 |
+|---|---|---|
+| 자료 | 이 관찰이 어느 지점·시료의 것인가 | 새 슬라이드가 들어올 때 |
+| 운영 | 지금 무엇을 보고 있고 새 자료를 어떻게 채우는가 | 회차를 돌릴 때 |
+| 학습 자료 | 검토한 것에서 정답을 얼마나 뽑을 수 있는가 | 다음 회차를 준비할 때 |
+
+한 화면에 다 있으면 **자주 쓰는 것이 드물게 쓰는 것에 묻힌다** — 층 편집표 셋
+아래에 묶음 고르기가 있었다.
+"""
+from django.test import Client
+from django.urls import reverse
+
+from .base import DiaRUGATestCase, write_blob
+from . import factories as fx
+from .. import manage_data
+from ..models import Detection, ObjectReview, RunBatch, ViewpointReview
+
+
+class ManageSplitTest(DiaRUGATestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_viewpoints=2, n_candidates=3)
+        cls.yolo = fx.add_other_engine(cls.w.vp, label="yolo-시험")
+        Detection.objects.filter(run=cls.yolo).update(is_current=True)
+
+    def setUp(self):
+        self.c = Client()
+
+    def test_세_화면이_다_뜬다(self):
+        for name in ("manage", "manage_ops", "manage_dataset"):
+            with self.subTest(name=name):
+                self.assertEqual(self.c.get(reverse(name)).status_code, 200)
+
+    def test_서로에게_가는_길이_있다(self):
+        """**길이 없으면 없는 화면이다** — 주소를 직접 치게 두지 않는다."""
+        for name in ("manage", "manage_ops", "manage_dataset"):
+            body = self.c.get(reverse(name)).content.decode()
+            for other in ("manage", "manage_ops", "manage_dataset"):
+                self.assertIn(f'href="{reverse(other)}"', body,
+                              f"{name} 에서 {other} 로 가는 길이 없다")
+
+    def test_묶음_고르기는_운영에만_있다(self):
+        data_body = self.c.get(reverse("manage")).content.decode()
+        ops_body = self.c.get(reverse("manage_ops")).content.decode()
+        self.assertNotIn("검토할 묶음", data_body, "자료 화면에 아직 남아 있다")
+        self.assertIn("검토할 묶음", ops_body)
+
+    def test_층_편집은_자료에만_있다(self):
+        data_body = self.c.get(reverse("manage")).content.decode()
+        ops_body = self.c.get(reverse("manage_ops")).content.decode()
+        self.assertIn("지역", data_body)
+        self.assertNotIn('name="act" value="move_slide"', ops_body)
+
+
+class RecipeFormTest(DiaRUGATestCase):
+    """조리법을 화면에서 적는다 (083 · 079 의 나머지 절반)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=2)
+
+    def setUp(self):
+        self.c = Client()
+        self.b = RunBatch.objects.get(label="sam2-시험")
+
+    def post(self, **kw):
+        form = {"act": "recipe", "batch": self.b.pk}
+        form.update(kw)
+        return self.c.post(reverse("manage_ops"), form)
+
+    def test_적으면_저장된다(self):
+        self.post(backend="sam2", scale="1.0", min_um="10", max_um="150")
+        self.b.refresh_from_db()
+        self.assertEqual(self.b.recipe["backend"], "sam2")
+        self.assertEqual(self.b.recipe["scale"], 1.0)
+
+    def test_엔진을_비우면_안_돈다(self):
+        """**끝난 회차를 그대로 두는 것이 기본이다.**"""
+        self.post(backend="sam2")
+        self.post(backend="")
+        self.b.refresh_from_db()
+        self.assertEqual(self.b.recipe, {})
+
+    def test_yolo_는_가중치가_있어야_한다(self):
+        from urllib.parse import unquote
+        r = self.post(backend="yolo")
+        self.b.refresh_from_db()
+        self.assertEqual(self.b.recipe, {})
+        self.assertIn("가중치", unquote(r.url))   # 주소는 퍼센트 인코딩이다
+
+    def test_가중치_파일이_없어도_적을_수는_있다(self):
+        """아직 학습이 안 끝났는데 조리법을 먼저 적어 둘 수 있어야 한다 —
+        대신 목록에서 '못 돌림' 으로 뜬다."""
+        ok, m = manage_data.set_recipe(
+            self.b.pk, {"backend": "yolo", "weights": "models/아직없다.pt"})
+        self.assertTrue(ok)
+        self.assertIn("아직 없습니다", m)
+        self.b.refresh_from_db()
+        self.assertEqual(self.b.recipe["weights"], "models/아직없다.pt")
+
+    def test_숫자가_아니면_거절한다(self):
+        ok, m = manage_data.set_recipe(self.b.pk, {"backend": "sam2",
+                                                   "scale": "빠르게"})
+        self.assertFalse(ok)
+        self.assertIn("숫자가 아닙니다", m)
+
+    def test_화면이_실제로_돌_명령과_같은_것을_보인다(self):
+        """**화면이 다른 것을 보여주면 사람이 화면을 믿고 틀린 명령을 만든다.**"""
+        write_blob("models/w.pt")
+        manage_data.set_recipe(self.b.pk, {"backend": "yolo",
+                                           "weights": "models/w.pt",
+                                           "all_images": "on"})
+        body = self.c.get(reverse("manage_ops")).content.decode()
+        self.assertIn("--backend yolo", body)
+        self.assertIn("--weights models/w.pt", body)
+        self.assertIn("--all-images", body)
+
+
+class TrainingOverviewTest(DiaRUGATestCase):
+    """학습 자료 화면 — `export_yolo.py` 와 **같은 기준**으로 센다."""
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_viewpoints=3, n_candidates=3)
+
+    def setUp(self):
+        self.c = Client()
+
+    def done(self, vp):
+        b = RunBatch.objects.get(for_review=True)
+        ViewpointReview.objects.update_or_create(
+            viewpoint=vp, batch=b, defaults={"done": True})
+
+    def test_검토_완료만_센다(self):
+        """**안 본 시야를 넣으면 "엔진이 통과시킨 것 = 정답" 이 된다.**"""
+        t = manage_data.training_overview()
+        self.assertEqual(t["n_viewpoints"], 0)
+        self.done(self.w.vp)
+        t = manage_data.training_overview()
+        self.assertEqual(t["n_viewpoints"], 1)
+        self.assertGreater(t["n_objects"], 0)
+
+    def test_묶음을_갈면_수가_바뀐다(self):
+        """검토 완료가 묶음마다이므로(073) 이 수도 묶음마다다."""
+        self.done(self.w.vp)
+        other = fx.add_other_engine(self.w.vp, label="yolo-시험")
+        Detection.objects.filter(run=other).update(is_current=True)
+        manage_data.set_review_batch(other.batch_id)
+        self.assertEqual(manage_data.training_overview()["n_viewpoints"], 0)
+
+    def test_슬라이드별_비중을_낸다(self):
+        """한 슬라이드가 절반을 넘으면 그것을 빼고 검증해야 한다 (P04)."""
+        for vp in self.w.viewpoints:
+            self.done(vp)
+        t = manage_data.training_overview()
+        self.assertEqual(len(t["slides"]), 1)
+        self.assertEqual(t["slides"][0]["share"], 100)
+
+    def test_지운_것도_센다(self):
+        """오답은 라벨을 안 만드는 것으로 쓰인다 — 몇 건인지는 보여야 한다."""
+        self.done(self.w.vp)
+        fx.add_review(self.w.vp, self.w.keys()[0], removed=True)
+        self.assertEqual(manage_data.training_overview()["n_removed"], 1)
+
+    def test_화면이_명령을_적어_준다(self):
+        self.done(self.w.vp)
+        body = self.c.get(reverse("manage_dataset")).content.decode()
+        self.assertIn("export_yolo.py", body)
+        self.assertIn("--dry-run", body)

@@ -211,11 +211,21 @@ def main():
     holdout = args.holdout_slide or None
     out_dir = Path(args.out).resolve()
 
+    # **검토 완료는 묶음마다다** (073). 예전에는 시야마다 한 줄이라
+    # `review__done` 하나로 끝났는데, 지금은 `(viewpoint, batch)` 가 열쇠다.
+    # 고치지 않고 두었더니 이 스크립트가 `FieldError` 로 죽고 있었다 — 화면이
+    # 아니라 명령줄이라 아무도 안 밟았을 뿐이다.
+    #
+    # **검토 중인 묶음에서 끝낸 시야**를 쓴다. 다른 묶음에서 끝낸 것을 섞으면
+    # "이 묶음이 낸 검출을 사람이 봤다" 가 아니게 되고, 그러면 정답이 아니다.
+    rb = vdata.review_batch_id()
+    if rb is None:
+        sys.exit("검토 대상 묶음이 없다 — 관리 화면에서 먼저 고를 것")
     vps = list(Viewpoint.objects
-               .filter(review__done=True)
+               .filter(reviews__done=True, reviews__batch_id=rb)
                .select_related("slide", "slide__sample__locality__site")
-               .order_by("slide__slug", "idx"))
-    print(f"검토완료 시야 {len(vps)}개")
+               .order_by("slide__slug", "idx").distinct())
+    print(f"검토완료 시야 {len(vps)}개 (묶음: {vdata.review_batch_label()})")
     if not vps:
         sys.exit("검토완료 시야가 없다 — 내보낼 것이 없다")
 

@@ -15,7 +15,10 @@ urlpatterns = [
     # 이름(`core`)은 그대로 둔다: 템플릿의 `{% url 'core' %}` 가 새 주소를 낸다.
     path("core/<str:site_code>/<str:core_code>/", views.core_redirect),
     # 관리 화면 — 층을 만들고 고치고 지운다. 쓰기는 전부 POST 다.
+    # 관리 화면 셋 (083). 묻는 것이 달라 갈랐다 — `_managenav.html` 머리말.
     path("manage/", views.manage, name="manage"),
+    path("manage/ops/", views.manage_ops, name="manage_ops"),
+    path("manage/dataset/", views.manage_dataset, name="manage_dataset"),
     # 노두 현장 사진. **파일 이름이 주소에 없다** — 지점과 순번으로만 짚는다.
     path("loc/<str:site_code>/<str:core_code>/photo/<int:index>",
          views.outcrop_photo, name="outcrop_photo"),

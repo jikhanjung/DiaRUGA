@@ -14,10 +14,15 @@
 - 관찰(`Slide`)은 여기서 안 지운다. 폴더가 만드는 것이고 그 아래에 **재생성
   불가한 교정**이 달려 있다 — 지우는 문을 아예 두지 않는다
 """
+from collections import Counter
+from pathlib import Path
+
 from django.db import transaction
 from django.db.models import Count
 
-from .models import Locality, Sample, Site, Slide
+from . import data
+from .models import (Locality, ObjectReview, RunBatch, Sample, Site, Slide,
+                     Viewpoint)
 
 
 def overview() -> dict:
@@ -271,3 +276,131 @@ def set_review_batch(batch_id: int) -> tuple[bool, str]:
             counts={"views": n_views})
     return True, (f"검토할 묶음을 {b.label} 로 바꿨습니다 — 시야 {n_views}개. "
                   f"판정 캐시가 어긋날 수 있으니 refilter.py 를 돌리십시오.")
+
+
+# --- 운영: 조리법 ------------------------------------------------------------
+# 조리법에 담는 것. `segment_diatoms.py` 의 인자와 이름이 같다 — 화면에서 고친
+# 값이 그대로 명령줄이 되므로 여기서 이름을 바꾸면 안 된다 (`batch_plan.py`).
+RECIPE_NUM = ("scale", "min_um", "max_um", "yolo_conf", "yolo_imgsz")
+BACKENDS = ("sam2", "yolo")
+
+
+def set_recipe(batch_id: int, form) -> tuple[bool, str]:
+    """묶음의 조리법을 적는다 (083).
+
+    **엔진이 비면 조리법을 통째로 비운다** = 그 묶음은 자동으로 안 돈다. 끝난
+    회차를 그대로 두는 것이 기본이고, 묶음이 늘 때마다 GPU 시간이 곱으로 늘기
+    때문이다.
+
+    **가중치 파일이 없어도 저장은 받는다.** 아직 학습이 안 끝났는데 조리법을
+    먼저 적어 둘 수 있어야 한다 — 대신 목록에서 "못 돌림" 으로 뜬다. 저장을
+    막으면 사람이 파일을 만들 때까지 아무것도 적어 둘 수 없다.
+    """
+    b = RunBatch.objects.filter(pk=batch_id).first()
+    if b is None:
+        return False, "그런 묶음이 없습니다."
+
+    backend = (form.get("backend") or "").strip()
+    if not backend:
+        if not b.recipe:
+            return False, f"{b.label} 은 이미 자동으로 돌지 않습니다."
+        b.recipe = {}
+        b.save(update_fields=["recipe"])
+        return True, f"{b.label} 의 조리법을 비웠습니다 — 자동으로 돌지 않습니다."
+    if backend not in BACKENDS:
+        return False, f"모르는 엔진입니다: {backend}"
+
+    recipe = {"backend": backend}
+    for k in RECIPE_NUM:
+        raw = (form.get(k) or "").strip()
+        if not raw:
+            continue
+        try:
+            recipe[k] = float(raw) if "." in raw or k == "scale" else int(raw)
+        except ValueError:
+            return False, f"{k} 가 숫자가 아닙니다: {raw}"
+    w = (form.get("weights") or "").strip()
+    if w:
+        recipe["weights"] = w
+    if form.get("all_images"):
+        recipe["all_images"] = True
+
+    if backend == "yolo" and not recipe.get("weights"):
+        return False, "YOLO 는 가중치가 있어야 합니다."
+
+    b.recipe = recipe
+    b.save(update_fields=["recipe"])
+    # 파일이 없으면 **저장은 되었지만 못 돈다** — 그것을 여기서 말해 준다.
+    from django.conf import settings                                # noqa: PLC0415
+    if backend == "yolo":
+        path = Path(w) if Path(w).is_absolute() else Path(settings.DATA_ROOT) / w
+        if not path.exists():
+            return True, (f"{b.label} 의 조리법을 적었습니다 — 다만 가중치 파일이 "
+                          f"아직 없습니다({path}). 생기기 전까지는 안 돕니다.")
+    return True, f"{b.label} 의 조리법을 적었습니다."
+
+
+def batches_with_recipe() -> list:
+    """조리법 화면이 쓰는 목록 — **검출 묶음 전부**. 조리법이 없는 것도 낸다.
+
+    `batch_choices()` 는 "고를 수 있는 것" 이라 검출이 있는 것만 내는데, 여기는
+    **아직 아무것도 안 돌린 새 묶음에도 조리법을 적어야** 하므로 다르다.
+    """
+    rows = list(RunBatch.objects.filter(kind="detect")
+                .annotate(n_detections=Count("runs__detections", distinct=True))
+                .order_by("-for_review", "-started_at"))
+    return rows
+
+
+# --- 학습 자료 ---------------------------------------------------------------
+def training_overview() -> dict:
+    """검토한 것에서 **정답을 얼마나 뽑을 수 있는가** (083).
+
+    `export_yolo.py` 가 쓰는 것과 **같은 기준**으로 센다 — 검토 중인 묶음에서
+    검토 완료로 표시한 시야. 다른 기준으로 세면 화면이 "1,046개" 라고 하는데
+    내보내면 다른 수가 나오고, 그때 어느 쪽이 맞는지 알 수가 없다.
+
+    슬라이드별로 나누는 이유는 `--holdout-slide` 때문이다. 한 슬라이드가 자료의
+    절반을 넘으면 그것을 빼야 검증이 뜻을 갖는다(P04).
+    """
+    rb = data.review_batch_id()
+    label = data.review_batch_label()
+    if rb is None:
+        return {"batch": "", "n_viewpoints": 0, "slides": [], "n_objects": 0,
+                "classes": [], "n_removed": 0}
+
+    done = list(Viewpoint.objects
+                .filter(reviews__done=True, reviews__batch_id=rb)
+                .select_related("slide").distinct())
+    per_slide, n_obj, cls = {}, 0, Counter()
+    for vp in done:
+        d = data.detection_for_viewpoint(vp)
+        row = per_slide.setdefault(vp.slide.slug,
+                                   {"slug": vp.slide.slug, "label": vp.slide.name,
+                                    "n_viewpoints": 0, "n_objects": 0})
+        row["n_viewpoints"] += 1
+        if d:
+            n = len(d.get("candidates") or [])
+            row["n_objects"] += n
+            n_obj += n
+            for c in d.get("candidates") or []:
+                if c.get("cls"):
+                    cls[c["cls"]] += 1
+
+    labels = data._labels()
+    n_removed = ObjectReview.objects.filter(
+        viewpoint__in=done, batch_id=rb, removed=True).count()
+    rows = sorted(per_slide.values(), key=lambda r: -r["n_viewpoints"])
+    for r in rows:
+        # **비중을 여기서 낸다.** 한 슬라이드가 절반을 넘는지가 holdout 을 고르는
+        # 근거인데(P04), 템플릿에서는 나눗셈을 못 한다.
+        r["share"] = round(r["n_viewpoints"] / max(len(done), 1) * 100)
+    return {
+        "batch": label,
+        "n_viewpoints": len(done),
+        "n_objects": n_obj,
+        "n_removed": n_removed,
+        "classes": [{"key": k, "label": labels.get(k, k), "n": v}
+                    for k, v in sorted(cls.items(), key=lambda kv: -kv[1])],
+        "slides": rows,
+    }
