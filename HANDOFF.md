@@ -994,10 +994,11 @@ requirements 는 넷으로 갈라져 있다 — 호스트는 `requirements.txt`,
                 stacked/ out/ backup/ hf/ logs/ datasets/ docker/
 ```
 
-> **테스트 인스턴스는 지금 내려 있다** (08-07 21:15, v0.8.2 가 운영에 올라간
-> 뒤). 자리는 그대로 두었다 — `/srv/DiaRUGA/test/` 와 nginx 조각이 남아 있어
-> **다음 판 미리보기는 `up -d` 한 줄**이다. 그래서 지금 `/DiaRUGATest/` 는
-> **502 다**(받는 쪽이 없다). 운영과는 별개 location 이라 서로 안 건드린다.
+> **테스트 인스턴스는 지금 내려 있다** (v0.8.2 가 운영에 올라간 뒤). 자리는
+> 그대로 두었다 — `/srv/DiaRUGA/test/` 와 nginx 조각이 남아 있어 **다음 판
+> 미리보기는 `testdeploy.sh <판>` 한 줄**이다. 그래서 지금 `/DiaRUGATest/` 는
+> **502 다**(받는 쪽이 없다) — 고장이 아니라 세워 둔 상태다. 운영과는 별개
+> location 이라 서로 안 건드린다.
 >
 > **테스트 인스턴스는 사본 DB 로 돈다** (085). 운영 `db/` 는 그 컨테이너에
 > **아예 마운트하지 않았다** — 경로를 잘못 적어도 닿을 수 없게. 노두 사진도
@@ -1007,20 +1008,32 @@ requirements 는 넷으로 갈라져 있다 — 호스트는 `requirements.txt`,
 > **오리진이 같아 `localStorage` 를 운영과 공유한다** — 테스트에서 레이어를 끄면
 > 운영 화면에서도 꺼진 채로 보인다. 두 화면을 가르는 표시는 아직 없다.
 >
+> **운영과 같은 갈래로 관리한다** — 저장소가 만들고 `/srv` 가 돈다.
+>
 > ```bash
-> # 다음 판을 미리 볼 때: .env 의 IMAGE_TAG 를 바꾸고, DB 사본을 새로 뜬다
-> deploy/host/dbrun.sh backup_db.py --note before-testdeploy
-> cp /data3/DiaRUGA/backup/manual/<새 사본>.db /srv/DiaRUGA/test/db/DiaRUGA.db
-> cd /srv/DiaRUGA/test && docker compose up -d web      # 올린다
-> cd /srv/DiaRUGA/test && docker compose down           # 내린다
+> deploy/host/sync_test_to_srv.sh            # 저장소 → /srv/DiaRUGA/test (.env 는 안 건드린다)
+> deploy/host/testdeploy.sh v0.8.3           # 판을 건다 — 아래 순서대로
+> deploy/host/testdeploy.sh v0.8.3 --no-pull # 방금 로컬에서 구운 이미지로
+> deploy/host/testdeploy.sh v0.8.3 --keep-db # DB 사본을 새로 안 뜬다
+> cd /srv/DiaRUGA/test && docker compose down   # 내린다
+> sudo bash deploy/host/install-nginx-test.sh [--uninstall]   # nginx (한 번)
 > ```
 >
-> **사본을 새로 뜨는 것이 요점이다.** 놔두면 옛 자료로 새 판을 보게 되고,
-> "고쳤는데 안 바뀐다" 가 거기서 나온다. `cp` 는 `backup_db.py` 가 만든
-> **스냅샷 파일**에만 쓴다 — 도는 DB 를 `cp` 하면 WAL 이라 불완전한 사본이 된다.
+> `testdeploy.sh` 의 순서도 곧 안전장치다 — **안전 검사 → 이미지 → `.env` 의
+> `IMAGE_TAG` 만 → 내린다 → DB 사본 → 기동 게이트 → smoke.** smoke 는 운영과
+> **같은 스크립트**를 환경만 갈아 끼워 쓴다(검사가 둘이면 한쪽만 늙는다).
 >
-> nginx 조각은 `deploy/nginx/DiaRUGATest-subpath.conf`, 설치·되돌리기는
-> `/srv/DiaRUGA/test/install-nginx.sh` (root 로 한 번).
+> **1번(안전 검사)이 이 스크립트가 있는 이유의 절반이다.** 테스트가 운영 자료를
+> 만지는 길 넷을 돌기 전에 센다 — 운영 DB 를 가리키는가 · NAS 원본 노두 사진을
+> 가리키는가 · 서브경로가 `/DiaRUGA` 인가 · compose 가 운영 `db/` 를 마운트하는가.
+> 넷 다 **실제로 서는 것을 확인했다**(085).
+>
+> **DB 사본은 기본으로 갈아 끼운다.** 테스트에서 사본이 낡는 것은 기본 고장이다 —
+> 옛 자료로 새 판을 보면 "고쳤는데 안 바뀐다" 가 나오고, 그 시간은 판을 의심하는
+> 데 쓰인다. 가져오는 것은 `backup_db.py` 가 시간별로 떠 두는 **검증을 통과한
+> 스냅샷**이다(그래서 `cp` 해도 안전하다 — 도는 DB 를 `cp` 하면 WAL 이라 불완전한
+> 사본이 나온다). `--fresh-db` 는 지금 시점으로 새로 뜨지만 `manual/` 은
+> **로테이션이 안 건드리므로** 돌릴 때마다 108 MB 가 영구히 는다.
 
 **저장소는 굽고, `/srv/DiaRUGA` 은 돌린다.** 컨테이너 안팎의 경로가 같아 명령을
 그대로 옮겨 쓸 수 있다.

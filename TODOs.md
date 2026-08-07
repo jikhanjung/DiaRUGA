@@ -289,11 +289,20 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       > **085 가 눌러 볼 수 있는 자리를 만들었다** (`/DiaRUGATest/`). 정지 화면이
       > 하던 일의 절반은 이쪽이 더 잘한다 — 다만 정지 화면은 **VPN 밖에서도
       > 보이고 남겨 두면 그때 모습이 남는다.** 둘의 쓰임이 다르니 함께 둔다
+- [x] **테스트 배포를 운영과 같은 갈래로 관리한다** — 2026-08-08. 저장소에
+      `deploy/test/`(compose · env 견본)와 `deploy/host/` 의 스크립트 셋
+      (`sync_test_to_srv.sh` · `testdeploy.sh` · `install-nginx-test.sh`)을 뒀다.
+      운영과 같다 — **저장소가 만들고 `/srv` 가 돈다.**
+
+      `testdeploy.sh` 가 하는 것: 안전 검사 → 이미지 → `.env` 의 `IMAGE_TAG` 만 →
+      내린다 → **DB 사본 갈아 끼우기** → 기동 게이트 → smoke(운영과 같은 스크립트).
+      안전 검사 넷이 **실제로 서는 것을 확인했다** — 운영 DB · NAS 원본 노두
+      사진 · 서브경로 `/DiaRUGA` · compose 의 운영 `db/` 마운트.
 - [ ] **테스트 인스턴스를 계속 둘 것인가** (085) — `/srv/DiaRUGA/test/` 에
       **107 MB**(사본 DB 104M + 노두 사진 사본 2.9M)가 있고 지금은 내려 있다.
       nginx 는 그대로 8091 로 넘기므로 **`/DiaRUGATest/` 는 502 다** — 고장이
-      아니라 세워 둔 상태다. 다음 판 미리보기로 쓰면 `up -d` 한 줄이고,
-      안 쓰기로 하면 nginx 조각까지 걷는다(`install-nginx.sh` 끝에 명령이 있다).
+      아니라 세워 둔 상태다. 안 쓰기로 하면
+      `sudo bash deploy/host/install-nginx-test.sh --uninstall` 로 걷는다.
 
       **표시가 없다** — 두 화면이 똑같이 생겨 어느 쪽인지 알 수 없고,
       `localStorage` 를 운영과 공유한다(오리진이 같다). 계속 둘 거면 이 둘을
