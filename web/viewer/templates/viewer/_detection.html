@@ -651,13 +651,29 @@
     st.labels = labels; st.notes = notes; st.edits = edits;
   }
 
+  // **합성본에만 검출을 낸 묶음인가** (072). SAM2 가 그렇다 — 시야마다 검출이
+  // 하나이고 그것이 합성본에 붙는다. 그때 프레임은 **같은 시야를 다른 초점면에서
+  // 본 것**이라 합성본의 마스크가 그대로 맞고, 판을 넘길 때 비우면 "이 엔진은
+  // 여기서 아무것도 못 봤다" 로 읽힌다.
+  //
+  // **판마다 제 검출을 가진 묶음(YOLO)에서는 안 한다.** 거기서는 그 프레임에
+  // 없는 것이 실제로 없는 것이고, 합성본 것을 얹으면 **그 자리에 없는 개체를
+  // 있다고 읽는다** — P09 1단계가 판마다 검출을 가른 이유가 그것이다.
+  var STACK_KEY = '__stack__';
+  function stackOnly() {
+    if (!shotDets) return false;
+    var ks = Object.keys(shotDets);
+    return ks.length === 1 && ks[0] === STACK_KEY;
+  }
+
   // `commit` 이 false 면 **그리기만** 바꾼다 (커서가 지나가는 미리보기).
   // 교정 상태와 저장 대상은 고른 판(`commit`)의 것으로 남는다.
   function swapDet(s, commit) {
     if (!shotDets || !s) return;      // 판이 하나뿐이면 여기서 끝난다 (지금까지 그대로)
     var key = s.dataset.detkey || null;
     if (commit === false) {
-      var pv = key && shotDets[key];
+      var pkey = (key && shotDets[key]) ? key : (stackOnly() ? STACK_KEY : null);
+      var pv = pkey && shotDets[pkey];
       cands = pv ? (pv.candidates || []).slice().concat(pv.gone || []) : [];
       rejects = pv ? (pv.rejected || []).slice() : [];
       sel.clear();
@@ -679,6 +695,12 @@
     // 사라진다 — 시야를 옮길 때 `flushSave` 를 부르는 것과 같은 이유다.
     flushSave();
     stash();
+
+    // **합성본에만 검출이 있는 묶음이면 그것을 겹쳐 본다** (072). 프레임·깊이
+    // 맵은 같은 시야라 마스크가 그대로 맞는다. 교정도 합성본에 그대로 이어진다
+    // — 저장 대상(`curImage`)이 합성본이므로 어느 판에서 눌렀든 한 자리에 쌓인다.
+    var overlay = false;
+    if ((!key || !shotDets[key]) && stackOnly()) { key = STACK_KEY; overlay = true; }
 
     // 검출이 없는 판(깊이 맵 등)으로 가면 **비운다.** 그냥 두면 옛 마스크가
     // 남아 엉뚱한 그림 위에 얹힌다. 그 판에서는 저장할 곳도 없다.
@@ -706,7 +728,10 @@
     edits = st.edits || (st.edits = {});
     curImage = st.image;
     var meta = document.querySelector('#tabs-' + uid + ' .tabmeta');
-    if (meta) meta.textContent = st.summary;
+    // **겹쳐 보는 중이면 그렇게 적는다.** 마스크가 보이는데 어느 이미지의 것인지
+    // 말을 안 하면, 사람은 이 프레임에서 검출된 것으로 읽는다.
+    if (meta) meta.textContent = st.summary +
+      (overlay ? ' · 합성본의 검출을 겹쳐 봅니다' : '');
     // 개체 수도 함께 간다. 아래 표(개체 목록)는 서버가 그린 판 그대로라 판을
     // 바꾸면 어긋나는데, 수까지 옛것으로 남으면 어긋난 줄도 모른다.
     var cnt = document.getElementById('tabcount-' + uid);
@@ -1002,9 +1027,14 @@
     });
   }
 
+  // 개체 번호 → 그 개체의 상자. **커서 판정이 이것을 쓴다** — 상자마다 이벤트를
+  // 걸던 때에는 `els` 의 자리(지운 것을 건너뛰므로 어긋난다)와 개체 번호가 달랐다.
+  var elByIdx = {};
+
   function build() {
     els.forEach(function (el) { el.remove(); });
     els = [];
+    elByIdx = {};
     polys.forEach(function (el) { el.remove(); });
     polys = [];
     buildRejects();
@@ -1025,36 +1055,59 @@
       if (!gone) addPolygon(c, i);
       canvas.appendChild(el);
       els.push(el);
-      // 마스크 모드에서는 마스크 안에 있을 때만 반응한다 — 클릭 판정과 같아야
-      // 한다. 안 보이는 빈 자리에서 통계 팝업이 뜨면 무엇을 누르는지 알 수 없다.
-      function over(ev) {
-        if (!maskMode() || !hasPoly(c)) return true;
-        var p = toImage(ev);
-        return inPolygon(c.polygon, p.x, p.y);
-      }
-      function showTip(ev) {
-        el.classList.add('hot');
-        tip.innerHTML = tipHtml(c) +
-          (gone ? '<div class="dim">오검출로 지움 — 클릭하면 되살린다' +
-                  (c.from_reject
-                    ? '<br>지금 문턱에서는 탈락분이다 (되살리면 수동 복구로 남는다)'
-                    : '') + '</div>'
-                : '');
-        tip.style.display = 'block';
-        placeTip(ev);
-      }
-      function hideTip() { el.classList.remove('hot'); tip.style.display = 'none'; }
-
-      el.addEventListener('mouseenter', function (ev) { if (over(ev)) showTip(ev); });
-      el.addEventListener('mousemove', function (ev) {
-        if (!over(ev)) { hideTip(); return; }
-        if (tip.style.display === 'none') showTip(ev);
-        else placeTip(ev);
-      });
-      el.addEventListener('mouseleave', hideTip);
+      elByIdx[i] = el;
     });
     redraw();
+    // 판이 바뀌면 커서 아래의 개체도 바뀐다 — 옛 개체의 말풍선이 남으면 안 된다.
+    hideTip();
   }
+
+  // --- 커서가 가리키는 개체 (072) ------------------------------------------
+  //
+  // **클릭과 같은 함수로 정한다.** 예전에는 상자마다 `mouseenter` 를 걸어
+  // **DOM 에서 맨 위에 있는 상자**가 말풍선을 냈고, 클릭은 `topHitAt` 으로
+  // **마스크 안에 든 것 중 가장 작은 것**을 골랐다. 두 규칙은 서버가 개체를
+  // 면적 내림차순으로 내려 주는 동안에만 우연히 같았다 — 겹친 자리에서
+  // 어긋났고(실측 2~4%), **말풍선이 A 를 설명하는데 클릭은 B 를 고른다.**
+  //
+  // 겹침이 흔한 화면이라 이것은 오독으로 이어진다: 말풍선의 크기·분류를 보고
+  // 판단한 뒤 클릭해 분류를 바꾸면 **다른 개체에 그 분류가 앉는다.**
+  var hotIdx = null;
+
+  function hideTip() {
+    if (hotIdx != null && elByIdx[hotIdx]) elByIdx[hotIdx].classList.remove('hot');
+    hotIdx = null;
+    tip.style.display = 'none';
+  }
+
+  function hoverAt(ev) {
+    // 끌거나 그리거나 고치는 중에는 말풍선이 방해만 된다.
+    if (drawing || editing || mode) { hideTip(); return; }
+    // **사진 위에서만 잰다.** `view` 안에는 도구줄·레이어 칸도 들어 있어서,
+    // 그 위를 지날 때도 좌표를 재면 엉뚱한 개체의 말풍선이 뜬다.
+    if (!canvas.contains(ev.target)) { hideTip(); return; }
+    var i = topHitAt(toImage(ev));
+    if (i === null) { hideTip(); return; }
+    if (i !== hotIdx) {
+      hideTip();
+      hotIdx = i;
+      var el = elByIdx[i];
+      if (el) el.classList.add('hot');
+      var c = cands[i];
+      var gone = removed.has(keyOf(c));
+      tip.innerHTML = tipHtml(c) +
+        (gone ? '<div class="dim">오검출로 지움 — 클릭하면 되살린다' +
+                (c.from_reject
+                  ? '<br>지금 문턱에서는 탈락분이다 (되살리면 수동 복구로 남는다)'
+                  : '') + '</div>'
+              : '');
+      tip.style.display = 'block';
+    }
+    placeTip(ev);
+  }
+
+  view.addEventListener('mousemove', hoverAt);
+  view.addEventListener('mouseleave', hideTip);
 
   // --- 교정 이력 (Ctrl+Z) ---------------------------------------------------
   var history = [];
