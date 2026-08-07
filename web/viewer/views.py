@@ -158,6 +158,8 @@ def manage_ops(request):
             ok, m = manage_data.set_review_batch(_num(p.get("batch"), int) or 0)
         elif act == "recipe":
             ok, m = manage_data.set_recipe(_num(p.get("batch"), int) or 0, p)
+        elif act == "new_batch":
+            ok, m = manage_data.create_batch(p)
         else:
             ok, m = False, "모르는 동작입니다."
         return redirect(f"{reverse('manage_ops')}?{'msg' if ok else 'err'}={m}")

@@ -173,3 +173,84 @@ class TrainingOverviewTest(DiaRUGATestCase):
         body = self.c.get(reverse("manage_dataset")).content.decode()
         self.assertIn("export_yolo.py", body)
         self.assertIn("--dry-run", body)
+
+
+class CreateBatchTest(DiaRUGATestCase):
+    """묶음을 화면에서 만든다 (084).
+
+    지금까지 묶음은 **파이프라인이 `--batch` 로 처음 쓸 때** 생겼다. 그래서
+    "다음 회차를 이렇게 돌리겠다" 를 미리 적어 둘 수가 없었다 — 조리법을 적으려면
+    묶음이 먼저 있어야 하는데, 묶음을 만들려면 검출을 한 번 돌려야 했다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=2)
+
+    def setUp(self):
+        self.c = Client()
+        self.base = RunBatch.objects.get(label="sam2-시험")
+
+    def post(self, **kw):
+        form = {"act": "new_batch"}
+        form.update(kw)
+        return self.c.post(reverse("manage_ops"), form)
+
+    def test_만들어진다(self):
+        self.post(label="yolo-4차")
+        b = RunBatch.objects.filter(kind="detect", label="yolo-4차").first()
+        self.assertIsNotNone(b)
+        self.assertEqual(b.recipe, {}, "새 묶음이 조리법을 갖고 태어났다")
+        self.assertFalse(b.for_review, "만들자마자 검토 대상이 됐다")
+
+    def test_이름이_없으면_거절한다(self):
+        ok, m = manage_data.create_batch({"label": "  "})
+        self.assertFalse(ok)
+        self.assertIn("이름", m)
+
+    def test_같은_이름은_거절한다(self):
+        ok, m = manage_data.create_batch({"label": "sam2-시험"})
+        self.assertFalse(ok)
+        self.assertIn("이미 있는", m)
+
+    def test_조리법을_베껴_온다(self):
+        """새 회차는 대개 지난 회차에서 가중치만 바뀐 것이다."""
+        manage_data.set_recipe(self.base.pk, {"backend": "sam2", "scale": "1.0",
+                                              "min_um": "10"})
+        ok, m = manage_data.create_batch({"label": "sam2-5차",
+                                          "copy_from": str(self.base.pk)})
+        self.assertTrue(ok, m)
+        b = RunBatch.objects.get(label="sam2-5차")
+        self.assertEqual(b.recipe["backend"], "sam2")
+        self.assertEqual(b.recipe["min_um"], 10)
+
+    def test_추측_표시는_안_물려준다(self):
+        """물려주면 경고가 영영 따라다닌다 — 새 묶음의 가중치는 사람이 다시 본다."""
+        self.base.recipe = {"backend": "yolo", "weights": "models/w.pt",
+                            "weights_guessed": True}
+        self.base.save(update_fields=["recipe"])
+        manage_data.create_batch({"label": "yolo-9차",
+                                  "copy_from": str(self.base.pk)})
+        self.assertNotIn("weights_guessed",
+                         RunBatch.objects.get(label="yolo-9차").recipe)
+
+    def test_만들었다고_자료가_생기지는_않는다(self):
+        """**이미 있는 슬라이드는 사람이 한 번 돌려야 한다** — 몇 시간짜리
+        GPU 작업이라 화면이 조용히 시작하면 안 된다. 그 말을 응답에 담는다."""
+        ok, m = manage_data.create_batch({"label": "yolo-6차"})
+        self.assertTrue(ok)
+        self.assertIn("이미 있는 슬라이드", m)
+        self.assertEqual(
+            Detection.objects.filter(run__batch__label="yolo-6차").count(), 0)
+
+    def test_조리법을_적으면_실행_계획에_오른다(self):
+        write_blob("models/w.pt")
+        manage_data.create_batch({"label": "yolo-7차"})
+        b = RunBatch.objects.get(label="yolo-7차")
+        manage_data.set_recipe(b.pk, {"backend": "yolo",
+                                      "weights": "models/w.pt"})
+        body = self.c.get(reverse("manage_ops")).content.decode()
+        self.assertIn("yolo-7차", body)
+        from .. import data
+        self.assertIn("yolo-7차", [r["batch"].label for r in data.batches_to_run()])

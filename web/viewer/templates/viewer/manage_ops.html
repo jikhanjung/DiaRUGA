@@ -90,6 +90,42 @@
 </section>
 
 <section class="panel">
+  <h2>새 묶음</h2>
+  {% comment %}
+    **묶음을 미리 만들 수 있어야 한다** (084). 지금까지는 파이프라인이
+    `--batch` 로 처음 쓸 때 생겨서, "다음 회차를 이렇게 돌리겠다" 를 적어 둘
+    수가 없었다 — 조리법을 적으려면 묶음이 먼저 있어야 하는데 묶음을 만들려면
+    검출을 한 번 돌려야 했다.
+
+    **만드는 것으로 자료가 생기지는 않는다.** 그 말을 화면에 적는다.
+  {% endcomment %}
+  <form method="post" class="newbatch">
+    {% csrf_token %}
+    <input type="hidden" name="act" value="new_batch">
+    <label>이름
+      <input type="text" name="label" required placeholder="yolo-4차"
+             pattern="[^/?#]+" title="주소에 쓸 수 없는 글자는 빼 주십시오"></label>
+    <label>조리법을 베껴 올 묶음
+      <select name="copy_from">
+        <option value="">— 안 베낀다 —</option>
+        {% for b in batches_all %}{% if b.recipe %}
+        <option value="{{ b.pk }}">{{ b.label }}</option>
+        {% endif %}{% endfor %}
+      </select></label>
+    <label class="wide">메모
+      <input type="text" name="note" placeholder="무엇을 바꿔 돌리는 회차인가"></label>
+    <button type="submit">만들기</button>
+  </form>
+  <p class="dim" style="font-size:12px;margin:10px 0 0">
+    만들면 <b>새 슬라이드부터</b> 폴러가 채웁니다.
+    <b>이미 있는 슬라이드는 한 번 손으로 돌려야 합니다</b> — 몇 시간짜리 GPU
+    작업이라 화면이 조용히 시작하지 않습니다.
+  </p>
+  <pre class="cmd">docker compose run --rm pipeline python segment_diatoms.py \
+    --slide &lt;슬러그&gt; --batch &lt;묶음&gt; &lt;위 표의 인자&gt;</pre>
+</section>
+
+<section class="panel">
   <h2>조리법</h2>
   <p class="dim" style="font-size:12px;margin:2px 0 10px">
     묶음마다 <b>어떻게 검출할지</b>를 적어 둡니다 (<span class="mono">segment_diatoms.py</span> 의 인자).
@@ -129,6 +165,16 @@
 </section>
 
 <style>
+  .newbatch { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .newbatch label { display: flex; flex-direction: column; gap: 4px;
+                    font-size: 12px; color: var(--dim); }
+  .newbatch label.wide { flex: 1 1 240px; }
+  .newbatch input[type=text], .newbatch select {
+    background: var(--field-bg); color: var(--fg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 13px; }
+  .cmd { background: var(--field-bg); border: 1px solid var(--line);
+         border-radius: 7px; padding: 10px 12px; font-size: 12.5px;
+         overflow-x: auto; margin: 10px 0 0; }
   .recipe { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px;
             margin-bottom: 12px; background: var(--panel); }
   .recipe .rhead { font-weight: 650; margin-bottom: 10px; display: flex;

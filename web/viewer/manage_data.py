@@ -285,6 +285,50 @@ RECIPE_NUM = ("scale", "min_um", "max_um", "yolo_conf", "yolo_imgsz")
 BACKENDS = ("sam2", "yolo")
 
 
+def create_batch(form) -> tuple[bool, str]:
+    """새 검출 묶음을 만든다 (084).
+
+    지금까지 묶음은 **파이프라인이 `--batch` 로 처음 쓸 때** 생겼다. 그래서
+    "다음 회차를 이렇게 돌리겠다" 를 미리 적어 둘 수가 없었다 — 조리법을 적으려면
+    묶음이 먼저 있어야 하는데, 묶음을 만들려면 검출을 한 번 돌려야 했다.
+
+    **조리법을 베껴 올 수 있다.** 새 회차는 대개 지난 회차에서 가중치만 바뀐
+    것이라, 빈 칸에서 시작하면 배율·크기 문턱 같은 것을 옮겨 적다가 틀린다.
+
+    **만드는 것으로 자료가 생기지는 않는다.** 새 슬라이드가 들어오면 폴러가
+    채우지만, **이미 있는 슬라이드는 사람이 한 번 돌려야 한다** — 몇 시간짜리
+    GPU 작업이라 화면이 조용히 시작하면 안 된다. 그 말을 응답에 담는다.
+    """
+    label = (form.get("label") or "").strip()
+    if not label:
+        return False, "묶음 이름을 적어 주십시오."
+    if RunBatch.objects.filter(kind="detect", label=label).exists():
+        return False, f"이미 있는 이름입니다: {label}"
+
+    recipe = {}
+    src_id = (form.get("copy_from") or "").strip()
+    src = None
+    if src_id:
+        src = RunBatch.objects.filter(pk=src_id).first()
+        if src is None:
+            return False, "베껴 올 묶음을 찾지 못했습니다."
+        recipe = dict(src.recipe or {})
+        # 베낀 것에는 **추측 표시를 물려주지 않는다** — 새 묶음의 가중치는
+        # 사람이 다시 보는 것이 맞고, 물려주면 경고가 영영 따라다닌다.
+        recipe.pop("weights_guessed", None)
+
+    b = RunBatch.objects.create(kind="detect", label=label,
+                                note=(form.get("note") or "").strip(),
+                                recipe=recipe)
+    tail = ""
+    if src is not None:
+        tail = f" ({src.label} 의 조리법을 베꼈습니다)"
+    if not recipe:
+        tail += " 조리법이 비어 있어 아직 자동으로 돌지 않습니다."
+    return True, (f"묶음 {b.label} 을 만들었습니다.{tail} "
+                  f"이미 있는 슬라이드는 사람이 한 번 돌려야 합니다.")
+
+
 def set_recipe(batch_id: int, form) -> tuple[bool, str]:
     """묶음의 조리법을 적는다 (083).
 
