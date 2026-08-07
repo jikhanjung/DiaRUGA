@@ -721,6 +721,45 @@ def preview_detection(vp: Viewpoint) -> dict | None:
     }
 
 
+def batches_to_run() -> list[dict]:
+    """새 자료가 들어왔을 때 **어떤 순서로 어느 묶음을 채우는가** (079).
+
+    순서는 사람이 정했다(2026-08-07): **검토 중인 묶음이 먼저, 나머지는 최근
+    것부터.** 이유가 있다 — 지금 사람이 보고 있는 화면이 가장 먼저 메워져야
+    하고, 그 다음은 최근 회차일수록 다시 볼 일이 많다. GPU 는 한 번에 하나만
+    도므로(잠금이 `segment_diatoms` 안에 있다) 이 순서가 곧 기다리는 순서다.
+
+    **조리법이 없으면 안 돈다.** 끝난 회차를 그대로 두는 것이 기본이다.
+
+    **가중치 파일이 없으면 못 돈다.** 그때는 목록에 남기되 `ready=False` 와
+    이유를 함께 준다 — 조용히 빠지면 "왜 이 묶음만 비어 있나" 를 나중에 묻게
+    된다. 가중치는 NAS 로 함께 백업한다(`sync_backup_nas.sync_models`).
+
+    돌려주는 것: `[{"batch": RunBatch, "recipe": dict, "ready": bool,
+                   "why": str}, …]`
+    """
+    root = Path(settings.DATA_ROOT)
+
+    rows = []
+    for b in RunBatch.objects.filter(kind="detect").exclude(recipe={}):
+        r = dict(b.recipe)
+        ready, why = True, ""
+        w = r.get("weights")
+        if r.get("backend") == "yolo":
+            if not w:
+                ready, why = False, "조리법에 가중치가 없다"
+            else:
+                path = Path(w) if Path(w).is_absolute() else root / w
+                if not path.exists():
+                    ready, why = False, f"가중치 파일이 없다: {path}"
+        rows.append({"batch": b, "recipe": r, "ready": ready, "why": why})
+
+    # 검토 중인 것 먼저, 그다음 최근 것부터. `started_at` 은 묶음이 생긴 때다.
+    rows.sort(key=lambda x: (not x["batch"].for_review,
+                             -x["batch"].started_at.timestamp()))
+    return rows
+
+
 def review_state(vp, batch_id=None):
     """그 시야의 `(검토 완료, 시야 코멘트)` — **완료는 묶음마다다** (073).
 

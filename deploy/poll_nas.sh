@@ -38,10 +38,16 @@ LOG_DIR=/data3/DiaRUGA/logs
 LOCK=/tmp/DiaRUGA-poll.lock
 STABLE_MIN="${STABLE_MIN:-5}"   # 이만큼(분) 폴더가 안 변해야 가져온다
 PPB="${PPB:-16}"                # points-per-batch — 이 장비(3060 Ti 8 GB) 기준
-# 자동 처리한 검출을 묶는 이름표. 폴러는 슬라이드를 하나씩 처리하므로 "전체를
-# 한 번 훑었다" 가 실행 여럿으로 흩어진다 — 같은 이름을 계속 주면 한 덩어리로
-# 남는다(devlog 028). 이름을 바꾸면 그 시점부터 새 묶음이 생긴다.
-DETECT_BATCH="${DETECT_BATCH:-sam2-전수}"
+# **어느 묶음에 넣을지는 DB 가 정한다** (079). 예전에는 여기 이름 하나를 박아
+# 두었는데, 묶음이 여럿인 것이 기본이 되면서 그것이 문제가 됐다 — 새 슬라이드가
+# 그 묶음에만 들어가고, 사람이 다른 묶음으로 갈아타면 **빈 화면**이 된다.
+#
+# 이제 `RunBatch.recipe` 가 묶음마다 "어떻게 돌리는가" 를 들고 있고
+# `batch_plan.py` 가 **순서대로** 펴 준다: 검토 중인 묶음 먼저, 나머지는 최근
+# 것부터. 조리법이 없는 묶음은 안 돈다(끝난 회차를 그대로 둔다).
+#
+# 되돌릴 길을 남긴다 — `DETECT_BATCH` 를 주면 그 묶음 하나만 돈다.
+DETECT_BATCH="${DETECT_BATCH:-}"
 # NAS 가 hard 마운트라 내려가면 무한 대기한다. 단계마다 상한을 건다.
 T_SCAN=600                      # 10분
 T_INGEST=3600                   # 1시간 — 슬라이드 하나가 1.4 GB 다
@@ -56,7 +62,13 @@ exec 9>"$LOCK"
 flock -n 9 || exit 0
 
 cd "$DEPLOY_DIR"
-run() { timeout "$1" docker compose run --rm -T pipeline "${@:2}"; }
+# **stdin 을 끊는다** (079). `docker compose run` 은 `-T` 를 줘도 물려받은
+# stdin 을 읽어 버려서, `while read` 고리 안에서 부르면 **남은 줄을 먹는다** —
+# 묶음이 둘인데 한 바퀴만 돌고 끝났다. 070 에서 YOLO 를 손으로 채울 때 파일
+# 11개 중 1개만 처리되던 것과 같은 함정이다.
+#
+# 파이프라인 명령 중 stdin 을 읽는 것은 하나도 없으므로 여기서 한 번에 끊는다.
+run() { timeout "$1" docker compose run --rm -T pipeline "${@:2}" </dev/null; }
 
 # 1) 정찰. 조용히 돌리고, 실패하거나 할 일이 있을 때만 남긴다.
 SCAN_JSON="$LOG_DIR/last_scan.json"
@@ -128,15 +140,44 @@ echo "$TODO" | while IFS=$'\t' read -r slug state image_dir; do
         say "$slug: 합성 실패"
         continue
     fi
-    if ! run "$T_PIPE" python segment_diatoms.py --slide "$slug" \
-            --scale 1.0 --points-per-side 48 --points-per-batch "$PPB" \
-            --min-um 10 --max-um 150 --batch "$DETECT_BATCH" \
-            --batch-note "SAM2.1 로 슬라이드 전체를 처리한 묶음. 폴러가 자동으로 붙인다 — 새 슬라이드가 들어올 때마다 여기 쌓인다." \
-            >>"$LOG" 2>&1; then
-        say "$slug: 검출 실패"
-        continue
-    fi
-    say "$slug: 끝"
+    say "$slug: 그룹핑·합성 끝"
+done
+
+# 4b) 검출 — **묶음마다 한 바퀴씩** (079).
+#
+# 묶음이 바깥 고리인 것이 요점이다. 검토 중인 묶음이 **모든 새 슬라이드에 대해**
+# 먼저 채워지고, 그다음 옛 회차가 따라온다 — 사람이 지금 보고 있는 화면이 가장
+# 빨리 메워진다. GPU 는 한 번에 하나만 도므로(잠금이 segment_diatoms 안에 있다)
+# 이 순서가 곧 기다리는 순서다.
+#
+# 조리법은 셸에서 뜯지 않는다 — 파이썬이 인자 한 줄로 만들어 준다.
+if [ -n "$DETECT_BATCH" ]; then
+    PLAN=$(printf '%s\t--backend sam2 --scale 1.0 --points-per-side 48 --min-um 10 --max-um 150' "$DETECT_BATCH")
+    say "DETECT_BATCH 가 주어졌다 — $DETECT_BATCH 하나만 돈다"
+else
+    PLAN=$(run "$T_SCAN" python batch_plan.py --args 2>>"$LOG") || PLAN=""
+fi
+if [ -z "$PLAN" ]; then
+    say "채울 묶음이 없다 — 조리법(recipe)이 적힌 묶음이 없다. batch_plan.py 로 볼 것"
+fi
+
+printf '%s\n' "$PLAN" | while IFS=$'\t' read -r batch bargs; do
+    [ -n "$batch" ] || continue
+    say "=== 묶음 $batch ==="
+    echo "$TODO" | while IFS=$'\t' read -r slug state image_dir; do
+        [ -n "$slug" ] || continue
+        # `--points-per-batch` 는 이 장비의 VRAM 사정이라 조리법이 아니라
+        # 여기서 준다. SAM2 만 본다 — YOLO 는 이 인자를 안 받는다.
+        extra=""
+        case "$bargs" in *"--backend sam2"*) extra="--points-per-batch $PPB";; esac
+        # shellcheck disable=SC2086
+        if ! run "$T_PIPE" python segment_diatoms.py --slide "$slug" \
+                --batch "$batch" $bargs $extra >>"$LOG" 2>&1; then
+            say "$slug: 검출 실패 ($batch)"
+            continue
+        fi
+        say "$slug: 검출 끝 ($batch)"
+    done
 done
 
 # 5) 자료를 바꿨으면 **화면이 그것을 그릴 수 있는지** 본다.

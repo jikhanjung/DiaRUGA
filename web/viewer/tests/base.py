@@ -89,6 +89,20 @@ def write_image(rel, size=(64, 48)) -> Path:
     return p
 
 
+def write_blob(rel, data=b"\x00" * 16) -> Path:
+    """`DATA_ROOT` 아래에 아무 파일이나 하나 심는다 (079).
+
+    가중치처럼 **PIL 이 열 필요가 없는** 것에 쓴다. `write_image` 와 같은 자리에
+    두는 이유는 하나다 — **쓰기 전에 뿌리를 확인하는 문을 하나로 모으기 위해서**다
+    (`assert_sandboxed_root` 머리말).
+    """
+    assert_sandboxed_root()
+    p = Path(settings.DATA_ROOT) / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(data)
+    return p
+
+
 class _SafeRootsMixin:
     """`DATA_ROOT`·`THUMB_CACHE` 를 임시 디렉토리로, `OUTCROP_DIR` 을 없는 곳으로.
 

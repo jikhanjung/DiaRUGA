@@ -55,6 +55,19 @@ class RunBatch(models.Model):
     # 보면 `/review` 가 017·027·053 계열의 사고를 새로 만든다. 그 POST 는 범위를
     # 갈아치우고, 셋 다 "화면과 저장 대상이 어긋난" 사고였다.
     for_review = models.BooleanField(default=False, db_default=False)
+    # **새 자료가 들어왔을 때 이 묶음을 어떻게 채우는가** (P10 6단계 · 079).
+    #
+    # 묶음이 여럿인 것이 기본이 됐다 — `sam2-전수` · `yolo-3차` · `yolo-4차` 가
+    # 나란히 있고, 새 슬라이드는 **그 전부에** 들어가야 한다. 지금 보고 있는
+    # 묶음만 따라가면 나머지는 뒤처지고, 갈아타는 순간 빈 화면이 된다.
+    #
+    # 담는 것은 `segment_diatoms.py` 의 인자다:
+    # `{"backend": "yolo", "weights": "models/…​.pt", "scale": 1.0,
+    #   "all_images": true, "min_um": 10, "max_um": 150, …}`
+    #
+    # **비어 있으면 자동으로 안 돈다.** 끝난 회차를 그대로 두는 것이 기본이고,
+    # 돌릴 것은 사람이 적어 준다 — 묶음이 늘 때마다 GPU 시간이 곱으로 는다.
+    recipe = models.JSONField(default=dict, blank=True, db_default={})
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
