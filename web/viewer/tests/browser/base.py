@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+import time
 import unittest
 
 # **playwright 의 동기 API 는 이벤트 루프 위에서 돈다.** 그래서 Django 의
@@ -20,6 +21,7 @@ os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "1")
 
 from django.conf import settings
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.db.utils import OperationalError
 from django.test import tag
 
 from ..base import assert_test_db, assert_sandboxed_root, _TMP_PREFIX
@@ -130,8 +132,40 @@ class BrowserTestCase(StaticLiveServerTestCase):
 
     def tearDown(self):
         errors = list(self.errors)
+        # **떠나기 전에 빈 쪽으로 옮긴다.** 페이지가 아직 썸네일을 받는 중이면
+        # 그 요청을 처리하는 서버 스레드가 **읽기 트랜잭션을 쥔 채** 남고,
+        # 곧바로 도는 `flush` 가 그것과 부딪힌다 (아래 `_fixture_teardown`).
+        # 창을 닫는 것만으로는 이미 서버에 들어간 요청이 안 끊긴다.
+        try:
+            self.page.goto("about:blank")
+        except Exception:                       # 이미 닫혔으면 그만이다
+            pass
         self.ctx.close()
         self.assertEqual(errors, [], f"JS 오류가 났다:\n" + "\n".join(errors))
+
+    def _fixture_teardown(self):
+        """표를 비우는 뒷정리. **경합하면 몇 번 다시 시도한다.**
+
+        `TransactionTestCase` 는 시험마다 `flush` 로 표를 비우는데, 그것이
+        **살아 있는 서버 스레드와 경합한다.** CI 에서 `database table is locked:
+        viewer_candidate` 로 실제로 깨졌다 — 로컬은 빨라서 잘 안 난다.
+
+        고칠 자리가 둘이고 둘 다 한다: 위에서 **진행 중인 요청을 끊고**,
+        여기서 **져 주고 다시 시도한다.** 상대는 곧 끝나는 읽기라 기다리면 풀린다.
+
+        시험이 실패하는 것과 뒷정리가 실패하는 것은 다른 일인데, 뒤엣것도
+        빨간불을 내므로 **없는 고장을 쫓게 만든다.** 실제로 이번 배포에서
+        v0.8.0 CI 를 그것으로 한 번 멈췄다.
+        """
+        last = None
+        for wait in (0, 0.2, 0.5, 1.0, 2.0):
+            if wait:
+                time.sleep(wait)
+            try:
+                return super()._fixture_teardown()
+            except OperationalError as e:       # locked / busy
+                last = e
+        raise last
 
     def make_data(self):
         """시험마다 세울 자료. 하위 클래스가 채운다."""
