@@ -153,7 +153,9 @@ j_rows = sum(len(set(r.get("removed") or []) | set(r.get("accepted") or [])
                  | set(r.get("labels") or {}) | set(r.get("notes") or {}))
              for r in reviews.values())
 
-check("시야 교정 파일", len(reviews), ViewpointReview.objects.count())
+# 073 이후 한 시야가 여러 줄일 수 있다 (묶음마다 완료 + 코멘트 한 줄)
+check("시야 교정 파일", len(reviews),
+      ViewpointReview.objects.values("viewpoint").distinct().count())
 check("검토 완료", j_done, ViewpointReview.objects.filter(done=True).count())
 check("시야 코멘트", j_gnote, ViewpointReview.objects.exclude(note="").count())
 check("개체 교정 행", j_rows, ObjectReview.objects.count())

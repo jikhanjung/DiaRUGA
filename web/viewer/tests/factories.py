@@ -206,8 +206,11 @@ def _make_viewpoint(slide, idx, *, n_frames, n_candidates, frame_name,
         # 싱글턴 시야 — 프레임 한 장이 곧 검출 대상이다.
         img = Image.objects.get(path=frames[0].path)
 
-    _make_detection(vp, img, n_candidates=n_candidates)
-    ViewpointReview.objects.create(viewpoint=vp, done=False)
+    det = _make_detection(vp, img, n_candidates=n_candidates)
+    # **완료 표시는 묶음에 붙는다** (073). 묶음 없는 줄은 시야 코멘트 자리라
+    # 거기에 만들면 **운영에 없는 상태**가 된다 — 픽스처가 그런 상태를 만들면
+    # 그 위에서 도는 시험이 전부 헛통과한다 (P10 0단계에서 두 번 당했다).
+    ViewpointReview.objects.create(viewpoint=vp, batch=det.batch, done=False)
     return vp
 
 

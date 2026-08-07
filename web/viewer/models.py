@@ -841,17 +841,56 @@ class Candidate(models.Model):
 
 
 class ViewpointReview(models.Model):
-    """시야 단위 교정 상태. review/*.json 의 done·note."""
+    """시야 단위 교정 상태. review/*.json 의 done·note.
 
-    viewpoint = models.OneToOneField(Viewpoint, on_delete=models.CASCADE,
-                                     related_name="review")
+    ## 완료는 묶음마다, 코멘트는 시야마다다 (073)
+
+    `ObjectReview` 와 같은 가름이다(P09 5.2) — **무엇에 대한 판단인가**로 나눈다.
+
+    | 칸 | 무엇에 대한 판단인가 | 속하는 곳 |
+    |---|---|---|
+    | `done` | 이 묶음이 낸 검출을 여기서 다 봤다 | **batch** |
+    | `note` | 이 시야가 이러이러하다 | 시야 — batch 를 갈아도 참이다 |
+
+    `done` 을 시야에 매달아 두었더니 `sam2-전수` 를 검토하고 붙인 완료 표시가
+    `yolo-3차` 로 갈아탄 화면에도 그대로 붙어 있었다 — **아직 아무도 안 본
+    검출이 "검토 완료" 로 보인다.** 그 시야는 다시 열리지 않는다("다음 미검토"
+    가 건너뛴다).
+
+    **`batch` 가 `NULL` 인 행이 시야 코멘트를 든다.** 사람이 쓴 글이라
+    재생성 불가이고, 행 전체를 묶음에 매달면 묶음을 갈 때마다 사라진다.
+    `ObjectReview` 에서 사람이 그린 개체를 `batch=NULL` 로 두는 것과 같은 자리다.
+    """
+
+    viewpoint = models.ForeignKey(Viewpoint, on_delete=models.CASCADE,
+                                  related_name="reviews")
+    # `PROTECT` — 묶음을 지우면 그 회차의 검토 기록이 통째로 날아간다
+    batch = models.ForeignKey("RunBatch", null=True, blank=True,
+                              on_delete=models.PROTECT,
+                              related_name="viewpoint_reviews")
     # 고칠 것이 없어 교정이 비어도 검토는 끝났을 수 있다 — 따로 남긴다
     done = models.BooleanField(default=False)
     note = models.TextField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["viewpoint", "batch"],
+                condition=models.Q(batch__isnull=False),
+                name="uniq_vpreview_batch"),
+            # **NULL 끼리는 안 부딪힌다** — 시야 코멘트 행이 여럿 서는 것을
+            # 막으려면 조건을 뒤집은 제약이 따로 있어야 한다 (P09 0단계와 같다)
+            models.UniqueConstraint(
+                fields=["viewpoint"],
+                condition=models.Q(batch__isnull=True),
+                name="uniq_vpreview_note"),
+        ]
+
     def __str__(self):
-        return f"{self.viewpoint} {'완료' if self.done else '미완'}"
+        if self.batch_id is None:
+            return f"{self.viewpoint} 코멘트"
+        return f"{self.viewpoint} [{self.batch}] {'완료' if self.done else '미완'}"
 
 
 class ObjectReview(models.Model):

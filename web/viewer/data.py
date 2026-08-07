@@ -310,7 +310,7 @@ def mask_points(c: dict) -> str | None:
 
 
 # --- 검출 + 교정 ------------------------------------------------------------
-def _apply_review(det: Detection, reviews: dict, vr) -> dict:
+def _apply_review(det: Detection, reviews: dict, state) -> dict:
     """검출 결과에 교정을 얹어 예전 detection_for() 와 같은 dict 를 만든다.
 
     규칙은 JSON 시절과 같다 — **사람이 지웠다가 이긴다.** 문턱을 바꿔 개체가
@@ -447,8 +447,8 @@ def _apply_review(det: Detection, reviews: dict, vr) -> dict:
                    if o.label and o.source != "manual"},
         "notes": {k: o.note for k, o in reviews.items()
                   if o.note and o.source != "manual"},
-        "review_done": bool(vr and vr.done),
-        "review_note": (vr.note if vr else ""),
+        "review_done": bool(state and state[0]),
+        "review_note": (state[1] if state else ""),
         "source_dir": "out",
     }
 
@@ -524,8 +524,8 @@ def map_points(area: str | None = None,
                     # 그대로 같아 보인다. 배지가 그것을 가른다.
                     **_obs(sl),
                     "n_viewpoints": sl.viewpoints.count(),
-                    "reviewed": ViewpointReview.objects.filter(
-                        viewpoint__slide=sl, done=True).count(),
+                    # **고른 묶음의 완료만 센다** (073) — 묶음마다 따로다
+                    "reviewed": len(done_viewpoints(slide=sl)),
                 } for sl in rows],
             })
 
@@ -699,7 +699,7 @@ def preview_detection(vp: Viewpoint) -> dict | None:
     except (OSError, ValueError):
         pass
 
-    vr = next(iter(ViewpointReview.objects.filter(viewpoint=vp)), None)
+    done, note = review_state(vp)
     return {
         "image": st.focused_path,
         "stem": Path(st.focused_path).stem,
@@ -713,12 +713,47 @@ def preview_detection(vp: Viewpoint) -> dict | None:
         "counts": {}, "thresholds": {},
         "candidates": [], "removed_candidates": [], "rejected": [],
         "n_removed": 0, "accepted_keys": [], "labels": {}, "notes": {},
-        "review_done": bool(vr and vr.done),
-        "review_note": (vr.note if vr else ""),
+        "review_done": done,
+        "review_note": note,
         "source_dir": "out",
         # 이 화면은 아직 검출이 없다 — 템플릿이 도구를 감추는 데 쓴다
         "preview_only": True,
     }
+
+
+def review_state(vp, batch_id=None):
+    """그 시야의 `(검토 완료, 시야 코멘트)` — **완료는 묶음마다다** (073).
+
+    `done` 은 "이 묶음이 낸 검출을 여기서 다 봤다" 이고, `note` 는 "이 시야가
+    이러이러하다" 이다. 뒤엣것은 묶음을 갈아도 참이라 `batch=NULL` 줄에 산다
+    (`ViewpointReview` 머리말).
+
+    **읽는 자리를 하나로 모은다** — 흩어져 있으면 뜻이 바뀔 때 전부 틀리는데
+    예외가 안 난다(P10 1단계에서 `is_current` 로 같은 일을 했다).
+    """
+    if batch_id is None:
+        batch_id = review_batch_id()
+    done, note = False, ""
+    for r in ViewpointReview.objects.filter(viewpoint=vp):
+        if r.batch_id is None:
+            note = r.note
+        elif r.batch_id == batch_id:
+            done = r.done
+    return done, note
+
+
+def done_viewpoints(batch_id=None, *, slide=None, ids=None) -> set:
+    """검토 완료로 표시된 시야 pk 들. **고른 묶음 것만 센다** (073)."""
+    if batch_id is None:
+        batch_id = review_batch_id()
+    if batch_id is None:
+        return set()
+    qs = ViewpointReview.objects.filter(done=True, batch_id=batch_id)
+    if slide is not None:
+        qs = qs.filter(viewpoint__slide=slide)
+    if ids is not None:
+        qs = qs.filter(viewpoint_id__in=ids)
+    return set(qs.values_list("viewpoint_id", flat=True))
 
 
 def review_batch_label():
@@ -854,8 +889,7 @@ def _with_reviews(vp: Viewpoint, det, batch_id) -> dict:
     reviews = {o.mask_key: o for o in vp.object_reviews.all()
                if o.image_id == det.image_id
                and (o.batch_id == batch_id or o.batch_id is None)}
-    vr = next(iter(ViewpointReview.objects.filter(viewpoint=vp)), None)
-    return _apply_review(det, reviews, vr)
+    return _apply_review(det, reviews, review_state(vp))
 
 
 def review_blocked(stem_or_slide) -> str:
@@ -1223,6 +1257,7 @@ def _slide_summary(slide: Slide) -> dict:
         accepted=Count("id", filter=Q(accepted=True)),
         noted=Count("id", filter=~Q(note="")),
     )
+    # 코멘트는 시야의 것이라 묶음과 무관하고, 완료는 묶음마다다 (073)
     vrs = ViewpointReview.objects.filter(viewpoint__slide=slide)
 
     class_counts = [{"key": k, "label": _labels()[k], "n": v}
@@ -1252,7 +1287,7 @@ def _slide_summary(slide: Slide) -> dict:
         "n_labeled": n_labeled,
         "n_noted": agg["noted"],
         "n_group_notes": vrs.exclude(note="").count(),
-        "reviewed_groups": vrs.filter(done=True).count(),
+        "reviewed_groups": len(done_viewpoints(slide=slide)),
     }
 
 
@@ -1669,9 +1704,7 @@ def dataset_detail(slug: str) -> dict | None:
                         "id")
               .values("viewpoint_id", "image_path", "width", "height")):
         dets.setdefault(d["viewpoint_id"], d)
-    reviewed = set(ViewpointReview.objects
-                   .filter(viewpoint__slide=slide, done=True)
-                   .values_list("viewpoint_id", flat=True))
+    reviewed = done_viewpoints(slide=slide)
     # **이 묶음에 검출이 없는 시야** (P10 4단계). 목록에서도 세어 낸다 — 시야를
     # 하나씩 열어 보고서야 아는 것은 063 이 "소속을 잃은 행은 그냥 사라진다" 로
     # 배운 자리와 같다.
@@ -1855,8 +1888,11 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
     # **뒤를 먼저 보고, 없으면 앞으로 돌아간다.** 뒤만 보면 뒤쪽을 다 본 순간
     # 버튼이 죽는데 앞쪽에 남은 것이 있다. 돌아갔다는 것은 화면이 말한다 —
     # 말없이 뒤로 보내면 같은 자리를 도는 것으로 읽힌다.
+    # **고른 묶음에서 완료한 것만 건너뛴다** (073). 묶음을 갈면 그 묶음의
+    # 검출은 아직 아무도 안 본 것이라 다시 돌아야 한다.
     done = set(ViewpointReview.objects
-               .filter(viewpoint__slide=slide, done=True)
+               .filter(viewpoint__slide=slide, done=True,
+                       batch_id=review_batch_id())
                .values_list("viewpoint__idx", flat=True))
     todo = [i for i in ids if i not in done and i != gid]
     ahead = [i for i in todo if i > gid]
@@ -1974,6 +2010,11 @@ def mark_all_reviewed(slug: str, done: bool) -> dict | None:
     slide = Slide.objects.filter(slug=slug).first()
     if slide is None:
         return None
+    # **고른 묶음에만 찍는다** (073). 묶음을 안 정하면 어느 검출을 다 봤다는
+    # 말인지가 없다 — 조용히 아무 데나 찍는 대신 안 한다.
+    batch_id = review_batch_id()
+    if batch_id is None:
+        return {"changed": 0, "total": 0, "no_batch": True}
     ids = list(Viewpoint.objects.filter(slide=slide)
                .values_list("id", flat=True))
     with transaction.atomic():
@@ -1981,16 +2022,19 @@ def mark_all_reviewed(slug: str, done: bool) -> dict | None:
         # 없다 — 행이 없는 것이 곧 미검토다.
         made = 0
         if done:
-            have = set(ViewpointReview.objects.filter(viewpoint_id__in=ids)
+            have = set(ViewpointReview.objects
+                       .filter(viewpoint_id__in=ids, batch_id=batch_id)
                        .values_list("viewpoint_id", flat=True))
             missing = [i for i in ids if i not in have]
             ViewpointReview.objects.bulk_create(
-                [ViewpointReview(viewpoint_id=i, done=True) for i in missing])
+                [ViewpointReview(viewpoint_id=i, batch_id=batch_id, done=True)
+                 for i in missing])
             made = len(missing)
         # `.update()` 는 `auto_now` 를 안 태운다 — 손으로 찍는다. 언제 뒤집혔는지
         # 모르면 나중에 되짚을 수가 없다.
         changed = (ViewpointReview.objects
-                   .filter(viewpoint_id__in=ids, done=not done)
+                   .filter(viewpoint_id__in=ids, batch_id=batch_id,
+                           done=not done)
                    .update(done=done, updated_at=timezone.now()))
     return {"changed": changed + made, "total": len(ids)}
 
@@ -2100,8 +2144,21 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
             f"않았다. 다른 검출을 보고 있지 않은지 확인할 것 "
             f"(예: {sorted(unknown)[:3]})")
 
+    # **완료는 그 묶음에, 코멘트는 시야에** (073). 한 줄에 담아 두었더니
+    # `sam2-전수` 에서 붙인 완료가 `yolo-3차` 화면에도 붙어 있었다 — 아직 아무도
+    # 안 본 검출이 "검토 완료" 로 보이고, "다음 미검토" 가 그 시야를 건너뛴다.
+    #
+    # 코멘트는 묶음을 갈아도 참이고 **사람이 쓴 글이라 재생성 불가**다. 완료와
+    # 함께 묶음에 매달면 묶음을 갈 때마다 사라진다.
     ViewpointReview.objects.update_or_create(
-        viewpoint=vp, defaults={"done": done, "note": note})
+        viewpoint=vp, batch=batch, defaults={"done": done})
+    if note:
+        ViewpointReview.objects.update_or_create(
+            viewpoint=vp, batch=None, defaults={"note": note})
+    else:
+        # 비웠으면 지운다 — 빈 줄을 남겨 두면 "코멘트가 있는 시야" 를 세는 자리가
+        # 어긋난다. 완료 줄은 건드리지 않는다.
+        ViewpointReview.objects.filter(viewpoint=vp, batch=None).delete()
     for key in keys:
         cand = by_key.get(key)
         obj, _ = ObjectReview.objects.get_or_create(

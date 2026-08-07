@@ -139,7 +139,9 @@ def preview(slide, specs) -> dict:
         splits.append({
             "idx": vp.idx, "tag": vp.tag,
             "detections": n_det, "object_reviews": n_rev,
-            "reviewed": hasattr(vp, "review") and vp.review.done,
+            # 완료는 묶음마다다(073) — 여기서는 **어느 묶음에서든** 본 적이
+            # 있는가를 알리면 된다. 가르면 사람이 잃는 것을 덜 세게 된다.
+            "reviewed": vp.reviews.filter(done=True).exists(),
             "stack": hasattr(vp, "stack"),
             "pieces": [[f.name for f in p]
                        for k, o, p in plan if k == "new" and o.pk == vp.pk],

@@ -40,6 +40,7 @@ from django.conf import settings                                    # noqa: E402
 from django.db import transaction                                   # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
+from viewer import data                                             # noqa: E402
 from viewer.images import (ensure_frame_image, ensure_image,
                           ensure_stack_images)
 from viewer.models import (Candidate, ClassDef, Detection,           # noqa: E402
@@ -367,10 +368,14 @@ def import_reviews():
             missing.append(stem)
             continue
         d = json.loads(path.read_text(encoding="utf-8"))
+        # 완료는 묶음마다, 코멘트는 시야마다다 (073)
+        note = (d.get("note") or "").strip()
         ViewpointReview.objects.update_or_create(
-            viewpoint=vp,
-            defaults=dict(done=bool(d.get("done")),
-                          note=(d.get("note") or "").strip()))
+            viewpoint=vp, batch_id=data.review_batch_id(),
+            defaults=dict(done=bool(d.get("done"))))
+        if note:
+            ViewpointReview.objects.update_or_create(
+                viewpoint=vp, batch=None, defaults=dict(note=note))
         n_vp += 1
 
         # 이 시야의 현재 검출에서 mask_key -> Candidate 를 미리 뽑아 둔다

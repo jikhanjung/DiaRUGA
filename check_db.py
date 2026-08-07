@@ -146,6 +146,27 @@ def check_current(slug=None):
            f"검토 대상이 {n_rev}개다 — 0이면 화면이 비고, 둘이면 제약이 막았어야 한다",
            [] if n_rev == 1 else [f"for_review={n_rev}"])
 
+    # **검토 완료 줄이 제 자리에 있는가** (073). 줄이 두 종류다 —
+    # `batch` 가 있는 줄은 "그 묶음을 다 봤다", `batch=NULL` 인 줄은 시야
+    # 코멘트다. 섞이면 예외는 안 나고 **완료 표시가 묶음을 넘어 새거나
+    # 코멘트가 묶음마다 갈라진다.**
+    misplaced = list(ViewpointReview.objects
+                     .filter(batch__isnull=True, done=True)[:5])
+    report("코멘트 줄에 완료 표시가 없다",
+           ViewpointReview.objects.filter(batch__isnull=True,
+                                          done=True).count(),
+           ViewpointReview.objects.count(),
+           "묶음 없는 줄이 done=True 다 — 어느 묶음을 다 봤다는 말인지 알 수 없다",
+           [f"vp #{r.viewpoint_id}" for r in misplaced])
+    noted = list(ViewpointReview.objects
+                 .filter(batch__isnull=False).exclude(note="")[:5])
+    report("완료 줄에 코멘트가 없다",
+           ViewpointReview.objects.filter(batch__isnull=False)
+           .exclude(note="").count(),
+           ViewpointReview.objects.count(),
+           "묶음에 달린 줄이 코멘트를 들고 있다 — 묶음을 갈면 사람이 쓴 글이 사라진다",
+           [f"vp #{r.viewpoint_id}" for r in noted])
+
     # 검출이 아예 없는 시야는 정상일 수 있다(아직 안 돌린 것). 세어만 둔다.
     with_det = set(Detection.objects.reviewing().filter(viewpoint__in=qs)
                    .values_list("viewpoint_id", flat=True))
