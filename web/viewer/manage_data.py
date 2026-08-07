@@ -193,3 +193,81 @@ def create(kind: str, data: dict) -> tuple[bool, str]:
 def _num(raw, cast=float):
     raw = (raw or "").strip()
     return cast(raw) if raw else None
+
+
+# --- 검토할 묶음 (P10 3단계) ------------------------------------------------
+
+def batch_choices() -> list[dict]:
+    """고를 수 있는 묶음들과 **고르면 무엇이 달라지는지.**
+
+    **누르기 전에 보인다.** 063 이 "지우기 문턱은 눌러 보기 전에 보여야 한다" 를
+    배운 자리와 같다 — 바꾸고 나서 "시야 56개가 비었다" 를 알면 늦다.
+
+    줄마다 셋을 센다:
+
+    | 칸 | 무엇 |
+    |---|---|
+    | `n_views` | 이 묶음이 덮는 시야 수 |
+    | `n_blank` | **이 묶음에 검출이 없어 빈 화면이 될 시야** |
+    | `n_objects` | 이 묶음이 낸 개체 수 (엔진이 낸 그대로 — 교정 전) |
+
+    검출이 있는 묶음만 낸다. 빈 묶음을 고르면 화면이 통째로 비는데, 그것을
+    고를 이유가 없다.
+    """
+    from .models import Candidate, Detection, RunBatch, Viewpoint
+
+    total = Viewpoint.objects.count()
+    out = []
+    for b in RunBatch.objects.filter(kind="detect").order_by("-started_at"):
+        dets = Detection.objects.filter(run__batch=b, is_current=True)
+        n_views = dets.values("viewpoint_id").distinct().count()
+        if not n_views:
+            continue
+        out.append({
+            "batch": b,
+            "on": b.for_review,
+            "n_views": n_views,
+            "n_blank": total - n_views,
+            "n_images": dets.count(),
+            "n_objects": Candidate.objects.filter(detection__in=dets,
+                                                  passed=True).count(),
+        })
+    return out
+
+
+def set_review_batch(batch_id: int) -> tuple[bool, str]:
+    """검토할 묶음을 바꾼다. **자료는 안 건드린다 — 깃발 하나다.**
+
+    그래서 **되돌리기가 같은 동작**이다. 예전 계획(P09 5단계)은 검출 2,132행을
+    UPDATE 하는 것이었는데, 사본에서 해 보니 YOLO 가 없는 56 시야가 현재 검출을
+    잃고 빈 화면이 됐다 — 되돌리려면 또 한 번의 대량 UPDATE 였다(P10 §1).
+
+    **서버가 다시 검사한다.** 화면이 고를 수 없게 해 두어도 그것은 막는 것이
+    아니다 — 051·027 이 그 자리에서 났다.
+    """
+    from .models import Detection, Run, RunBatch
+
+    b = RunBatch.objects.filter(pk=batch_id, kind="detect").first()
+    if b is None:
+        return False, "그런 묶음이 없습니다."
+    if b.for_review:
+        return False, f"{b.label} 은 이미 검토 대상입니다."
+    # **검출이 없는 묶음은 안 받는다.** 고르면 화면이 통째로 빈다.
+    n_views = (Detection.objects.filter(run__batch=b, is_current=True)
+               .values("viewpoint_id").distinct().count())
+    if not n_views:
+        return False, f"{b.label} 에는 검출이 없습니다 — 먼저 돌려야 합니다."
+
+    was = RunBatch.objects.filter(for_review=True).first()
+    with transaction.atomic():
+        # 유일 제약이 하나만 허용하므로 **끄고 켠다** — 순서가 뒤바뀌면 막힌다.
+        RunBatch.objects.filter(for_review=True).update(for_review=False)
+        RunBatch.objects.filter(pk=b.pk).update(for_review=True)
+        # 누가 언제 어디서 어디로 — 되짚을 수 있어야 한다.
+        Run.objects.create(
+            kind="reconcile", batch=b, status="done",
+            params={"action": "set_review_batch",
+                    "from": was.label if was else None, "to": b.label},
+            counts={"views": n_views})
+    return True, (f"검토할 묶음을 {b.label} 로 바꿨습니다 — 시야 {n_views}개. "
+                  f"판정 캐시가 어긋날 수 있으니 refilter.py 를 돌리십시오.")

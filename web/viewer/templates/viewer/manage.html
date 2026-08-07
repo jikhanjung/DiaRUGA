@@ -21,6 +21,58 @@
   {% if orphans %} · <b style="color:var(--err-fg)">소속 없는 관찰 {{ orphans|length }}</b>{% endif %}
 </p>
 
+{% comment %}
+  **검토할 묶음** (P10). 뷰어가 어느 검출을 보여줄지 정하는 서버 설정이다 —
+  URL 이나 쿠키가 아니다. 사람마다 다른 묶음을 보면 `/review` 가 017·027·053
+  계열의 사고를 새로 만든다(그 POST 는 범위를 갈아치운다).
+
+  **자료를 안 건드린다 — 깃발 하나다.** 그래서 되돌리기가 같은 동작이다.
+
+  **누르기 전에 무엇이 달라지는지 적는다** — 몇 시야를 덮고 몇이 빈 화면이
+  되는지. 바꾸고 나서 아는 것은 늦다.
+{% endcomment %}
+<section class="panel">
+  <h2>검토할 묶음</h2>
+  <p class="dim" style="font-size:12px;margin:2px 0 10px">
+    뷰어가 보여줄 검출을 정합니다. <b>교정은 묶음마다 따로 남아 있어 안 지워집니다.</b>
+    바꾼 뒤에는 <span class="mono">refilter.py</span> 를 돌려 판정 캐시를 맞추십시오.
+  </p>
+  {% if batches %}
+  <table class="mtab">
+    <thead><tr><th>묶음</th><th>시야</th><th>빈 화면</th><th>이미지</th>
+               <th>개체</th><th></th></tr></thead>
+    <tbody>
+      {% for b in batches %}
+      <tr{% if b.on %} class="nowrow"{% endif %}>
+        <td><b>{{ b.batch.label }}</b>
+            {% if b.on %} <span class="nowtag">검토 중</span>{% endif %}
+            {% if b.batch.note %}<div class="dim" style="font-size:11px">{{ b.batch.note|truncatechars:90 }}</div>{% endif %}</td>
+        <td class="num">{{ b.n_views }}</td>
+        {% comment %} 빈 화면이 생기는 것은 경고다 — 색으로 드러낸다 {% endcomment %}
+        <td class="num">{% if b.n_blank %}<b style="color:var(--warn)">{{ b.n_blank }}</b>{% else %}0{% endif %}</td>
+        <td class="num">{{ b.n_images }}</td>
+        <td class="num">{{ b.n_objects }}</td>
+        <td>
+          {% if not b.on %}
+          <form method="post" class="inline">{% csrf_token %}
+            <input type="hidden" name="act" value="review_batch">
+            <input type="hidden" name="batch" value="{{ b.batch.pk }}">
+            <button type="submit"
+                    onclick="return confirm('검토할 묶음을 {{ b.batch.label }} 로 바꿉니다.\n\n· 시야 {{ b.n_views }}개가 이 묶음의 검출을 봅니다{% if b.n_blank %}\n· 시야 {{ b.n_blank }}개는 이 묶음에 검출이 없어 빈 화면이 됩니다{% endif %}\n· 교정은 묶음마다 따로 남아 안 지워집니다\n\n되돌리려면 다시 여기서 고르면 됩니다.')">
+              이것으로 검토
+            </button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="dim">검출이 있는 묶음이 없습니다.</p>
+  {% endif %}
+</section>
+
 {% if orphans %}
 {% comment %}
   **이 화면이 있어야 하는 첫째 이유다.** 소속 없는 관찰은 다른 어느 화면에도
@@ -195,6 +247,12 @@ document.addEventListener('click', function (e) {
   }
   .mtab th { font-weight: 650; font-size: 11.5px; color: var(--dim); }
   .mtab td.num, .mtab th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  /* 지금 검토 중인 묶음 — 한눈에 갈려야 한다. `--panel` 을 안 쓴다:
+     `tbody tr:hover` 가 그 색이라 마우스만 올려도 같아 보인다(063 과 같은 자리). */
+  .mtab tr.nowrow > td { background: rgba(90,200,250,.10); }
+  .nowtag { display: inline-block; margin-left: 6px; padding: 1px 7px;
+            border-radius: 999px; font-size: 11px; font-weight: 600;
+            color: var(--accent); border: 1px solid var(--accent); }
   .mtab td.act { text-align: right; white-space: nowrap; }
   .mtab tr:last-child td { border-bottom: none; }
   form.inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0; }

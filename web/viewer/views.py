@@ -589,6 +589,9 @@ def manage(request):
         elif act == "move_sample":
             ok, m = manage_data.move_sample(_num(p.get("sample"), int) or 0,
                                             _num(p.get("locality"), int) or 0)
+        elif act == "review_batch":
+            # 검토할 묶음 (P10 3단계). **자료를 안 건드리고 깃발 하나를 옮긴다.**
+            ok, m = manage_data.set_review_batch(_num(p.get("batch"), int) or 0)
         else:
             ok, m = False, "모르는 동작입니다."
         # POST 뒤에 redirect 한다 — 새로 고침이 같은 일을 다시 하면 안 된다.
@@ -607,6 +610,8 @@ def manage(request):
         **ctx,
         "site_areas": Site.AREA,
         "locality_kinds": Locality.KIND,
+        # 고르면 무엇이 달라지는지를 **누르기 전에** 낸다 (P10 3.5)
+        "batches": manage_data.batch_choices(),
         "msg": msg, "err": err,
     })
 
