@@ -46,8 +46,8 @@ from django.db import transaction                                   # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
 import judge                                                        # noqa: E402
-from viewer.models import (Candidate, Detection, Run, Slide,        # noqa: E402
-                           ThresholdSet)
+from viewer.models import (Candidate, Detection, Run, RunBatch,     # noqa: E402
+                           Slide, ThresholdSet)
 
 
 def git_version():
@@ -121,6 +121,14 @@ def refilter_detection(det: Detection, values: dict, dry_run: bool):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--slide", help="이 슬러그만 (기본: 전부)")
+    # **묶음을 고를 수 있어야 한다** (078). 검토 중인 것만 만질 수 있으면
+    # 나머지 회차는 손댈 수 없는 기록이 된다 — 새 자료가 들어왔을 때 옛 묶음도
+    # 같이 따라가야 하고, 판정이 어긋난 묶음을 고칠 길도 있어야 한다.
+    ap.add_argument("--batch", help="이 묶음만 (기본: 검토 중인 묶음)")
+    ap.add_argument("--all-batches", action="store_true",
+                    help="모든 묶음. 문턱을 바꾸면서 쓰지 말 것 (아래 --force)")
+    ap.add_argument("--force", action="store_true",
+                    help="검토 중이 아닌 묶음의 문턱까지 바꾼다 (회차 비교가 깨진다)")
     ap.add_argument("--dry-run", action="store_true", help="확인만, 저장 안 함")
     ap.add_argument("-q", "--quiet", action="store_true", help="시야별 줄을 줄인다")
     ap.add_argument("--defaults", action="store_true",
@@ -136,23 +144,57 @@ def main():
 
     if args.slide and not Slide.objects.filter(slug=args.slide).exists():
         raise SystemExit(f"슬라이드를 찾지 못했다: {args.slide}")
-    # **검토 중인 묶음에만 적용한다** (P10 1단계). 다른 묶음은 그때의 문턱으로
-    # 판정된 기록이라, 지금 값으로 다시 쓰면 회차 비교가 무의미해진다.
-    # 그리고 정규화 뒤에는 모든 묶음의 검출이 자기 안에서 `is_current` 라,
-    # 그것만 걸면 **쌓아 둔 것 전부를 다시 판정한다.**
-    dets = (Detection.objects.reviewing()
+    # **기본은 검토 중인 묶음이다** (P10 1단계). 정규화 뒤에는 모든 묶음의
+    # 검출이 자기 안에서 `is_current` 라, 그것만 걸면 쌓아 둔 것 전부가 딸려 온다.
+    #
+    # **다른 묶음을 고를 수 있다** (078). 두 가지가 다른 일이라 갈라 둔다:
+    #
+    # - **문턱을 안 바꾸고 다시 판정** — 저장된 지표로 캐시를 다시 쓰는 것뿐이라
+    #   어느 묶음에든 안전하다. 077 이전에 생긴 어긋남을 여기서 고친다
+    # - **문턱을 바꿔 다시 거름** — 그 묶음이 "그때 그 문턱으로 낸 결과" 라는
+    #   사실이 깨진다. **회차끼리 견줄 수 없게 되므로** 검토 중인 묶음이
+    #   아니면 `--force` 를 받아야 한다
+    if args.batch and args.all_batches:
+        raise SystemExit("--batch 와 --all-batches 는 함께 못 쓴다")
+    if args.all_batches:
+        dets = Detection.objects.filter(is_current=True)
+        where = "모든 묶음"
+    elif args.batch:
+        if not RunBatch.objects.filter(label=args.batch).exists():
+            names = ", ".join(RunBatch.objects.order_by("label")
+                              .values_list("label", flat=True)[:20])
+            raise SystemExit(f"묶음을 찾지 못했다: {args.batch}\n  있는 것: {names}")
+        dets = Detection.objects.filter(is_current=True,
+                                        run__batch__label=args.batch)
+        where = f"묶음 {args.batch}"
+    else:
+        dets = Detection.objects.reviewing()
+        where = "검토 중인 묶음"
+
+    if overrides and (args.batch or args.all_batches) and not args.force:
+        cur = (RunBatch.objects.filter(for_review=True)
+               .values_list("label", flat=True).first())
+        if args.all_batches or args.batch != cur:
+            raise SystemExit(
+                f"검토 중이 아닌 묶음({where})의 문턱을 바꾸려 한다 — 그 묶음이 "
+                f"'그때 그 문턱으로 낸 결과' 라는 사실이 깨지고 회차끼리 견줄 수 "
+                f"없게 된다.\n  정말 그러려면 --force 를 준다. 문턱을 안 바꾸고 "
+                f"다시 판정만 하려면 문턱 인자를 빼고 부른다.")
+
+    dets = (dets
             .select_related("thresholds", "viewpoint", "viewpoint__slide")
             .prefetch_related("candidates"))
     if args.slide:
         dets = dets.filter(viewpoint__slide__slug=args.slide)
     dets = list(dets)
     if not dets:
-        raise SystemExit("현재 검출이 없다. import_json.py 를 먼저 돌렸는가?")
+        raise SystemExit(f"{where}에 현재 검출이 없다.")
 
     run = None
     if not args.dry_run:
         run = Run.objects.create(kind="refilter", status="running",
                                  params={"overrides": overrides,
+                                         "batch": where,
                                          "slide": args.slide or "*",
                                          "from_defaults": args.defaults},
                                  host=socket.gethostname(),
@@ -197,7 +239,7 @@ def main():
             # 실수로 저장되는 경로가 생기지 않게 통째로 되돌린다.
             transaction.set_rollback(True)
 
-    print(f"\n검출 {len(dets)}개 · 통과 {tot_before} -> {tot_after} "
+    print(f"\n[{where}] 검출 {len(dets)}개 · 통과 {tot_before} -> {tot_after} "
           f"({tot_after - tot_before:+d})")
     if per_cls:
         print("  " + " · ".join(f"{k} {v}" for k, v in sorted(per_cls.items())))
