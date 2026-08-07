@@ -1,0 +1,21 @@
+{
+  "format": 3,
+  "slide": "260805_bp09-0901_1",
+  "gid": 25,
+  "tag": "g025_Snap-22524-22525",
+  "done": true,
+  "note": "",
+  "n_images": 1,
+  "n_objects": 1,
+  "images": [
+    {
+      "image": "stacked/g025_Snap-22524-22525_focused.jpg",
+      "kind": "stack",
+      "batch": "sam2-전수",
+      "n_objects": 1,
+      "objects": [
+        {"key": "700_298_414_335", "removed": false, "accepted": true, "label": "round_frag", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [700, 298, 414, 335], "polygon": [806, 323, 799, 332, 817, 360, 827, 436, 816, 446, 778, 440, 714, 454, 701, 487, 703, 559, 718, 584, 834, 625, 854, 617, 984, 632, 1091, 563, 1112, 522, 1112, 470, 1083, 416, 1039, 364, 984, 324, 921, 301, 875, 298]}}
+      ]
+    }
+  ]
+}

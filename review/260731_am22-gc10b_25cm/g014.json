@@ -1,12 +1,21 @@
 {
-  "format": 2,
+  "format": 3,
   "slide": "260731_am22-gc10b_25cm",
   "gid": 14,
   "tag": "g013_Snap-22149-22150",
   "done": true,
   "note": "",
+  "n_images": 1,
   "n_objects": 1,
-  "objects": [
-    {"key": "1072_492_111_178", "removed": false, "accepted": false, "label": "rod_frag", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [1072, 492, 111, 178], "polygon": [1154, 492, 1144, 495, 1135, 502, 1100, 546, 1073, 590, 1072, 601, 1086, 644, 1090, 669, 1101, 666, 1112, 651, 1117, 635, 1131, 616, 1141, 593, 1179, 529, 1182, 513, 1177, 497]}}
+  "images": [
+    {
+      "image": "stacked/g013_Snap-22149-22150_focused.jpg",
+      "kind": "stack",
+      "batch": "sam2-전수",
+      "n_objects": 1,
+      "objects": [
+        {"key": "1072_492_111_178", "removed": false, "accepted": false, "label": "rod_frag", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [1072, 492, 111, 178], "polygon": [1154, 492, 1144, 495, 1135, 502, 1100, 546, 1073, 590, 1072, 601, 1086, 644, 1090, 669, 1101, 666, 1112, 651, 1117, 635, 1131, 616, 1141, 593, 1179, 529, 1182, 513, 1177, 497]}}
+      ]
+    }
   ]
 }

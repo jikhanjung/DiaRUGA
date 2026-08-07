@@ -1,0 +1,22 @@
+{
+  "format": 3,
+  "slide": "260731_am22-gc10b_25cm",
+  "gid": 27,
+  "tag": "g027_Snap-22171-22172",
+  "done": true,
+  "note": "",
+  "n_images": 1,
+  "n_objects": 2,
+  "images": [
+    {
+      "image": "stacked/g027_Snap-22171-22172_focused.jpg",
+      "kind": "stack",
+      "batch": "sam2-전수",
+      "n_objects": 2,
+      "objects": [
+        {"key": "1626_431_431_311", "removed": true, "accepted": false, "label": "", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [1626, 431, 431, 311], "polygon": [1627, 432, 1635, 461, 1792, 582, 2026, 738, 2056, 737, 2036, 715, 1898, 618, 1848, 573, 1803, 549, 1782, 524, 1768, 530, 1766, 521, 1719, 484]}},
+        {"key": "452_212_57_103", "removed": true, "accepted": false, "label": "", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [452, 212, 57, 103], "polygon": [476, 212, 467, 218, 463, 233, 456, 245, 452, 270, 453, 291, 456, 306, 466, 312, 479, 314, 481, 296, 484, 290, 499, 275, 508, 255, 508, 237, 503, 227, 493, 216, 488, 213]}}
+      ]
+    }
+  ]
+}
