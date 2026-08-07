@@ -14,6 +14,7 @@
 #   3. 판이 기대한 것인가            배포가 실제로 갈렸는가
 #   4. 자료가 있는가 (행 수 > 0)     빈 DB 를 물고도 200 은 나온다
 #   5. nginx 를 거쳐도 사는가        컨테이너만 보면 앞단이 끊긴 것을 못 본다
+#   6. /srv 의 스크립트가 저장소와 같은가   **경고만 한다** (아래)
 #
 # **3번과 4번이 이 스크립트의 값어치다.** 1·2번은 `deploy.sh` 의 기동 게이트가
 # 이미 본다. 판이 안 갈렸는데 갈린 줄 아는 것과, 빈 DB 를 물고도 멀쩡해 보이는
@@ -37,8 +38,13 @@ if [ -z "$WANT" ] && [ -f "$SRV/.env" ]; then
 fi
 
 fails=0
+warns=0
 ok()   { echo "  ✓ $*"; }
 bad()  { echo "  ✗ $*" >&2; fails=$((fails + 1)); }
+# **경고는 배포를 안 세운다.** `/healthz` 의 degraded 를 503 으로 만들면 배포가
+# 스스로 멈춘다는 것과 같은 이야기다(034) — 뷰어가 성한지와 손으로 돌리는
+# 스크립트가 최신인지는 다른 물음이고, 뒤엣것 때문에 판을 못 올리면 안 된다.
+warn() { echo "  ! $*"; warns=$((warns + 1)); }
 
 echo "=== smoke $(date '+%F %T') ==="
 
@@ -159,9 +165,35 @@ case "$site_code" in
     *)   bad "nginx 경유가 200 이 아니다 (받은 것: ${site_code:-없음}) — $SITE" ;;
 esac
 
+# 6) **`/srv` 의 스크립트가 저장소와 어긋났는가** (080).
+#
+# 배포는 뷰어 이미지를 갈지만 `/srv/DiaRUGA/scripts` 는 아무도 안 갈아 준다.
+# v0.8.0 배포 뒤 옛 `check_db.py` 가 **"is_current 가 둘 이상이다 508건"** 이라는
+# 없는 고장을 냈다 — P10 이 그 검사의 뜻을 바꿨는데 사본이 옛 판이었다.
+# 그 문구는 "자료가 상했다" 로 읽히므로 다음엔 시간을 버린다.
+#
+# **경고만 한다.** 스크립트가 낡은 것은 방금 올린 판이 잘못됐다는 뜻이 아니다.
+REPO="${DIARUGA_REPO:-$HOME/projects/DiaRUGA}"
+SYNC="$REPO/deploy/host/dbsync.sh"
+if [ -x "$SYNC" ]; then
+    drift=$(DIARUGA_REPO="$REPO" "$SYNC" --list 2>/dev/null | grep -c "다르다" || true)
+    if [ "${drift:-0}" -gt 0 ]; then
+        warn "/srv 의 스크립트 ${drift}개가 저장소와 다르다 — dbsync.sh 로 맞출 것"
+        DIARUGA_REPO="$REPO" "$SYNC" --list 2>/dev/null | grep "다르다" | sed 's/^/      /'
+    else
+        ok "/srv 의 스크립트가 저장소와 같다"
+    fi
+else
+    warn "dbsync.sh 를 못 찾았다 ($SYNC) — 스크립트 표류를 확인하지 못했다"
+fi
+
 echo
 if [ "$fails" -eq 0 ]; then
-    echo "smoke 통과."
+    if [ "$warns" -gt 0 ]; then
+        echo "smoke 통과 (경고 $warns 건 — 위를 볼 것)."
+    else
+        echo "smoke 통과."
+    fi
     exit 0
 fi
 echo "smoke 실패 — $fails 건." >&2
