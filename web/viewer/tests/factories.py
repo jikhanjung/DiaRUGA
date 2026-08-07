@@ -297,7 +297,7 @@ def add_frame_detections(vp, *, n_candidates=2):
     return out
 
 
-def add_other_engine(vp, *, label=None, n_candidates=2) -> Run:
+def add_other_engine(vp, *, label=None, n_candidates=2, frames=False) -> Run:
     """같은 시야에 **다른 엔진의 검출**을 하나 더 쌓는다. `Run` 을 돌려준다.
 
     **검출은 덮어쓰지 않고 쌓는다** — `is_current` 가 뷰어가 볼 것을 가리킨다
@@ -313,50 +313,66 @@ def add_other_engine(vp, *, label=None, n_candidates=2) -> Run:
     run = Run.objects.create(kind="detect", batch=batch, slide=vp.slide,
                              status="done")
 
-    cur = vp.detections.get(is_current=True)
-    det = Detection.objects.create(
-        viewpoint=vp, image=cur.image, image_path=cur.image_path,
-        width=cur.width, height=cur.height, scale=1.0,
-        um_per_pixel=cur.um_per_pixel, um_per_pixel_source="xml",
-        n_raw_masks=n_candidates, n_sized=n_candidates,
-        run=run, is_current=False)
+    cur = vp.detections.filter(is_current=True).first()
+    if cur is None:
+        cur = vp.detections.order_by("id").first()
+
+    imgs = [(cur.image, cur.image_path)]
+    if frames:
+        for f in vp.frames.all():
+            img = Image.objects.get(path=f.path)
+            if img.pk != cur.image_id:
+                imgs.append((img, f.path))
+
+    dets = []
+    for img, path in imgs:
+        dets.append(Detection.objects.create(
+            viewpoint=vp, image=img, image_path=path,
+            width=cur.width, height=cur.height, scale=1.0,
+            um_per_pixel=cur.um_per_pixel, um_per_pixel_source="xml",
+            n_raw_masks=n_candidates, n_sized=n_candidates,
+            run=run, is_current=False))
 
     # **현재 검출과 다른 자리에 둔다.** 같은 bbox 를 쓰면 `mask_key` 가 겹쳐
     # 교정이 우연히 붙고, "엔진이 다르면 키가 어긋난다" 는 전제가 시험 자료에서
-    # 만 성립하지 않게 된다.
-    for i in range(n_candidates):
-        x, y = 300 + i * 90, 250 + i * 60
-        w, h = 55 + i * 7, 45 + i * 7
+    # 만 성립하지 않게 된다. 판마다도 조금씩 어긋나게 둔다 — 프레임끼리 키가
+    # 같으면 "어느 판의 교정인지" 를 가르는 자리가 시험에서 안 눌린다.
+    for det_i, det in enumerate(dets):
+        for i in range(n_candidates):
+            x, y = 300 + i * 90 + det_i * 5, 250 + i * 60 + det_i * 5
+            w, h = 55 + i * 7, 45 + i * 7
+            Candidate.objects.create(
+                detection=det, raw_id=i,
+                mask_key=data.cand_key({"bbox_xywh": [x, y, w, h]}),
+                bbox_x=x, bbox_y=y, bbox_w=w, bbox_h=h,
+                center_x=x + w // 2, center_y=y + h // 2,
+                area_px=w * h // 2, area_um2=float(w * h) / 200,
+                major_um=float(w) / 10, minor_um=float(h) / 10,
+                long_side_um=float(w) / 10, short_side_um=float(h) / 10,
+                aspect_ratio=w / h, fill_ratio=0.6,
+                shape_ok=True, circularity=0.8, convexity=0.9, solidity=0.9,
+                elongation=1.2, ellipse_iou=0.86, texture=2800.0,
+                polygon=[x, y, x + w, y, x + w, y + h, x, y + h],
+                passed=True, cls=CLASSES[i % len(CLASSES)][0])
+
+        # 탈락분 하나 — 읽기 전용에서 **탈락 펼침판**이 어떻게 구는지 보려면
+        # 있어야 한다.
+        #
+        # **통과분이 안 덮는 자리에 둔다.** 펼침판은 우클릭 메뉴의 "이 자리의
+        # 탈락 후보 보기" 로 여는데, 그 항목은 **빈 자리를 눌렀을 때만**
+        # (`d.target === null`) 나온다. 통과분 위에 겹쳐 두면 개체 메뉴가 떠서
+        # 영영 못 연다.
+        x, y, w, h = REJECT_BOX
         Candidate.objects.create(
-            detection=det, raw_id=i,
+            detection=det, raw_id=n_candidates,
             mask_key=data.cand_key({"bbox_xywh": [x, y, w, h]}),
             bbox_x=x, bbox_y=y, bbox_w=w, bbox_h=h,
             center_x=x + w // 2, center_y=y + h // 2,
-            area_px=w * h // 2, area_um2=float(w * h) / 200,
-            major_um=float(w) / 10, minor_um=float(h) / 10,
-            long_side_um=float(w) / 10, short_side_um=float(h) / 10,
-            aspect_ratio=w / h, fill_ratio=0.6,
-            shape_ok=True, circularity=0.8, convexity=0.9, solidity=0.9,
-            elongation=1.2, ellipse_iou=0.86, texture=2800.0,
+            area_px=w * h // 2, area_um2=2.0, major_um=2.4, minor_um=2.0,
+            long_side_um=2.4, short_side_um=2.0, aspect_ratio=1.2,
+            fill_ratio=0.5, shape_ok=False, texture=180.0,
             polygon=[x, y, x + w, y, x + w, y + h, x, y + h],
-            passed=True, cls=CLASSES[i % len(CLASSES)][0])
-
-    # 탈락분 하나 — 읽기 전용에서 **탈락 펼침판**이 어떻게 구는지 보려면 있어야 한다.
-    #
-    # **통과분이 안 덮는 자리에 둔다.** 펼침판은 우클릭 메뉴의 "이 자리의 탈락
-    # 후보 보기" 로 여는데, 그 항목은 **빈 자리를 눌렀을 때만**(`d.target === null`)
-    # 나온다. 통과분 위에 겹쳐 두면 개체 메뉴가 떠서 영영 못 연다.
-    x, y, w, h = REJECT_BOX
-    Candidate.objects.create(
-        detection=det, raw_id=n_candidates,
-        mask_key=data.cand_key({"bbox_xywh": [x, y, w, h]}),
-        bbox_x=x, bbox_y=y, bbox_w=w, bbox_h=h,
-        center_x=x + w // 2, center_y=y + h // 2,
-        area_px=w * h // 2, area_um2=2.0, major_um=2.4, minor_um=2.0,
-        long_side_um=2.4, short_side_um=2.0, aspect_ratio=1.2,
-        fill_ratio=0.5, shape_ok=False, texture=180.0,
-        polygon=[x, y, x + w, y, x + w, y + h, x, y + h],
-        passed=False, reject="too_small")
+            passed=False, reject="too_small")
     return run
 
 

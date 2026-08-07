@@ -721,6 +721,38 @@ def preview_detection(vp: Viewpoint) -> dict | None:
     }
 
 
+def review_batch_label():
+    """검토 대상 묶음의 이름. 없으면 빈 문자열 (P10 4단계).
+
+    화면이 "무엇의 검출이 없다" 를 적으려면 이름이 필요하다.
+    """
+    return (RunBatch.objects.filter(for_review=True)
+            .values_list("label", flat=True).first() or "")
+
+
+def batches_elsewhere(slide=None, vp=None) -> dict:
+    """시야 pk → **검토 대상이 아닌 묶음 중 검출이 있는 것**들의 이름 (P10 4단계).
+
+    "이 시야가 빈 이유" 를 화면이 말하려면 이것이 있어야 한다. 검출이 아예 없는
+    것과 **다른 묶음에는 있는 것**은 다른 말이고, 뒤엣것을 "검출은 아직입니다"
+    라고 적으면 거짓말이다 — 사람이 돌리러 간다.
+    """
+    rb = review_batch_id()
+    qs = Detection.objects.filter(is_current=True)
+    if slide is not None:
+        qs = qs.filter(viewpoint__slide=slide)
+    if vp is not None:
+        qs = qs.filter(viewpoint=vp)
+    if rb is not None:
+        qs = qs.exclude(run__batch_id=rb)
+    out = defaultdict(list)
+    for vp_id, label in (qs.values_list("viewpoint_id", "run__batch__label")
+                         .distinct()):
+        if label and label not in out[vp_id]:
+            out[vp_id].append(label)
+    return out
+
+
 def review_batch_id():
     """검토 대상 묶음의 pk. 없으면 `None` (P10).
 
@@ -1640,6 +1672,10 @@ def dataset_detail(slug: str) -> dict | None:
     reviewed = set(ViewpointReview.objects
                    .filter(viewpoint__slide=slide, done=True)
                    .values_list("viewpoint_id", flat=True))
+    # **이 묶음에 검출이 없는 시야** (P10 4단계). 목록에서도 세어 낸다 — 시야를
+    # 하나씩 열어 보고서야 아는 것은 063 이 "소속을 잃은 행은 그냥 사라진다" 로
+    # 배운 자리와 같다.
+    elsewhere = batches_elsewhere(slide=slide)
 
     groups = []
     for vp in _viewpoints_of(slide, light=True):
@@ -1666,6 +1702,10 @@ def dataset_detail(slug: str) -> dict | None:
             "id": vp.idx,
             "n": vp.n_frames,
             "tag": vp.tag,
+            # 이 묶음에 검출이 없다. `elsewhere` 가 비어 있으면 아무 데도 없는
+            # 것이고, 차 있으면 **다른 묶음에는 있다** — 화면이 갈라 적는다.
+            "missing": det is None,
+            "elsewhere": elsewhere.get(vp.id, []),
             "span_sec": round(vp.span_sec or 0, 1),
             "sharpest": vp.sharpest_frame.name if vp.sharpest_frame else None,
             "cover_rel": cover_rel,
@@ -1679,6 +1719,14 @@ def dataset_detail(slug: str) -> dict | None:
     return {
         "slug": slug,
         "label": slide.name,
+        # **이 묶음에 검출이 없는 시야를 목록에서 센다** (P10 4단계). 시야를 하나씩
+        # 열어 보고서야 아는 것은 늦다 — 063 의 "소속을 잃은 행은 그냥 사라진다"
+        # 와 같은 자리다. 다른 묶음에는 있는 것을 따로 세어 **돌릴 것이 남았는가**
+        # 와 **묶음을 잘못 골랐는가**를 가른다.
+        "missing_groups": sum(1 for g in groups if g["missing"]),
+        "missing_elsewhere": sum(1 for g in groups
+                                 if g["missing"] and g["elsewhere"]),
+        "review_batch": review_batch_label(),
         # groups_*.json 은 파이프라인에서 빠졌다(P02 7단계). 파일 이름 대신
         # 시료가 무엇이고 어떤 배율로 찍혔는지를 보인다.
         "corr_thresh": slide.corr_thresh,
@@ -1903,6 +1951,11 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
         "todo_back": todo_id is not None and todo_id < gid,
         # 자동 처리가 안 끝났으면 검토를 막는다 (P01 §1). 저장도 서버에서 거절한다.
         "review_blocked": review_blocked(slide),
+        # **왜 비었는가** (P10 4단계). 검출이 아예 없는 것과 **다른 묶음에는
+        # 있는 것**은 다른 말이다 — 뒤엣것을 "검출은 아직입니다" 라고 적으면
+        # 사람이 돌리러 간다. 조용히 다른 묶음으로 물러나지도 않는다(P10 3.6).
+        "review_batch": review_batch_label(),
+        "elsewhere": batches_elsewhere(vp=vp).get(vp.id, []),
     }
 
 

@@ -18,6 +18,16 @@
   싱글턴 {{ singletons }} · 최대 {{ max_size }}장 ·
   검토 완료 {{ reviewed_groups }}/{{ n_groups }} ·
   <a href="{% url 'dataset_edit' slug %}">속성 편집</a>
+  {% comment %}
+    **이 묶음에 검출이 없는 시야를 여기서 센다** (P10 4단계). 카드를 하나씩 열어
+    보고서야 아는 것은 늦다. 다른 묶음에는 있는 것을 따로 적어 **아직 안 돌린
+    것**과 **묶음을 잘못 고른 것**을 가른다 — 할 일이 다르다.
+  {% endcomment %}
+  {% if missing_groups %}<br>
+  <span class="miss">{{ review_batch }} 의 검출 없음 {{ missing_groups }}{% if missing_elsewhere %}
+    (그중 {{ missing_elsewhere }}는 <b>다른 묶음에는 있습니다</b> —
+     <a href="{% url 'manage' %}">검토할 묶음</a>){% endif %}</span>
+  {% endif %}
 </p>
 {% comment %}
   검출 결과와 사람 손이 들어간 양을 한 줄로. 재현율·정밀도를 논할 때 근거가
@@ -122,6 +132,13 @@
         {% if g.has_stack %}<span class="badge on">합성됨</span>{% endif %}
         {% if g.n_detected %}<span class="badge on">{{ g.n_detected }}개 검출</span>{% endif %}
         {% if g.reviewed %}<span class="badge done">✓ 검토</span>{% endif %}
+        {% comment %}
+          검출이 0개인 것과 **고른 묶음에만 없는 것**은 다른 말이다 (P10 4단계).
+          배지를 안 달면 빈 카드가 "아직 안 돌렸다" 로 읽힌다.
+        {% endcomment %}
+        {% if g.missing %}<span class="badge warn"
+          title="{% if g.elsewhere %}{{ g.elsewhere|join:' · ' }} 에는 검출이 있습니다{% else %}아직 검출하지 않았습니다{% endif %}"
+          >{% if g.elsewhere %}다른 묶음{% else %}검출 없음{% endif %}</span>{% endif %}
       </div>
     </div>
   </a>
@@ -174,6 +191,10 @@
 </script>
 
 <style>
+  /* 이 묶음에 검출이 없는 시야 수 (P10 4단계). 배지는 `.badge.warn` 을 그대로
+     쓴다 — 없는 클래스를 새로 적으면 예외도 경고도 없이 한 번도 안 먹는다(051). */
+  .miss { color: var(--warn); }
+  .miss a { color: inherit; }
   .reviewbar {
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     margin: 12px 0 14px; padding: 9px 12px;

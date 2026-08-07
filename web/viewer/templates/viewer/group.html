@@ -80,7 +80,25 @@
 </style>
 {% endif %}
 {% if stack.detection.preview_only %}
+{% comment %}
+  **왜 비었는지 갈라 적는다** (P10 4단계). 검출이 아예 없는 것과 **지금 보는
+  묶음에만 없는 것**은 다른 말이다 — 뒤엣것을 "검출은 아직입니다" 라고 적으면
+  사람이 돌리러 가고, 실제로는 이미 돌아 있다.
+
+  **조용히 다른 묶음으로 물러나지 않는다**(P10 3.6). 무엇을 보고 있는지 모른 채
+  교정을 쌓는 것보다 빈 화면이 낫고, 대신 **왜 비었는지는 반드시 적는다.**
+{% endcomment %}
+{% if elsewhere %}
+<div class="note">
+  이 시야에는 <b>{{ review_batch }}</b> 의 검출이 없습니다 —
+  {% for b in elsewhere %}<span class="mono">{{ b }}</span>{% if not forloop.last %} · {% endif %}{% endfor %}
+  에는 있습니다.
+  <a href="{% url 'manage' %}">관리 화면</a>에서 검토할 묶음을 바꾸거나,
+  이 묶음으로 다시 돌리십시오.
+</div>
+{% else %}
 <div class="note">합성은 끝났고 검출은 아직입니다. 사진만 보실 수 있습니다.</div>
+{% endif %}
 {% endif %}
 
 {% comment %}
