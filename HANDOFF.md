@@ -994,6 +994,11 @@ requirements 는 넷으로 갈라져 있다 — 호스트는 `requirements.txt`,
                 stacked/ out/ backup/ hf/ logs/ datasets/ docker/
 ```
 
+> **테스트 인스턴스는 지금 내려 있다** (08-07 21:15, v0.8.2 가 운영에 올라간
+> 뒤). 자리는 그대로 두었다 — `/srv/DiaRUGA/test/` 와 nginx 조각이 남아 있어
+> **다음 판 미리보기는 `up -d` 한 줄**이다. 그래서 지금 `/DiaRUGATest/` 는
+> **502 다**(받는 쪽이 없다). 운영과는 별개 location 이라 서로 안 건드린다.
+>
 > **테스트 인스턴스는 사본 DB 로 돈다** (085). 운영 `db/` 는 그 컨테이너에
 > **아예 마운트하지 않았다** — 경로를 잘못 적어도 닿을 수 없게. 노두 사진도
 > 사본이다(화면에서 지우면 파일이 실제로 지워지는 자리다). 함께 쓰는 것은
@@ -1003,9 +1008,16 @@ requirements 는 넷으로 갈라져 있다 — 호스트는 `requirements.txt`,
 > 운영 화면에서도 꺼진 채로 보인다. 두 화면을 가르는 표시는 아직 없다.
 >
 > ```bash
+> # 다음 판을 미리 볼 때: .env 의 IMAGE_TAG 를 바꾸고, DB 사본을 새로 뜬다
+> deploy/host/dbrun.sh backup_db.py --note before-testdeploy
+> cp /data3/DiaRUGA/backup/manual/<새 사본>.db /srv/DiaRUGA/test/db/DiaRUGA.db
 > cd /srv/DiaRUGA/test && docker compose up -d web      # 올린다
 > cd /srv/DiaRUGA/test && docker compose down           # 내린다
 > ```
+>
+> **사본을 새로 뜨는 것이 요점이다.** 놔두면 옛 자료로 새 판을 보게 되고,
+> "고쳤는데 안 바뀐다" 가 거기서 나온다. `cp` 는 `backup_db.py` 가 만든
+> **스냅샷 파일**에만 쓴다 — 도는 DB 를 `cp` 하면 WAL 이라 불완전한 사본이 된다.
 >
 > nginx 조각은 `deploy/nginx/DiaRUGATest-subpath.conf`, 설치·되돌리기는
 > `/srv/DiaRUGA/test/install-nginx.sh` (root 로 한 번).
@@ -1202,7 +1214,10 @@ python db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손으로
 `deploy.sh` 가 마지막에 부르고, 따로도 돌린다. **200 만으로는 판이 갈렸는지도, 빈
 DB 를 물었는지도 모른다** — 둘 다 형제 프로젝트가 실제로 당한 것이다.
 
-08-05 저녁 기준 통과 (`v0.6.0` · 슬라이드 11 · 교정 6,738).
+08-07 v0.8.2 배포에서 통과 (슬라이드 11 · 교정 7,472 · `/srv` 스크립트 대조까지).
+
+**그런데 슬라이드마다 여는 화면이 시야 목록 하나뿐이다** — `/crops/`·
+`/detections/` 가 죽어도 통과한다. 실제로 그렇게 다섯 판을 통과했다(086).
 
 > **화면도 본다 — 그런데 배포할 때만 돈다** (061). 5번 검사가 nginx 를 거쳐
 > 목록 페이지를 치므로 057 의 고장(목록이 `NoReverseMatch` 로 죽어 **모든 화면이

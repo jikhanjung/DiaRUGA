@@ -186,8 +186,8 @@ docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
 **자동 시험이 있다 — 고치고 나면 이것부터 돌린다** (P08 · 064).
 
 ```bash
-python web/manage.py test viewer --exclude-tag browser   # 93개 · 0.5초
-python web/manage.py test viewer                         # 110개 (브라우저 포함)
+python web/manage.py test viewer --exclude-tag browser   # 262개 · 2.5초
+python web/manage.py test viewer                         # 333개 (브라우저 포함, 84초)
 ```
 
 호스트 venv 로 돈다 — `dbrun.sh` 를 안 거친다. 규약이 막으려는 "같은 파일을 두
@@ -199,6 +199,12 @@ python web/manage.py test viewer                         # 110개 (브라우저 
 027·051·053·057·038~040·045. 시험을 더할 때도 그 기준이다: **되살려서 잡히는
 것을 보고 나서 "있다" 고 말한다.** 실패할 수 없는 시험은 없는 것보다 나쁘다
 (덮은 줄 알게 한다 — 실제로 한 번 그렇게 짰다가 064 에서 고쳤다).
+
+**URL 을 덮는 것과 갈래를 덮는 것은 다르다** (086). `/crops/`·`/detections/` 를
+여는 시험이 셋이나 있었는데 **세운 자료가 전부 합성본 시야라** 프레임 갈래를 한
+번도 안 밟았고, 그 사이 두 화면이 **v0.8.0 이후 내내 500** 이었다 — 운영에서도.
+`/healthz` 도 `smoke.sh` 도 그 화면을 안 연다. 화면 시험을 더할 때는 **자료가
+어느 갈래로 가는지**를 본다 (`make_world(with_stack=False)` 가 그 반대쪽이다).
 
 **GitHub Actions 가 push 마다 돈다** — 시험이 통과한 것만 뷰어 이미지가 된다.
 **파이프라인 이미지는 거기서 안 굽는다**(러너에 GPU 가 없어 구워도 확인이 안
