@@ -260,6 +260,95 @@ def sync_photos(src: Path, nas_dir: Path, keep: int, dry_run: bool) -> bool:
     return True
 
 
+def sync_models(src: Path, nas_dir: Path, dry_run: bool) -> bool:
+    """가중치를 `models_YYYYMMDD.tar` 로 묶어 NAS 에 둔다.
+
+    **재생성 불가에 가까운 자료다.** 학습은 확률적이라 같은 자료로 다시 돌려도
+    같은 가중치가 안 나온다. 그리고 `Run.params.weights` 가 묶음마다 **어느
+    가중치가 냈는지**를 sha256 으로 적어 두므로, 그 파일이 사라지면 지난 회차의
+    근거를 되짚을 수 없다.
+
+    ## 사진과 다른 점 둘
+
+    - **정리하지 않는다.** 사진은 NAS 에 원본이 따로 있어 일주일 rolling 이지만,
+      가중치는 여기 있는 것이 원본이다. 회차마다 44 MB 씩 늘 뿐이라 값도 싸다
+    - **안 바뀌었으면 안 보낸다.** 학습할 때만 바뀌므로 매일 126 MB 를 새로
+      나를 이유가 없다. 가장 새 묶음과 **이름·크기**를 견줘 같으면 건너뛴다
+
+    그 견줌이 못 잡는 것을 적어 둔다: **같은 이름으로 다시 학습해 크기까지 같은**
+    경우다. 그래서 이름에 날짜를 붙인다(`11m-v1seg-1280-260815.pt`) — 덮어쓰면
+    옛 묶음의 근거가 사라진다는 것이 규칙의 이유다.
+    """
+    if not src.is_dir():
+        print(f"\n가중치 디렉토리가 없다: {src}", file=sys.stderr)
+        return True                     # 없는 것은 실패가 아니다
+
+    files = sorted(f for f in src.rglob("*") if f.is_file())
+    if not files:
+        print(f"\n가중치 — {src} (없음)")
+        return True
+    mb = sum(f.stat().st_size for f in files) / 1e6
+    print(f"\n가중치 — {src} ({len(files)}개 · {mb:.0f} MB)")
+
+    # 지금 무엇이 있는가 — 이름과 크기로 적는다
+    now = sorted((str(f.relative_to(src.parent)), f.stat().st_size)
+                 for f in files)
+    olds = sorted(nas_dir.glob("models_*.tar"))
+    if olds:
+        r = subprocess.run(["tar", "tvf", str(olds[-1])],
+                           capture_output=True, text=True)
+        was = []
+        for ln in r.stdout.splitlines():
+            parts = ln.split()
+            # `tar tvf` 한 줄: 권한 소유자 크기 날짜 시각 이름
+            if len(parts) >= 6 and not ln.endswith("/"):
+                was.append((parts[-1], int(parts[2])))
+        was = sorted(was)
+        if r.returncode == 0 and was == now:
+            print(f"  안 바뀌었다 — {olds[-1].name} 그대로 둔다")
+            return True
+
+    # **여기 왔다는 것은 바뀌었다는 뜻이다.** 오늘 묶음이 이미 있으면 뒤에 번호를
+    # 붙인다 — 같은 날 새로 학습한 가중치가 내일까지 안 넘어가면 안 된다.
+    #
+    # 번호를 `_2` 로 붙이는 것은 정렬 때문이다. `-2` 면 `models_260807-2.tar` 가
+    # `models_260807.tar` 보다 **앞에** 서서(`-` < `.`) "가장 새 묶음" 을 잘못
+    # 짚는다. `_` 는 `.` 보다 뒤라 사전순 = 시간순이 유지된다.
+    stamp = time.strftime("%Y%m%d")
+    final = nas_dir / f"models_{stamp}.tar"
+    n = 1
+    while final.exists():
+        n += 1
+        final = nas_dir / f"models_{stamp}_{n}.tar"
+    part = final.with_suffix(".tar.part")
+    if dry_run:
+        print(f"  묶을 것: {final.name}")
+        return True
+
+    nas_dir.mkdir(parents=True, exist_ok=True)
+    r = subprocess.run(["tar", "cf", str(part), "-C", str(src.parent), src.name],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        part.unlink(missing_ok=True)
+        print(f"  묶기 실패 — {r.stderr.strip()[:200]}", file=sys.stderr)
+        return False
+
+    # 이름은 검증을 통과한 뒤에 준다 (사진·DB 사본과 같은 규칙)
+    r = subprocess.run(["tar", "tf", str(part)], capture_output=True, text=True)
+    n_tar = sum(1 for line in r.stdout.splitlines() if not line.endswith("/"))
+    if r.returncode != 0 or n_tar < len(files):
+        bad = nas_dir / f"models_{stamp}.tar.corrupt"
+        part.replace(bad)
+        print(f"  검증 실패 — 원본 {len(files)}개 · 묶음 {n_tar}개", file=sys.stderr)
+        print(f"    증거를 남겼다: {bad.name}", file=sys.stderr)
+        return False
+
+    part.replace(final)
+    print(f"  {final.name}  {final.stat().st_size / 1e6:.0f} MB  {n_tar}개")
+    print(f"  보관 {len(sorted(nas_dir.glob('models_*.tar')))}개 (정리하지 않는다)")
+    return True
+
+
 def verify(db_path: Path):
     """사본을 열어 무결성과 행 수를 본다. (ok, rows, error) 를 돌려준다."""
     try:
@@ -312,6 +401,14 @@ def main():
                     help="사진 묶음을 둘 곳 (기본: NAS 백업 옆의 photos/)")
     ap.add_argument("--photos-keep", type=int, default=7,
                     help="사진 묶음을 최근 N개로 (일주일 rolling)")
+    # **기본으로 켠다.** cron 줄(`--newest-only --prune --photos`)을 안 고쳐도
+    # 다음 실행부터 함께 간다 — 남의 설정을 고쳤다가 되돌리기를 잊는 쪽이 위험하다.
+    ap.add_argument("--no-models", action="store_true",
+                    help="가중치를 NAS 로 안 보낸다 (기본은 보낸다)")
+    ap.add_argument("--models-src", default=None,
+                    help="가중치 뿌리 (기본: $DIARUGA_DATA_ROOT/models)")
+    ap.add_argument("--models-nas", default=None,
+                    help="가중치 묶음을 둘 곳 (기본: NAS 백업 옆의 models/)")
     ap.add_argument("--stale-hours", type=float, default=26.0,
                     help="가장 새 로컬 스냅샷이 이보다 오래면 경고 (0 이면 끔)")
     ap.add_argument("--dry-run", action="store_true")
@@ -428,6 +525,14 @@ def main():
                    (Path(_env("DIARUGA_DATA_ROOT", "/data3/DiaRUGA")) / "photos"))
         pnas = Path(args.photos_nas or (nas.parent / "photos"))
         if not sync_photos(src, pnas, args.photos_keep, args.dry_run):
+            return 1
+
+    # 가중치도 사진과 같은 자리에 둔다 — 깃발은 안 세우고 종료코드로만 알린다.
+    if not args.no_models:
+        msrc = Path(args.models_src or
+                    (Path(_env("DIARUGA_DATA_ROOT", "/data3/DiaRUGA")) / "models"))
+        mnas = Path(args.models_nas or (nas.parent / "models"))
+        if not sync_models(msrc, mnas, args.dry_run):
             return 1
 
     return 0
