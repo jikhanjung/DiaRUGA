@@ -10,7 +10,15 @@
 
 {% block content %}
 <div class="crumb"><a href="{% url 'index' %}">데이터셋</a> / {{ label }}</div>
-<h2>{{ label }}</h2>
+{% comment %}
+  **썸네일마다 그려지는 마스크가 어느 회차의 것인지**를 여기서 말한다 (088).
+  아래 "검출 N → 검토 후 M" 도 이 묶음의 숫자다. `.pagehead` 는 `base.html` 의
+  것이라 목록 화면과 같은 자리에 같은 모양으로 선다.
+{% endcomment %}
+<div class="pagehead">
+  <h2>{{ label }}</h2>
+  {% include "viewer/_batchtag.html" with review_batch=review_batch only %}
+</div>
 <p class="dim mono" style="font-size:12px; margin-bottom:2px">
   {% if site %}{{ site }} · {% endif %}{% if core %}{{ core }} · {% endif %}{% if sample_kind == "outcrop" or depth_cm %}{% include "viewer/_depth.html" with sample_kind=sample_kind depth_cm=depth_cm only %} · {% endif %}
   {% if um_per_pixel %}{{ um_per_pixel|floatformat:4 }} µm/px · {% endif %}

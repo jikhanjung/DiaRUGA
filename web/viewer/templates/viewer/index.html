@@ -29,6 +29,12 @@
     {% endcomment %}
     <a href="{% url 'manage' %}" class="thlink dim">관리 →</a></h2>
   {% comment %}
+    **표의 "검출" 칸이 어느 회차의 것인지**를 여기서 말한다 (088). 묶음을 갈면
+    같은 슬라이드의 숫자가 통째로 달라지는데, 표시가 없으면 자료가 변한 것인지
+    묶음이 바뀐 것인지 가릴 수가 없다.
+  {% endcomment %}
+  {% include "viewer/_batchtag.html" with review_batch=review_batch only %}
+  {% comment %}
     권역 갈래는 서버가 거른다 — 표의 합계 줄과 지도 마커까지 함께 맞아야 하는데,
     화면에서 줄만 감추면 합계가 안 맞는다. 링크라 즐겨찾기도 된다.
   {% endcomment %}

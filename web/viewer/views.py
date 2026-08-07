@@ -92,6 +92,11 @@ def index(request):
         # 표의 분류 열. 줄이 아니라 여기서 정한다 — 슬라이드마다 0인 분류를
         # 빼면 열 수가 달라져 세로로 안 맞는다.
         "count_classes": data.counted_classes(),
+        # **표의 "검출" 칸이 어느 묶음의 것인가** (088). 이 목록의 숫자는 전부
+        # 검토 대상 묶음에서 나온다(`_kept_masks`·`datasets` 가 `reviewing()` 을
+        # 지난다) — 묶음을 갈면 통째로 달라지므로 화면이 그것을 말해야 한다.
+        # `dataset_detail`·`group_detail` 은 이미 같은 값을 담고 있다.
+        "review_batch": data.review_batch_label(),
         # 지도는 세 번째 보기 방식이다. 해안선이 10~27 KB 뿐이라 늘 함께 보낸다 —
         # 따로 요청하게 만들면 전환이 즉시 되지 않는다.
         "antmap": (_map_ctx(area["selected"],
