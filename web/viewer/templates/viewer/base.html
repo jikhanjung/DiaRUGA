@@ -1009,6 +1009,15 @@
     fill: rgba(255,255,255,.9); stroke: rgba(0,0,0,.55);
     stroke-width: 1px; vector-effect: non-scaling-stroke;
   }
+  /* **마지막 점에서 커서까지** (082). 찍힌 변보다 옅고 촘촘한 점선이라 "아직
+     안 찍은 것" 으로 읽힌다 — 굵기까지 같으면 이미 그린 변과 구별이 안 된다. */
+  .detview svg.masks g.drawing polyline.rubber {
+    stroke: rgba(255,255,255,.6); stroke-width: 1.2px; stroke-dasharray: 3 3;
+  }
+  /* 지금 닫으면 생길 변. 더 옅다 — 눌러야 생기는 것이지 따라오는 것이 아니다. */
+  .detview svg.masks g.drawing polyline.rubber.close {
+    stroke: rgba(90,200,250,.45); stroke-dasharray: 2 5;
+  }
   /* 첫 점 — 여기를 다시 누르면 닫힌다. 크기와 색으로 그것을 말한다. */
   .detview svg.masks g.drawing circle.first {
     fill: rgba(90,200,250,.95); stroke: rgba(255,255,255,.9);

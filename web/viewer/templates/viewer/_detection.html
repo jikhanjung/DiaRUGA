@@ -1112,8 +1112,19 @@
   }
 
   function hoverAt(ev) {
-    // 끌거나 그리거나 고치는 중에는 말풍선이 방해만 된다.
-    if (drawing || editing || mode) { hideTip(); return; }
+    // **그리는 중에는 커서 자리를 그리기 상태에 넘긴다** (082) — 마지막 점에서
+    // 여기까지 점선이 따라온다. 말풍선은 그때도 방해만 되므로 감춘다.
+    if (drawing) {
+      hideTip();
+      if (canvas.contains(ev.target)) {
+        var q = toImage(ev);
+        drawing.at = [q.x, q.y];
+        drawRender();
+      }
+      return;
+    }
+    // 끌거나 고치는 중에도 말풍선은 방해만 된다.
+    if (editing || mode) { hideTip(); return; }
     // **사진 위에서만 잰다.** `view` 안에는 도구줄·레이어 칸도 들어 있어서,
     // 그 위를 지날 때도 좌표를 재면 엉뚱한 개체의 말풍선이 뜬다.
     if (!canvas.contains(ev.target)) { hideTip(); return; }
@@ -2121,6 +2132,27 @@
     g.textContent = '';
     if (!drawing) return;
     var pts = drawing.pts;
+    // **마지막 점에서 커서까지 이어 그린다** (082). 점만 찍히면 다음 변이 어디로
+    // 갈지 **찍어 봐야** 안다 — 규조각의 윤곽은 굽은 선이라 그 한 걸음이 눈에
+    // 보여야 형태를 따라갈 수 있다.
+    //
+    // 점이 셋 이상이면 **닫히는 변**도 함께 옅게 보인다. 지금 닫으면 어떤 모양이
+    // 되는지가 그것으로 드러난다.
+    if (drawing.at && pts.length) {
+      var last = pts[pts.length - 1];
+      var rub = document.createElementNS(SVGNS, 'polyline');
+      rub.setAttribute('class', 'rubber');
+      rub.setAttribute('points', last[0] + ',' + last[1] + ' ' +
+                       drawing.at[0] + ',' + drawing.at[1]);
+      g.appendChild(rub);
+      if (pts.length >= 3) {
+        var close = document.createElementNS(SVGNS, 'polyline');
+        close.setAttribute('class', 'rubber close');
+        close.setAttribute('points', drawing.at[0] + ',' + drawing.at[1] + ' ' +
+                           pts[0][0] + ',' + pts[0][1]);
+        g.appendChild(close);
+      }
+    }
     if (pts.length > 1) {
       var line = document.createElementNS(SVGNS, 'polyline');
       line.setAttribute('points', pts.map(function (p) {
@@ -2159,7 +2191,7 @@
 
   function drawStart() {
     if (readOnly) return;
-    drawing = { pts: [] };
+    drawing = { pts: [], at: null };
     view.classList.add('drawing');
     sel.clear();
     closeMenu(); closeSpread(); closeNoteEdit();

@@ -181,3 +181,91 @@ class DrawMaskTest(BrowserTestCase):
         self.close_here()
         self.assertIsNone(page.query_selector('button[data-act="draw"].on'),
                           "다 그렸는데 단추가 켜진 채로 남았다")
+
+
+class RubberBandTest(BrowserTestCase):
+    """마지막 점에서 **커서까지** 점선이 따라오는가 (082).
+
+    점만 찍히면 다음 변이 어디로 갈지 **찍어 봐야** 안다. 규조각의 윤곽은 굽은
+    선이라 그 한 걸음이 보여야 형태를 따라갈 수 있다.
+
+    JS 가 SVG 를 만드는 일이라 3겹은 못 본다 — 서버가 내는 HTML 에는 이 선이
+    아예 없다.
+    """
+
+    def make_data(self):
+        fx.make_classes()
+        self.w = fx.make_world(slug=f"rs23-{self.uniq}",
+                               site_code=f"RS{self.uniq}", n_candidates=2)
+
+    def start_drawing(self):
+        page = self.open(reverse("group", args=[self.w.slug, self.w.vp.idx]))
+        page.wait_for_selector(".detview .box")
+        page.keyboard.press("d")
+        page.wait_for_timeout(120)
+        return page
+
+    def rubber(self):
+        return self.page.query_selector_all("#masks-stack g.drawing polyline.rubber")
+
+    def test_점을_찍기_전에는_없다(self):
+        self.start_drawing()
+        self.assertEqual(len(self.rubber()), 0, "점도 없는데 선이 있다")
+
+    def test_한_점을_찍으면_커서까지_따라온다(self):
+        page = self.start_drawing()
+        self.click_image(120, 120)
+        page.wait_for_timeout(80)
+        # **`steps` 를 준다.** 한 번에 옮기면 브라우저가 mousemove 를 한 번도
+        # 안 내서, 사람이 쓸 때는 멀쩡한 것이 시험에서만 안 따라온다.
+        x, y = self.image_point(400, 300)
+        page.mouse.move(x, y, steps=3)
+        page.wait_for_timeout(120)
+
+        r = self.rubber()
+        self.assertEqual(len(r), 1, "마지막 점에서 커서까지 오는 선이 없다")
+        pts = r[0].get_attribute("points")
+        self.assertTrue(pts.startswith("120,120"),
+                        f"마지막 점에서 시작하지 않는다: {pts}")
+
+    def test_커서를_옮기면_따라온다(self):
+        page = self.start_drawing()
+        self.click_image(120, 120)
+        page.mouse.move(*self.image_point(400, 300), steps=3)
+        page.wait_for_timeout(100)
+        first = self.rubber()[0].get_attribute("points")
+        # **그림 안에서 옮긴다** (자료의 이미지가 640×480 이다). 밖으로 나가면
+        # 안 따라오는 것이 맞는 동작이라 시험이 헛돈다.
+        page.mouse.move(*self.image_point(520, 160), steps=3)
+        page.wait_for_timeout(100)
+        self.assertNotEqual(self.rubber()[0].get_attribute("points"), first,
+                            "커서를 옮겼는데 선이 그대로다")
+
+    def test_점이_셋이면_닫히는_변도_보인다(self):
+        """지금 닫으면 어떤 모양이 되는지가 보여야 한다."""
+        page = self.start_drawing()
+        for x, y in ((120, 120), (500, 140), (460, 380)):
+            self.click_image(x, y)
+            page.wait_for_timeout(60)
+        page.mouse.move(*self.image_point(180, 360), steps=3)
+        page.wait_for_timeout(120)
+        self.assertEqual(len(self.rubber()), 2,
+                         "닫히는 변이 안 보인다 (따라오는 선만 있다)")
+        close = self.page.query_selector("#masks-stack g.drawing polyline.rubber.close")
+        self.assertIsNotNone(close)
+        # **눈에 달라야 한다** — 찍은 변과 굵기·색이 같으면 구별이 안 된다
+        drawn = self.page.query_selector("#masks-stack g.drawing polyline:not(.rubber)")
+        self.assertIsNotNone(drawn, "찍은 변이 없다")
+        self.assertNotEqual(
+            close.evaluate("e => getComputedStyle(e).stroke"),
+            drawn.evaluate("e => getComputedStyle(e).stroke"),
+            "닫히는 변이 찍은 변과 같은 색이다")
+
+    def test_그리기를_끝내면_사라진다(self):
+        page = self.start_drawing()
+        for x, y in ((120, 120), (500, 140), (460, 380)):
+            self.click_image(x, y)
+            page.wait_for_timeout(60)
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(150)
+        self.assertEqual(len(self.rubber()), 0, "취소했는데 선이 남았다")
