@@ -2,9 +2,12 @@
 {% load viewer_extras %}
 {% block title %}{{ label }} — DiaRUGA{% endblock %}
 {% block subtitle %}{{ label }}{% endblock %}
+{% comment %}
+  **문턱 조정 링크를 걷었다** (사용자 요청 2026-08-08). `/d/<slug>/thresholds/` 는
+  그대로 산다 — 주소를 치면 열린다. 링크만 없다. 목록 화면도 같이 걷었다.
+{% endcomment %}
 {% block nav %}
   <a href="{% url 'crops' slug %}">검출 결과만 보기</a>
-  <a href="{% url 'thresholds' slug %}">문턱 조정</a>
   <a href="{% url 'detections' slug %}">계측 표</a>
 {% endblock %}
 

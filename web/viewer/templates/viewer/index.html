@@ -21,7 +21,15 @@
   것이 표, 네모 넷이 카드다. 글자를 안 붙여도 무엇인지 읽힌다.
 {% endcomment %}
 <div class="pagehead">
-  <h2>데이터셋 <a href="{% url 'thresholds_all' %}" class="thlink">문턱 조정 →</a>
+  {% comment %}
+    **문턱 조정 링크를 걷었다** (사용자 요청 2026-08-08). 화면(`/thresholds/`)과
+    `/d/<slug>/thresholds/` 는 그대로 산다 — 주소를 치면 열린다. 링크만 없다.
+
+    **CSS 로 감추지 않는다.** `display:none` 은 이 저장소에서 세 번 안 먹었다
+    (`.tools` 051 · `.nowrow` 083 · `[hidden]` 063) — 감춘 줄 알고 계속 내보이는
+    것이 없는 것보다 나쁘다. 되돌릴 때는 git 에서 이 줄을 되살린다.
+  {% endcomment %}
+  <h2>데이터셋
     {% comment %}
       관리 화면. **길이 없으면 없는 화면이다** — 소속을 잃은 관찰은 다른 어느
       화면에도 안 나오는데, 그것을 잡아 주는 유일한 자리로 가는 길이 주소를
