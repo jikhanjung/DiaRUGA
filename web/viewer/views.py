@@ -148,7 +148,7 @@ def _map_ctx(area: str, pts: list) -> dict:
     }
 
 
-def manage_ops(request):
+def system_settings_ops(request):
     """관리 · 운영 — 검토할 묶음과 조리법 (083).
 
     **자료 화면과 갈라 둔다.** 묻는 것이 다르다: 저쪽은 "이 관찰이 어느 지점의
@@ -167,12 +167,12 @@ def manage_ops(request):
             ok, m = manage_data.create_batch(p)
         else:
             ok, m = False, "모르는 동작입니다."
-        return redirect(f"{reverse('settings_ops')}?{'msg' if ok else 'err'}={m}")
+        return redirect(f"{reverse('system_settings_ops')}?{'msg' if ok else 'err'}={m}")
 
     plan = []
     for r in data.batches_to_run():
         plan.append({**r, "args": " ".join(_recipe_args(r["recipe"]))})
-    return render(request, "viewer/manage_ops.html", {
+    return render(request, "viewer/system_settings_ops.html", {
         "msg": request.GET.get("msg", ""), "err": request.GET.get("err", ""),
         "batches": manage_data.batch_choices(),
         "batches_all": manage_data.batches_with_recipe(),
@@ -200,14 +200,14 @@ def _recipe_args(recipe: dict) -> list:
     return out
 
 
-def manage_dataset(request):
+def system_settings_dataset(request):
     """관리 · 학습 자료 — 검토가 끝난 결과에서 **정답을 뽑는** 자리 (083).
 
     **가중치를 만드는 화면이 아니다.** 학습은 그다음 별도의 일이고, 이 구분이
     흐려지면 "학습이 왜 안 좋지" 를 자료 문제와 학습 문제로 가를 수 없다.
     """
     t = manage_data.training_overview()
-    return render(request, "viewer/manage_dataset.html", {
+    return render(request, "viewer/system_settings_dataset.html", {
         "t": t,
         # 내보낼 곳 이름을 제안한다 — 회차마다 새 이름이어야 덮어쓰지 않는다
         "suggest": timezone.now().strftime("%y%m%d"),
@@ -266,9 +266,10 @@ def core_redirect(request, site_code, core_code):
 def settings_redirect(request, tab=""):
     """옛 `/manage/…` 주소를 새 `/settings/…` 로 보낸다.
 
-    시스템 설정이 데이터셋 목록과 같은 층의 최상위 메뉴가 되면서 주소를 옮겼다
-    (2026-08-08). **옛 주소를 지우지 않는다** — 사내에 이미 퍼진 링크와 브라우저
-    기록이 조용히 깨진다. `core/` → `loc/` 때와 같은 갈래다.
+    시스템 설정이 데이터셋 목록과 같은 층의 최상위 메뉴가 되면서 주소를
+    `/system-settings/` 로 옮겼다 (2026-08-08). **옛 주소를 지우지 않는다** —
+    사내에 이미 퍼진 링크와 브라우저 기록이 조용히 깨진다. `core/` → `loc/`
+    때와 같은 갈래다.
 
     **302 다.** 영구 리다이렉트는 브라우저가 캐시해서, 나중에 주소 규칙을 다시
     손볼 때 되돌릴 방법이 없다.
@@ -276,7 +277,8 @@ def settings_redirect(request, tab=""):
     쿼리스트링을 그대로 넘긴다 — 저장 뒤 `?msg=…` 로 돌아오는 길이 있고,
     옛 주소를 북마크한 사람이 그 메시지를 잃으면 "저장이 됐나" 를 묻게 된다.
     """
-    name = {"ops": "settings_ops", "dataset": "settings_dataset"}.get(tab, "settings")
+    name = {"ops": "system_settings_ops",
+            "dataset": "system_settings_dataset"}.get(tab, "system_settings")
     url = reverse(name)
     if request.META.get("QUERY_STRING"):
         url = f"{url}?{request.META['QUERY_STRING']}"
@@ -617,7 +619,7 @@ def dataset_edit(request, slug):
 
 
 
-def manage(request):
+def system_settings(request):
     """관리 화면 — 지역·지점·시료를 만들고 고치고 지운다. 소속도 여기서 옮긴다.
 
     **관찰은 여기서 안 만들고 안 지운다.** 폴더가 만드는 것이고 그 아래에
@@ -644,7 +646,7 @@ def manage(request):
         else:
             ok, m = False, "모르는 동작입니다."
         # POST 뒤에 redirect 한다 — 새로 고침이 같은 일을 다시 하면 안 된다.
-        return redirect(f"{reverse('settings')}?{'msg' if ok else 'err'}={m}")
+        return redirect(f"{reverse('system_settings')}?{'msg' if ok else 'err'}={m}")
 
     msg, err = request.GET.get("msg", ""), request.GET.get("err", "")
     ctx = manage_data.overview()
@@ -655,7 +657,7 @@ def manage(request):
                        ("sample", ctx["samples"])):
         for row in rows:
             row.block_why = " · ".join(manage_data.deletable(kind, row.pk)[1])
-    return render(request, "viewer/manage.html", {
+    return render(request, "viewer/system_settings.html", {
         **ctx,
         "site_areas": Site.AREA,
         "locality_kinds": Locality.KIND,

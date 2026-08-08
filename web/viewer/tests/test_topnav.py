@@ -40,8 +40,8 @@ class TopNavTest(DiaRUGATestCase):
                 ("검출 갤러리", reverse("crops", args=[slug])),
                 ("계측 표", reverse("detections", args=[slug])),
                 ("시야 화면", reverse("group", args=[slug, self.w.vp.idx])),
-                ("시스템 설정 · 자료", reverse("settings")),
-                ("시스템 설정 · 운영", reverse("settings_ops"))]
+                ("시스템 설정 · 자료", reverse("system_settings")),
+                ("시스템 설정 · 운영", reverse("system_settings_ops"))]
 
     def test_모든_화면에_시스템_설정_톱니가_있다(self):
         for name, url in self.pages():
@@ -49,7 +49,7 @@ class TopNavTest(DiaRUGATestCase):
                 html = self.c.get(url).content.decode()
                 m = re.search(r'<a class="gearlink"[^>]*>', html)
                 self.assertIsNotNone(m, f"{name} 에 톱니가 없다")
-                self.assertIn(reverse("settings"), m.group(0))
+                self.assertIn(reverse("system_settings"), m.group(0))
                 # 아이콘만 있는 링크라 읽어 줄 이름이 따로 있어야 한다
                 self.assertIn("시스템 설정", m.group(0))
 
@@ -62,8 +62,8 @@ class TopNavTest(DiaRUGATestCase):
     def test_미리보기_탭이_시스템_설정에_나온다(self):
         """**`only` 가 컨텍스트를 끊는다.** `preview_url` 을 손으로 안 넘기면
         탭이 조용히 사라진다 — 예외도 경고도 없다."""
-        for url in (reverse("settings"), reverse("settings_ops"),
-                    reverse("settings_dataset")):
+        for url in (reverse("system_settings"), reverse("system_settings_ops"),
+                    reverse("system_settings_dataset")):
             with self.subTest(화면=url):
                 html = self.c.get(url).content.decode()
                 nav = re.search(r'<nav class="mnav">.*?</nav>', html, re.S)
@@ -82,7 +82,7 @@ class TopNavTest(DiaRUGATestCase):
             old = os.environ.get("DIARUGA_PREVIEW_URL")
             os.environ["DIARUGA_PREVIEW_URL"] = ""
             try:
-                html = self.c.get(reverse("settings")).content.decode()
+                html = self.c.get(reverse("system_settings")).content.decode()
                 nav = re.search(r'<nav class="mnav">.*?</nav>', html, re.S).group(0)
                 self.assertNotIn("미리보기", nav,
                                  "경로가 없는데 죽은 탭이 나온다")
@@ -97,9 +97,9 @@ class TopNavTest(DiaRUGATestCase):
     def test_옛_manage_주소가_새_주소로_넘긴다(self):
         """`/manage/` → `/settings/`. **지우지 않는다** — 사내에 퍼진 링크와
         브라우저 기록이 조용히 깨진다. `core/` → `loc/` 와 같은 갈래다."""
-        for old, name in [("/manage/", "settings"),
-                          ("/manage/ops/", "settings_ops"),
-                          ("/manage/dataset/", "settings_dataset")]:
+        for old, name in [("/manage/", "system_settings"),
+                          ("/manage/ops/", "system_settings_ops"),
+                          ("/manage/dataset/", "system_settings_dataset")]:
             with self.subTest(옛주소=old):
                 r = self.c.get(old)
                 self.assertIn(r.status_code, (301, 302), r.status_code)
@@ -110,4 +110,4 @@ class TopNavTest(DiaRUGATestCase):
         그 메시지를 잃으면 "저장이 됐나" 를 묻게 된다."""
         r = self.c.get("/manage/ops/?msg=%ED%99%95%EC%9D%B8&x=1")
         self.assertEqual(r["Location"],
-                         reverse("settings_ops") + "?msg=%ED%99%95%EC%9D%B8&x=1")
+                         reverse("system_settings_ops") + "?msg=%ED%99%95%EC%9D%B8&x=1")

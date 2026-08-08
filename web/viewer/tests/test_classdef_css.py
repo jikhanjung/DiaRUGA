@@ -161,7 +161,7 @@ class TemplateHygieneTest(DiaRUGATestCase):
         w = self.w
         return [
             reverse("index"),
-            reverse("settings"),
+            reverse("system_settings"),
             reverse("thresholds_all"),
             reverse("dataset", args=[w.slug]),
             reverse("dataset_edit", args=[w.slug]),

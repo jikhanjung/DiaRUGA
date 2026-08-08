@@ -11,9 +11,9 @@
   셋 아래에 묶음 고르기가 있었다.
 {% endcomment %}
 <nav class="mnav">
-  <a href="{% url 'settings' %}"{% if here == "data" %} class="on"{% endif %}>자료</a>
-  <a href="{% url 'settings_ops' %}"{% if here == "ops" %} class="on"{% endif %}>운영</a>
-  <a href="{% url 'settings_dataset' %}"{% if here == "dataset" %} class="on"{% endif %}>학습 자료</a>
+  <a href="{% url 'system_settings' %}"{% if here == "data" %} class="on"{% endif %}>자료</a>
+  <a href="{% url 'system_settings_ops' %}"{% if here == "ops" %} class="on"{% endif %}>운영</a>
+  <a href="{% url 'system_settings_dataset' %}"{% if here == "dataset" %} class="on"{% endif %}>학습 자료</a>
   {% comment %}
     **미리보기** — 머리줄에 있던 것을 여기로 옮겼다 (사용자 요청 2026-08-08).
     늘 떠 있을 만큼 자주 보는 자리가 아니고, 성격이 "설정·운영 쪽에서 한 번씩

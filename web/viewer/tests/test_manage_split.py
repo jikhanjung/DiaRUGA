@@ -31,27 +31,27 @@ class ManageSplitTest(DiaRUGATestCase):
         self.c = Client()
 
     def test_세_화면이_다_뜬다(self):
-        for name in ("settings", "settings_ops", "settings_dataset"):
+        for name in ("system_settings", "system_settings_ops", "system_settings_dataset"):
             with self.subTest(name=name):
                 self.assertEqual(self.c.get(reverse(name)).status_code, 200)
 
     def test_서로에게_가는_길이_있다(self):
         """**길이 없으면 없는 화면이다** — 주소를 직접 치게 두지 않는다."""
-        for name in ("settings", "settings_ops", "settings_dataset"):
+        for name in ("system_settings", "system_settings_ops", "system_settings_dataset"):
             body = self.c.get(reverse(name)).content.decode()
-            for other in ("settings", "settings_ops", "settings_dataset"):
+            for other in ("system_settings", "system_settings_ops", "system_settings_dataset"):
                 self.assertIn(f'href="{reverse(other)}"', body,
                               f"{name} 에서 {other} 로 가는 길이 없다")
 
     def test_묶음_고르기는_운영에만_있다(self):
-        data_body = self.c.get(reverse("settings")).content.decode()
-        ops_body = self.c.get(reverse("settings_ops")).content.decode()
+        data_body = self.c.get(reverse("system_settings")).content.decode()
+        ops_body = self.c.get(reverse("system_settings_ops")).content.decode()
         self.assertNotIn("검토할 묶음", data_body, "자료 화면에 아직 남아 있다")
         self.assertIn("검토할 묶음", ops_body)
 
     def test_층_편집은_자료에만_있다(self):
-        data_body = self.c.get(reverse("settings")).content.decode()
-        ops_body = self.c.get(reverse("settings_ops")).content.decode()
+        data_body = self.c.get(reverse("system_settings")).content.decode()
+        ops_body = self.c.get(reverse("system_settings_ops")).content.decode()
         self.assertIn("지역", data_body)
         self.assertNotIn('name="act" value="move_slide"', ops_body)
 
@@ -71,7 +71,7 @@ class RecipeFormTest(DiaRUGATestCase):
     def post(self, **kw):
         form = {"act": "recipe", "batch": self.b.pk}
         form.update(kw)
-        return self.c.post(reverse("settings_ops"), form)
+        return self.c.post(reverse("system_settings_ops"), form)
 
     def test_적으면_저장된다(self):
         self.post(backend="sam2", scale="1.0", min_um="10", max_um="150")
@@ -115,7 +115,7 @@ class RecipeFormTest(DiaRUGATestCase):
         manage_data.set_recipe(self.b.pk, {"backend": "yolo",
                                            "weights": "models/w.pt",
                                            "all_images": "on"})
-        body = self.c.get(reverse("settings_ops")).content.decode()
+        body = self.c.get(reverse("system_settings_ops")).content.decode()
         self.assertIn("--backend yolo", body)
         self.assertIn("--weights models/w.pt", body)
         self.assertIn("--all-images", body)
@@ -170,7 +170,7 @@ class TrainingOverviewTest(DiaRUGATestCase):
 
     def test_화면이_명령을_적어_준다(self):
         self.done(self.w.vp)
-        body = self.c.get(reverse("settings_dataset")).content.decode()
+        body = self.c.get(reverse("system_settings_dataset")).content.decode()
         self.assertIn("export_yolo.py", body)
         self.assertIn("--dry-run", body)
 
@@ -195,7 +195,7 @@ class CreateBatchTest(DiaRUGATestCase):
     def post(self, **kw):
         form = {"act": "new_batch"}
         form.update(kw)
-        return self.c.post(reverse("settings_ops"), form)
+        return self.c.post(reverse("system_settings_ops"), form)
 
     def test_만들어진다(self):
         self.post(label="yolo-4차")
@@ -250,7 +250,7 @@ class CreateBatchTest(DiaRUGATestCase):
         b = RunBatch.objects.get(label="yolo-7차")
         manage_data.set_recipe(b.pk, {"backend": "yolo",
                                       "weights": "models/w.pt"})
-        body = self.c.get(reverse("settings_ops")).content.decode()
+        body = self.c.get(reverse("system_settings_ops")).content.decode()
         self.assertIn("yolo-7차", body)
         from .. import data
         self.assertIn("yolo-7차", [r["batch"].label for r in data.batches_to_run()])

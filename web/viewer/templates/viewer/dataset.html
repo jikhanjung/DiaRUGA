@@ -37,7 +37,7 @@
   {% if missing_groups %}<br>
   <span class="miss">{{ review_batch }} 의 검출 없음 {{ missing_groups }}{% if missing_elsewhere %}
     (그중 {{ missing_elsewhere }}는 <b>다른 묶음에는 있습니다</b> —
-     <a href="{% url 'settings' %}">검토할 묶음</a>){% endif %}</span>
+     <a href="{% url 'system_settings' %}">검토할 묶음</a>){% endif %}</span>
   {% endif %}
 </p>
 {% comment %}

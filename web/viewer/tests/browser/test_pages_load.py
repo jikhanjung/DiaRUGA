@@ -40,7 +40,7 @@ class PagesLoadTest(BrowserTestCase):
         self.open(reverse("core", args=[w.site.code, w.locality.code]))
 
     def test_관리_화면이_열린다(self):
-        self.open(reverse("settings"))
+        self.open(reverse("system_settings"))
 
     def test_문턱_화면이_열린다(self):
         self.open(reverse("thresholds", args=[self.w.slug]))

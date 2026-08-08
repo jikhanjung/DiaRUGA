@@ -97,6 +97,6 @@ class BatchTagTest(DiaRUGATestCase):
         """읽는 표시이지 고르는 자리가 아니다 — 대신 갈 곳을 준다."""
         for name, url in self.urls():
             with self.subTest(화면=name):
-                self.assertIn(f'href="{reverse("settings_ops")}"', self.tag(url),
+                self.assertIn(f'href="{reverse("system_settings_ops")}"', self.tag(url),
                               f"{name} 의 표시가 운영 화면으로 안 간다")
 

@@ -50,7 +50,7 @@ class RenderAllPagesTest(DiaRUGATestCase):
     # --- 인자 없는 화면 ----------------------------------------------------
 
     def test_인자_없는_화면들이_그려진다(self):
-        for name in ("index", "settings", "thresholds_all"):
+        for name in ("index", "system_settings", "thresholds_all"):
             with self.subTest(name=name):
                 self.get(reverse(name))
 

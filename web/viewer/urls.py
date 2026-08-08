@@ -18,18 +18,28 @@ urlpatterns = [
     # 화면 셋 (083). 묻는 것이 달라 갈랐다 — `_managenav.html` 머리말.
     #
     # **데이터셋 목록과 같은 층의 최상위 메뉴다** (사용자 방침 2026-08-08).
-    # 그래서 주소도 `/manage/` 에서 `/settings/` 로 옮겼고, 머리줄 오른쪽 끝의
-    # 톱니가 어느 화면에서나 여기로 온다.
+    # 그래서 주소도 `/manage/` 에서 옮겼고, 머리줄 오른쪽 끝의 톱니가 어느
+    # 화면에서나 여기로 온다.
     #
-    # **뷰 함수 이름은 `manage*` 그대로다.** `settings` 는 `django.conf.settings`
-    # 와 부딪히고(이 앱이 그것을 임포트한다), 템플릿 파일 이름까지 한꺼번에
-    # 옮기면 이번 변경이 커진다. 밖으로 나가는 이름(주소·URL 이름)만 갈았다.
-    path("settings/", views.manage, name="settings"),
-    path("settings/ops/", views.manage_ops, name="settings_ops"),
-    path("settings/dataset/", views.manage_dataset, name="settings_dataset"),
+    # **주소는 붙임표, 파이썬 이름은 밑줄이다.** 주소 쪽은 이 저장소의
+    # `mark-all/` 과 같은 관례이고, 이름 쪽은 식별자라 밑줄이어야 한다.
+    #
+    # **`settings` 를 안 쓴다.** `django.conf.settings` 와 부딪혀서 뷰 함수를
+    # 그 이름으로 둘 수 없고, 그러면 주소·URL 이름과 함수 이름이 갈린다.
+    # `system_settings` 는 아무것도 안 가려서 **끝까지 같은 이름**으로 간다
+    # (주소 · URL 이름 · 뷰 함수 · 템플릿 파일).
+    path("system-settings/", views.system_settings, name="system_settings"),
+    path("system-settings/ops/", views.system_settings_ops,
+         name="system_settings_ops"),
+    path("system-settings/dataset/", views.system_settings_dataset,
+         name="system_settings_dataset"),
     # 옛 주소. **지우지 않는다** — 적어 둔 링크와 브라우저 기록이 깨진다.
     # `core/` 와 같은 갈래이고 같은 이유로 302 다(301 은 브라우저가 캐시해서
     # 나중에 규칙을 다시 손볼 때 되돌릴 방법이 없다).
+    #
+    # **`/settings/` 는 안 남긴다.** 오늘 몇 분 동안 테스트 인스턴스에만
+    # 있었고 운영에 나간 적이 없다 — 아무도 적어 두지 않은 주소를 영구히
+    # 이고 갈 이유가 없다.
     path("manage/", views.settings_redirect),
     path("manage/ops/", views.settings_redirect, {"tab": "ops"}),
     path("manage/dataset/", views.settings_redirect, {"tab": "dataset"}),

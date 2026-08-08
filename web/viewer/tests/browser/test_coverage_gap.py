@@ -69,6 +69,6 @@ class CoverageGapTest(BrowserTestCase):
         """**막다른 화면을 만들지 않는다.** 무엇을 해야 하는지까지 적는다."""
         page = self.open(reverse("group",
                                  args=[self.w.slide.slug, self.gap.idx]))
-        link = page.query_selector(f'.note a[href="{reverse("settings")}"]')
+        link = page.query_selector(f'.note a[href="{reverse("system_settings")}"]')
         self.assertIsNotNone(link, "관리 화면으로 가는 길이 없다")
         self.assertTrue(link.is_visible())
