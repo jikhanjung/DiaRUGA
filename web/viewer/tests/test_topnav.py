@@ -135,7 +135,9 @@ class DatasetPageLinksTest(DiaRUGATestCase):
         m = re.search(r'<span class="pagelinks">.*?</span>', self.html, re.S)
         self.assertIsNotNone(m, "제목 줄에 링크 묶음이 없다")
         block = m.group(0)
-        for label in ("검출 결과만 보기", "계측 표", "정보 편집"):
+        # **시야 목록에서만 "슬라이드" 를 붙인다** (사용자 요청) — 옆의 둘과
+        # 달리 `정보 편집` 은 목적어가 없어 무엇을 고치는지 안 읽힌다.
+        for label in ("검출 결과만 보기", "계측 표", "슬라이드 정보 편집"):
             with self.subTest(링크=label):
                 self.assertIn(label, block, f"{label} 이 제목 줄에 없다")
 
@@ -149,7 +151,7 @@ class DatasetPageLinksTest(DiaRUGATestCase):
         갈리면 다른 것으로 읽힌다 (사용자 지적)."""
         index = self.c.get(reverse("index")).content.decode()
         labels = set(re.findall(r'class="dsedit"[^>]*>([^<]*)<', index))
-        self.assertEqual(labels, {"정보 편집"}, labels)
+        self.assertEqual(labels, {"정보 편집"}, labels)   # 목록·지점 쪽은 그대로
         # **링크만 본다.** 페이지 전체를 뒤지면 `base.html` 의 CSS 주석에 남은
         # 옛 이름이 걸린다 — 화면에 보이는 글자가 아니다. 088 에서 같은 실수를 했다.
         self.assertNotIn(">속성 편집<", self.html)
