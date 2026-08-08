@@ -1,8 +1,14 @@
 {% extends "viewer/base.html" %}
-{% block title %}관리 — DiaRUGA{% endblock %}
-{% block subtitle %}<a href="{% url 'index' %}">데이터셋</a> / <b>관리</b> · 자료{% endblock %}
+{% block title %}시스템 설정 · 자료 — DiaRUGA{% endblock %}
+{% block subtitle %}<b>시스템 설정</b> · 자료{% endblock %}
 {% block content %}
-{% include "viewer/_managenav.html" with here="data" only %}
+{% comment %}
+  **`preview_url` 을 손으로 넘긴다.** `only` 가 바깥 컨텍스트를 끊으므로
+  컨텍스트 프로세서(`viewer/context.py`)가 넣어 준 값도 조각 안에서는
+  안 보인다 — 안 넘기면 미리보기 탭이 **예외도 경고도 없이 사라진다.**
+  실제로 그렇게 한 번 짰다.
+{% endcomment %}
+{% include "viewer/_managenav.html" with here="data" preview_url=preview_url only %}
 
 {% comment %}
   층 넷을 한 화면에 세운다 — 지역 → 지점 → 시료 → 관찰.

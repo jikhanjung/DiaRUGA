@@ -167,7 +167,7 @@ def manage_ops(request):
             ok, m = manage_data.create_batch(p)
         else:
             ok, m = False, "모르는 동작입니다."
-        return redirect(f"{reverse('manage_ops')}?{'msg' if ok else 'err'}={m}")
+        return redirect(f"{reverse('settings_ops')}?{'msg' if ok else 'err'}={m}")
 
     plan = []
     for r in data.batches_to_run():
@@ -261,6 +261,26 @@ def core_redirect(request, site_code, core_code):
     주소 규칙을 다시 손볼 때 되돌릴 방법이 없다.
     """
     return redirect("core", site_code=site_code, core_code=core_code)
+
+
+def settings_redirect(request, tab=""):
+    """옛 `/manage/…` 주소를 새 `/settings/…` 로 보낸다.
+
+    시스템 설정이 데이터셋 목록과 같은 층의 최상위 메뉴가 되면서 주소를 옮겼다
+    (2026-08-08). **옛 주소를 지우지 않는다** — 사내에 이미 퍼진 링크와 브라우저
+    기록이 조용히 깨진다. `core/` → `loc/` 때와 같은 갈래다.
+
+    **302 다.** 영구 리다이렉트는 브라우저가 캐시해서, 나중에 주소 규칙을 다시
+    손볼 때 되돌릴 방법이 없다.
+
+    쿼리스트링을 그대로 넘긴다 — 저장 뒤 `?msg=…` 로 돌아오는 길이 있고,
+    옛 주소를 북마크한 사람이 그 메시지를 잃으면 "저장이 됐나" 를 묻게 된다.
+    """
+    name = {"ops": "settings_ops", "dataset": "settings_dataset"}.get(tab, "settings")
+    url = reverse(name)
+    if request.META.get("QUERY_STRING"):
+        url = f"{url}?{request.META['QUERY_STRING']}"
+    return redirect(url)
 
 
 def core_page(request, site_code, core_code):
@@ -624,7 +644,7 @@ def manage(request):
         else:
             ok, m = False, "모르는 동작입니다."
         # POST 뒤에 redirect 한다 — 새로 고침이 같은 일을 다시 하면 안 된다.
-        return redirect(f"{reverse('manage')}?{'msg' if ok else 'err'}={m}")
+        return redirect(f"{reverse('settings')}?{'msg' if ok else 'err'}={m}")
 
     msg, err = request.GET.get("msg", ""), request.GET.get("err", "")
     ctx = manage_data.overview()

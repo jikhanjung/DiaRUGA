@@ -35,7 +35,7 @@ class PickReviewBatchTest(DiaRUGATestCase):
 
     def post(self, batch_id):
         # 묶음 고르기는 **운영 화면**으로 옮겼다 (083)
-        return self.c.post(reverse("manage_ops"),
+        return self.c.post(reverse("settings_ops"),
                            {"act": "review_batch", "batch": batch_id})
 
     # --- 누르기 전에 보이는가 ----------------------------------------------

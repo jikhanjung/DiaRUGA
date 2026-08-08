@@ -93,7 +93,7 @@
   이 시야에는 <b>{{ review_batch }}</b> 의 검출이 없습니다 —
   {% for b in elsewhere %}<span class="mono">{{ b }}</span>{% if not forloop.last %} · {% endif %}{% endfor %}
   에는 있습니다.
-  <a href="{% url 'manage' %}">관리 화면</a>에서 검토할 묶음을 바꾸거나,
+  <a href="{% url 'settings' %}">시스템 설정</a>에서 검토할 묶음을 바꾸거나,
   이 묶음으로 다시 돌리십시오.
 </div>
 {% else %}

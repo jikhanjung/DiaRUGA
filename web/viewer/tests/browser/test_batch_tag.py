@@ -74,4 +74,4 @@ class BatchTagCssTest(BrowserTestCase):
         page = self.open(reverse("index"))
         page.click(".batchtag")
         page.wait_for_load_state("load")
-        self.assertIn(reverse("manage_ops"), page.url)
+        self.assertIn(reverse("settings_ops"), page.url)

@@ -11,9 +11,27 @@
   셋 아래에 묶음 고르기가 있었다.
 {% endcomment %}
 <nav class="mnav">
-  <a href="{% url 'manage' %}"{% if here == "data" %} class="on"{% endif %}>자료</a>
-  <a href="{% url 'manage_ops' %}"{% if here == "ops" %} class="on"{% endif %}>운영</a>
-  <a href="{% url 'manage_dataset' %}"{% if here == "dataset" %} class="on"{% endif %}>학습 자료</a>
+  <a href="{% url 'settings' %}"{% if here == "data" %} class="on"{% endif %}>자료</a>
+  <a href="{% url 'settings_ops' %}"{% if here == "ops" %} class="on"{% endif %}>운영</a>
+  <a href="{% url 'settings_dataset' %}"{% if here == "dataset" %} class="on"{% endif %}>학습 자료</a>
+  {% comment %}
+    **미리보기** — 머리줄에 있던 것을 여기로 옮겼다 (사용자 요청 2026-08-08).
+    늘 떠 있을 만큼 자주 보는 자리가 아니고, 성격이 "설정·운영 쪽에서 한 번씩
+    여는 것" 이라 이 탭줄이 제자리다.
+
+    **다른 셋과 다른 점이 둘 있고, 그것을 화면이 말해야 한다.**
+
+    - **이 앱의 화면이 아니다.** nginx 가 여는 이웃 자리(`/DiaRUGA-preview/`)라
+      `reverse()` 로 못 만들고 `here` 로 켜지지도 않는다 — 눌러 나가면 탭줄이
+      아예 없는 정지 화면이다. 그래서 `↗` 를 붙여 **떠난다는 것**을 미리 알린다
+    - **없을 수 있다.** `preview_url` 이 비면 탭을 아예 안 낸다. 죽은 탭을
+      내보이면 눌러 보고서야 안다
+  {% endcomment %}
+  {% if preview_url %}
+    <a href="{{ preview_url }}" class="out"
+       title="배포 전 화면을 날짜별로 찍어 둔 자리입니다 (정지 화면 — 이 앱을 떠납니다)"
+       >미리보기 <span aria-hidden="true">↗</span></a>
+  {% endif %}
 </nav>
 <style>
   /* **관리 화면 셋이 함께 쓰는 표 모양** (083). 자료 화면의 `<style>` 안에
@@ -45,6 +63,10 @@
     position: relative; top: 1px;
   }
   .mnav a:hover { color: var(--fg); }
+  /* 앱을 떠나는 탭. **오른쪽 끝으로 밀어** 안쪽 화면 셋과 갈라 세운다 —
+     나란히 두면 같은 갈래로 읽혀 눌렀을 때 탭줄이 사라진 것이 고장처럼 보인다. */
+  .mnav a.out { margin-left: auto; font-size: 12.5px; }
+  .mnav a.out span { opacity: .7; font-size: 11px; }
   /* 지금 보는 탭은 **아래 줄을 끊어** 본문과 이어 붙인다 */
   .mnav a.on {
     color: var(--fg); background: var(--panel);

@@ -14,11 +14,25 @@ urlpatterns = [
     # 옛 주소. **지우지 않는다** — 적어 둔 링크와 브라우저 기록이 깨진다.
     # 이름(`core`)은 그대로 둔다: 템플릿의 `{% url 'core' %}` 가 새 주소를 낸다.
     path("core/<str:site_code>/<str:core_code>/", views.core_redirect),
-    # 관리 화면 — 층을 만들고 고치고 지운다. 쓰기는 전부 POST 다.
-    # 관리 화면 셋 (083). 묻는 것이 달라 갈랐다 — `_managenav.html` 머리말.
-    path("manage/", views.manage, name="manage"),
-    path("manage/ops/", views.manage_ops, name="manage_ops"),
-    path("manage/dataset/", views.manage_dataset, name="manage_dataset"),
+    # **시스템 설정** — 층을 만들고 고치고 지운다. 쓰기는 전부 POST 다.
+    # 화면 셋 (083). 묻는 것이 달라 갈랐다 — `_managenav.html` 머리말.
+    #
+    # **데이터셋 목록과 같은 층의 최상위 메뉴다** (사용자 방침 2026-08-08).
+    # 그래서 주소도 `/manage/` 에서 `/settings/` 로 옮겼고, 머리줄 오른쪽 끝의
+    # 톱니가 어느 화면에서나 여기로 온다.
+    #
+    # **뷰 함수 이름은 `manage*` 그대로다.** `settings` 는 `django.conf.settings`
+    # 와 부딪히고(이 앱이 그것을 임포트한다), 템플릿 파일 이름까지 한꺼번에
+    # 옮기면 이번 변경이 커진다. 밖으로 나가는 이름(주소·URL 이름)만 갈았다.
+    path("settings/", views.manage, name="settings"),
+    path("settings/ops/", views.manage_ops, name="settings_ops"),
+    path("settings/dataset/", views.manage_dataset, name="settings_dataset"),
+    # 옛 주소. **지우지 않는다** — 적어 둔 링크와 브라우저 기록이 깨진다.
+    # `core/` 와 같은 갈래이고 같은 이유로 302 다(301 은 브라우저가 캐시해서
+    # 나중에 규칙을 다시 손볼 때 되돌릴 방법이 없다).
+    path("manage/", views.settings_redirect),
+    path("manage/ops/", views.settings_redirect, {"tab": "ops"}),
+    path("manage/dataset/", views.settings_redirect, {"tab": "dataset"}),
     # 노두 현장 사진. **파일 이름이 주소에 없다** — 지점과 순번으로만 짚는다.
     path("loc/<str:site_code>/<str:core_code>/photo/<int:index>",
          views.outcrop_photo, name="outcrop_photo"),
