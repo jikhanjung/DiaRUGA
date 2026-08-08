@@ -177,7 +177,7 @@
         사람이 없는 값을 채우러 간다. 아래 노두 안내가 이미 그 자리를 설명한다.
       {% endcomment %}
       <div class="note">깊이가 적힌 시료가 없어 축을 그릴 수 없습니다.
-        속성 편집에서 깊이를 채우면 여기 나옵니다.</div>
+        정보 편집에서 깊이를 채우면 여기 나옵니다.</div>
     {% endif %}
 
     {% if unplaced %}
@@ -256,7 +256,7 @@
     {% endcomment %}
     <section class="card">
       <h3>지점 <span class="dim">{{ core.code }}</span>
-        {% if edit_slug %}<a class="dsedit" href="{% url 'dataset_edit' edit_slug %}#core">속성 편집 →</a>{% endif %}</h3>
+        {% if edit_slug %}<a class="dsedit" href="{% url 'dataset_edit' edit_slug %}#core">정보 편집 →</a>{% endif %}</h3>
       <div class="ro">
         <span>유형</span><span>{{ core.get_kind_display }}</span>
         <span>채취 방식</span><span>{{ core.collect_kind|default:"—" }}</span>
@@ -269,7 +269,7 @@
 
     <section class="card">
       <h3>지역 <span class="dim">{{ site.code }}</span>
-        {% if edit_slug %}<a class="dsedit" href="{% url 'dataset_edit' edit_slug %}#site">속성 편집 →</a>{% endif %}</h3>
+        {% if edit_slug %}<a class="dsedit" href="{% url 'dataset_edit' edit_slug %}#site">정보 편집 →</a>{% endif %}</h3>
       <div class="ro">
         <span>이름</span><span>{{ site.name|default:"—" }}</span>
         <span>해역·지역</span><span>{{ site.region|default:"—" }}</span>

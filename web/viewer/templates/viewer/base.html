@@ -53,7 +53,7 @@
   }
   * { box-sizing: border-box; }
   /* 안내 문구(placeholder)는 값이 아니다. 브라우저 기본값이 꽤 진해서 이미 채워진
-     것으로 읽힌다 — 실제로 속성 편집 화면에서 그렇게 보였다. 확실히 옅게 둔다.
+     것으로 읽힌다 — 실제로 정보 편집 화면에서 그렇게 보였다. 확실히 옅게 둔다.
      Firefox 는 자체 opacity 를 얹으므로 opacity 도 명시해야 두 브라우저가 같아진다. */
   ::placeholder { color: var(--dim); opacity: .5; }
   :disabled::placeholder { opacity: .3; }
@@ -435,6 +435,34 @@
   .pagehead h2 { margin: 0; }
   .pagehead .thlink { font-size: 13px; font-weight: 400; margin-left: 10px; }
 
+  /* **제목 줄의 오른쪽 링크 묶음** (사용자 요청 2026-08-08).
+     시야 목록의 `검출 결과만 보기`·`계측 표`·`정보 편집` 이 여기 선다 —
+     앞의 둘은 머리줄의 nav 블록에 있었고 `정보 편집` 은 본문 문단 한가운데
+     묻혀 있었다. **같은 슬라이드를 다른 각도로 보는 길**이라 한자리에 모으는
+     것이 맞다.
+
+     (그 블록 이름을 여기 태그 문법으로 적지 말 것 — **Django 는 CSS 주석
+     안에서도 태그로 읽는다.** 방금 그렇게 적었다가 "block tag with name 'nav'
+     appears more than once" 로 화면이 죽었다.)
+
+     `margin-left:auto` 로 오른쪽 끝에 붙인다 — `.pagehead` 가 flex 라
+     제목·묶음 표시와 이 묶음 사이가 벌어진다.
+
+     **링크처럼 보이게 한다.** 이 앱의 `a` 는 `text-decoration:none` 이 기본이라
+     본문 색과 섞이면 누를 수 있는 것인지 안 읽힌다 — 실제로 `정보 편집` 이
+     그랬다. 밑줄을 늘 깔고, 강조색을 주고, `→` 로 "가는 곳" 임을 더한다.
+     `.chip` 을 안 쓴 이유: 그쪽은 **거르는 단추**의 모양이라(갤러리의 형태
+     칩들) 같은 껍데기를 쓰면 눌러서 걸러지는 것으로 읽힌다. */
+  .pagelinks { margin-left: auto; display: flex; gap: 14px; flex-wrap: wrap;
+               align-items: center; }
+  .pagelinks a {
+    font-size: 13px; color: var(--accent);
+    text-decoration: underline; text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .pagelinks a:hover { text-decoration-color: var(--accent); }
+  .pagelinks a::after { content: " →"; opacity: .65; text-decoration: none; }
+
   /* **지금 검토 중인 묶음.** 목록과 시야 목록이 함께 쓴다 (088).
      화면에 보이는 검출이 어느 회차의 것인지는 `RunBatch.for_review` 하나가
      정하는데(P10), 그 사실이 관리 화면에만 있어서 **목록에서는 무엇을 보고
@@ -545,7 +573,7 @@
   }
   .totnote b { color: var(--fg); font-weight: 600; }
 
-  /* 속성 편집의 관찰 상자 */
+  /* 정보 편집의 관찰 상자 */
   .obsbox {
     margin: 14px 0 4px; padding: 10px 12px 12px;
     border: 1px solid var(--line); border-radius: 8px;
@@ -560,7 +588,7 @@
   }
   /* **`.propform input` 이 `display:block; width:100%` 를 걸고 있다** — 글자
      칸에 맞춘 규칙인데 체크박스까지 잡아서, 네모 하나가 줄을 통째로 먹고 옆의
-     설명이 폭 0 으로 눌려 **글자가 세로로 한 자씩 흘렀다**(속성 편집 페이지가
+     설명이 폭 0 으로 눌려 **글자가 세로로 한 자씩 흘렀다**(정보 편집 페이지가
      3,464px 이 됐다). 예외도 경고도 없는 종류다 — 특이도로 되찾아 온다. */
   .obsbox label.ck input {
     width: auto; margin-top: 3px; flex: 0 0 auto;

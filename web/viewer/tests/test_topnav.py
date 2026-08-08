@@ -111,3 +111,45 @@ class TopNavTest(DiaRUGATestCase):
         r = self.c.get("/manage/ops/?msg=%ED%99%95%EC%9D%B8&x=1")
         self.assertEqual(r["Location"],
                          reverse("system_settings_ops") + "?msg=%ED%99%95%EC%9D%B8&x=1")
+
+
+class DatasetPageLinksTest(DiaRUGATestCase):
+    """시야 목록의 **다른 각도로 보는 길 셋** (사용자 요청 2026-08-08).
+
+    `검출 결과만 보기` · `계측 표` · `정보 편집` 이 제목 줄 오른쪽에 함께 선다.
+    예전에는 앞의 둘이 머리줄 띠에, `정보 편집` 은 본문 문단 한가운데 있었다 —
+    **흩어져 있으면 세 번째가 있는 줄도 모른다.**
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=2)
+
+    def setUp(self):
+        self.c = Client()
+        self.html = self.c.get(
+            reverse("dataset", args=[self.w.slide.slug])).content.decode()
+
+    def test_셋이_제목_줄에_함께_있다(self):
+        m = re.search(r'<span class="pagelinks">.*?</span>', self.html, re.S)
+        self.assertIsNotNone(m, "제목 줄에 링크 묶음이 없다")
+        block = m.group(0)
+        for label in ("검출 결과만 보기", "계측 표", "정보 편집"):
+            with self.subTest(링크=label):
+                self.assertIn(label, block, f"{label} 이 제목 줄에 없다")
+
+    def test_머리줄_띠는_비었다(self):
+        """올라가 있던 둘을 내렸다 — 두 자리에 있으면 어느 쪽이 정본인지 묻게 된다."""
+        nav = re.search(r"<nav>(.*?)</nav>", self.html, re.S).group(1)
+        self.assertEqual(nav.strip(), "", f"머리줄에 링크가 남아 있다: {nav!r}")
+
+    def test_정보_편집으로_이름이_같다(self):
+        """목록의 링크와 시야 목록의 링크가 **같은 화면**으로 간다 — 이름이
+        갈리면 다른 것으로 읽힌다 (사용자 지적)."""
+        index = self.c.get(reverse("index")).content.decode()
+        labels = set(re.findall(r'class="dsedit"[^>]*>([^<]*)<', index))
+        self.assertEqual(labels, {"정보 편집"}, labels)
+        # **링크만 본다.** 페이지 전체를 뒤지면 `base.html` 의 CSS 주석에 남은
+        # 옛 이름이 걸린다 — 화면에 보이는 글자가 아니다. 088 에서 같은 실수를 했다.
+        self.assertNotIn(">속성 편집<", self.html)
