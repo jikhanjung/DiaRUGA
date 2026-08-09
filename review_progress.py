@@ -45,23 +45,32 @@ def main():
         .values_list("viewpoint__slide")
         .annotate(n=Count("id")).values_list("viewpoint__slide", "n"))
 
+    # 엔진이 낸 마스크의 모양을 사람이 고친 것 (P09 5.7 — 수렴 지표)
+    edited_by_slide = dict(
+        ObjectReview.objects.filter(geom_edited=True)
+        .values_list("viewpoint__slide")
+        .annotate(n=Count("id")).values_list("viewpoint__slide", "n"))
+
     area = None
-    tot = {"vps": 0, "done": 0, "drawn": 0}
+    tot = {"vps": 0, "done": 0, "drawn": 0, "edited": 0}
     for s in slides:
         a = s.sample.locality.site.area if s.sample else "?"
         if a != area:
             area = a
             print(f"\n{AREA_LABEL.get(a, a)}")
-            print(f"  {'슬라이드':30s} {'검토':>9s} {'그린 개체':>8s}")
+            print(f"  {'슬라이드':30s} {'검토':>9s} {'그린 개체':>8s} {'고친 마스크':>8s}")
         done = done_by_slide.get(s.id, 0)
         drawn = drawn_by_slide.get(s.id, 0)
+        edited = edited_by_slide.get(s.id, 0)
         mark = "완료" if done == s.vps and s.vps else f"{done}/{s.vps}"
-        print(f"  {s.slug:32s} {mark:>8s} {drawn or '-':>8}")
+        print(f"  {s.slug:32s} {mark:>8s} {drawn or '-':>8} {edited or '-':>10}")
         tot["vps"] += s.vps
         tot["done"] += done
         tot["drawn"] += drawn
+        tot["edited"] += edited
 
-    print(f"\n전체 검토 {tot['done']}/{tot['vps']} · 직접 그린 개체 {tot['drawn']}건")
+    print(f"\n전체 검토 {tot['done']}/{tot['vps']} · 직접 그린 개체 {tot['drawn']}건"
+          f" · 고친 마스크 {tot['edited']}건")
 
 
 if __name__ == "__main__":
