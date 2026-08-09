@@ -1,12 +1,13 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "260731_rs23-gc03_369cm",
   "gid": 45,
   "tag": "g045_Snap-21914-21920",
-  "done": true,
+  "done": false,
   "note": "",
   "n_images": 1,
   "n_objects": 38,
+  "n_links": 0,
   "images": [
     {
       "image": "stacked/g045_Snap-21914-21920_focused.jpg",
@@ -54,5 +55,6 @@
         {"key": "993_1998_98_108", "removed": false, "accepted": true, "label": "round_frag", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [993, 1998, 98, 108], "polygon": [1070, 2012, 1049, 2007, 1038, 2000, 1031, 1998, 1024, 1998, 1004, 2006, 1000, 2017, 1000, 2033, 997, 2038, 997, 2048, 993, 2062, 994, 2082, 1001, 2094, 1012, 2104, 1028, 2105, 1068, 2066, 1090, 2048, 1086, 2031]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

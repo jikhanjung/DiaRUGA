@@ -1,5 +1,5 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "260731_am22-gc10b_261cm",
   "gid": 7,
   "tag": "g007_Snap-22184-22185",
@@ -7,6 +7,8 @@
   "note": "",
   "n_images": 0,
   "n_objects": 0,
+  "n_links": 0,
   "images": [
-  ]
+  ],
+  "links": []
 }

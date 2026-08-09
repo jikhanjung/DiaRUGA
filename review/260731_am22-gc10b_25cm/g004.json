@@ -1,5 +1,5 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "260731_am22-gc10b_25cm",
   "gid": 4,
   "tag": "g004_Snap-22129-22129",
@@ -7,6 +7,7 @@
   "note": "",
   "n_images": 1,
   "n_objects": 5,
+  "n_links": 0,
   "images": [
     {
       "image": "photos/260731/AM22-GC10B 25cm/Snap-22129.jpg",
@@ -21,5 +22,6 @@
         {"key": "490_1685_92_47", "removed": false, "accepted": false, "label": "round_frag", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [490, 1685, 92, 47], "polygon": [581, 1694, 575, 1685, 508, 1688, 497, 1693, 490, 1703, 493, 1711, 502, 1721, 516, 1730, 524, 1731, 547, 1726, 575, 1712, 581, 1704]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

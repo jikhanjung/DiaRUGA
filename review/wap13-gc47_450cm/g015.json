@@ -1,12 +1,13 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "wap13-gc47_450cm",
   "gid": 15,
   "tag": "g015_Snap-21305-21307",
-  "done": true,
+  "done": false,
   "note": "",
   "n_images": 1,
   "n_objects": 19,
+  "n_links": 0,
   "images": [
     {
       "image": "stacked/g015_Snap-21305-21307_focused.jpg",
@@ -35,5 +36,6 @@
         {"key": "450_1535_104_140", "removed": true, "accepted": false, "label": "", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [450, 1535, 104, 140], "polygon": [488, 1535, 468, 1542, 457, 1556, 450, 1582, 452, 1617, 456, 1628, 478, 1644, 501, 1672, 510, 1675, 522, 1668, 534, 1655, 544, 1631, 554, 1593, 550, 1556, 543, 1538, 521, 1540]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

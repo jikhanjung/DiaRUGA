@@ -1,12 +1,13 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "rs23",
   "gid": 0,
   "tag": "g000_Snap-21365-21370",
-  "done": true,
+  "done": false,
   "note": "",
   "n_images": 1,
   "n_objects": 14,
+  "n_links": 0,
   "images": [
     {
       "image": "stacked/g000_Snap-21365-21370_focused.jpg",
@@ -30,5 +31,6 @@
         {"key": "955_1168_140_26", "removed": true, "accepted": false, "label": "", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [955, 1168, 140, 26], "polygon": [1052, 1169, 1044, 1168, 1039, 1171, 1014, 1170, 1007, 1172, 995, 1172, 983, 1174, 961, 1174, 956, 1178, 955, 1186, 961, 1191, 972, 1194, 1027, 1191, 1037, 1183, 1045, 1181, 1051, 1177]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

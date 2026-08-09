@@ -1,12 +1,13 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "rs23",
   "gid": 16,
   "tag": "g016_Snap-21442-21446",
-  "done": true,
+  "done": false,
   "note": "",
   "n_images": 1,
   "n_objects": 24,
+  "n_links": 0,
   "images": [
     {
       "image": "stacked/g016_Snap-21442-21446_focused.jpg",
@@ -40,5 +41,6 @@
         {"key": "541_1486_159_60", "removed": false, "accepted": false, "label": "rod_frag", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [541, 1486, 159, 60], "polygon": [541, 1496, 545, 1513, 549, 1520, 562, 1531, 598, 1539, 660, 1546, 676, 1546, 683, 1542, 690, 1516, 700, 1496, 688, 1491, 598, 1486, 552, 1487, 545, 1490]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

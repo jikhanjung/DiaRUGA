@@ -1,5 +1,5 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "260803_bp09-0901",
   "gid": 65,
   "tag": "g065_Snap-22464-22466",
@@ -7,6 +7,7 @@
   "note": "여기서 보이는 해면 골편이 굉장히 중요",
   "n_images": 1,
   "n_objects": 16,
+  "n_links": 0,
   "images": [
     {
       "image": "stacked/g065_Snap-22464-22466_focused.jpg",
@@ -32,5 +33,6 @@
         {"key": "879_0_564_160", "removed": true, "accepted": false, "label": "", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [879, 0, 564, 160], "polygon": [879, 0, 905, 30, 1341, 159, 1442, 124, 1422, 104, 1369, 83, 1208, 36, 1039, 0]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

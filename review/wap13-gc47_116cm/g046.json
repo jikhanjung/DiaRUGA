@@ -1,12 +1,13 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "wap13-gc47_116cm",
   "gid": 46,
   "tag": "g046_Snap-21263-21263",
-  "done": true,
+  "done": false,
   "note": "",
   "n_images": 1,
   "n_objects": 15,
+  "n_links": 0,
   "images": [
     {
       "image": "photos/260729/WAP13-GC47 116cm/Snap-21263.jpg",
@@ -31,5 +32,6 @@
         {"key": "833_886_166_191", "removed": false, "accepted": false, "label": "round_frag", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [833, 886, 166, 191], "polygon": [940, 886, 883, 901, 858, 915, 836, 935, 833, 942, 833, 1000, 838, 1022, 838, 1048, 857, 1064, 886, 1075, 917, 1075, 935, 1065, 987, 1001, 998, 978, 998, 961, 983, 923, 955, 892]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

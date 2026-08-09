@@ -1,13 +1,24 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "260731_rs23-gc03_369cm",
   "gid": 9,
   "tag": "g009_Snap-21703-21707",
   "done": false,
   "note": "위에 에우캄피아 하나가 있는데 캐치를 못했음. 에우캄피아만 맞추고 찍은 사진이 있는데, 합성본을 기준으로 해서 그런가 탈락 후보에도 못들어갔는데, 필요하면 특정 초점을 대상으로 검출을 다시 돌리는 버튼을 하나 만들어주실 수 있나요?",
-  "n_images": 1,
-  "n_objects": 8,
+  "n_images": 2,
+  "n_objects": 10,
+  "n_links": 0,
   "images": [
+    {
+      "image": "stacked/g009_Snap-21703-21707_focused.jpg",
+      "kind": "stack",
+      "batch": "",
+      "n_objects": 2,
+      "objects": [
+        {"key": "m5229eddb", "removed": false, "accepted": false, "label": "round_frag", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [1379, 786, 169, 164], "polygon": [1548.0, 796.0, 1523.0, 940.0, 1461.0, 950.0, 1379.0, 886.0, 1390.0, 840.0, 1451.0, 786.0]}},
+        {"key": "me5e10a8c", "removed": false, "accepted": false, "label": "eucampia", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [1380, 54, 568, 438], "polygon": [1840.0, 492.0, 1901.0, 410.0, 1948.0, 170.0, 1909.0, 144.0, 1855.0, 161.0, 1728.0, 115.0, 1538.0, 75.0, 1412.0, 54.0, 1380.0, 244.0, 1395.0, 376.0, 1474.0, 394.0, 1520.0, 292.0, 1563.0, 241.0, 1628.0, 282.0, 1737.0, 305.0, 1740.0, 359.0]}}
+      ]
+    },
     {
       "image": "stacked/g009_Snap-21703-21707_focused.jpg",
       "kind": "stack",
@@ -24,5 +35,6 @@
         {"key": "2675_0_77_77", "removed": true, "accepted": false, "label": "", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [2675, 0, 77, 77], "polygon": [2675, 0, 2675, 4, 2681, 11, 2697, 25, 2742, 70, 2746, 76, 2751, 76, 2751, 11, 2746, 11, 2744, 8, 2735, 5, 2734, 0]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

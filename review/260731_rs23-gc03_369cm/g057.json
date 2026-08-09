@@ -1,12 +1,13 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "260731_rs23-gc03_369cm",
   "gid": 57,
   "tag": "g057_Snap-21979-21981",
-  "done": true,
+  "done": false,
   "note": "",
   "n_images": 1,
   "n_objects": 26,
+  "n_links": 0,
   "images": [
     {
       "image": "stacked/g057_Snap-21979-21981_focused.jpg",
@@ -42,5 +43,6 @@
         {"key": "923_1219_427_185", "removed": false, "accepted": false, "label": "eucampia", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [923, 1219, 427, 185], "polygon": [1349, 1254, 1338, 1238, 1279, 1220, 1164, 1220, 1004, 1246, 923, 1272, 923, 1283, 960, 1338, 1001, 1358, 1006, 1385, 998, 1394, 1003, 1401, 1048, 1401, 1173, 1384, 1280, 1353, 1335, 1315, 1348, 1289, 1340, 1279, 1348, 1271]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }

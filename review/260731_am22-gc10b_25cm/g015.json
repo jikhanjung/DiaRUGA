@@ -1,13 +1,23 @@
 {
-  "format": 3,
+  "format": 4,
   "slide": "260731_am22-gc10b_25cm",
   "gid": 15,
   "tag": "g014_Snap-22151-22151",
   "done": true,
   "note": "",
-  "n_images": 1,
-  "n_objects": 4,
+  "n_images": 2,
+  "n_objects": 5,
+  "n_links": 0,
   "images": [
+    {
+      "image": "photos/260731/AM22-GC10B 25cm/Snap-22151.jpg",
+      "kind": "frame",
+      "batch": "",
+      "n_objects": 1,
+      "objects": [
+        {"key": "mdf283ed8", "removed": false, "accepted": false, "label": "rod_frag", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [685, 843, 90, 216], "polygon": [741.0, 843.0, 775.0, 954.0, 763.0, 989.0, 774.0, 1059.0, 745.0, 1050.0, 685.0, 843.0]}}
+      ]
+    },
     {
       "image": "photos/260731/AM22-GC10B 25cm/Snap-22151.jpg",
       "kind": "frame",
@@ -20,5 +30,6 @@
         {"key": "2218_674_107_73", "removed": true, "accepted": false, "label": "", "note": "", "bind": "exact", "bind_score": 1.0, "geom": {"bbox": [2218, 674, 107, 73], "polygon": [2324, 684, 2316, 675, 2283, 674, 2272, 683, 2253, 688, 2231, 698, 2227, 702, 2219, 722, 2219, 738, 2230, 746, 2251, 746, 2264, 737, 2268, 729, 2291, 706, 2304, 701, 2317, 702, 2320, 696, 2323, 694]}}
       ]
     }
-  ]
+  ],
+  "links": []
 }
