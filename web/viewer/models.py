@@ -1023,3 +1023,80 @@ class ObjectReview(models.Model):
         marks = [n for n, v in (("삭제", self.removed), ("복구", self.accepted),
                                 ("분류", self.label), ("메모", self.note)) if v]
         return f"{self.mask_key} {'·'.join(marks) or '-'}"
+
+
+class ObjectLink(models.Model):
+    """같은 개체 묶음 — 한 시야 안에서 여러 이미지의 마스크가 **한 규조각**이다 (P11).
+
+    같은 시야는 스테이지가 안 움직인다. 초점면 3~5장에 같은 규조각이 서너 번
+    잡히는데, 그것이 하나라는 것을 이 표가 말한다. **사람이 프레임마다 골라
+    만든 것이라 재생성 불가다** — `ObjectReview` 와 같은 무게이고 같은 규약을
+    따른다(멤버가 FK 대신 `(image, batch, mask_key)` 로 마스크를 짚고 `geom`
+    을 스스로 든다).
+
+    **묶음은 시야를 못 넘는다.** 다른 시야는 스테이지가 움직인 뒤라 "같은
+    자리" 라는 근거 자체가 없다.
+    """
+
+    viewpoint = models.ForeignKey(Viewpoint, on_delete=models.CASCADE,
+                                  related_name="object_links")
+    # **어느 묶음의 검출을 보며 묶었나.** PROTECT 다 — RunBatch 를 지우려면
+    # 그 검출을 보며 만든 사람의 묶음부터 지워야 한다. SET_NULL 로 조용히
+    # 잃으면 "어느 검출에 대한 판단인지" 가 사라진다 (drop_batch.py 가 문이다).
+    batch = models.ForeignKey(RunBatch, on_delete=models.PROTECT,
+                              null=True, blank=True,
+                              related_name="object_links")
+    note = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["viewpoint"])]
+
+    def __str__(self):
+        return f"link#{self.pk} vp={self.viewpoint_id} ({self.members.count()})"
+
+
+class ObjectLinkMember(models.Model):
+    """묶음의 멤버 — "이 이미지에서는 이 마스크가 그 개체다" (P11).
+
+    이미지마다 하나다(한 규조각은 한 프레임에 한 번 나온다). 대표(`is_rep`)는
+    묶음에 정확히 하나 — 학습 자료로 뽑을 때, 목록에 보일 때 그것이 이 개체의
+    얼굴이다.
+    """
+
+    link = models.ForeignKey(ObjectLink, on_delete=models.CASCADE,
+                             related_name="members")
+    image = models.ForeignKey(Image, on_delete=models.CASCADE,
+                              related_name="link_members")
+    # **어느 검출의 마스크인가.** NULL 은 사람이 그린 것 (P09 5.2 와 같은 뜻).
+    batch = models.ForeignKey(RunBatch, on_delete=models.PROTECT,
+                              null=True, blank=True, related_name="+")
+    mask_key = models.CharField(max_length=64)
+    is_rep = models.BooleanField(default=False, db_default=False)
+    # 기하 스냅샷 — 검출기가 바뀌어도 묶음이 읽힌다 (ObjectReview.geom 과 같다)
+    geom = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            # 한 이미지에서 한 개만 — 같은 프레임의 마스크 둘이 같은 개체일 수 없다
+            models.UniqueConstraint(fields=["link", "image"],
+                                    name="uniq_linkmember_image"),
+            # 한 마스크는 한 묶음에만. NULL(사람이 그린 것)은 SQLite 가 부딪히지
+            # 않는다고 보므로 ObjectReview 와 같은 짝 제약이다.
+            models.UniqueConstraint(fields=["image", "batch", "mask_key"],
+                                    condition=models.Q(batch__isnull=False),
+                                    name="uniq_linkmember_key"),
+            models.UniqueConstraint(fields=["image", "mask_key"],
+                                    condition=models.Q(batch__isnull=True),
+                                    name="uniq_linkmember_manual"),
+            # 대표는 묶음마다 정확히 하나 (0 도 안 된다 — 저장 쪽이 지킨다.
+            # DB 제약은 "둘 이상" 만 막을 수 있다)
+            models.UniqueConstraint(fields=["link"],
+                                    condition=models.Q(is_rep=True),
+                                    name="uniq_linkmember_rep"),
+        ]
+        indexes = [models.Index(fields=["image", "batch"])]
+
+    def __str__(self):
+        return f"{self.mask_key}{' ★' if self.is_rep else ''}"

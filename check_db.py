@@ -39,8 +39,8 @@ from django.db.models import Count                                  # noqa: E402
 
 import judge                                                        # noqa: E402
 from viewer.models import (Candidate, ClassDef, Detection, Frame,    # noqa: E402
-                           Locality, ObjectReview, Sample, Slide,
-                           Stack, Viewpoint,
+                           Locality, ObjectLink, ObjectReview,
+                           Sample, Slide, Stack, Viewpoint,
                            ViewpointReview)
 
 VERBOSE = False
@@ -397,6 +397,68 @@ def check_layers(slug=None):
                [f"{c.site.code}/{c.code}" for c in empty])
 
 
+def check_links(slug=None):
+    """같은 개체 묶음이 앞뒤가 맞는가 (P11).
+
+    묶음은 사람이 프레임마다 골라 만든 것이라 재생성 불가다 — 어긋나면
+    교정과 같은 무게로 잃는다. **여기서 잡는 것은 예외가 안 나고 그냥 틀린
+    상태다**: 대표가 없는 묶음은 학습 자료로 뽑을 때 얼굴이 없고, 남의 시야
+    이미지를 문 멤버는 화면에 안 그려져 조용히 사라진다.
+    """
+    qs = ObjectLink.objects.all()
+    if slug:
+        qs = qs.filter(viewpoint__slide__slug=slug)
+    links = list(qs.prefetch_related("members__image"))
+    if not links:
+        if VERBOSE:
+            print("   (묶음이 아직 없다)")
+        return
+
+    # 대표가 정확히 하나인가. "둘 이상" 은 DB 제약이 막지만 **0개는 못 막는다** —
+    # 저장 쪽이 지키는 약속이고, 여기가 그것을 센다.
+    norep = [l for l in links if sum(1 for m in l.members.all() if m.is_rep) != 1]
+    report("묶음마다 대표가 하나다", len(norep), len(links),
+           "대표가 없으면 학습 자료로 뽑을 때 얼굴이 없다",
+           [f"link#{l.pk}" for l in norep])
+
+    # 멤버가 둘 미만인 묶음. 틀린 것은 아니지만 묶음의 뜻이 없다 —
+    # 팝업에서 다 풀고 하나만 남긴 채 저장된 자리다.
+    single = [l for l in links if l.members.count() < 2]
+    report("묶음에 멤버가 둘 이상이다", len(single), len(links),
+           "혼자인 묶음은 뜻이 없다 — 풀다 만 자리다",
+           [f"link#{l.pk}" for l in single])
+
+    # 멤버의 이미지가 묶음의 시야에 속하는가. 어긋나면 화면이 못 그린다.
+    stray = [l for l in links
+             if any(m.image.viewpoint_id != l.viewpoint_id
+                    for m in l.members.all())]
+    report("멤버가 묶음의 시야 안에 있다", len(stray), len(links),
+           "남의 시야 이미지를 문 멤버는 화면에 안 그려진다",
+           [f"link#{l.pk}" for l in stray])
+
+    # 멤버가 실재하는 마스크를 가리키는가 — 그 (image, batch) 현재 검출의
+    # 통과 후보이거나, 사람이 그린 교정(geom)이거나.
+    dangling = []
+    for l in links:
+        for m in l.members.all():
+            if m.batch_id is None:
+                ok = ObjectReview.objects.filter(
+                    image_id=m.image_id, batch__isnull=True,
+                    mask_key=m.mask_key).exists()
+            else:
+                ok = Candidate.objects.filter(
+                    detection__image_id=m.image_id,
+                    detection__is_current=True,
+                    detection__run__batch_id=m.batch_id,
+                    mask_key=m.mask_key).exists()
+            if not ok:
+                dangling.append(f"link#{l.pk}/{m.mask_key}")
+    report("멤버의 마스크가 실재한다", len(dangling),
+           sum(l.members.count() for l in links),
+           "재검출로 사라진 마스크다 — geom 스냅샷으로만 남아 있다",
+           dangling)
+
+
 def check_thresholds(slug=None):
     """문턱은 **슬라이드 안에서** 하나여야 한다.
 
@@ -456,6 +518,8 @@ def main():
     check_thresholds(args.slide)
     print("\n=== 7. 층 (지역·지점·시료·관찰) ===")
     check_layers(args.slide)
+    print("\n=== 8. 같은 개체 묶음 ===")
+    check_links(args.slide)
 
     print()
     if problems:
