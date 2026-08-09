@@ -3,12 +3,22 @@
   "slide": "260803_gc03-c1_72cm",
   "gid": 39,
   "tag": "g039_Snap-22327-22329",
-  "done": false,
+  "done": true,
   "note": "",
-  "n_images": 1,
-  "n_objects": 7,
+  "n_images": 2,
+  "n_objects": 9,
   "n_links": 0,
   "images": [
+    {
+      "image": "stacked/g039_Snap-22327-22329_focused.jpg",
+      "kind": "stack",
+      "batch": "",
+      "n_objects": 2,
+      "objects": [
+        {"key": "m386a85d0", "removed": false, "accepted": false, "label": "rod", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [2004, 1764, 363, 86], "polygon": [2344.0, 1795.0, 2199.0, 1841.0, 2045.0, 1850.0, 2004.0, 1831.0, 2022.0, 1798.0, 2161.0, 1769.0, 2297.0, 1764.0, 2357.0, 1768.0, 2367.0, 1793.0]}},
+        {"key": "m47da5252", "removed": false, "accepted": false, "label": "round_frag", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [1950, 1879, 248, 179], "polygon": [2198.0, 1947.0, 2173.0, 2017.0, 2172.0, 2056.0, 2024.0, 2058.0, 1950.0, 2015.0, 1991.0, 1895.0, 2073.0, 1879.0, 2195.0, 1932.0]}}
+      ]
+    },
     {
       "image": "stacked/g039_Snap-22327-22329_focused.jpg",
       "kind": "stack",
