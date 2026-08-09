@@ -153,6 +153,8 @@
   {% endcomment %}
   {% if shot_dets %}
     <script type="application/json" id="shotdet-stack">{{ shot_dets|json_dumps }}</script>
+    {# 같은 개체 묶음 (P11). 판이 하나뿐이면 묶을 것이 없어 links 도 안 온다 #}
+    <script type="application/json" id="links-stack">{{ links|json_dumps }}</script>
   {% endif %}
   {% include "viewer/_detection.html" with det=base_det base=base_rel uid="stack" title="검출결과 검토" shot=base_name image_id=base_image %}
 {% endif %}

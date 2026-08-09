@@ -63,6 +63,10 @@ urlpatterns = [
     path("api/threshold/masks", views.threshold_masks, name="threshold_masks"),
     path("api/threshold/history", views.threshold_history, name="threshold_history"),
     path("d/<slug:slug>/g/<int:gid>/", views.group, name="group"),
+    # 같은 개체 묶음 (P11) — 묶음 하나 단위. /review 에 안 싣는 이유는
+    # views.save_object_link 머리말에 있다.
+    path("d/<slug:slug>/g/<int:gid>/link", views.save_object_link,
+         name="save_link"),
     # 시야 가르기. POST 전용이고 confirm=1 인 두 번째 POST 만 실제로 고친다.
     path("d/<slug:slug>/g/<int:gid>/split", views.split_group,
          name="split_group"),

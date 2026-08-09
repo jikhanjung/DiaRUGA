@@ -18,7 +18,9 @@ from django.views.decorators.http import require_POST
 
 from . import (antarctica, data, korea, manage_data, outcrop,
                regroup, thresholds as th)
-from .models import (Detection, Locality, ObjectReview, Run,  # noqa: E501
+from .models import (Candidate, Detection, Image as ImageModel,  # noqa: E501
+                     Locality, ObjectLink, ObjectLinkMember,
+                     ObjectReview, Run,
                      Sample, Site,
                      Slide, ThresholdSet, Viewpoint)
 
@@ -1256,6 +1258,125 @@ def _thumbnail(path, width):
     except OSError:
         return None
     return out
+
+
+@require_POST
+def save_object_link(request, slug, gid):
+    """같은 개체 묶음 하나를 저장하거나 푼다 (P11 2단계).
+
+        {"act": "save",   "link_id": 3 또는 없음,
+         "members": [{"image": 12, "mask_key": "10_10_50_50", "rep": true}, …]}
+        {"act": "unlink", "link_id": 3}
+
+    **`/review` 에 싣지 않는다.** 그 길은 "그 시야의 교정 전체를 갈아치운다"
+    는 전제 위에 있고 두 번 사고 낸 자리다 — 전제가 다른 자료를 같은 길에
+    실으면 세 번째가 된다. 여기는 묶음 하나 단위다.
+
+    **서버가 다시 검사한다** (화면에서 막는 것은 막는 것이 아니다):
+    이미지가 그 시야의 것인가 · 마스크가 실재하는가(검토 대상 묶음의 현재
+    검출, 또는 사람이 그린 교정) · **지운 마스크가 아닌가** · 대표가 정확히
+    하나인가 · 멤버가 둘 이상인가. 기하는 서버가 스스로 뜬다 — 화면이 보낸
+    것을 믿지 않는다.
+    """
+    vp = (Viewpoint.objects.filter(slide__slug=slug, idx=gid)
+          .select_related("slide").first())
+    if vp is None:
+        raise Http404(f"unknown viewpoint: {slug}/g{gid}")
+
+    def bad(msg, status=400):
+        return JsonResponse({"ok": False, "error": msg}, status=status)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return bad("JSON 이 아니다")
+
+    act = payload.get("act") or "save"
+    link_id = payload.get("link_id")
+
+    if act == "unlink":
+        link = ObjectLink.objects.filter(pk=link_id, viewpoint=vp).first()
+        if link is None:
+            return bad("그 묶음이 이 시야에 없다", 404)
+        link.delete()
+        return JsonResponse({"ok": True, "links": data.object_links_of(vp)})
+
+    if act != "save":
+        return bad(f"모르는 act: {act}")
+
+    rb = data.review_batch_id()
+    if rb is None:
+        return bad("검토 대상 묶음이 정해져 있지 않다")
+
+    members = payload.get("members") or []
+    if len(members) < 2:
+        return bad("멤버가 둘 미만이다 — 혼자인 묶음은 뜻이 없다")
+    reps = [m for m in members if m.get("rep")]
+    if len(reps) != 1:
+        return bad(f"대표가 {len(reps)}개다 — 정확히 하나여야 한다")
+
+    # 이미지 → 시야 검증을 한 번에. 남의 시야 이미지는 화면에 안 그려지므로
+    # 여기 걸리는 것은 화면 밖에서 만든 요청이다.
+    img_ids = [m.get("image") for m in members]
+    if len(set(img_ids)) != len(img_ids):
+        return bad("같은 이미지의 멤버가 둘이다")
+    # `ImageModel` 이다 — 이 파일은 PIL 의 `Image` 를 함수 안에서 따로
+    # 임포트한다. 같은 이름을 쓰면 어느 쪽인지 읽는 사람이 매번 따져야 한다.
+    imgs = {i.pk: i for i in ImageModel.objects.filter(pk__in=img_ids)}
+    resolved = []
+    for m in members:
+        img = imgs.get(m.get("image"))
+        key = m.get("mask_key") or ""
+        if img is None or img.viewpoint_id != vp.pk:
+            return bad(f"이미지 {m.get('image')} 가 이 시야의 것이 아니다")
+        # 마스크가 실재하는가 — 검토 대상 묶음의 현재 검출에서 찾고, 없으면
+        # 사람이 그린 교정에서 찾는다. 기하도 여기서 뜬다.
+        cand = (Candidate.objects
+                .filter(detection__image=img, detection__is_current=True,
+                        detection__run__batch_id=rb, mask_key=key)
+                .first())
+        if cand is not None:
+            # **지운 마스크는 못 묶는다.** 사람이 오검출로 지운 것을 묶으면
+            # "이 개체는 오검출이면서 실재한다" 가 된다.
+            gone = ObjectReview.objects.filter(
+                image=img, batch_id=rb, mask_key=key, removed=True).exists()
+            if gone:
+                return bad(f"{key} 는 오검출로 지운 마스크다")
+            geom = {"bbox_xywh": [cand.bbox_x, cand.bbox_y,
+                                  cand.bbox_w, cand.bbox_h],
+                    "polygon": cand.polygon}
+            resolved.append((img, rb, key, bool(m.get("rep")), geom))
+            continue
+        drawn = ObjectReview.objects.filter(
+            image=img, batch__isnull=True, mask_key=key).first()
+        if drawn is not None and not drawn.removed:
+            resolved.append((img, None, key, bool(m.get("rep")), drawn.geom))
+            continue
+        return bad(f"{key} 는 이 화면의 마스크가 아니다")
+
+    try:
+        with transaction.atomic():
+            if link_id:
+                link = ObjectLink.objects.filter(pk=link_id,
+                                                 viewpoint=vp).first()
+                if link is None:
+                    return bad("그 묶음이 이 시야에 없다", 404)
+                # 고치기는 갈아끼우기다 — 묶음 하나 단위라 안전하다
+                link.members.all().delete()
+                link.batch_id = rb
+                link.save(update_fields=["batch"])
+            else:
+                link = ObjectLink.objects.create(viewpoint=vp, batch_id=rb)
+            for img, b, key, rep, geom in resolved:
+                ObjectLinkMember.objects.create(
+                    link=link, image=img, batch_id=b, mask_key=key,
+                    is_rep=rep, geom=geom)
+    except IntegrityError:
+        # 유일 제약 — 그 마스크가 이미 다른 묶음에 속해 있다
+        return bad("멤버 중 하나가 이미 다른 묶음에 속해 있다", 409)
+
+    return JsonResponse({"ok": True, "link_id": link.pk,
+                         "links": data.object_links_of(vp)})
 
 
 @require_POST

@@ -24,7 +24,7 @@ from django.utils import timezone
 from . import antarctica, korea, outcrop
 from . import shape
 from .models import (Candidate, ClassDef, Detection, Frame, Locality,
-                     ObjectReview,
+                     ObjectLink, ObjectReview,
                      Run, RunBatch, Site, Slide, Stack, Viewpoint,
                      ViewpointReview)
 
@@ -841,6 +841,24 @@ def review_batch_id():
     """
     return (RunBatch.objects.filter(for_review=True)
             .values_list("id", flat=True).first())
+
+
+def object_links_of(vp) -> list[dict]:
+    """이 시야의 같은 개체 묶음 (P11). 화면이 그대로 쓰는 모양으로 낸다.
+
+    멤버는 `(image, mask_key)` 로 화면의 마스크와 만난다 — 화면 쪽 `keyOf` 와
+    같은 규칙이다. batch 는 안 낸다: 화면은 검토 대상 묶음 하나만 보고 있고,
+    다른 묶음의 마스크는 애초에 안 그려진다.
+    """
+    out = []
+    for l in (ObjectLink.objects.filter(viewpoint=vp)
+              .prefetch_related("members")):
+        out.append({
+            "id": l.pk,
+            "members": [{"image": m.image_id, "mask_key": m.mask_key,
+                         "rep": m.is_rep} for m in l.members.all()],
+        })
+    return out
 
 
 def current_detections(vp: Viewpoint) -> list:
@@ -1825,7 +1843,7 @@ def dataset_detail(slug: str) -> dict | None:
     }
 
 
-def _review_shot(d: dict, image_id: int) -> dict:
+def _review_shot(d: dict, image_id: int, rel: str = "") -> dict:
     """캐러셀이 판을 바꿀 때 갈아 끼울 것 — **교정 상태까지 통째로**.
 
     읽기 전용 쪽(`engine_viewpoint._shot`)은 그릴 것만 넘기면 된다. 저장을 안 해
@@ -1841,6 +1859,9 @@ def _review_shot(d: dict, image_id: int) -> dict:
                                      "round_frag", "eucampia") if c.get(k)]
     return {
         "image": image_id,
+        # **원본 경로** (P11). 묶기 팝업이 다른 판의 크롭을 청할 때 쓴다 —
+        # 화면의 크롭 요청(`/crop?p=…`)이 경로를 받기 때문이다.
+        "rel": rel,
         "candidates": d["candidates"],
         "gone": d["removed_candidates"],
         "rejected": d["rejected"],
@@ -1972,12 +1993,12 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
     if stack and st and st.focused_path in by_path:
         stack["detkey"] = STACK_KEY
         iid, sd = by_path[st.focused_path]
-        shots[STACK_KEY] = _review_shot(sd, iid)
+        shots[STACK_KEY] = _review_shot(sd, iid, st.focused_path)
         pool.append({"key": STACK_KEY, "rel": st.focused_path, "det": sd,
                      "image": iid, "name": "합성본"})
     for f in frames:
         if f["detection"] and f["image_id"]:
-            shots[f["name"]] = _review_shot(f["detection"], f["image_id"])
+            shots[f["name"]] = _review_shot(f["detection"], f["image_id"], f["rel"])
             pool.append({"key": f["name"], "rel": f["rel"],
                          "det": f["detection"], "image": f["image_id"],
                          "name": f["name"]})
@@ -2016,6 +2037,8 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
         # `_detection.html` 의 `swapDet` 이 자료가 없으면 곧장 빠져나가므로
         # 지금까지와 똑같이 돈다.
         "shot_dets": shots if len(shots) > 1 else None,
+        # 같은 개체 묶음 (P11). 판이 하나뿐이면 묶을 것이 없다 — 안 낸다.
+        "links": object_links_of(vp) if len(shots) > 1 else [],
         # 처음 열리는 판. 캐러셀이 움직이면 JS 가 `image` 까지 따라 바꾼다.
         "base_rel": best["rel"] if best else None,
         "base_det": det,

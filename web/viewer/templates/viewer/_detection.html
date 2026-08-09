@@ -1704,7 +1704,7 @@
   // 9배까지 늘어나(실측 종횡비 0.15~7.2) 형태를 보고 판단할 수가 없다.
   var SPREAD_MAX_W = 220, SPREAD_MAX_H = 170;
 
-  function cropWithMask(c) {
+  function cropWithMask(c, relOverride) {
     var b = c.bbox_xywh;
     // 여백을 직접 계산해 서버에 pad=0 으로 넘긴다. 잘린 범위를 알아야
     // 폴리곤을 그 위에 정확히 얹을 수 있다.
@@ -1724,7 +1724,7 @@
     var im = document.createElement('img');
     // 화면에 필요한 만큼만 받는다(고밀도 화면을 감안해 2배, 서버가 512 로 제한).
     var req = Math.min(512, 2 * Math.max(dw, dh));
-    im.src = ROOT + '/crop?p=' + encodeURIComponent(currentImageRel()) +
+    im.src = ROOT + '/crop?p=' + encodeURIComponent(relOverride || currentImageRel()) +
       '&b=' + [x0, y0, cw, ch].join(',') + '&pad=0&w=' + req;
     im.alt = '';
     wrap.appendChild(im);
@@ -1822,6 +1822,277 @@
     if (spread && !spread.contains(e.target)) closeSpread();
   });
 
+  // --- 같은 개체 묶기 (P11 2단계) -------------------------------------------
+  // 여러 초점면에 잡힌 같은 규조각을 사람이 골라 묶는다. 후보 계산은 여기서
+  // 한다 — 화면이 프레임마다의 검출을 이미 들고 있다(shotDets·stateOf).
+  //
+  // **stateOf 를 쓰는 것이 요점이다** (사용자 지적 2026-08-09). 서버가 준 초기
+  // 상태(shotDets)가 아니라 **화면의 지금 상태**를 봐야 한다 — 방금 지운 마스크는
+  // 후보에서 빠지고, 방금 그린 마스크는 후보에 든다.
+  var links = [];
+  try {
+    var lkEl = document.getElementById('links-' + uid);
+    if (lkEl) links = JSON.parse(lkEl.textContent || '[]');
+  } catch (e2) { links = []; }
+
+  function linkOf(imageId, key) {
+    var iid = Number(imageId);
+    for (var i = 0; i < links.length; i++) {
+      var ms = links[i].members;
+      for (var j = 0; j < ms.length; j++)
+        if (ms[j].image === iid && ms[j].mask_key === key) return links[i];
+    }
+    return null;
+  }
+
+  // 묶기가 성립하는 화면인가 — 판이 둘 이상이어야 묶을 상대가 있다
+  function canLink() {
+    return !readOnly && shotDets && Object.keys(shotDets).length > 1;
+  }
+
+  var linkPanel = null;
+  function closeLinkPanel() {
+    if (!linkPanel) return;
+    document.removeEventListener('keydown', linkPanel._key, true);
+    document.removeEventListener('mousedown', linkPanel._out, true);
+    linkPanel.remove(); linkPanel = null;
+  }
+
+  function bboxIoU(a, b) {
+    var ix = Math.max(0, Math.min(a[0] + a[2], b[0] + b[2]) - Math.max(a[0], b[0]));
+    var iy = Math.max(0, Math.min(a[1] + a[3], b[1] + b[3]) - Math.max(a[1], b[1]));
+    var inter = ix * iy;
+    return inter ? inter / (a[2] * a[3] + b[2] * b[3] - inter) : 0;
+  }
+
+  function openLinkPanel(idx) {
+    closeLinkPanel(); closeMenu(); closeSpread();
+    var anchor = cands[idx];
+    if (!anchor || !canLink()) return;
+    stash();                          // 지금 판의 편집 상태를 담아 둔다
+    var anchorKey = keyOf(anchor);
+    var ab = anchor.bbox_xywh;
+    var existing = linkOf(curImage, anchorKey);
+
+    // 판 순서는 캐러셀 그대로 (합성본 → 프레임). 검출이 있는 판만.
+    var order = [];
+    shots.forEach(function (sh) {
+      var k = sh.dataset.detkey;
+      if (k && shotDets[k]) order.push({ key: k, title: sh.dataset.title || k });
+    });
+    var imageToKey = {};
+    order.forEach(function (o) {
+      imageToKey[String((shotDets[o.key] || {}).image)] = o.key;
+    });
+
+    // 선택 상태. picked[key] = 후보 dict | null("없음")
+    var picked = {}, repKey = curKey;
+    if (existing) {
+      existing.members.forEach(function (m) {
+        var k = imageToKey[String(m.image)];
+        if (!k) return;
+        var st = stateOf(k);
+        var c = st.cands.find(function (x) { return keyOf(x) === m.mask_key; });
+        if (c) { picked[k] = c; if (m.rep) repKey = k; }
+      });
+    }
+    picked[curKey] = anchor;          // 닻은 늘 들어 있다
+
+    // 닻 근처의 살아 있는 후보 — 지운 것은 빠지고 그린 것은 든다 (stateOf).
+    // 창은 닻 bbox 1.5배, 거리순 3개 (실측 090).
+    function nearOf(key) {
+      var st = stateOf(key);
+      var live = st.cands.filter(function (c) { return !st.removed.has(keyOf(c)); });
+      var mx = ab[2] * 0.25, my = ab[3] * 0.25;
+      var near = live.filter(function (c) {
+        var b = c.bbox_xywh;
+        var cx = b[0] + b[2] / 2, cy = b[1] + b[3] / 2;
+        return ab[0] - mx <= cx && cx <= ab[0] + ab[2] + mx &&
+               ab[1] - my <= cy && cy <= ab[1] + ab[3] + my;
+      });
+      function d2(c) {
+        var b = c.bbox_xywh;
+        var dx = (b[0] + b[2] / 2) - (ab[0] + ab[2] / 2);
+        var dy = (b[1] + b[3] / 2) - (ab[1] + ab[3] / 2);
+        return dx * dx + dy * dy;
+      }
+      near.sort(function (p, q) { return d2(p) - d2(q); });
+      return near.slice(0, 3);
+    }
+
+    // **미리 고르기는 열 때 한 번만 한다** (실측 090 · 사용자 승인): 최선
+    // IoU ≥ 0.5 이고 차선과의 간격 ≥ 0.3 일 때만. 헷갈리는 자리는 사람 손에
+    // 남긴다. render() 안에서 하면 **"(없음)" 으로 뺀 것을 다음 그리기가 도로
+    // 찍는다** — 브라우저 시험이 실제로 잡았다.
+    if (!existing) {
+      order.forEach(function (o) {
+        if (o.key === curKey || (o.key in picked)) return;
+        var near = nearOf(o.key);
+        if (!near.length) return;
+        var ious = near.map(function (c) { return bboxIoU(ab, c.bbox_xywh); });
+        var bi = ious.indexOf(Math.max.apply(null, ious));
+        var second = Math.max.apply(null,
+          ious.filter(function (_, i) { return i !== bi; }).concat([0]));
+        if (ious[bi] >= 0.5 && ious[bi] - second >= 0.3) picked[o.key] = near[bi];
+      });
+    }
+
+    linkPanel = document.createElement('div');
+    linkPanel.className = 'spread linkpanel';
+    var head = document.createElement('div');
+    head.className = 'shead';
+    head.innerHTML = (existing ? '<b>묶음 고치기</b>' : '<b>동일 개체 묶기</b>') +
+      ' — 프레임마다 이 개체를 고르십시오 · <b>★ = 대표</b> · 없으면 (없음)';
+    linkPanel.appendChild(head);
+    var x = document.createElement('button');
+    x.type = 'button'; x.className = 'sclose'; x.title = '닫기 (Esc)';
+    x.textContent = '✕';
+    x.addEventListener('click', function (ev) { ev.stopPropagation(); closeLinkPanel(); });
+    linkPanel.appendChild(x);
+
+    var err = document.createElement('div');
+    err.className = 'lerr';
+    linkPanel.appendChild(err);
+
+    function starEl(key) {
+      var st = document.createElement('span');
+      st.className = 'lstar' + (repKey === key ? ' on' : '');
+      st.textContent = '★';
+      st.title = repKey === key ? '이 판이 대표입니다'
+                                : '이 판을 대표로 (학습 자료의 얼굴이 된다)';
+      st.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        repKey = key; render();
+      });
+      return st;
+    }
+
+    var body = document.createElement('div');
+    linkPanel.appendChild(body);
+
+    function render() {
+      body.innerHTML = '';
+      order.forEach(function (o) {
+        var key = o.key;
+        var st = stateOf(key);
+        var row = document.createElement('div');
+        row.className = 'lrow';
+        var name = document.createElement('span');
+        name.className = 'lname';
+        name.textContent = o.title;
+        row.appendChild(name);
+        var cell = document.createElement('span');
+        cell.className = 'lcands';
+        row.appendChild(cell);
+
+        if (key === curKey) {
+          // 닻 — 우클릭한 그 마스크. 바꿀 수 없다(바꾸고 싶으면 그 마스크에서
+          // 다시 연다). 별만 만질 수 있다.
+          var acell = document.createElement('span');
+          acell.className = 'scell on anchor';
+          acell.appendChild(cropWithMask(anchor, shotDets[key].rel));
+          acell.appendChild(starEl(key));
+          cell.appendChild(acell);
+          body.appendChild(row);
+          return;
+        }
+
+        var near = nearOf(key);
+        // 고쳐 열었을 때 이미 고른 것이 창 밖이어도 잃지 않는다
+        if (picked[key] && near.indexOf(picked[key]) < 0) near.unshift(picked[key]);
+
+        near.forEach(function (c) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'scell' + (picked[key] === c ? ' on' : '');
+          b.appendChild(cropWithMask(c, shotDets[key].rel));
+          if (picked[key] === c) b.appendChild(starEl(key));
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            picked[key] = c; render();
+          });
+          cell.appendChild(b);
+        });
+        var none = document.createElement('button');
+        none.type = 'button';
+        none.className = 'lnone' + (picked[key] ? '' : ' on');
+        none.textContent = near.length ? '(없음)' : '(이 판에는 근처 후보가 없다)';
+        none.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          delete picked[key];
+          if (repKey === key) repKey = curKey;   // 대표가 빠지면 닻으로
+          render();
+        });
+        cell.appendChild(none);
+        body.appendChild(row);
+      });
+
+      // 발치 — 저장·풀기
+      var n = Object.keys(picked).length;
+      foot.innerHTML = '';
+      var saveB = document.createElement('button');
+      saveB.type = 'button'; saveB.className = 'btn';
+      saveB.textContent = existing ? '묶음 저장 (' + n + '장)' : '묶기 (' + n + '장)';
+      saveB.disabled = n < 2;
+      saveB.title = n < 2 ? '다른 판에서 최소 하나를 골라야 묶인다' : '';
+      saveB.addEventListener('click', function (ev) { ev.stopPropagation(); submit(); });
+      foot.appendChild(saveB);
+      if (existing) {
+        var un = document.createElement('button');
+        un.type = 'button'; un.className = 'btn warn';
+        un.textContent = '묶음 풀기';
+        un.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          submit({ act: 'unlink', link_id: existing.id });
+        });
+        foot.appendChild(un);
+      }
+    }
+
+    var foot = document.createElement('div');
+    foot.className = 'lfoot';
+    linkPanel.appendChild(foot);
+
+    function submit(body_) {
+      var payload = body_ || {
+        act: 'save',
+        link_id: existing ? existing.id : null,
+        members: Object.keys(picked).map(function (k) {
+          return { image: Number(stateOf(k).image),
+                   mask_key: keyOf(picked[k]),
+                   rep: k === repKey };
+        })
+      };
+      fetch(location.pathname.replace(/\/?$/, '/') + 'link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
+        .then(function (r) {
+          if (!r.j.ok) { err.textContent = r.j.error || ('저장 실패 (' + r.s + ')'); return; }
+          links = r.j.links || [];
+          closeLinkPanel();
+          flashNote(payload.act === 'unlink' ? '묶음을 풀었습니다'
+                    : '묶었습니다 (' + payload.members.length + '장)');
+        })
+        .catch(function () { err.textContent = '저장 실패 — 네트워크'; });
+    }
+
+    render();
+    document.body.appendChild(linkPanel);
+
+    // 열려 있는 동안 화면 단축키를 통째로 막는다 — q/w 가 분류를 바꾸면 안 된다.
+    linkPanel._key = function (ev) {
+      if (ev.key === 'Escape') { closeLinkPanel(); }
+      ev.stopPropagation();
+    };
+    document.addEventListener('keydown', linkPanel._key, true);
+    linkPanel._out = function (ev) {
+      if (linkPanel && !linkPanel.contains(ev.target)) closeLinkPanel();
+    };
+    document.addEventListener('mousedown', linkPanel._out, true);
+  }
+
   // --- 우클릭 컨텍스트 메뉴 -------------------------------------------------
   var menu = null;
   function closeMenu() { if (menu) { menu.remove(); menu = null; } }
@@ -1898,6 +2169,13 @@
         if (cands[one] && cands[one].geom_edited) {
           items.push({ label: '↺ 엔진이 낸 모양으로',
                        run: function () { editRevert(one); } });
+        }
+        // 같은 개체 묶기 (P11) — 판이 둘 이상일 때만 묶을 상대가 있다
+        if (canLink()) {
+          var lk0 = linkOf(curImage, keyOf(cands[one]));
+          items.push({ label: lk0 ? '⛓ 묶음 열기 (' + lk0.members.length + '장)'
+                                  : '⛓ 동일 개체 묶기',
+                       run: function () { openLinkPanel(one); } });
         }
       }
       items.push({ sep: true });
