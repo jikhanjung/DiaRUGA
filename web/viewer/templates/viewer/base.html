@@ -1320,6 +1320,17 @@
   .linkpanel .lerr { color: var(--danger); font-size: 12px; min-height: 0; }
   .linkpanel .lerr:not(:empty) { margin: 4px 0 8px; }
   .linkpanel .lfoot { display: flex; gap: 10px; margin-top: 12px; }
+
+  /* 묶인 개체 (P11 3단계). 상자 오른쪽 위의 사슬 — 마스크 색을 안 건드린다
+     (색은 분류가 말하고, 묶임은 정체에 대한 다른 축이다). */
+  .box.linked::after {
+    content: '⛓'; position: absolute; right: 1px; top: 0;
+    font-size: 11px; line-height: 1; color: #fff;
+    text-shadow: 0 0 3px rgba(0,0,0,.9); pointer-events: none;
+  }
+  /* 판을 넘어온 묶음의 짝 — 잠깐 밝힌다 */
+  .box.linkflash { outline: 2px solid var(--warn); outline-offset: 2px;
+                   transition: outline-color 1.2s ease-out; }
   .spread .sclose {
     position: absolute; right: 7px; top: 6px; width: 22px; height: 22px;
     display: flex; align-items: center; justify-content: center;

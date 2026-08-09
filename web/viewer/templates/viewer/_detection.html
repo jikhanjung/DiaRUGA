@@ -382,9 +382,27 @@
     CLS_FULL[d.key] = d.label;
   });
   function clsName(c) { return CLS_KO[c.cls] || '미분류'; }
+  // 이 마스크가 든 묶음의 한 줄 요약 (P11 3단계). linkOf 는 아래에서 선다 —
+  // 함수 선언이라 끌어올려지고, 말풍선은 hover 때에나 불린다.
+  function linkTipLine(c) {
+    var lk = (typeof linkOf === 'function') && linkOf(curImage, keyOf(c));
+    if (!lk) return '';
+    var rep = lk.members.find(function (m) { return m.rep; });
+    var repName = '';
+    if (rep && shotDets) {
+      Object.keys(shotDets).forEach(function (k) {
+        if (Number(shotDets[k].image) === rep.image)
+          repName = (k === STACK_KEY) ? '합성본' : k;
+      });
+    }
+    return '<div class="dim">⛓ ' + lk.members.length + '장 묶음' +
+      (repName ? ' · 대표: ' + repName.replace('Snap-', '') : '') + '</div>';
+  }
+
   function tipHtml(c) {
     return '<b>#' + c.id + ' · ' + (CLS_FULL[c.cls] || '미분류') +
       (c.cls_user ? ' · 사람 지정' : '') + (c.manual ? ' · 수동복구' : '') + '</b>' +
+      linkTipLine(c) +
       (c.cls_user && c.cls_auto ? '<div class="dim">자동 판정: ' +
         (CLS_FULL[c.cls_auto] || '미분류') + '</div>' : '') +
       (c.note ? '<div style="margin:3px 0;white-space:pre-wrap">📝 ' + c.note + '</div>' : '') +
@@ -722,6 +740,16 @@
       }
       return;
     }
+    // **고른 개체의 묶음을 들고 간다** (P11 3단계). 판을 넘기면 선택이
+    // 사라지는데, 묶어 둔 개체라면 다음 판에서 그 짝이 반짝여야 "지금 보는
+    // 이것이 아까 그것" 을 눈이 따라간다.
+    followLinks = [];
+    sel.forEach(function (i) {
+      var c = cands[i];
+      var lk = c && typeof linkOf === 'function' && linkOf(curImage, keyOf(c));
+      if (lk) followLinks.push(lk.id);
+    });
+
     // **떠나기 전에 밀어낸다.** 지연 저장이 걸린 채로 판을 옮기면 그 교정이
     // 사라진다 — 시야를 옮길 때 `flushSave` 를 부르는 것과 같은 이유다.
     flushSave();
@@ -772,6 +800,22 @@
     sel.clear();
     build();
     redraw();
+    flashFollowed();
+  }
+
+  // 넘어온 판에서 들고 온 묶음의 짝을 잠깐 밝힌다 (P11 3단계)
+  var followLinks = [];
+  function flashFollowed() {
+    if (!followLinks.length) return;
+    var ids = followLinks; followLinks = [];
+    cands.forEach(function (c, i) {
+      var lk = linkOf(curImage, keyOf(c));
+      if (!lk || ids.indexOf(lk.id) < 0) return;
+      var el = elByIdx[i];
+      if (!el) return;
+      el.classList.add('linkflash');
+      setTimeout(function () { el.classList.remove('linkflash'); }, 1400);
+    });
   }
 
   function commit(i, scroll) {
@@ -1082,6 +1126,10 @@
       boxStyle(el, c.bbox_xywh);
       el.dataset.i = i;
       el.dataset.gone = gone ? '1' : '';
+      // 묶인 개체 표시 (P11 3단계) — 사슬은 CSS 의 ::after 가 그린다.
+      if (!gone && typeof linkOf === 'function' && linkOf(curImage, keyOf(c))) {
+        el.classList.add('linked');
+      }
       // 지운 것은 마스크를 칠하지 않는다 — 점선 테두리만 남겨 아래 이미지를 본다.
       if (!gone) addPolygon(c, i);
       canvas.appendChild(el);
@@ -2072,6 +2120,7 @@
           if (!r.j.ok) { err.textContent = r.j.error || ('저장 실패 (' + r.s + ')'); return; }
           links = r.j.links || [];
           closeLinkPanel();
+          build();          // 사슬 배지가 그 자리에서 선다 — 새로고침을 안 기다린다
           flashNote(payload.act === 'unlink' ? '묶음을 풀었습니다'
                     : '묶었습니다 (' + payload.members.length + '장)');
         })

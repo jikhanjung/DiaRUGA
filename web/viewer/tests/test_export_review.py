@@ -76,7 +76,7 @@ class ExportFormat3Test(DiaRUGATestCase):
         fx.add_review(self.w.vp, self.w.keys()[0], image=frame_img, label="rod")
 
         j, _ = self.export()
-        self.assertEqual(j["format"], 3)
+        self.assertEqual(j["format"], 4)
         self.assertEqual(j["n_images"], 2, f"묶음이 둘이어야 한다: {j}")
         self.assertEqual(j["n_objects"], 2)
 
@@ -155,3 +155,84 @@ class ExportFormat3Test(DiaRUGATestCase):
         obj_lines = [ln for ln in text.splitlines()
                      if ln.strip().startswith('{"key"')]
         self.assertEqual(len(obj_lines), 1)
+
+
+class ExportFormat4LinksTest(DiaRUGATestCase):
+    """형식 4 — 같은 개체 묶음(`links`)이 감사 기록에 실린다 (P11 4단계).
+
+    묶음은 사람이 프레임마다 골라 만든 재생성 불가 자료다 — 교정과 같은 무게로
+    git 에 남아야 하고, `--check` 가 표류를 잡아야 한다(렌더가 결정적이어야
+    그 대조가 성립한다).
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_frames=3, n_candidates=3)
+        cls.extra = fx.add_frame_detections(cls.w.vp)
+
+    def export(self):
+        raw = connection.cursor().connection
+        was = raw.row_factory
+        raw.row_factory = sqlite3.Row
+        try:
+            views = export_review.fetch(raw)
+        finally:
+            raw.row_factory = was
+        v = views[(self.w.slug, self.w.vp.idx)]
+        text = export_review.render(v)
+        return json.loads(text), text
+
+    def link(self):
+        from ..models import ObjectLink, ObjectLinkMember
+        batch = RunBatch.objects.get(label="sam2-시험")
+        stack_img = self.w.detection().image
+        _, frame_img, _ = self.extra[0]
+        lk = ObjectLink.objects.create(viewpoint=self.w.vp, batch=batch)
+        ObjectLinkMember.objects.create(
+            link=lk, image=stack_img, batch=batch,
+            mask_key=self.w.keys()[0], is_rep=True,
+            geom={"bbox_xywh": [40, 50, 60, 40]})
+        ObjectLinkMember.objects.create(
+            link=lk, image=frame_img, batch=batch,
+            mask_key=self.w.keys()[0], is_rep=False,
+            geom={"bbox_xywh": [41, 51, 60, 40]})
+        return lk
+
+    def test_묶음이_이름과_경로로_실린다(self):
+        """id 가 아니라 **이름·경로**다 — 감사 기록은 두 DB 를 견주는 물건이라
+        저장소마다 달라지는 id 를 적으면 diff 가 거짓말을 한다."""
+        self.link()
+        j, text = self.export()
+        self.assertEqual(j["n_links"], 1)
+        lk = j["links"][0]
+        self.assertEqual(lk["batch"], "sam2-시험")
+        ms = lk["members"]
+        self.assertEqual(len(ms), 2)
+        # 합성본이 먼저다 (차례를 못 박는다)
+        self.assertEqual(ms[0]["kind"], "stack")
+        self.assertTrue(ms[0]["rep"])
+        self.assertTrue(ms[0]["image"].endswith(".jpg"))
+        self.assertNotIn('"image_id"', text)
+
+    def test_렌더가_결정적이다(self):
+        """`--check` 는 문자열 대조다 — 두 번 렌더해 다르면 대조가 못 선다."""
+        self.link()
+        _, a = self.export()
+        _, b = self.export()
+        self.assertEqual(a, b)
+
+    def test_묶음만_있는_시야도_내보낸다(self):
+        """교정 없이 묶음만 있어도 재생성 불가다 — 빠뜨리면 조용히 잃는다."""
+        self.link()
+        # 교정을 하나도 안 만들었다 — groups 가 비고 links 만 있다
+        j, _ = self.export()
+        self.assertEqual(j["n_links"], 1)
+
+    def test_묶음이_없으면_links_는_빈_목록이다(self):
+        # 표시가 하나도 없는 시야는 아예 안 내보낸다(맞는 동작) — 교정 하나를
+        # 깔아 시야가 내보내지게 한 뒤 links 가 비어 있는 것을 본다.
+        fx.add_review(self.w.vp, self.w.keys()[0], removed=True)
+        j, text = self.export()
+        self.assertEqual(j["links"], [])
+        self.assertIn('"links": []', text)

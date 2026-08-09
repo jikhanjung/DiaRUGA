@@ -97,7 +97,12 @@ OUT = ROOT / "review"
 #
 # 프레임별 검토와 묶음 갈아타기가 그 전제를 깬다: 프레임 검출을 올리면 시야마다
 # 이미지가 3.6장이 되고, 회차를 돌리면 같은 이미지에 묶음이 여럿 앉는다.
-FORMAT = 3
+#
+# 형식 4 (P11): **같은 개체 묶음(`links`)이 실린다.** 사람이 프레임마다 골라
+# 묶은 것이라 교정과 같은 무게의 재생성 불가 자료다 — 같은 감사 기록으로 간다.
+# 묶음이 없는 시야는 `"links": []` 다. 옛 DB(0030 이전 백업)에는 표가 없어
+# 조용히 빈 목록이 된다 — 이 스크립트는 두 시점을 견주는 도구라 옛 판도 읽는다.
+FORMAT = 4
 
 # 묶음(그룹) 정렬 — 합성본이 먼저다. **차례가 정해져 있어야 diff 가 읽힌다.**
 _KIND_ORDER = {"stack": 0, "frame": 1, "depth": 2}
@@ -218,12 +223,54 @@ def fetch(conn, slide_slug=None) -> dict:
                                     "batch": label, "objects": []})
         g["objects"].append(obj)
 
+    # 같은 개체 묶음 (P11 · 형식 4). 표가 없는 옛 DB 면 조용히 빈 목록 —
+    # 위의 `image_id` 칸 처리와 같은 갈래다.
+    for v in views.values():
+        v["links"] = []
+    have_links = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table'"
+        " AND name='viewer_objectlink'").fetchone()
+    if have_links:
+        link_rows = {}
+        for r in conn.execute("""
+            SELECT l.id, l.viewpoint_id, l.batch_id, l.note,
+                   m.image_id, m.batch_id AS mbatch, m.mask_key, m.is_rep, m.geom
+              FROM viewer_objectlink l
+              JOIN viewer_objectlinkmember m ON m.link_id = l.id
+        """):
+            v = views.get(r["viewpoint_id"])
+            if v is None:
+                continue
+            lk = link_rows.setdefault(r["id"], {
+                "viewpoint": r["viewpoint_id"],
+                "batch": batch_name.get(r["batch_id"], "") if r["batch_id"] else "",
+                "note": r["note"] or "", "members": []})
+            path, kind = images.get(r["image_id"], ("", ""))
+            try:
+                geom = json.loads(r["geom"]) if r["geom"] else {}
+            except (TypeError, ValueError):
+                geom = {}
+            lk["members"].append({
+                "image": path, "kind": kind,
+                "batch": batch_name.get(r["mbatch"], "") if r["mbatch"] else "",
+                "key": r["mask_key"], "rep": bool(r["is_rep"]), "geom": geom})
+        # **차례를 못 박는다** — 멤버는 합성본 먼저 경로순, 묶음은 첫 멤버의
+        # (경로, 키) 순. DB 마다 달라지는 id 로 늘어놓으면 diff 가 거짓말을 한다.
+        for lk in link_rows.values():
+            lk["members"].sort(key=lambda m: (_KIND_ORDER.get(m["kind"], 9),
+                                              m["image"], m["key"]))
+        for lk in sorted(link_rows.values(),
+                         key=lambda l: (l["members"][0]["image"],
+                                        l["members"][0]["key"])):
+            views[lk.pop("viewpoint")]["links"].append(lk)
+
     # **표시가 하나도 없는 시야는 내보내지 않는다.** 452개 중 432개만 자료가
     # 있는데, 빈 파일 20개를 두면 "아직 안 본 것" 과 "봤는데 고칠 게 없던 것" 이
     # 파일 있음/없음으로 구분되지 않는다. 후자는 `done` 이 켜져 있다.
     out = {}
     for v in views.values():
-        if not v["groups"] and not v["done"] and not v["note"]:
+        if (not v["groups"] and not v["done"] and not v["note"]
+                and not v["links"]):
             continue
         # **차례를 못 박는다** — 합성본 먼저, 그다음 프레임을 경로순으로.
         # dict 가 넣은 순서를 기억한다고 기대면 DB 의 행 순서가 바뀔 때마다
@@ -256,7 +303,8 @@ def render(v: dict) -> str:
     n_obj = sum(len(g["objects"]) for g in v["groups"])
     head = {"format": FORMAT, "slide": v["slide"], "gid": v["gid"],
             "tag": v["tag"], "done": v["done"], "note": v["note"],
-            "n_images": len(v["groups"]), "n_objects": n_obj}
+            "n_images": len(v["groups"]), "n_objects": n_obj,
+            "n_links": len(v.get("links", []))}
     lines = ["{"]
     for k, val in head.items():
         lines.append(f"  {json.dumps(k)}: {json.dumps(val, ensure_ascii=False)},")
@@ -275,6 +323,27 @@ def render(v: dict) -> str:
                                                  separators=(", ", ": ")) + comma)
         lines.append("      ]")
         lines.append("    }" + gcomma)
+    lines.append("  ],")
+    # 같은 개체 묶음 (형식 4). 멤버 하나가 한 줄 — 개체와 같은 규칙이다.
+    # 비어 있으면 한 줄이다 — 묶음이 없는 파일(대부분)에 두 줄을 보탤 이유가 없다.
+    lks = v.get("links", [])
+    if not lks:
+        lines.append('  "links": []')
+        lines.append("}")
+        return "\n".join(lines) + "\n"
+    lines.append('  "links": [')
+    for li, lk in enumerate(lks):
+        lcomma = "" if li == len(lks) - 1 else ","
+        lines.append("    {")
+        lines.append(f'      "batch": {json.dumps(lk["batch"], ensure_ascii=False)},')
+        lines.append(f'      "note": {json.dumps(lk["note"], ensure_ascii=False)},')
+        lines.append('      "members": [')
+        for mi, m in enumerate(lk["members"]):
+            mcomma = "" if mi == len(lk["members"]) - 1 else ","
+            lines.append("        " + json.dumps(m, ensure_ascii=False,
+                                                 separators=(", ", ": ")) + mcomma)
+        lines.append("      ]")
+        lines.append("    }" + lcomma)
     lines.append("  ]")
     lines.append("}")
     return "\n".join(lines) + "\n"
@@ -301,7 +370,8 @@ def main():
         conn.close()
 
     n_obj = sum(len(g["objects"]) for v in views.values() for g in v["groups"])
-    print(f"{args.db}\n  시야 {len(views)} · 교정 {n_obj}")
+    n_lk = sum(len(v.get("links", [])) for v in views.values())
+    print(f"{args.db}\n  시야 {len(views)} · 교정 {n_obj} · 묶음 {n_lk}")
 
     want = {path_for(out_dir, slug, gid): render(v)
             for (slug, gid), v in views.items()}

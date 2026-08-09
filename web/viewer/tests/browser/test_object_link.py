@@ -82,6 +82,11 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         rep = link.members.get(is_rep=True)
         self.assertEqual(rep.image.kind, "stack", "기본 대표는 닻(합성본)이다")
 
+        # **사슬 배지가 새로고침 없이 선다** (3단계) — 저장 성공 갈래가
+        # build() 를 다시 부른다.
+        self.assertIsNotNone(self.page.query_selector(".box.linked"),
+                             "묶었는데 사슬 배지가 없다")
+
         # 같은 자리에서 다시 열면 "묶음 열기"
         menu = self.context_menu_at(70, 70)
         self.assertIsNotNone(self.menu_item(menu, "묶음 열기"),
