@@ -3,12 +3,22 @@
   "slide": "wap13-gc47_116cm",
   "gid": 46,
   "tag": "g046_Snap-21263-21263",
-  "done": false,
+  "done": true,
   "note": "",
-  "n_images": 1,
-  "n_objects": 15,
+  "n_images": 2,
+  "n_objects": 17,
   "n_links": 0,
   "images": [
+    {
+      "image": "photos/260729/WAP13-GC47 116cm/Snap-21263.jpg",
+      "kind": "frame",
+      "batch": "",
+      "n_objects": 2,
+      "objects": [
+        {"key": "m5de3a331", "removed": false, "accepted": false, "label": "chaetoceros", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [1121, 748, 94, 72], "polygon": [1142.0, 748.0, 1188.0, 763.0, 1215.0, 788.0, 1212.0, 811.0, 1200.0, 820.0, 1165.0, 803.0, 1133.0, 784.0, 1121.0, 767.0]}},
+        {"key": "m99ba2c08", "removed": false, "accepted": false, "label": "chaetoceros", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [732, 54, 114, 104], "polygon": [732.0, 59.0, 747.0, 114.0, 791.0, 155.0, 823.0, 158.0, 846.0, 124.0, 832.0, 90.0, 801.0, 69.0, 756.0, 54.0]}}
+      ]
+    },
     {
       "image": "photos/260729/WAP13-GC47 116cm/Snap-21263.jpg",
       "kind": "frame",

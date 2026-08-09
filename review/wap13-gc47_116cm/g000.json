@@ -6,16 +6,17 @@
   "done": true,
   "note": "",
   "n_images": 2,
-  "n_objects": 21,
+  "n_objects": 22,
   "n_links": 0,
   "images": [
     {
       "image": "photos/260729/WAP13-GC47 116cm/Snap-21171.jpg",
       "kind": "frame",
       "batch": "",
-      "n_objects": 5,
+      "n_objects": 6,
       "objects": [
         {"key": "m3fc6d7c7", "removed": false, "accepted": false, "label": "rod", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [1341, 188, 218, 366], "polygon": [1525.0, 188.0, 1559.0, 241.0, 1558.0, 419.0, 1524.0, 484.0, 1473.0, 539.0, 1420.0, 554.0, 1363.0, 550.0, 1341.0, 429.0, 1350.0, 360.0, 1376.0, 279.0, 1453.0, 203.0]}},
+        {"key": "m6a3dc7b9", "removed": false, "accepted": false, "label": "chaetoceros", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [2205, 232, 98, 48], "polygon": [2303.0, 259.0, 2290.0, 280.0, 2244.0, 280.0, 2205.0, 257.0, 2215.0, 240.0, 2244.0, 232.0, 2276.0, 232.0]}},
         {"key": "m7eff9e12", "removed": false, "accepted": false, "label": "chaetoceros", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [1627, 627, 84, 77], "polygon": [1706.0, 627.0, 1711.0, 671.0, 1685.0, 687.0, 1656.0, 703.0, 1627.0, 704.0, 1627.0, 675.0, 1648.0, 648.0, 1667.0, 631.0]}},
         {"key": "m9db7262b", "removed": false, "accepted": false, "label": "chaetoceros", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [1356, 1936, 79, 48], "polygon": [1435.0, 1952.0, 1424.0, 1976.0, 1393.0, 1984.0, 1359.0, 1974.0, 1356.0, 1958.0, 1391.0, 1936.0, 1423.0, 1937.0]}},
         {"key": "md462b96e", "removed": false, "accepted": false, "label": "chaetoceros", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [1268, 2116, 80, 62], "polygon": [1348.0, 2140.0, 1334.0, 2165.0, 1286.0, 2178.0, 1268.0, 2154.0, 1281.0, 2121.0, 1304.0, 2116.0, 1326.0, 2116.0, 1344.0, 2131.0]}},

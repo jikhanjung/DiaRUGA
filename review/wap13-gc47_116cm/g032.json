@@ -3,12 +3,21 @@
   "slide": "wap13-gc47_116cm",
   "gid": 32,
   "tag": "g032_Snap-21235-21237",
-  "done": false,
+  "done": true,
   "note": "",
-  "n_images": 1,
-  "n_objects": 11,
+  "n_images": 2,
+  "n_objects": 12,
   "n_links": 0,
   "images": [
+    {
+      "image": "stacked/g032_Snap-21235-21237_focused.jpg",
+      "kind": "stack",
+      "batch": "",
+      "n_objects": 1,
+      "objects": [
+        {"key": "m92ef98de", "removed": false, "accepted": false, "label": "rod_frag", "note": "", "bind": "manual", "source": "manual", "geom": {"bbox": [2107, 985, 125, 261], "polygon": [2136.0, 999.0, 2107.0, 1085.0, 2122.0, 1204.0, 2161.0, 1246.0, 2213.0, 1222.0, 2232.0, 1156.0, 2213.0, 1068.0, 2214.0, 1007.0, 2124.0, 985.0]}}
+      ]
+    },
     {
       "image": "stacked/g032_Snap-21235-21237_focused.jpg",
       "kind": "stack",
