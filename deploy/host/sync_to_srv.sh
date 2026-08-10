@@ -40,9 +40,26 @@ copy() {
 echo "$REPO → $SRV"
 copy deploy/srv/docker-compose.yml docker-compose.yml
 mkdir -p "$SRV/bin"
-for f in deploy.sh smoke.sh; do
-    copy "deploy/host/$f" "bin/$f"
+# **폴러도 여기 산다** (100). cron 이 저장소를 부르면 저장소가 없는 서버에서
+# 파이프라인이 통째로 안 돈다 — 운영에 필요한 것은 전부 /srv 안에 있어야 한다.
+for f in deploy.sh smoke.sh poll_nas.sh; do
+    src="deploy/host/$f"
+    [ -f "$REPO/$src" ] || src="deploy/$f"      # poll_nas.sh 는 deploy/ 에 있다
+    copy "$src" "bin/$f"
     chmod +x "$SRV/bin/$f"
+done
+
+# **운영·파이프라인 스크립트** (100). 저장소에서는 `pipeline/`·`ops/` 로 갈려
+# 있고 여기서는 **평평하게** 모인다 — 컨테이너가 이 디렉토리 하나만 물고,
+# 스크립트끼리의 임포트(`judge`·`zen_meta`·`runlog`)도 평평해야 선다.
+#
+# **`migrate/`·`tools/` 는 안 옮긴다.** 이전기·일회성 도구라 운영이 스스로
+# 부를 일이 없다 — 필요하면 그때 `dbsync.sh <이름>` 으로 하나만 옮긴다.
+mkdir -p "$SRV/scripts"
+for f in "$REPO"/pipeline/*.py "$REPO"/ops/*.py; do
+    n="$(basename "$f")"
+    case "$n" in test_*) continue;; esac      # 시험은 운영에 안 간다
+    copy "${f#$REPO/}" "scripts/$n"
 done
 
 # nginx 가 배포 중에 낼 안내 페이지. nginx(www-data)가 읽어야 하므로 권한을 연다.

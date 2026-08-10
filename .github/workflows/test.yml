@@ -41,7 +41,7 @@ jobs:
 
       # 파이프라인 쪽에서 뷰어와 무관하게 도는 순수 시험 하나.
       - name: test_zen_meta.py
-        run: python test_zen_meta.py
+        run: python pipeline/test_zen_meta.py
 
   browser:
     name: 브라우저 (4겹)

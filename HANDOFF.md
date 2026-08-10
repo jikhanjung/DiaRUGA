@@ -10,7 +10,7 @@
 **048 에서 저장소·경로·URL·DB 이름을 전부 `DiaRUGA` 로 옮겼다.** 소문자
 `diaruga` 는 기술이 강제하는 자리뿐이다 — Docker Hub 이미지, 파이썬 패키지
 `diarugaweb`, `localStorage` 키. 아직 `diatom` 인 것은 **생물 이름**이다
-(`segment_diatoms.py`·YOLO 클래스·NAS 의 `DiatomPhotos/`). devlog 와 `docs/` 의
+(`pipeline/segment_diatoms.py`·YOLO 클래스·NAS 의 `DiatomPhotos/`). devlog 와 `docs/` 의
 지난 기록은 그때 이름 그대로 두었다.
 
 **브랜치** main · 판 `v0.9.0` (파이프라인 `v0.5.1`)
@@ -160,7 +160,7 @@ nginx 가 80 에서 `/DiaRUGA/` 을 떼고 `127.0.0.1:8090` 의 컨테이너로 
 > `hotkey` · `counted` · `is_taxon` · `sort_order`, 그리고 **`base.html` 의 CSS**.
 > 목록은 `ClassDef` 머리말에 있다. 하나라도 비면 **예외는 안 나고 그 분류만
 > 조용히 다르게 굴러간다** — 마스크가 투명해 "지정은 되는데 안 보이는" 상태가
-> 실제로 될 뻔했다. `check_db.py` 가 단축키·색 두 개는 잡아 준다
+> 실제로 될 뻔했다. `ops/check_db.py` 가 단축키·색 두 개는 잡아 준다
 >
 > **색은 아직 테이블과 CSS 두 곳에 있다.** 테이블에서 뿜어내는 것이 근본인데 검토 화면
 > 렌더링을 통째로 건드리는 일이라 미뤘다. 그동안은 어긋날 수 있는 값이다
@@ -291,7 +291,7 @@ cd /srv/DiaRUGA && docker compose up -d web
 조용히 소속을 잃는다 — 딸린 것이 있으면 막고, **무엇이 몇 개 걸려 있는지 버튼에
 미리 적는다.** 서버가 다시 검사한다(화면에서 막는 것은 막는 것이 아니다).
 
-`check_db.py` 의 **7번(층)** 이 같은 것을 센다: 소속 없는 관찰 · 지점 유형과 안
+`ops/check_db.py` 의 **7번(층)** 이 같은 것을 센다: 소속 없는 관찰 · 지점 유형과 안
 맞는 위치 칸 · 위치 없는 시료 · 빈 지점.
 
 ### 노두 현장 사진 (063)
@@ -311,7 +311,7 @@ cd /srv/DiaRUGA && docker compose up -d web
 - **web 컨테이너에 그 폴더를 rw 로 물렸다.** 쓰는 곳은 `viewer/outcrop.py` 하나다
 - **지점 코드를 바꾸면 사진이 떨어진다.** 이름이 유일한 근거라 그렇다
 
-이미 있던 사진은 `shrink_outcrop.py` 로 줄였다(37.4 → 2.9 MB, 원본 사본은
+이미 있던 사진은 `tools/shrink_outcrop.py` 로 줄였다(37.4 → 2.9 MB, 원본 사본은
 `backup/outcrop-original/`).
 
 ### 파이프라인 (전부 DB)
@@ -320,7 +320,7 @@ cd /srv/DiaRUGA && docker compose up -d web
 scan_nas → ingest_nas → group_focus_series → focus_stack --slide → segment_diatoms --slide
 ```
 
-`import_json.py` 는 더 이상 파이프라인에 없다. `groups_*.json` 도 빠졌다 —
+`migrate/import_json.py` 는 더 이상 파이프라인에 없다. `groups_*.json` 도 빠졌다 —
 `-o` 를 줄 때만 내보낸다. 이 흐름을 `deploy/poll_nas.sh` 가 1분마다 돌린다.
 
 **GPU 를 쓰는 작업은 한 번에 하나만 돈다.** 잠금이 `segment_diatoms` 안에 있어서
@@ -383,35 +383,35 @@ Slide 1:N Viewpoint 1:N Image(kind = stack | frame | depth) 1:N Detection 1:N Ca
 
 ### 3.1 교정의 원본은 DB 다 — 감사 기록은 `review/` 로 나간다
 
-**6,732건이고 재생성 불가다.** 원본은 `DiaRUGA.db` 이고, `export_review.py` 가
+**6,732건이고 재생성 불가다.** 원본은 `DiaRUGA.db` 이고, `ops/export_review.py` 가
 `review/<슬라이드>/g<n>.json` 으로 내보낸다(P02 5단계 · P06 — 2026-08-05).
 git 에 남으므로 **`git diff` 로 "언제 무엇이 달라졌나" 가 보인다.**
 
 ```bash
-python export_review.py            # 저장소 review/ 로 (호스트 venv 로 돈다)
-python export_review.py --check    # 파일 ↔ DB 대조. 아무것도 쓰지 않는다
-python export_review.py --db /data3/DiaRUGA/backup/<사본>.db --out /tmp/before
+python ops/export_review.py            # 저장소 review/ 로 (호스트 venv 로 돈다)
+python ops/export_review.py --check    # 파일 ↔ DB 대조. 아무것도 쓰지 않는다
+python ops/export_review.py --db /data3/DiaRUGA/backup/<사본>.db --out /tmp/before
 diff -r /tmp/before review/        # 두 시점을 견준다
 ```
 
 > **왜 호스트에서 도는가** — Django 를 임포트하지 않고 sqlite3 로 **읽기 전용**
-> 으로만 열어서 `backup_db.py` 와 같은 자리다(9.2절의 예외 근거가 그대로 성립).
+> 으로만 열어서 `ops/backup_db.py` 와 같은 자리다(9.2절의 예외 근거가 그대로 성립).
 > 그래야 저장소에 바로 쓰고, 스키마가 바뀌는 동안에도 같은 도구로 견주고,
 > 백업 파일을 `--db` 로 그대로 읽는다.
 >
 > **파일 이름이 `(슬라이드, 시야)` 인 이유**: 옛 평면 형식(`<stem>_review.json`)은
 > stem 이 슬라이드끼리 겹쳐 **파일이 서로를 덮어썼다** — 053 과 같은 원인이다.
 
-**그래도 `backup_db.py` 가 첫 안전망이다** — 내보내기는 교정만 담는다.
+**그래도 `ops/backup_db.py` 가 첫 안전망이다** — 내보내기는 교정만 담는다.
 
 - `DiaRUGA.db` 는 gitignore 다. 실물은 `/srv/DiaRUGA/db/`
 - **큰 작업 전에 반드시** `deploy/host/dbrun.sh backup_db.py --note <설명>`
 - `cp DiaRUGA.db` 로 뜨지 말 것 — WAL 이라 불완전한 사본이 된다
 - 사본은 `/data3/DiaRUGA/backup/`, 오프사이트는 NAS (9.6절)
 
-### 3.2 이상하면 `check_db.py` 부터
+### 3.2 이상하면 `ops/check_db.py` 부터
 
-`refilter`·`segment_diatoms` 를 돌린 뒤, `judge.py` 의 판정 규칙을 고친 뒤, 그리고
+`refilter`·`segment_diatoms` 를 돌린 뒤, `pipeline/judge.py` 의 판정 규칙을 고친 뒤, 그리고
 숫자가 이상할 때 돌린다(1초). 여기서 잡는 것은 **예외가 나지 않고 그냥 틀린 상태**다.
 실제로 `--scale 1.0` 을 빠뜨려 두 시야가 절반 해상도로 검출된 것을 이 검사가 잡았다.
 
@@ -546,13 +546,13 @@ HTML 이 나온다" 까지만 본다. 못 보는 것:
 **남는 것은 배포 뒤 사람이 한 번 열어 봐야 한다** — 판을 낼 때 "무엇이 안
 덮였는지" 를 함께 적어 두는 편이 낫다.
 
-### 3.4 `import_json.py` 를 아무 때나 돌리지 말 것
+### 3.4 `migrate/import_json.py` 를 아무 때나 돌리지 말 것
 
 멱등이지만 **`Candidate` 를 지우고 다시 만든다.** 교정은 `mask_key` 로 붙으므로
 사라지지 않지만, DB 에서만 한 교정이 있는 상태에서 옛 JSON 을 다시 넣으면
 JSON 쪽 값으로 되돌아간다. **지금은 JSON 이 DB 보다 한참 낡았다 — 돌리지 말 것.**
 
-### 3.5 `tighten_bbox.py` 는 만들어 뒀지만 **적용하지 않았다**
+### 3.5 `migrate/tighten_bbox.py` 는 만들어 뒀지만 **적용하지 않았다**
 
 떠돌이 픽셀 하나가 bbox 를 부풀리는 문제(devlog 005 §5)를 고치는 스크립트다.
 dry-run 까지 했다. **`mask_key` 를 바꾸는 작업이라** P02 8단계(재바인딩·고아 화면)와
@@ -602,13 +602,13 @@ SQLite 를 다시 볼 문제가 된다.
 | 단계 | 상태 |
 |---|---|
 | 1. 모델 + 마이그레이션 + `DATABASES` | **끝** |
-| 2. `import_json.py` (멱등) | **끝** — 8초 |
-| 3. 대조 `verify_db.py` | **끝** — 검사 37개 전부 일치 |
+| 2. `migrate/import_json.py` (멱등) | **끝** — 8초 |
+| 3. 대조 `migrate/verify_db.py` | **끝** — 검사 37개 전부 일치 |
 | 4. 뷰어를 DB 로 | **끝** |
-| 5. `export_review.py` | **끝** — 2026-08-05. 시야 432 · 교정 6,732 (P06) |
+| 5. `ops/export_review.py` | **끝** — 2026-08-05. 시야 432 · 교정 6,732 (P06) |
 | 6. 스크립트 4개를 DB 에 쓰게 | **끝** — devlog 010·011·012 |
 | 7. JSON 을 원본에서 내리기 | **끝** — 2026-08-05. overlay JPG 를 아예 걷고(1,496장 752 MB · 아무도 안 읽었다), `out/*.json` 은 `--export-json` 뒤로 보냈다. 읽는 쪽은 전부 이전기·일회성 도구뿐이다 |
-| 8. 재바인딩 + 고아 화면 | **반** — `rebind.py` 는 만들었다(011). **`/orphans/` 화면이 없다** |
+| 8. 재바인딩 + 고아 화면 | **반** — `migrate/rebind.py` 는 만들었다(011). **`/orphans/` 화면이 없다** |
 
 8단계는 **학습·엔진 교체의 전제다.** 엔진이 바뀌면 `exact` 바인딩이 거의 0 이 되고,
 고아가 된 교정을 볼 화면이 없으면 사람의 판단이 조용히 버려진다. **YOLO 로 갈아탈
@@ -619,7 +619,7 @@ SQLite 를 다시 볼 문제가 된다.
 | 단계 | 상태 |
 |---|---|
 | 0. 전수 표시로 재현율 기준선 | **버렸다** — 비용 대비 얻는 것이 "SAM2 상한 대비 재현율" 뿐이었다 (023) |
-| 1~3. 자료 꾸러미 (`export_yolo.py`) | **끝** — 264 시야 · 개체 1,503 · 상자/폴리곤 두 벌 (023) |
+| 1~3. 자료 꾸러미 (`ops/export_yolo.py`) | **끝** — 264 시야 · 개체 1,503 · 상자/폴리곤 두 벌 (023) |
 | 4. 첫 학습 (11m, `imgsz=1280`) | **끝** — RTX 8000 에서 20분 (025) |
 | 5. 비교 | **끝** — conf 훑기까지 (025 §8) |
 | 6. 운영 반입 | **반** — 이미지에 ultralytics 는 들어갔다(032). **엔진은 안 갈았다** |
@@ -686,22 +686,22 @@ SQLite 를 다시 볼 문제가 된다.
 | `web/viewer/outcrop.py` | 노두 현장 사진. NAS 공유에 **파일로만** 산다 — DB 에 행이 없다 (063) |
 | `web/viewer/data.py` | DB → 뷰가 쓰는 dict. **읽기 전용이라는 약속이 있다** — **함수 이름·반환 형태를 JSON 시절과 같게 유지**했다. `_summary_by_sql`·`slide_label` 머리말에 "비싸다/싸다" 를 적어 뒀다 |
 | `web/viewer/antarctica.py` · `korea.py` | 미리 구운 해안선(EPSG:3031 · 5179). 투영식이 `tools/proj*.py` 와 **두 곳에 있다 — 함께 고쳐야 한다** |
-| `check_db.py` | **DB 무결성**. 검사 단위가 **슬라이드**다. 1초. **7번이 층을 본다** — 소속 없는 관찰을 여기서 잡는다 (063) |
-| `judge.py` | 판정 규칙. **여기가 유일한 정의다** (torch 없이 돈다) |
-| `zen_meta.py` | ZEN XML → 배율. **대물렌즈는 40x 로 고정 계산**한다 (015) |
-| `runlog.py` | `Run`·`RunBatch` 이력. 새 실행이 같은 종류의 오래된 `running` 을 닫는다 |
-| `batch_runs.py` | 흩어진 실행을 되돌아가 묶는다. `--auto` 는 규칙이지 진실이 아니다 |
-| `prune_detections.py` | 한 묶음 안에 같은 이미지로 겹쳐 쌓인 검출을 정리. **묶음을 넘어서는 안 지운다** |
-| `rebind.py` | 새 검출과 기존 교정을 다시 맺는다 |
-| `export_yolo.py` | 검토 → YOLO 꾸러미. **판정을 다시 쓰지 않고 `viewer.data` 를 부른다** |
+| `ops/check_db.py` | **DB 무결성**. 검사 단위가 **슬라이드**다. 1초. **7번이 층을 본다** — 소속 없는 관찰을 여기서 잡는다 (063) |
+| `pipeline/judge.py` | 판정 규칙. **여기가 유일한 정의다** (torch 없이 돈다) |
+| `pipeline/zen_meta.py` | ZEN XML → 배율. **대물렌즈는 40x 로 고정 계산**한다 (015) |
+| `pipeline/runlog.py` | `Run`·`RunBatch` 이력. 새 실행이 같은 종류의 오래된 `running` 을 닫는다 |
+| `ops/batch_runs.py` | 흩어진 실행을 되돌아가 묶는다. `--auto` 는 규칙이지 진실이 아니다 |
+| `ops/prune_detections.py` | 한 묶음 안에 같은 이미지로 겹쳐 쌓인 검출을 정리. **묶음을 넘어서는 안 지운다** |
+| `migrate/rebind.py` | 새 검출과 기존 교정을 다시 맺는다 |
+| `ops/export_yolo.py` | 검토 → YOLO 꾸러미. **판정을 다시 쓰지 않고 `viewer.data` 를 부른다** |
 | `pr_sweep.py` | conf 를 훑어 P–R 곡선. 025 §8 의 숫자를 다시 만드는 것이 이것뿐이다 |
-| `scan_nas.py` · `ingest_nas.py` | NAS 감시·수집 |
-| `backup_db.py` | DB 사본 (WAL 안전). **Django 를 임포트하지 않는 마지막 안전망** |
-| `db_sentinel.py` | 무결성 깃발. `/healthz` 가 읽는다 |
-| `sync_backup_nas.py` | 검증된 스냅샷만 NAS 로 |
-| `shrink_outcrop.py` | 노두 사진을 줄인다. **NAS 원본을 제자리에서 바꾼다** — `--dry-run` 이 기본이고 사본을 먼저 뜬다 (063) |
-| `tighten_bbox.py` | bbox 본체 정렬 — **미적용** |
-| `verify_db.py` | DB ↔ JSON 대조. **이전 직후용.** 지금은 어긋나는 것이 정상이다 |
+| `pipeline/scan_nas.py` · `pipeline/ingest_nas.py` | NAS 감시·수집 |
+| `ops/backup_db.py` | DB 사본 (WAL 안전). **Django 를 임포트하지 않는 마지막 안전망** |
+| `ops/db_sentinel.py` | 무결성 깃발. `/healthz` 가 읽는다 |
+| `ops/sync_backup_nas.py` | 검증된 스냅샷만 NAS 로 |
+| `tools/shrink_outcrop.py` | 노두 사진을 줄인다. **NAS 원본을 제자리에서 바꾼다** — `--dry-run` 이 기본이고 사본을 먼저 뜬다 (063) |
+| `migrate/tighten_bbox.py` | bbox 본체 정렬 — **미적용** |
+| `migrate/verify_db.py` | DB ↔ JSON 대조. **이전 직후용.** 지금은 어긋나는 것이 정상이다 |
 | `deploy/host/dbsync.sh` · `dbrun.sh` | DB 를 만지는 스크립트가 들어가는 **유일한 문** (9.2절) |
 | `deploy/poll_nas.sh` | 1분 폴러 |
 
@@ -786,7 +786,7 @@ SQLite 를 다시 볼 문제가 된다.
   그렇게 해 놓고 `core` 는 안 그랬다가 당했다 (063)
 - **`Slide.sample` 이 `SET_NULL` 이다.** 시료를 지우면 예외가 안 나고 관찰이
   조용히 소속을 잃는다 — 막는 자리는 `manage_data.deletable` 하나뿐이고,
-  `check_db.py` 7번이 그것을 센다 (063)
+  `ops/check_db.py` 7번이 그것을 센다 (063)
 
 **화면 — 아무 일도 안 하고 "됐다" 고 말하는 것 (063)**
 
@@ -847,7 +847,7 @@ SQLite 를 다시 볼 문제가 된다.
   안 만들어 이 고장을 통과시킨다**
 - **폴러를 세울 때 crontab 을 고치지 않는다.** `flock /tmp/DiaRUGA-poll.lock <명령>`
   이면 그 사이 실행이 조용히 물러난다 — `poll_nas.sh` 가 이미 `flock -n` 이다
-- **`dbrun.sh` 로 돌릴 스크립트는 `check_db.py` 의 머리(`DIARUGA_APP`)를 베껴
+- **`dbrun.sh` 로 돌릴 스크립트는 `ops/check_db.py` 의 머리(`DIARUGA_APP`)를 베껴
   온다.** 자기 옆의 `web/` 을 보게 짜면 컨테이너에서 `No module named
   'diarugaweb'` 로 죽는다 (055)
 - **`ultralytics` 는 `--no-deps` 로 넣는다.** torch 상한(`<2.10`)이 진짜가 아니라는
@@ -909,7 +909,7 @@ SQLite 를 다시 볼 문제가 된다.
   **안에서** 갈라지는 것이 사고다 (017)
 - **`--scale` 을 빠뜨리지 말 것.** 절반 해상도로 검출되고 `um_per_px` 가 2배로
   기록된다. 폴러와 같은 인자를 쓸 것
-- **`verify_db.py` 는 임포트하면 `ImportError` 다** (실행 전용으로 막아 뒀다)
+- **`migrate/verify_db.py` 는 임포트하면 `ImportError` 다** (실행 전용으로 막아 뒀다)
 
 ---
 
@@ -1053,7 +1053,7 @@ requirements 는 넷으로 갈라져 있다 — 호스트는 `requirements.txt`,
 >
 > **DB 사본은 기본으로 갈아 끼운다.** 테스트에서 사본이 낡는 것은 기본 고장이다 —
 > 옛 자료로 새 판을 보면 "고쳤는데 안 바뀐다" 가 나오고, 그 시간은 판을 의심하는
-> 데 쓰인다. 가져오는 것은 `backup_db.py` 가 시간별로 떠 두는 **검증을 통과한
+> 데 쓰인다. 가져오는 것은 `ops/backup_db.py` 가 시간별로 떠 두는 **검증을 통과한
 > 스냅샷**이다(그래서 `cp` 해도 안전하다 — 도는 DB 를 `cp` 하면 WAL 이라 불완전한
 > 사본이 나온다). `--fresh-db` 는 지금 시점으로 새로 뜨지만 `manual/` 은
 > **로테이션이 안 건드리므로** 돌릴 때마다 108 MB 가 영구히 는다.
@@ -1124,8 +1124,8 @@ deploy/host/dbsync.sh --list          # 옮겨 둔 것이 저장소와 어긋났
   꼴이다. 밖에서 물리는 것은 **스크립트 파일뿐**이고 읽기 전용이다
 - **딸려 오는 제약**: `/app` 은 `IMAGE_TAG` 가 가리키는 판이라 **아직 배포하지 않은
   모델 변경이 필요한 스크립트는 여기서 못 돈다.** 조용히 어긋나는 것보다 낫다
-- **아직 문 밖에 있는 것**: 시간별 백업 cron 이 호스트 venv 로 `backup_db.py` 를
-  부른다(9.6절). `backup_db.py` 는 Django 를 안 쓰고 sqlite3 백업 API 만 쓰는
+- **아직 문 밖에 있는 것**: 시간별 백업 cron 이 호스트 venv 로 `ops/backup_db.py` 를
+  부른다(9.6절). `ops/backup_db.py` 는 Django 를 안 쓰고 sqlite3 백업 API 만 쓰는
   마지막 안전망이라 그대로 두었지만, **문이 하나라는 원칙에는 예외다** — 옮길지
   결정이 필요하다
 
@@ -1235,8 +1235,8 @@ SQLite 온라인 백업 API 로 뜬 뒤 `journal_mode=DELETE` 를 걸어 `-wal`�
   실제로 이름 변경 직후 `/healthz` 가 "사본이 없다" 며 `degraded` 를 냈다
 
 ```bash
-python db_sentinel.py show                   # 지금 선 깃발
-python db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손으로 내린다
+python ops/db_sentinel.py show                   # 지금 선 깃발
+python ops/db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손으로 내린다
 ```
 
 ### 9.8 smoke
@@ -1301,7 +1301,7 @@ DB 를 물었는지도 모른다** — 둘 다 형제 프로젝트가 실제로 
   만들게 했다. 남은 것은 **화면을 안 보고 있을 때** — 뷰어를 안 띄워 둔 날에는
   여전히 아무도 안 알려 준다
 - **교정 수가 줄어드는 것도 백업 로그에서만 보인다.** 027 을 알아챈 것이 그것이다.
-  `check_db.py` 에 "직전 백업 대비 교정 수" 를 넣는 것을 검토한다
+  `ops/check_db.py` 에 "직전 백업 대비 교정 수" 를 넣는 것을 검토한다
 - **`/` 가 81% (42G 남음).** 저장소 `backup/` 을 지워 한숨 돌렸고(08-05),
   **도커 자리를 `/data3/DiaRUGA/docker` 로 옮겼다**(081). `/data3` 는 10% 라
   이미지가 쌓여도 `/` 를 밀지 않는다
@@ -1349,7 +1349,7 @@ DB 를 물었는지도 모른다** — 둘 다 형제 프로젝트가 실제로 
    **가른 것이 맞았는지는 사람이 확인할 일**이다
 6. **프레임별 검토** (P06 5b) — `Image` 정규화가 끝나 **붙일 자리는 다 만들어졌다**
    (055). 결정 둘도 받아 뒀다: 검토 완료는 시야 단위 유지, 교정은 현재 검출에만.
-   남은 것은 화면이다(`export_review.py` 는 FORMAT 3 으로 이미 올렸다).
+   남은 것은 화면이다(`ops/export_review.py` 는 FORMAT 3 으로 이미 올렸다).
    **"같은 개체 묶기" 와 짝이다** — 시야 508 × 프레임 3~5장이면 사람이 같은
    규조각을 여러 번 본다
 7. **폴러 상태를 뷰어에 띄운다** (9.10절), 화면 검사와 한 자리에서 보이게

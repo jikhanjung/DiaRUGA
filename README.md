@@ -58,7 +58,7 @@ ZEISS Axio Imager.A2 + ZEN 3.8.99 로 촬영한 명시야 투과광 사진.
 **0.112599 µm/pixel** (`Scaling/Items/Distance` = 1.1259920634920635e-7 m).
 따라서 시야(FOV)는 **309.8 x 248.6 µm**. 크기 측정에 그대로 쓸 수 있다.
 
-이 값은 상수로 박아 두지 않고 **사진마다 동반된 XML 에서 읽는다**(`zen_meta.py`).
+이 값은 상수로 박아 두지 않고 **사진마다 동반된 XML 에서 읽는다**(`pipeline/zen_meta.py`).
 계측값·크기 관문·텍스처 대역이 모두 여기 걸려 있어서, 촬영 조건이 바뀌었는데
 상수를 쓰면 예외도 경고도 없이 결과 전체가 배율만큼 어긋난다.
 
@@ -87,14 +87,14 @@ scan_nas → ingest_nas → group_focus_series → focus_stack → segment_diato
 
 `deploy/poll_nas.sh` 가 이 흐름을 1분마다 돌린다 — **손으로 부를 일은 다시 돌릴
 때뿐이고**, 그 명령은 [CLAUDE.md](CLAUDE.md)·[HANDOFF.md](HANDOFF.md) 에 있다.
-`import_json.py` 는 파이프라인에서 빠졌다.
+`migrate/import_json.py` 는 파이프라인에서 빠졌다.
 
 아래는 각 단계가 **왜 그렇게 되어 있는가**다. 그것이 이 문서가 하는 일이고,
 지금 어떻게 돌리는가는 위 두 문서가 맡는다.
 
 ### scan_nas.py · ingest_nas.py — NAS 반입
 
-`scan_nas.py` 가 NAS 를 훑어 **아직 안 들여온 폴더**를 찾고, `ingest_nas.py` 가
+`pipeline/scan_nas.py` 가 NAS 를 훑어 **아직 안 들여온 폴더**를 찾고, `pipeline/ingest_nas.py` 가
 그것을 `/data3/DiaRUGA/photos/` 로 가져온다. 둘 다 일정 시간(기본 5분) 동안 파일이
 안 늘어난 폴더만 건드린다 — **촬영 중인 폴더를 반쯤 들여오면 안 된다.**
 
@@ -171,7 +171,7 @@ sha256). 회차를 돌리면 가중치가 여럿이 되고, 이름만으로는 �
 **덮어쓰지 않는다** — 덮어쓰면 옛 묶음의 근거가 사라진다.
 
 통과분뿐 아니라 **탈락분도 지표째 남는다** — `Candidate.passed` 칼럼 하나로
-갈린다. 이것이 문턱 재조정(`refilter.py`)과 뷰어의 누락 복구를 가능하게 한다.
+갈린다. 이것이 문턱 재조정(`pipeline/refilter.py`)과 뷰어의 누락 복구를 가능하게 한다.
 탈락분이 통과분의 예닐곱 배라 보관 비용은 그만큼 든다. 그래도 버리면 문턱을
 되돌릴 수 없다.
 
@@ -184,7 +184,7 @@ DB 로 옮기면서 세 가지가 달라졌다.
   이제는 **그 묶음 안에서 이 이미지의 최신 검출**이다. 뷰어가 무엇을 볼지는
   `RunBatch.for_review` 가 정하고(관리 · 운영에서 고른다), 화면이 그리는 것은
   **둘 다 켜진 것**이다 (`Detection.objects.reviewing()`)
-- **사람의 교정을 다시 맺는다**(`rebind.py`). 개체 행이 통째로 새로 만들어지므로
+- **사람의 교정을 다시 맺는다**(`migrate/rebind.py`). 개체 행이 통째로 새로 만들어지므로
   교정의 `candidate` 링크가 끊긴다. `is_current` 이동과 재바인딩은 **반드시 한
   트랜잭션**이다 — 중간에 끊기면 뷰어가 "교정이 붙지 않은 새 검출" 을 보여준다
 - 실행이 `Run(kind=detect)` 에 남고, 준 이름이 `RunBatch` 가 된다
@@ -209,7 +209,7 @@ DB 로 옮기면서 세 가지가 달라졌다.
 
 #### 두 번째 엔진 — YOLO11m-seg (P04)
 
-**사람이 검토한 264 시야를 그대로 학습 자료로 썼다**(`export_yolo.py`). 지운 것도
+**사람이 검토한 264 시야를 그대로 학습 자료로 썼다**(`ops/export_yolo.py`). 지운 것도
 같이 나간다 — 오검출 4,039건이 음성 표본이 됐다. 이것이 교정을 `mask_key` 에
 매달아 재생성 가능한 것과 갈라 둔 값이다.
 
@@ -226,7 +226,7 @@ POST 를 아예 안 보내고, 서버가 남의 검출 키를 409 로 거절하�
 앞으로 자료를 늘리는 방식이 정해져 있다: **검토 → 정답 추출 → 학습 → 새 묶음으로
 전수 검출 → 다시 검토.** 그래서 묶음이 여럿인 것이 기본이다.
 
-`RunBatch.recipe` 가 묶음마다 "어떻게 검출하는가" 를 든다(`segment_diatoms.py` 의
+`RunBatch.recipe` 가 묶음마다 "어떻게 검출하는가" 를 든다(`pipeline/segment_diatoms.py` 의
 인자). 새 슬라이드가 들어오면 폴러가 **조리법이 적힌 묶음 전부**를 채운다 —
 **검토 중인 묶음 먼저, 나머지는 최근 것부터.** 지금 사람이 보는 화면이 가장 먼저
 메워지고, GPU 는 한 번에 하나만 도므로 이 순서가 곧 기다리는 순서다.
@@ -239,7 +239,7 @@ deploy/poll_nas.sh      묶음이 바깥 고리, 슬라이드가 안쪽
 
 **가중치 파일이 없으면 못 돈다** — 목록에 이유와 함께 남긴다. 조용히 빠지면
 "왜 이 묶음만 비어 있나" 를 나중에 묻게 된다. 그래서 가중치는 NAS 로 함께
-백업한다(`sync_backup_nas.py` 의 `models_*.tar`, 정리하지 않는다).
+백업한다(`ops/sync_backup_nas.py` 의 `models_*.tar`, 정리하지 않는다).
 
 ### refilter.py — 재추론 없는 문턱 재조정
 
@@ -306,7 +306,7 @@ FK 로 매면 재검출에서 사람의 판단이 조인 실패로 사라진다.
 ## web/ — 확인·교정 뷰어 (Django 5.2)
 
 **읽기·쓰기 모두 DB 다.** 예전에는 ORM 없이 `groups_*.json`·`out/*.json` 을 mtime
-캐시로 직접 읽었는데, P02 에서 SQLite 로 옮겼다. `judge.py` 를 뺀 나머지는 전부
+캐시로 직접 읽었는데, P02 에서 SQLite 로 옮겼다. `pipeline/judge.py` 를 뺀 나머지는 전부
 `web/viewer/` 안에 있다:
 
 | | |
@@ -508,7 +508,7 @@ Eucampia 는 형태가 아니라 속(屬)으로 알아보는 것이고 남극 �
 하나로 끝나지 않는다**: `label`·`short`·`badge`·`color`·`hotkey`·`counted`·
 `is_taxon`·`sort_order` 여덟에 `base.html` 의 CSS 까지다. 하나라도 비면 **예외는 안
 나고 그 분류만 조용히 다르게 굴러간다** — 마스크가 투명해 "지정은 되는데 화면에 안
-보이는" 상태가 될 뻔했다. `check_db.py` 가 단축키·색 두 개는 잡아 준다.
+보이는" 상태가 될 뻔했다. `ops/check_db.py` 가 단축키·색 두 개는 잡아 준다.
 
 **되돌릴 때는 행을 지우지 말고 `active=False` 로 끈다.** 지우면 그 분류로 붙인 교정이
 이름 없는 분류가 되어 화면에서 안 읽힌다.
@@ -588,7 +588,7 @@ Eucampia 는 형태가 아니라 속(屬)으로 알아보는 것이고 남극 �
 
 #### 사람이 지운 것이 문턱 변경으로 탈락분이 되면
 
-`refilter.py` 로 문턱을 올리면 사람이 이미 지워 둔 개체가 탈락분으로 옮겨갈 수 있다.
+`pipeline/refilter.py` 로 문턱을 올리면 사람이 이미 지워 둔 개체가 탈락분으로 옮겨갈 수 있다.
 이때 **"사람이 지웠다"가 이긴다** — 지운 것이 조용히 되살아나는 것이 가장 나쁘다.
 그런 개체는 여전히 빨간 점선 유령으로 남고, 툴팁에 `지금 문턱에서는 탈락분이다` 가
 붙는다. 되살리면 수동 복구(`accepted`)로 저장되므로 문턱과 무관하게 유지된다.
@@ -639,7 +639,7 @@ DB 로 보내 14건, "읽기 전용" 이라 적어 놓고 CSS 로 버튼만 감�
 "이게 규조각인가" 를 판단할 맥락(주변 쇄설물, 다른 개체와의 대비)이 잘리므로 시야를
 통째로 보여준다. 칸을 클릭하면 그 시야가 열린다.
 
-**판정은 서버가 한다**(`judge.py` 하나). 규칙을 JS 로 복사하면 두 곳이 어긋난다.
+**판정은 서버가 한다**(`pipeline/judge.py` 하나). 규칙을 JS 로 복사하면 두 곳이 어긋난다.
 폴리곤은 시야마다 한 번만 받아 캐시하고, 슬라이더를 움직일 때는 판정
 (`mask_key → cls`)만 다시 받아 색을 바꾼다 — 그래서 즉각 반응한다.
 
@@ -662,7 +662,7 @@ DB 로 보내 14건, "읽기 전용" 이라 적어 놓고 CSS 로 버튼만 감�
 XML (Scaling/Items/Distance)  >  사이드카 <파일명>_scale.json  >  기본값
 ```
 
-합성본에는 ZEN XML 이 따라오지 않으므로 `focus_stack.py` 가 원본에서 읽은 값을
+합성본에는 ZEN XML 이 따라오지 않으므로 `pipeline/focus_stack.py` 가 원본에서 읽은 값을
 `<tag>_focused.jpg_scale.json` 으로 물려준다(합성 단계에서 리사이즈했다면 그것도 반영).
 기본값으로 물러날 때, 배율이 광학현미경 범위 밖일 때, X·Y 픽셀 크기가 다를 때,
 **한 번의 실행에서 배율이 섞일 때** 각각 경고한다.
@@ -678,10 +678,10 @@ XML (Scaling/Items/Distance)  >  사이드카 <파일명>_scale.json  >  기본�
 **판정 앞에서 같은 bbox 를 접는다** (`collapse_boxes`, 077). DB 의 열쇠가
 `mask_key`(= bbox 문자열)라 같은 자리는 한 행밖에 못 들어가는데, 예전에는
 **판정한 뒤** 넣으면서 버렸다. 그러면 판정이 본 집합과 저장된 집합이 달라져
-**저장된 판정을 다시 계산해도 안 맞는다** — `check_db.py` 의 "판정 == 지표 + 문턱"
+**저장된 판정을 다시 계산해도 안 맞는다** — `ops/check_db.py` 의 "판정 == 지표 + 문턱"
 이 그것을 잡는다.
 
-`segment_diatoms.py`(검출 직후)와 `refilter.py`(문턱 재조정)가 **같은 함수를 쓴다.**
+`pipeline/segment_diatoms.py`(검출 직후)와 `pipeline/refilter.py`(문턱 재조정)가 **같은 함수를 쓴다.**
 두 곳에 적어 두면 어긋나고, 어긋나면 "다시 걸렀더니 결과가 달라졌다" 는 일이 조용히
 생긴다. 문턱 기본값(`DEFAULTS`)도 여기가 유일한 정의다.
 
@@ -692,15 +692,15 @@ XML (Scaling/Items/Distance)  >  사이드카 <파일명>_scale.json  >  기본�
 
 **안전망·감사**
 
-- `backup_db.py` — sqlite3 백업 API 로 뜬다. `cp` 는 WAL 때문에 불완전한 사본이 된다.
+- `ops/backup_db.py` — sqlite3 백업 API 로 뜬다. `cp` 는 WAL 때문에 불완전한 사본이 된다.
   **검증을 통과한 뒤에 제 이름을 받는다** — 뜨는 중에는 `.part` 다. 반쯤 쓴 파일이
   제 이름을 달면 정리 glob 에 걸려 **가장 새 파일로 살아남고 멀쩡한 사본을 밀어낸다**
-- `check_db.py` — 무결성 검사. **예외가 안 나고 그냥 틀린 상태**를 잡는다
+- `ops/check_db.py` — 무결성 검사. **예외가 안 나고 그냥 틀린 상태**를 잡는다
   (판정 캐시 ↔ 지표+문턱, **이미지마다** 보여줄 검출이 하나 이하, 검토 대상 묶음이
   하나 정해져 있는가, 완료 줄과 코멘트 줄이 제자리인가, 교정이 현재 검출에 붙어
   있는가, 활성 분류에 단축키·색이 있는가, 슬라이드마다 배율이 하나인가)
-- `db_sentinel.py` — 백업이 세운 무결성 깃발을 읽는다
-- `export_review.py` — 교정을 `review/<슬라이드>/g<n>.json` 으로. `--check` 로 DB 와
+- `ops/db_sentinel.py` — 백업이 세운 무결성 깃발을 읽는다
+- `ops/export_review.py` — 교정을 `review/<슬라이드>/g<n>.json` 으로. `--check` 로 DB 와
   대조하고, `--db` 로 백업 파일을 그대로 읽어 두 시점을 비교한다.
   **Django 를 임포트하지 않고 sqlite3 로 읽기 전용으로만 연다** — 그래서 호스트에서
   돈다
@@ -708,18 +708,18 @@ XML (Scaling/Items/Distance)  >  사이드카 <파일명>_scale.json  >  기본�
 
 **자료·실험**
 
-- `export_yolo.py` — **검토 중인 묶음에서 검토 완료로 표시한** 시야를 YOLO 자료
+- `ops/export_yolo.py` — **검토 중인 묶음에서 검토 완료로 표시한** 시야를 YOLO 자료
   꾸러미로. 지운 것은 **라벨을 안 만드는 것으로** 쓰인다 — YOLO 는 라벨 없는 자리를
   배경으로 배우고, 엔진이 실제로 헷갈린 자리라 무작위 배경보다 값어치가 크다.
   화면(관리 · 학습 자료)이 **같은 기준으로** 미리 세어 준다
-- `batch_plan.py` — 새 자료를 어느 묶음에 어떤 순서로 채울지. 폴러가 읽는다
-- `batch_runs.py` · `prune_detections.py` · `drop_batch.py` — 실행 묶음을 보고 걷는다
+- `pipeline/batch_plan.py` — 새 자료를 어느 묶음에 어떤 순서로 채울지. 폴러가 읽는다
+- `ops/batch_runs.py` · `ops/prune_detections.py` · `ops/drop_batch.py` — 실행 묶음을 보고 걷는다
 - `bench.py` — VRAM/속도 설정 탐색
-- `md2docx.py` — 보고서 `.md` → `.docx` (pandoc 불필요)
+- `tools/md2docx.py` — 보고서 `.md` → `.docx` (pandoc 불필요)
 
 **돌리지 말 것**
 
-- `import_json.py` — 멱등이지만 `Candidate` 를 지우고 다시 만든다. DB 에서만 한
+- `migrate/import_json.py` — 멱등이지만 `Candidate` 를 지우고 다시 만든다. DB 에서만 한
   교정이 있는데 옛 JSON 을 넣으면 JSON 쪽으로 되돌아간다. **지금 JSON 은 DB 보다
   한참 낡았다**
 
@@ -879,7 +879,7 @@ Pascal 세대라 bfloat16 미지원, fp16은 FP32 대비 1/64 속도여서 fp32�
 
 **이 설정에서는 텍스처 판정을 신뢰할 수 없다**(위 Nyquist 문제). `--no-shape-filter`
 로 지표만 기록해 두고, 원본 해상도를 쓸 수 있는 장비에서 다시 검출하거나
-`refilter.py` 로 크기·형태 기준만 적용하는 편이 낫다.
+`pipeline/refilter.py` 로 크기·형태 기준만 적용하는 편이 낫다.
 
 ## 배포
 
@@ -947,7 +947,7 @@ torch 는 CUDA 12.6 기준이다(`--extra-index-url https://download.pytorch.org
 | **`review/<슬라이드>/g<n>.json`** | **교정의 git 감사 기록** | DB 에서 다시 뽑는다 |
 
 DB·사진·중간 산출물은 전부 저장소 밖(`/data3/DiaRUGA/`·`/srv/DiaRUGA/db/`)에 있고
-gitignore 다. **`review/` 만 저장소에 남는다** — `export_review.py` 가 DB 에서 뽑아
+gitignore 다. **`review/` 만 저장소에 남는다** — `ops/export_review.py` 가 DB 에서 뽑아
 git 에 넣으므로 `git diff` 로 "언제 무엇이 달라졌나" 가 보인다. 감사 기록이지
 원본이 아니다.
 

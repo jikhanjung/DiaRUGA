@@ -27,7 +27,7 @@ from ..models import ObjectReview, RunBatch
 
 _SPEC = importlib.util.spec_from_file_location(
     "export_review",
-    Path(__file__).resolve().parents[3] / "export_review.py")
+    Path(__file__).resolve().parents[3] / "ops" / "export_review.py")
 export_review = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(export_review)
 

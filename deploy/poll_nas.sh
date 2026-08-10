@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # NAS 를 주기적으로 보고, 복사가 끝난 새 슬라이드를 끝까지 돌린다 (P03 5단계).
 #
-#   * * * * * /home/paleoadmin/projects/DiaRUGA/deploy/poll_nas.sh
+#   * * * * * /srv/DiaRUGA/bin/poll_nas.sh
+#
+# **저장소 경로를 cron 에 적지 않는다** (100). 운영 서버에 저장소가 없을 수
+# 있고, 있어도 편집 중인 작업 트리가 매분 도는 것은 "저장소는 만들고 /srv 는
+# 돌린다" 를 어긴다. 저장소에서 고치고 `deploy/host/sync_to_srv.sh` 로 민다.
 #
 # ## 1분마다 돌아도 되는 이유
 #
@@ -29,7 +33,11 @@
 set -euo pipefail
 
 DEPLOY_DIR=/srv/DiaRUGA
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# **저장소를 안 본다** (100 · 사용자 방침). 운영 서버에 저장소가 없을 수 있으므로
+# 이 스크립트가 쓰는 것은 전부 `/srv/DiaRUGA` 안에 있다 — 파이프라인·운영
+# 스크립트는 `scripts/`, 이 파일 자신은 `bin/` 이다. 저장소에서 고치고
+# `deploy/host/sync_to_srv.sh` 로 밀어 넣는다.
+SCRIPTS="$DEPLOY_DIR/scripts"
 # 깃발을 세울 때만 쓴다. `db_sentinel.py` 는 Django 를 임포트하지 않고 DB 옆에
 # 텍스트 파일 한 줄을 놓으므로 호스트에서 도는 것이 규약에 걸리지 않는다
 # (`backup_db.py` 가 cron 으로 도는 것과 같은 이유).
@@ -68,7 +76,14 @@ cd "$DEPLOY_DIR"
 # 11개 중 1개만 처리되던 것과 같은 함정이다.
 #
 # 파이프라인 명령 중 stdin 을 읽는 것은 하나도 없으므로 여기서 한 번에 끊는다.
-run() { timeout "$1" docker compose run --rm -T pipeline "${@:2}" </dev/null; }
+# **파이프라인 스크립트도 `/srv/DiaRUGA/scripts` 의 것이 돈다** (100). 이미지
+# 안의 `/app` 사본이 아니다 — 그러면 스크립트 한 줄을 고칠 때마다 7.2 GB 를
+# 다시 구워야 한다. `dbtool` 이 이미 쓰던 문을 파이프라인에도 연 것이고,
+# Django 코드는 여전히 이미지 것(`DIARUGA_APP=/app`)을 쓴다.
+run() { timeout "$1" docker compose run --rm -T pipeline \
+          python "$SCRIPTS/${2}" "${@:3}" </dev/null; }
+# 인자를 그대로 넘기는 갈래 (python 이 아닌 것을 부를 때)
+run_raw() { timeout "$1" docker compose run --rm -T pipeline "${@:2}" </dev/null; }
 # DB 조회는 **dbtool 문**으로 (9.2절의 그 규약 — check_db.py 와 같은 자리).
 # 뷰어 이미지라 torch 가 없고, 스크립트는 /srv/DiaRUGA/scripts 의 것이 돈다.
 rundb() { timeout "$1" docker compose run --rm -T dbtool "${@:2}" </dev/null; }
@@ -76,7 +91,7 @@ rundb() { timeout "$1" docker compose run --rm -T dbtool "${@:2}" </dev/null; }
 # 1) 정찰. 조용히 돌리고, 실패하거나 할 일이 있을 때만 남긴다.
 SCAN_JSON="$LOG_DIR/last_scan.json"
 SCAN_OUT=$(mktemp); trap 'rm -f "$SCAN_OUT"' EXIT
-if ! run "$T_SCAN" python scan_nas.py --stable-min "$STABLE_MIN" \
+if ! run "$T_SCAN" scan_nas.py --stable-min "$STABLE_MIN" \
         --json "$SCAN_JSON" >"$SCAN_OUT" 2>&1; then
     # **원인을 짐작해서 적지 않는다.** 예전에는 무조건 "NAS 가 내려갔는가" 라고
     # 적었는데, 실제로는 compose 가 없는 이미지 태그를 가리키고 있었다. 엉뚱한
@@ -107,7 +122,7 @@ fi
 if [ "$NEW" -gt 0 ]; then
     say "새 슬라이드 $NEW 개 — 가져온다"
     sed 's/^/    /' "$SCAN_OUT" >>"$LOG"
-    if ! run "$T_INGEST" python ingest_nas.py --stable-min "$STABLE_MIN" >>"$LOG" 2>&1; then
+    if ! run "$T_INGEST" ingest_nas.py --stable-min "$STABLE_MIN" >>"$LOG" 2>&1; then
         say "반입 실패"
         exit 1
     fi
@@ -141,7 +156,7 @@ echo "$TODO" | while IFS=$'\t' read -r slug state image_dir; do
     # 그룹핑 — 시야가 없을 때만. 이미 있으면 재그룹핑이 그 아래를 어긋내므로
     # group_focus_series.py 가 스스로 거부한다.
     if [ "$state" = "pending" ]; then
-        if ! run "$T_PIPE" python group_focus_series.py \
+        if ! run "$T_PIPE" group_focus_series.py \
                 "/data3/DiaRUGA/$image_dir" >>"$LOG" 2>&1; then
             say "$slug: 그룹핑 실패"
             continue
@@ -150,7 +165,7 @@ echo "$TODO" | while IFS=$'\t' read -r slug state image_dir; do
 
     # 합성·검출은 이미 끝난 시야를 스스로 건너뛴다
     # (Stack 행 / 현재 Detection 유무를 DB 에 묻는다)
-    if ! run "$T_PIPE" python focus_stack.py --slide "$slug" >>"$LOG" 2>&1; then
+    if ! run "$T_PIPE" focus_stack.py --slide "$slug" >>"$LOG" 2>&1; then
         say "$slug: 합성 실패"
         continue
     fi
@@ -169,7 +184,7 @@ if [ -n "$DETECT_BATCH" ]; then
     PLAN=$(printf '%s\t--backend sam2 --scale 1.0 --points-per-side 48 --min-um 10 --max-um 150' "$DETECT_BATCH")
     say "DETECT_BATCH 가 주어졌다 — $DETECT_BATCH 하나만 돈다"
 else
-    PLAN=$(run "$T_SCAN" python batch_plan.py --args 2>>"$LOG") || PLAN=""
+    PLAN=$(run "$T_SCAN" batch_plan.py --args 2>>"$LOG") || PLAN=""
 fi
 if [ -z "$PLAN" ]; then
     say "채울 묶음이 없다 — 조리법(recipe)이 적힌 묶음이 없다. batch_plan.py 로 볼 것"
@@ -185,7 +200,7 @@ printf '%s\n' "$PLAN" | while IFS=$'\t' read -r batch bargs; do
         extra=""
         case "$bargs" in *"--backend sam2"*) extra="--points-per-batch $PPB";; esac
         # shellcheck disable=SC2086
-        if ! run "$T_PIPE" python segment_diatoms.py --slide "$slug" \
+        if ! run "$T_PIPE" segment_diatoms.py --slide "$slug" \
                 --batch "$batch" $bargs $extra >>"$LOG" 2>&1; then
             say "$slug: 검출 실패 ($batch)"
             continue
@@ -214,7 +229,7 @@ else
     say "!! 뷰어가 목록을 못 낸다 (HTTP ${page:-없음}) — 방금 반입·처리한 것을 볼 것"
     # 로그에만 적으면 읽는 사람이 없는 동안 꺼진 안전망이다. `/healthz` 까지
     # 나른다 — 뷰어의 상태와 `smoke.sh` 가 그 깃발을 본다 (034 · db_sentinel).
-    "$HOST_PY" "$REPO/db_sentinel.py" raise poll_nas \
+    "$HOST_PY" "$SCRIPTS/db_sentinel.py" raise poll_nas \
         "목록 페이지가 ${page:-무응답} 이다 (자동 처리 뒤). 새 슬라이드의 슬러그를 볼 것" \
         >>"$LOG" 2>&1 || say "깃발을 세우지 못했다"
 fi

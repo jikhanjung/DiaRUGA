@@ -23,6 +23,10 @@ from pathlib import Path
 # **시험은 그 모듈을 안 거치고 `judge` 를 바로 부를 수 있다**(1겹은 Django 를
 # 안 쓰는 것이 요점이다). 그래서 여기서 같은 일을 한 번 해 둔다 — 패키지
 # `__init__` 이라 어느 시험 모듈보다 먼저 돈다.
-_ROOT = str(Path(__file__).resolve().parents[3])
-if _ROOT not in sys.path:
-    sys.path.insert(0, _ROOT)
+_ROOT = Path(__file__).resolve().parents[3]
+# **스크립트가 갈려 있다** (100) — 판정 규칙은 `pipeline/judge.py`, 무결성
+# 깃발은 `ops/db_sentinel.py`, 재바인딩은 `migrate/rebind.py` 다. 뿌리만
+# 넣으면 `import judge` 가 안 선다.
+for _d in (_ROOT, _ROOT / "pipeline", _ROOT / "ops", _ROOT / "migrate"):
+    if str(_d) not in sys.path:
+        sys.path.insert(0, str(_d))

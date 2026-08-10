@@ -64,8 +64,17 @@ services:
     # 적었다 — 원인과 전혀 다른 말이라 더 늦게 알았다.
     image: honestjung/diaruga-pipeline:${PIPELINE_TAG:?PIPELINE_TAG 를 .env 에 넣을 것}
     profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
+    environment:
+      TZ: Asia/Seoul
+      # **스크립트는 /srv 것이 돌고, Django 코드는 이미지 것을 쓴다** (100).
+      # dbtool 이 쓰던 문을 여기도 연다 — 스크립트 한 줄을 고칠 때마다 7.2 GB 를
+      # 다시 굽지 않아도 된다. 이미지를 다시 구워야 하는 것은 **의존성이 바뀔 때**
+      # 뿐이고, 그때는 판(PIPELINE_TAG)이 올라간다.
+      DIARUGA_APP: /app
     volumes:
       - /srv/DiaRUGA/db:/srv/DiaRUGA/db
+      # 파이프라인·운영 스크립트. **읽기 전용** — 컨테이너가 고칠 것이 아니다
+      - /srv/DiaRUGA/scripts:/srv/DiaRUGA/scripts:ro
       - /data3/DiaRUGA:/data3/DiaRUGA
       # NAS 는 **읽기 전용**. 촬영 원본을 건드리지 않는다 (P01 §1)
       - /nfs/temp-share/DiatomPhotos:/nfs/temp-share/DiatomPhotos:ro

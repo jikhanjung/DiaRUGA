@@ -63,28 +63,28 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       11장이 전부 사람 손을 거쳤다(교정 7,472건).
 - [ ] **남극 2차 검토 — 직접 그리기 포함 (0/366 재시작)** (2026-08-09, 092).
       마스크 그리기(P09)가 생겨 남극 9개 슬라이드의 완료 표시를 걷고 다시
-      본다(`reset_review_done.py`). 교정·코멘트는 그대로다. 진척과 그린 개체
+      본다(`migrate/reset_review_done.py`). 교정·코멘트는 그대로다. 진척과 그린 개체
       수는 `dbrun.sh review_progress.py` 가 슬라이드별로 보여준다 — **그린
       개체 수가 곧 엔진이 놓친 것의 실측**이다. 첫 실사용 18건은
       `260731_rs23-gc03_369cm` 에 있다
-- [x] **`export_review.py`** (P02 5단계 · P06) — 2026-08-05. `review/<슬라이드>/
+- [x] **`ops/export_review.py`** (P02 5단계 · P06) — 2026-08-05. `review/<슬라이드>/
       g<n>.json` 으로 시야 432 · 교정 6,732 을 내보낸다. `--check` 로 DB 와
       대조하고, `--db <백업>` 으로 두 시점을 견준다
 
 ## DB 이전 (P02)
 
 - [x] **1. 모델 + 마이그레이션 + `DATABASES`** — WAL (지금은 16개 모델)
-- [x] **2. `import_json.py`** — 멱등, 8초
-- [x] **3. 대조 `verify_db.py`** — 검사 37개 전부 일치
+- [x] **2. `migrate/import_json.py`** — 멱등, 8초
+- [x] **3. 대조 `migrate/verify_db.py`** — 검사 37개 전부 일치
 - [x] **4. 뷰어를 DB 로**
-- [x] **5. `export_review.py`** — DB → `review/<슬라이드>/g<n>.json` (P06)
+- [x] **5. `ops/export_review.py`** — DB → `review/<슬라이드>/g<n>.json` (P06)
 - [x] **6. 스크립트 4개를 DB 에 쓰게** — devlog 010·011·012
-  - [x] `refilter.py` — UPDATE 한 번(124 시야 0.9초). 문턱이 `ThresholdSet` 에
-        남고 실행이 `Run` 에 기록된다. 판정 규칙은 `judge.py` 로 떼어냈다
-  - [x] `focus_stack.py` — 메타데이터가 `Stack` 행으로. 잃어버린 품질 지표 49개를
+  - [x] `pipeline/refilter.py` — UPDATE 한 번(124 시야 0.9초). 문턱이 `ThresholdSet` 에
+        남고 실행이 `Run` 에 기록된다. 판정 규칙은 `pipeline/judge.py` 로 떼어냈다
+  - [x] `pipeline/focus_stack.py` — 메타데이터가 `Stack` 행으로. 잃어버린 품질 지표 49개를
         되찾았다
-  - [x] `segment_diatoms.py` — `is_current` 이동과 재바인딩을 한 트랜잭션으로
-  - [x] `group_focus_series.py` — 기존 시야가 있으면 경고한다
+  - [x] `pipeline/segment_diatoms.py` — `is_current` 이동과 재바인딩을 한 트랜잭션으로
+  - [x] `pipeline/group_focus_series.py` — 기존 시야가 있으면 경고한다
 - [x] **7. JSON 을 원본에서 내리기** — 2026-08-05 (`aed471a`)
 
       **overlay JPG 는 아예 걷었다.** 1,496장 752 MB 가 쌓여 있었는데 `data.py`
@@ -101,10 +101,10 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       `import_json`(이전용) · `tighten_bbox` · `backfill_scale_source` 넷 다
       이전기·일회성 도구다. 그 자리는 `export_review.py --check`(교정)와
       `backfill_images.py --verify`(이미지·검출)가 맡는다.
-- [ ] **8. 재바인딩 + 고아 화면**(`/orphans/`) — `rebind.py` 는 만들었다(011).
+- [ ] **8. 재바인딩 + 고아 화면**(`/orphans/`) — `migrate/rebind.py` 는 만들었다(011).
       **화면이 없다**(`urls.py` 에 `/orphans/` 가 없다). 학습·엔진 교체의 전제 —
       없으면 교정이 조용히 버려진다. 지금 교정 **7,472건이 전부 `exact`** 라
-      이 길이 한 번도 시험대에 오른 적이 없다 (`check_db.py` 3번이 센다)
+      이 길이 한 번도 시험대에 오른 적이 없다 (`ops/check_db.py` 3번이 센다)
 
 ## 층을 말과 맞춘 뒤 (063)
 
@@ -122,7 +122,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 - [ ] **지점 코드를 바꾸면 노두 사진이 떨어진다.** 파일 이름(`<지점코드> (n).jpg`)이
       지점과 사진을 잇는 유일한 근거라 그렇다 — 간단함과 맞바꾼 대가다.
       코드를 바꾸는 일이 드물어 지금은 그대로 둔다
-- [ ] **`import_json.py` 를 새 층으로 고쳐 두었지만 여전히 돌리면 안 된다** —
+- [ ] **`migrate/import_json.py` 를 새 층으로 고쳐 두었지만 여전히 돌리면 안 된다** —
       JSON 이 DB 보다 한참 낡았다. 이전기 도구로만 남아 있다
 
 ## 계획
@@ -232,7 +232,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
         합성본 교정이 프레임 화면에 얹혀 보인다
       - **집계가 부푼다.** 같은 규조각을 프레임 5장에서 교정하면 목록의 "검토"
         수도 5배다. 세는 곳을 이미지로 갈라야 한다
-      - ~~**내보내기 형식을 2 → 3 으로.**~~ **끝났다** — `export_review.py`
+      - ~~**내보내기 형식을 2 → 3 으로.**~~ **끝났다** — `ops/export_review.py`
         의 `FORMAT = 3` 이고 `review/` 를 그 형식으로 다시 내보냈다. 옛 형식은
         시야 하나에 이미지 하나를 전제해서, 깨진 DB 를 만나면 쓰지 않고 멈췄다
 
@@ -346,7 +346,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       (자동 2,522 중 사람이 남긴 594). 재현율은 `탈락` 레이어를 켜고
       **"점선만 있는 것"(문턱이 놓침)** 과 **"점선조차 없는 것"(분할이 놓침)** 을
       갈라 세면 나온다 — 앞은 `refilter` 로 2초, 뒤는 분할을 고쳐야 한다
-- [ ] **bbox 본체 정렬** — `tighten_bbox.py` 를 만들어 dry-run 까지 했으나
+- [ ] **bbox 본체 정렬** — `migrate/tighten_bbox.py` 를 만들어 dry-run 까지 했으나
       **적용하지 않았다.** `mask_key` 를 바꾸는 작업이라 **8번과 함께** 한다.
       dry-run 숫자는 슬라이드 3장 시절 것이라 다시 재야 한다.
       함께: 크기 관문을 타원 장축으로 통일
@@ -363,8 +363,8 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 
 ## 운영
 
-- [x] **백업 lane 을 cron 에** — 시간별 `backup_db.py`(:20, `--keep 24`) ·
-      일별 `sync_backup_nas.py`(04:40, `--newest-only --prune`). 신선도 게이트도
+- [x] **백업 lane 을 cron 에** — 시간별 `ops/backup_db.py`(:20, `--keep 24`) ·
+      일별 `ops/sync_backup_nas.py`(04:40, `--newest-only --prune`). 신선도 게이트도
       켰다(`DIARUGA_BACKUP_MAX_AGE_H=3`) (034)
 - [x] **손으로 뜬 스냅샷과 시간별 스냅샷을 갈라 두기** — `backup/manual/` 로
       갈랐다. 로테이션·NAS 대상 밖이다 (034)
@@ -443,7 +443,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       돌아갈 자리가 없다.** rsync 로 옮긴 것이라 원본이 유일한 대조본이기도 하다.
 - [ ] **배율이 다른 슬라이드를 `state="failed"` 로 세우기** — 지금은 경고만 찍고
       40x 로 계산하고 넘어간다 (devlog 015)
-- [x] **`/healthz` 가 백업·무결성 상태를 보게** — `db_sentinel.py` 가 DB 옆에
+- [x] **`/healthz` 가 백업·무결성 상태를 보게** — `ops/db_sentinel.py` 가 DB 옆에
       깃발을 세우고 `/healthz` 가 `degraded`(200)로 낸다 (034)
 - [x] **자동 처리 뒤에 화면이 뜨는지 본다** — 061
 

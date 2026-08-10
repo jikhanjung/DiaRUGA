@@ -15,7 +15,11 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+# **판정 규칙은 `pipeline/judge.py` 하나뿐이다** (100 에서 자리를 옮겼다).
+# 뷰어와 파이프라인이 같은 것을 봐야 한다 — 규칙이 둘이면 화면과 검출이
+# 다른 말을 한다. 저장소 뿌리는 `web/viewer` 의 두 단계 위다.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent
+                       / "pipeline"))
 
 import judge                                                        # noqa: E402
 

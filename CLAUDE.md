@@ -37,8 +37,8 @@
 소문자를 강제하는 자리만 `diaruga`** — Docker Hub 이미지(`honestjung/diaruga`),
 파이썬 패키지(`diarugaweb`), 브라우저 `localStorage` 키. 환경변수는 `DIARUGA_*`.
 
-**`diatom` 이 남아 있는 자리는 생물 이름이라 그렇다** — `segment_diatoms.py`,
-`export_yolo.py` 의 YOLO 클래스 `diatom`, NAS 원본 폴더 `DiatomPhotos/`, 본문의
+**`diatom` 이 남아 있는 자리는 생물 이름이라 그렇다** — `pipeline/segment_diatoms.py`,
+`ops/export_yolo.py` 의 YOLO 클래스 `diatom`, NAS 원본 폴더 `DiatomPhotos/`, 본문의
 규조류(diatom). **여기를 바꾸면 안 된다.** 지난 devlog·`docs/` 의 진행 보고서도
 그때 이름으로 둔다.
 
@@ -53,7 +53,7 @@
 | 층(지역·지점·시료·관찰)을 만진다 | `devlog/20260806_063_layers-and-locality.md`, `web/viewer/naming.py`, `models.py` 의 `Locality`·`Sample` 머리말 |
 | 분류(속·형태)를 더한다 | `ClassDef` 머리말의 **채울 것 여덟**, `devlog/20260804_038`~`040` |
 | 앞으로 할 일을 고른다 | `TODOs.md`, `devlog/20260729_P01_roadmap.md` |
-| 판정 기준·문턱을 만진다 | `judge.py` 머리말, `devlog/20260731_007_*.md` |
+| 판정 기준·문턱을 만진다 | `pipeline/judge.py` 머리말, `devlog/20260731_007_*.md` |
 | 검출기를 학습시킨다 | `devlog/20260803_P04_yolo-training.md`, `023`(자료 꾸러미), `025`(첫 판 성적) |
 | 이미지·검출·교정의 관계를 만진다 | `devlog/20260805_P06_*`(계획·결정), `055`(실행), `models.py` 의 `Image` |
 | 데스크탑 앱을 만든다 | `devlog/20260805_P05_desktop-app.md` (계획), `docs/20260805_desktop-app-review.md` (근거), `049`(CPU 실측), `.guides/desktop/` |
@@ -112,15 +112,15 @@ deploy/host/dbrun.sh  check_db.py --slide rs23 -v
 deploy/host/dbsync.sh --list            # 옮겨 둔 것이 저장소와 어긋났는가
 ```
 
-`check_db.py` 는 **refilter/segment 뒤, `judge.py` 를 고친 뒤, 숫자가 이상할 때**
+`ops/check_db.py` 는 **refilter/segment 뒤, `pipeline/judge.py` 를 고친 뒤, 숫자가 이상할 때**
 돌린다. 여기서 잡는 것은 예외가 안 나고 그냥 틀린 상태다.
 `backfill_images.py --verify` 도 같은 성격이다 — 이미지·검출·교정이 앞뒤가 맞는가.
 
 ```bash
 # 교정을 git 감사 기록으로 (호스트 venv 로 돈다 — Django 를 안 쓴다)
-python export_review.py                 # review/<슬라이드>/g<n>.json
-python export_review.py --check         # 파일 ↔ DB 대조. 아무것도 안 쓴다
-python export_review.py --db <백업> --out /tmp/before && diff -r /tmp/before review/
+python ops/export_review.py                 # review/<슬라이드>/g<n>.json
+python ops/export_review.py --check         # 파일 ↔ DB 대조. 아무것도 안 쓴다
+python ops/export_review.py --db <백업> --out /tmp/before && diff -r /tmp/before review/
 ```
 
 ```bash
@@ -134,13 +134,13 @@ deploy/host/dbrun.sh  refilter.py --dry-run
 deploy/host/dbrun.sh  refilter.py --round-texture-min 2000
 ```
 
-지금 `/srv/DiaRUGA/scripts` 에 있는 것: `check_db.py` · `backup_db.py` ·
-`db_sentinel.py` · `judge.py` · `batch_runs.py` · `prune_detections.py`.
+지금 `/srv/DiaRUGA/scripts` 에 있는 것: `ops/check_db.py` · `ops/backup_db.py` ·
+`ops/db_sentinel.py` · `pipeline/judge.py` · `ops/batch_runs.py` · `ops/prune_detections.py`.
 없는 것을 부르면 `dbrun.sh` 가 **무엇을 옮기라고 알려 준다.**
 
 **예외가 하나 있다 — 백업 cron 은 호스트 venv 로 돈다.** 규약이 막으려는 두 사고
 (낡은 `models.py` · root 소유자)는 Django 를 거치는 코드에서 났는데,
-`backup_db.py` 는 Django 를 임포트하지 않고 원본을 **읽기 전용**으로 열어
+`ops/backup_db.py` 는 Django 를 임포트하지 않고 원본을 **읽기 전용**으로 열어
 sqlite3 백업 API 만 쓴다 — 두 벌의 환경이 생기지 않는다. 그리고 이쪽이 더
 중요하다: **시간별 안전망이 Docker 가 성한지에 매달리면 안 된다.** 이미지가
 안 받아지거나 데몬이 죽은 날에 백업까지 같이 멈추는 것이 규약이 지키려던 것보다
@@ -153,7 +153,7 @@ cd /srv/DiaRUGA && docker compose up -d web      # 바깥 :80 /DiaRUGA/ 을 ngin
 cd /srv/DiaRUGA && docker compose logs -f web
 /srv/DiaRUGA/bin/deploy.sh <태그>                # pull → 스냅샷 → 교체 → 기동 게이트
 /srv/DiaRUGA/bin/smoke.sh                        # 판·행 수·안전망까지 (200 은 "떴다" 일 뿐이다)
-python db_sentinel.py show                      # 백업이 세운 무결성 깃발이 있는가
+python ops/db_sentinel.py show                      # 백업이 세운 무결성 깃발이 있는가
 
 docker compose -f deploy/docker-compose.yml build web   # 이미지 굽기는 저장소에서
 ```
@@ -167,11 +167,11 @@ docker compose -f deploy/docker-compose.yml build web   # 이미지 굽기는 �
 ```bash
 cd /srv/DiaRUGA
 # 그룹핑만 경로를 받는다 (나머지는 슬라이드 slug). 시야가 이미 있으면 스스로 거부한다
-docker compose run --rm pipeline python group_focus_series.py "/data3/DiaRUGA/photos/<촬영일>/<슬라이드>"
-docker compose run --rm pipeline python focus_stack.py --slide <slug>
-docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
+docker compose run --rm pipeline python pipeline/group_focus_series.py "/data3/DiaRUGA/photos/<촬영일>/<슬라이드>"
+docker compose run --rm pipeline python pipeline/focus_stack.py --slide <slug>
+docker compose run --rm pipeline python pipeline/segment_diatoms.py --slide <slug> \
     --scale 1.0 --points-per-side 48 --min-um 10 --max-um 150 --batch sam2-전수
-docker compose run --rm pipeline python segment_diatoms.py --slide <slug> \
+docker compose run --rm pipeline python pipeline/segment_diatoms.py --slide <slug> \
     --backend yolo --keep-current --batch yolo-3차      # 비교용으로 쌓기만 한다
 ```
 
@@ -192,7 +192,7 @@ python web/manage.py test viewer                         # 387개 (브라우저 
 
 호스트 venv 로 돈다 — `dbrun.sh` 를 안 거친다. 규약이 막으려는 "같은 파일을 두
 벌의 환경이 만진다" 가 성립하지 않기 때문이다: 시험은 **자기 DB 를 새로 만들고
-끝나면 버린다**(`backup_db.py`·`export_review.py` 와 같은 자리). 그 사실을 사람이
+끝나면 버린다**(`ops/backup_db.py`·`ops/export_review.py` 와 같은 자리). 그 사실을 사람이
 기억하는 대신 `tests/base.py` 가 확인한다 — 운영 DB 나 `/data3` 를 가리키면 선다.
 
 **커버리지를 목표로 하지 않는다.** 시험 목록은 이 절의 "밟기 쉬운 곳" 이다 —
@@ -231,10 +231,25 @@ python web/manage.py test viewer                         # 387개 (브라우저 
 ## 구조
 
 ```
-group_focus_series.py  →  focus_stack.py  →  segment_diatoms.py  →  refilter.py
+pipeline/  group_focus_series.py → focus_stack.py → segment_diatoms.py → refilter.py
    초점 시리즈 묶기         all-in-focus 합성    SAM2 / YOLO 검출 + 지표   문턱만 다시 적용
                                                         ↑
                                                     judge.py  ← 판정 규칙은 여기 하나뿐
+**저장소는 넷으로 갈려 있다** (100). **운영 서버에 저장소가 없을 수 있다** —
+그래서 운영에 필요한 것은 `deploy/host/sync_to_srv.sh` 가 `/srv/DiaRUGA` 로 민다.
+
+| 디렉토리 | 무엇이 | /srv 로 가나 |
+|---|---|---|
+| `pipeline/` | 컨테이너 안에서 도는 것 + 그들이 쓰는 모듈(`judge`·`zen_meta`·`runlog`) | **간다** |
+| `ops/` | 주기적으로 돌거나 상태를 보는 것 (백업·무결성·검사·내보내기) | **간다** |
+| `migrate/` | 이전기·일회성 (backfill·rebind·verify) | 안 간다 — 필요할 때 `dbsync.sh <이름>` |
+| `tools/` | 개발 도구 (지도 굽기·보고서 변환·벤치) | 안 간다 |
+
+**`/srv/DiaRUGA/scripts` 는 평평하다** — 컨테이너가 그 디렉토리 하나만 물고,
+스크립트끼리의 임포트도 평평해야 선다. 저장소에서만 디렉토리가 갈려 있어,
+`ops/check_db.py` 처럼 `pipeline/judge.py` 를 쓰는 것은 `sys.path` 에 그 자리를
+한 줄 알려 준다.
+
 web/viewer/
   models.py      18개 모델. 읽기 전에 파일 첫 주석부터
   naming.py      폴더 이름 → 층. **규칙은 여기 하나뿐이다** (Django·cv2 를 안 부른다)
@@ -303,7 +318,7 @@ web/viewer/
   못 읽은 것은 **아무것도 안 쓰는** 것이 맞다 (`group_focus_series.sample_fields`).
   `obs_label` 을 defaults 에서 뺀 것과 같은 이유인데 `core`·`depth_cm` 는 안
   그랬다가 당했다 (063)
-- **`cp DiaRUGA.db` 금지.** WAL 이라 불완전한 사본이 나온다. `backup_db.py` 를 쓸 것
+- **`cp DiaRUGA.db` 금지.** WAL 이라 불완전한 사본이 나온다. `ops/backup_db.py` 를 쓸 것
 - **`NOT NULL` 칸을 더할 때는 `db_default` 를 함께 준다.** Django 의 `default` 는
   파이썬 쪽이라 **판이 다른 옛 이미지의 INSERT 에는 칼럼이 안 들어간다** — 뷰어와
   파이프라인 이미지는 굽는 주기가 달라 판이 같아질 일이 없다
@@ -316,18 +331,18 @@ web/viewer/
 - **파이프라인이 도는 중에 검토를 저장하면 잠긴다.** WAL 이라 읽기는 여럿이지만
   쓰기는 하나다 — 프레임 229장을 그렇게 잃었다. 트랜잭션을 나눠 고쳤지만,
   동시 작업이 일상이 되면 SQLite 를 다시 볼 문제다
-- **`import_json.py` 를 아무 때나 돌리지 말 것.** 파이프라인에서는 빠졌다.
+- **`migrate/import_json.py` 를 아무 때나 돌리지 말 것.** 파이프라인에서는 빠졌다.
   멱등이지만 `Candidate` 를 지우고 다시 만들어서, DB 에서만 한 교정이 있는데
   옛 JSON 을 넣으면 JSON 쪽으로 되돌아간다. **지금 JSON 은 DB 보다 한참 낡았다**
-- **`verify_db.py` 는 임포트하면 `ImportError` 다.** 본문이 전부 최상위에 있어
+- **`migrate/verify_db.py` 는 임포트하면 `ImportError` 다.** 본문이 전부 최상위에 있어
   임포트만으로 실행됐고, DB 가 없으면 빈 `DiaRUGA.db` 를 만들었다. 막아 뒀다
-- **`refilter.py` 에서 주지 않은 문턱은 현재 값을 그대로 쓴다.** 전부 기본값으로
+- **`pipeline/refilter.py` 에서 주지 않은 문턱은 현재 값을 그대로 쓴다.** 전부 기본값으로
   되돌리는 것이 아니다 — 하나 바꾸려다 나머지가 조용히 초기화되는 것을 막는 설계다
 - **분류를 더할 때 "테이블에 행 하나" 로 끝나지 않는다.** `label`·`short`·`badge`·
   `color`·`hotkey`·`counted`·`is_taxon`·`sort_order` 여덟에 **`base.html` 의 CSS**
   까지다(`ClassDef` 머리말에 목록이 있다). 하나라도 비면 **예외는 안 나고 그
   분류만 조용히 다르게 굴러간다** — 마스크가 투명해 "지정은 되는데 화면에 안
-  보이는" 상태가 될 뻔했다. `check_db.py` 가 단축키·색만 잡아 준다 (038·040)
+  보이는" 상태가 될 뻔했다. `ops/check_db.py` 가 단축키·색만 잡아 준다 (038·040)
 - **분류를 되돌릴 때는 지우지 말고 `active=False` 로 끈다.** 행을 지우면 그
   분류로 붙인 교정이 이름 없는 분류가 되어 화면에서 안 읽힌다
 
@@ -343,7 +358,7 @@ web/viewer/
   먼저 치워야 하는지 알 수 없다 — 무엇이 몇 개 걸려 있는지 버튼에 적는다.
   그리고 **서버가 다시 검사한다**: 화면에서 막는 것은 막는 것이 아니다 (063)
 - **소속을 잃은 행은 화면에서 그냥 사라진다.** 500 도 404 도 아니다 — 목록을
-  세어 보기 전에는 알 수가 없다. `/manage/` 와 `check_db.py` 7번이 그것을 센다 (063)
+  세어 보기 전에는 알 수가 없다. `/manage/` 와 `ops/check_db.py` 7번이 그것을 센다 (063)
 
 **성능 — 같은 실수를 세 번 했다**
 
@@ -389,7 +404,7 @@ web/viewer/
 - **폴러를 세울 때 crontab 을 고치지 않는다.** `poll_nas.sh` 가 `flock -n` 으로
   겹침을 막으므로 `flock /tmp/DiaRUGA-poll.lock <명령>` 이면 그 사이 실행이
   조용히 물러난다. 남의 설정을 고쳤다가 되돌리기를 잊는 쪽이 위험하다
-- **`dbrun.sh` 로 돌릴 스크립트는 `check_db.py` 의 머리를 베껴 온다.**
+- **`dbrun.sh` 로 돌릴 스크립트는 `ops/check_db.py` 의 머리를 베껴 온다.**
   컨테이너 안에서는 코드가 `/app` 이라 `DIARUGA_APP` 을 봐야 한다 — 자기 옆의
   `web/` 을 보게 짜면 `No module named 'diarugaweb'` 로 죽는다
 - **사내망이 `download.pytorch.org` 의 TLS 를 가로챈다.** 파이프라인 이미지 빌드가
@@ -426,18 +441,18 @@ web/viewer/
 검토해 만든 것이고, **다시 만들 수 없다.** `stacked/`·`out/` 은 다시 돌리면 나오고
 `photos/` 는 촬영 원본이다.
 
-`export_review.py`(P02 5단계 · P06)가 **`review/<슬라이드>/g<n>.json` 으로
+`ops/export_review.py`(P02 5단계 · P06)가 **`review/<슬라이드>/g<n>.json` 으로
 내보낸다** — git 에 남는 감사 기록이자, `--check` 로 DB 와 대조하는 도구다.
-Django 를 임포트하지 않고 sqlite3 로 **읽기 전용**으로 열어 `backup_db.py` 와 같은
+Django 를 임포트하지 않고 sqlite3 로 **읽기 전용**으로 열어 `ops/backup_db.py` 와 같은
 자리에 있다(그래서 호스트에서 돌고 백업 파일도 `--db` 로 그대로 읽는다).
 
 ```bash
-python export_review.py                 # 저장소 review/ 로
-python export_review.py --check         # 파일 ↔ DB 대조 (안 쓴다)
-python export_review.py --db <백업> --out /tmp/before && diff -r /tmp/before review/
+python ops/export_review.py                 # 저장소 review/ 로
+python ops/export_review.py --check         # 파일 ↔ DB 대조 (안 쓴다)
+python ops/export_review.py --db <백업> --out /tmp/before && diff -r /tmp/before review/
 ```
 
-**그래도 `backup_db.py` 는 계속 첫 안전망이다** — 내보내기는 교정만 담는다.
+**그래도 `ops/backup_db.py` 는 계속 첫 안전망이다** — 내보내기는 교정만 담는다.
 **큰 작업 전에는 반드시 사본을 뜬다.**
 
 ## 커밋

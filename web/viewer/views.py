@@ -26,7 +26,17 @@ from .models import (Candidate, Detection, Image as ImageModel,  # noqa: E501
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+# **뷰어가 저장소의 스크립트 둘을 함께 쓴다** (100 에서 자리를 옮겼다).
+#
+# - `pipeline/judge.py` — 판정 규칙. 뷰어와 파이프라인이 **같은 것**을 봐야
+#   한다: 규칙이 둘이면 화면과 검출이 다른 말을 한다
+# - `ops/db_sentinel.py` — 무결성 깃발. `/healthz` 가 그것을 읽는다
+#
+# 저장소 뿌리는 `web/viewer` 의 두 단계 위다. **컨테이너 안에서도 같다** —
+# 이미지가 저장소를 통째로 `/app` 에 담으므로 `/app/pipeline`·`/app/ops` 다.
+_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(_ROOT / "pipeline"))
+sys.path.insert(0, str(_ROOT / "ops"))
 import judge  # noqa: E402
 import db_sentinel  # noqa: E402
 

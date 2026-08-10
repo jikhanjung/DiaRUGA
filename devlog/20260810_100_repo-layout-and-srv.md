@@ -1,0 +1,77 @@
+# 100 — 저장소를 넷으로 가르고, 운영을 `/srv` 하나로 세운다
+
+2026-08-10 · 사용자 요청 ("repo 루트에 파이썬 스크립트가 너무 많네" →
+"운영에 쓰는 스크립트는 /srv 에서" → **"운영 서버에 repo 가 없을 수도 있다"**)
+
+## 두 가지 일이었다
+
+**하나는 정리다** — 루트에 `.py` 가 35개였다. 넷으로 갈랐다:
+
+| 디렉토리 | 무엇이 | 개수 |
+|---|---|---|
+| `pipeline/` | 컨테이너 안에서 도는 것 + 그들이 쓰는 모듈(`judge`·`zen_meta`·`runlog`) | 11 |
+| `ops/` | 주기적으로 돌거나 상태를 보는 것 | 10 |
+| `migrate/` | 이전기·일회성 | 9 |
+| `tools/` | 개발 도구 (이미 있던 자리) | +5 |
+
+**다른 하나가 진짜다** — 마지막 한마디가 설계를 바꿨다. 저장소가 없는 서버에서
+운영이 돌아야 한다면, **`/srv/DiaRUGA` 하나로 완결돼야 한다.**
+
+## 저장소를 붙잡고 있던 자리 셋
+
+```
+cron  * * * * *  /home/paleoadmin/projects/DiaRUGA/deploy/poll_nas.sh
+cron  20 * * * * …/projects/DiaRUGA/backup_db.py
+cron  40 4 * * * …/projects/DiaRUGA/sync_backup_nas.py
+```
+
+그리고 폴러 안에서 `REPO=` 로 저장소를 되짚어 `db_sentinel.py` 를 불렀다.
+전부 끊었다 — 이제 cron 은 `/srv/DiaRUGA/bin/` 과 `/srv/DiaRUGA/scripts/` 만 본다.
+
+## 파이프라인 스크립트도 `/srv` 것이 돈다
+
+예전에는 이미지 안의 `/app/*.py` 가 돌았다. `dbtool` 이 쓰던 문을 파이프라인에도
+열었다 — `scripts/` 를 읽기 전용으로 물리고 `DIARUGA_APP=/app` 로 Django 코드만
+이미지 것을 쓴다.
+
+**이득이 크다**: 스크립트 한 줄을 고칠 때마다 **7.2 GB 를 다시 굽지 않아도 된다.**
+이미지를 다시 굽는 것은 **의존성이 바뀔 때**뿐이고, 그때는 판이 올라간다.
+
+`sync_to_srv.sh` 가 `pipeline/`·`ops/` 를 `scripts/` 로, `poll_nas.sh` 를
+`bin/` 으로 민다. `migrate/`·`tools/` 는 **안 옮긴다** — 운영이 스스로 부를 일이
+없고, 필요하면 그때 `dbsync.sh <이름>` 으로 하나만 옮긴다.
+
+> **`/srv/DiaRUGA/scripts` 는 평평하다.** 컨테이너가 그 디렉토리 하나만 물고,
+> 스크립트끼리의 임포트도 평평해야 선다. 그래서 `dbsync.sh` 는 이름 하나로
+> 저장소의 `ops/`·`pipeline/`·`migrate/`·`tools/` 를 뒤져 찾는다.
+
+## 확인해 둔 것 — 컨테이너 밖에서 Django 를 쓰는 것은 하나도 없다
+
+사용자가 물어서 전부 셌다: cron 둘(`backup_db`·`sync_backup_nas`), 폴러의
+`db_sentinel`, 정찰 JSON 세기, smoke 의 응답 파싱, 개발용 `export_review`.
+**여섯 다 Django 를 안 쓴다.** 우연이 아니라 이미 서 있던 설계다 — "DB 를
+만지는 것은 문 하나로만" 이 그것이고, `backup_db.py`·`export_review.py` 가
+일부러 sqlite3 만 쓰는 이유도 같다.
+
+그래서 **저장소 없는 운영 서버가 성립한다**: 호스트에는 파이썬 + sqlite3 만
+있으면 되고 Django·torch 는 전부 이미지 안에 산다.
+
+## 밟은 자리 넷 (전부 시험이 잡았다)
+
+1. **`ops/check_db.py` → `pipeline/judge.py`** — 판정 규칙이 하나뿐이라 공유한다.
+   같은 모양이 셋 더(`export_yolo`→`runlog`, `import_json`·`backfill_scale_source`
+   →`zen_meta`). `sys.path` 에 한 줄씩 알려 줬다
+2. **뷰어도 둘을 쓴다** — `web/viewer/views.py`·`thresholds.py` 가 `judge` 를,
+   `views.py` 가 `db_sentinel` 을 임포트한다. **이미지 안에서도 같은 경로**라
+   구운 이미지로 확인했다(`/app/pipeline/judge.py`·`/app/ops/db_sentinel.py`)
+3. **시험 부트스트랩** — `tests/__init__.py` 가 뿌리만 넣고 있었다. 넷을 넣는다
+4. **스크립트의 `DIARUGA_APP` 기본값** — 한 단계 깊어져 `parent.parent` 가 됐다.
+   20개를 함께 고쳤다
+
+## 남은 거스러미
+
+- `/srv/DiaRUGA/scripts/fix_bp09.py` — 저장소에 없는 일회성 사본이다.
+  `dbsync.sh --list` 가 "저장소에 없다" 로 매번 세운다. 지울지 저장소로 들일지
+  사람이 정할 일
+- **`smoke.sh` 의 표류 검사는 `migrate/`·`tools/` 사본까지 센다.** 운영에 필요
+  없는 것들이라 `/srv` 에서 걷는 편이 깔끔한데, 지워도 되는지는 판단이 필요하다
