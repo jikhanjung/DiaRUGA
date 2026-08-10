@@ -269,3 +269,60 @@ class ObjectLinkBrowserTest(BrowserTestCase):
                          "— 같은 탈락 후보가 둘로 보인다")
         # 그리고 골라진 것은 하나다
         self.assertEqual(len(row2.query_selector_all(".scell.on")), 1)
+
+    def test_되살린_탈락분이_판을_넘겨도_보인다(self):
+        """실사용 보고 (2026-08-10): "묶기 완료한 시점에서 페이지에서는
+        탈락했던 게 되살아났다는 정보가 없고, 프레임을 바꾸면 그 검출이
+        여전히 안 보인다."
+
+        서버는 `accepted` 를 세웠는데 화면의 `shotState` 가 그것을 몰라서
+        **새로고침해야 맞게 나오는** 상태였다. 저장 성공 갈래가 탈락 펼침판과
+        같은 규칙으로 상태를 옮겨야 한다.
+        """
+        from ...models import Candidate, ObjectReview
+        det = Detection.objects.filter(image=self.frame_imgs[0],
+                                       is_current=True).first()
+        Candidate.objects.create(
+            detection=det, raw_id=9, mask_key="44_54_58_38",
+            bbox_x=44, bbox_y=54, bbox_w=58, bbox_h=38,
+            center_x=73, center_y=73, area_px=1100, area_um2=5.5,
+            major_um=5.8, minor_um=3.8, long_side_um=5.8, short_side_um=3.8,
+            aspect_ratio=1.5, fill_ratio=0.6, shape_ok=True, circularity=0.8,
+            convexity=0.9, solidity=0.9, elongation=1.5, ellipse_iou=0.8,
+            texture=90.0, predicted_iou=0.9, stability_score=0.9,
+            polygon=[44, 54, 102, 54, 102, 92, 44, 92],
+            passed=False, reject="텍스처부족")
+
+        page = self.open_group()
+        menu = self.context_menu_at(70, 70)
+        self.menu_item(menu, "동일 개체 묶기").click()
+        page.wait_for_selector(".linkpanel", state="visible", timeout=3000)
+        page.query_selector(".linkpanel .scell.rej").click()
+        page.wait_for_timeout(150)
+        page.query_selector(".linkpanel .lfoot .btn").click()
+        page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
+
+        # 서버는 되살렸다
+        self.assertTrue(
+            ObjectReview.objects.filter(image=self.frame_imgs[0],
+                                        mask_key="44_54_58_38",
+                                        accepted=True).exists())
+
+        # **새로고침 없이** 그 프레임으로 넘어가면 개체로 보여야 한다
+        shot = page.query_selector(
+            f'.shot[data-detkey="{self.frame_imgs[0].frame.name}"]')
+        self.assertIsNotNone(shot, "캐러셀에 그 프레임이 없다")
+        shot.click()
+        page.wait_for_timeout(500)
+
+        # 되살린 것은 개체 상자로 선다. **자리는 백분율이다** — 화소로 견주면
+        # 늘 어긋난다(그렇게 짰다가 고쳤다).
+        boxes = page.evaluate(
+            """() => [...document.querySelectorAll('.detview .box')]
+                 .map(e => e.style.left + '/' + e.style.top)""")
+        self.assertTrue(boxes, "그 판에 개체가 하나도 없다")
+        want = f"{44 / fx.IMG_W * 100:.4g}%"
+        self.assertTrue(
+            any(b.startswith(want) for b in boxes),
+            f"되살린 개체({want})가 안 보인다 — 새로고침해야 나오는 "
+            f"상태다: {boxes}")

@@ -2215,6 +2215,39 @@
         .then(function (r) {
           if (!r.j.ok) { err.textContent = r.j.error || ('저장 실패 (' + r.s + ')'); return; }
           links = r.j.links || [];
+          // **되살린 것을 화면 상태에도 반영한다** (102 고침 · 실사용 보고).
+          // 서버는 `accepted` 행을 세웠는데 화면의 `shotState` 는 그것을 몰라서,
+          // **판을 넘기면 그 프레임에서 여전히 탈락으로 보였다** — 새로고침해야
+          // 맞게 나오는 상태였다.
+          //
+          // 탈락 펼침판이 되살릴 때와 **같은 규칙**으로 옮긴다: `accepted` 에
+          // 넣고, `rejects` 에서 빼고, `cands` 로 올린다(`manual`·`from_reject`
+          // 표식까지). 규칙이 둘이면 되살린 개체가 어디서 왔느냐에 따라 다르게
+          // 보인다.
+          if (payload.act !== 'unlink') {
+            Object.keys(picked).forEach(function (k) {
+              var c = picked[k];
+              if (!c || !c._rej) return;
+              var st = stateOf(k);
+              var mk = keyOf(c);
+              if (st.accepted.has(mk)) return;
+              st.accepted.add(mk);
+              st.rejects = st.rejects.filter(function (r) {
+                return keyOf(r) !== mk;
+              });
+              var copy = Object.assign({}, c, {
+                manual: true, from_reject: true, id: st.cands.length
+              });
+              delete copy._rej;
+              st.cands.push(copy);
+              // 지금 보고 있는 판이면 전역도 그 자리에서 맞춘다 — `stateOf` 가
+              // 준 배열과 전역이 갈라져 있을 수 있다(`swapDet` 이 갈아 끼운다).
+              if (k === curKey) {
+                cands = st.cands; rejects = st.rejects;
+                accepted = st.accepted;
+              }
+            });
+          }
           closeLinkPanel();
           build();          // 사슬 배지가 그 자리에서 선다 — 새로고침을 안 기다린다
           flashNote(payload.act === 'unlink' ? '묶음을 풀었습니다'
