@@ -13,7 +13,7 @@
 (`pipeline/segment_diatoms.py`·YOLO 클래스·NAS 의 `DiatomPhotos/`). devlog 와 `docs/` 의
 지난 기록은 그때 이름 그대로 두었다.
 
-**브랜치** main · 판 `v0.9.0` (파이프라인 `v0.5.1`)
+**브랜치** main · 판 `v0.9.1` (파이프라인 `v0.5.1`)
 
 ---
 
@@ -23,7 +23,15 @@
 NAS 에 새 슬라이드가 올라오면 1분 안에 검출까지 스스로 간다(P03). 슬라이드 **12** ·
 시야 **570** · 교정 **7,766** 건.
 
-**08-10 에 `v0.9.0` 이 나갔다** — 이 판의 축은 **같은 개체 묶기**(P11)다:
+**08-10 에 두 판이 나갔다** — `v0.9.0`(P11 · 096 · 098)과 `v0.9.1`(100).
+자세한 것은 [101](devlog/20260810_101_deploy-v0.9.md).
+
+`v0.9.1` 은 **구조가 바뀐 판**이다 — 저장소를 넷으로 가르고(`pipeline/`·`ops/`·
+`migrate/`·`tools/`), **운영 서버에 저장소가 없어도 돌게** 했다. cron 도 폴러도
+파이프라인 컨테이너도 이제 `/srv/DiaRUGA` 만 본다. `deploy.sh` 가 배포 뒤에
+**이미지에서 `/srv` 스크립트를 뽑아** 판을 맞춘다(9.1절).
+
+`v0.9.0` 의 축은 **같은 개체 묶기**(P11)다:
 
 - **여러 프레임에 잡힌 같은 규조각을 사람이 골라 묶는다** (P11 · 090~092·099).
   마스크 우클릭 → 판마다 근처 후보를 펼쳐 하나씩 고르고, **별로 대표**를 세운다.
@@ -74,8 +82,15 @@ NAS 에 새 슬라이드가 올라오면 1분 안에 검출까지 스스로 간�
 검토 흐름 넷(완료 숨기기 · 다음 미검토 · 밝기/대비 · 전체 표시).
 
 **1차 검토는 08-06 에 전수 완료됐고**(508/508), **08-09 부터 남극 2차 검토가
-돌고 있다**(092 가 완료 표시를 걷고 다시 시작했다). 지금 **307/508** 이고 교정은
-7,766건이다 — 그 사이 `Chaetoceros` 동정이 처음으로 대거 들어왔다(093).
+돌고 있다**(092 가 완료 표시를 걷고 다시 시작했다). `sam2-전수` 기준 **309/511**
+이고 교정은 7,896건이다 — 그 사이 `Chaetoceros` 동정이 처음으로 대거 들어왔다(093).
+
+> **08-10 11:27 에 검토 대상이 `yolo-3차` 로 갈렸다** — P11(같은 개체 묶기)을
+> 쓰려면 프레임 검출이 있어야 하기 때문이다(`sam2-전수` 는 합성본뿐이라 묶을
+> 상대가 없다). **그래서 화면의 검토 진척이 0 으로 보이는 것이 정상이다** —
+> 완료 표시는 묶음마다 따로다(073). 되돌리려면 시스템 설정 · 운영에서
+> `sam2-전수` 를 다시 고른다.
+
 **다음 판의 학습 자료가 여기서 나온다.**
 
 **08-05 에 이름을 한 겹으로 모았다**(048). 저장소·경로·URL·DB·이미지가 전부
@@ -176,7 +191,7 @@ cd /srv/DiaRUGA && docker compose up -d web
 
 ### DB (`DiaRUGA.db`, WAL)
 
-**08-10 10:00 기준** (v0.9.0 배포 직후). 정확한 값은 이 문서가 아니라
+**08-10 11:30 기준** (v0.9.1 배포 직후). 정확한 값은 이 문서가 아니라
 `/healthz` 나 `smoke.sh` 가 낸다.
 
 | 테이블 | 행 |
@@ -185,9 +200,9 @@ cd /srv/DiaRUGA && docker compose up -d web
 | Viewpoint / Frame / Stack | **570** / **1,830** / **417** |
 | Image | **2,664** (프레임 1,830 · 합성본 417 · 깊이맵 417) |
 | Detection / Candidate | **2,817** / **122,333** |
-| ViewpointReview / ObjectReview | 514 / **7,766** |
+| ViewpointReview / ObjectReview | **517** / **7,896** |
 | **ObjectLink / ObjectLinkMember** | **0 / 0** (P11 — 아직 아무도 안 묶었다) |
-| ThresholdSet / ClassDef / Run / RunBatch | 2 / 6 / **208** / 2 |
+| ThresholdSet / ClassDef / Run / RunBatch | 2 / 6 / **209** / 2 |
 
 > **`ViewpointReview`(514)가 시야 수(570)보다 적다.** 완료 표시는 **묶음마다**
 > 남고(073) 새 슬라이드 62 시야는 아직 검토 줄이 없어서다.
@@ -334,8 +349,8 @@ scan_nas → ingest_nas → group_focus_series → focus_stack --slide → segme
 
 | 묶음 | 실행 | 검출 | `is_current` | `for_review` |
 |---|---|---|---|---|
-| `sam2-전수` | 22 | 508 | 508 | **켜짐** ← 뷰어가 보는 것 |
-| `yolo-3차` | 44 | 1,799 | 1,799 | 꺼짐 |
+| `sam2-전수` | 22 | 508 | 508 | 꺼짐 |
+| `yolo-3차` | 45 | 2,247 | 2,247 | **켜짐** ← 뷰어가 보는 것 (08-10 11:27 전환) |
 
 (08-07 현재. `yolo-1차`·`yolo-2차` 는 046 에서 걷어 냈다.)
 
@@ -731,6 +746,7 @@ SQLite 를 다시 볼 문제가 된다.
 | `20260807_086_crops-dead.md` | 화면 둘이 v0.8.0 내내 500 이었던 것. **URL 을 덮는 시험과 갈래를 덮는 시험은 다르다** |
 | `20260809_P11_object-linking.md` | 같은 개체 묶기의 계획·결정. **사람이 고르면 재생성 불가가 된다** |
 | `20260810_097_poller-stdin-starved.md` | 폴러 3단계가 사흘 죽어 있던 것. **"조용히 성공한 빈 결과" 와 "실패" 를 한 갈래로 접지 말 것** |
+| `20260810_100_repo-layout-and-srv.md` | 저장소를 넷으로, 운영을 `/srv` 하나로. **`sys.path` 앞자리를 누가 차지하는가** |
 | `docs/20260803_diatom-analysis-system-progress-4.md` | 4차 진척 보고서 (devlog 018~025 종합) |
 
 마이그레이션은 **`0030_objectlink_objectlinkmember_and_more`** 가 마지막이다
@@ -1061,24 +1077,49 @@ requirements 는 넷으로 갈라져 있다 — 호스트는 `requirements.txt`,
 **저장소는 굽고, `/srv/DiaRUGA` 은 돌린다.** 컨테이너 안팎의 경로가 같아 명령을
 그대로 옮겨 쓸 수 있다.
 
+> **`v0.9.1` 부터 운영은 `/srv/DiaRUGA` 하나로 완결된다** (100 · 사용자 방침
+> "운영 서버에 저장소가 없을 수도 있다"). cron 세 줄도, 폴러도, 파이프라인
+> 컨테이너도 저장소를 안 본다.
+>
+> ```
+> /srv/DiaRUGA/
+>   bin/      deploy.sh · smoke.sh · poll_nas.sh · sync_to_srv.sh
+>   scripts/  파이프라인·운영 스크립트 **평평하게** (컨테이너가 ro 로 문다)
+>   db/  www/  test/  .env  docker-compose.yml
+> ```
+>
+> **파이프라인 스크립트도 `/srv` 것이 돈다** — 이미지 안의 `/app` 사본이 아니다.
+> 그래서 **스크립트 한 줄을 고치는 데 7.2 GB 를 다시 굽지 않는다.** Django 코드만
+> 이미지 것을 쓴다(`DIARUGA_APP=/app`). 이미지를 다시 굽는 것은 **의존성이 바뀔
+> 때**뿐이다.
+>
+> **`APP` 은 `sys.path` 뒤에 붙인다** — 앞에 넣으면 이미지 안의 옛
+> `judge.py`·`zen_meta.py` 가 `/srv` 의 새것을 가린다. 실제로 그 상태로 돌고
+> 있었고 배포 직전에 탐침으로 잡았다(100 덧 2). 스크립트를 더할 때 이 줄을
+> 베껴 쓸 것.
+
 ```bash
 cd /srv/DiaRUGA && docker compose up -d web                    # 뷰어
-cd /srv/DiaRUGA && docker compose run --rm pipeline <명령>      # GPU, 일회성
+cd /srv/DiaRUGA && docker compose run --rm pipeline \
+    python /srv/DiaRUGA/scripts/<이름>.py <인자>                # GPU, 일회성
 docker compose -f deploy/docker-compose.yml build web         # 이미지 굽기 (저장소)
+deploy/host/sync_to_srv.sh                                    # 저장소 → /srv (개발 중)
+/srv/DiaRUGA/bin/sync_to_srv.sh --from-image <판>              # 이미지 → /srv (저장소 없이)
 /srv/DiaRUGA/bin/deploy.sh <태그>                               # pull → 스냅샷 → 교체 → 게이트
+                                                              #   → /srv 를 그 판에 맞춤 → smoke
 ```
 
-**지금 도는 판**: `IMAGE_TAG=v0.9.0` · `PIPELINE_TAG=v0.5.1` (08-10).
+**지금 도는 판**: `IMAGE_TAG=v0.9.1` · `PIPELINE_TAG=v0.5.1` (08-10).
 뷰어 판은 `.env` 와 `/healthz` 가 알려 준다 — 이 문서보다 그쪽이 늘 옳다.
 
 > **이미지를 Docker Hub 로 올리는 것은 아직 사람이 한다.** `test.yml` 은 태그를
 > 밀면 올린다고 적혀 있지만 **저장소에 `DOCKERHUB_USERNAME`·`DOCKERHUB_TOKEN`
 > 시크릿이 없어** 그 단계가 `Username and password required` 로 실패한다.
-> v0.8.0~v0.9.0 은 전부 이 머신에서 손으로 올라갔다:
+> v0.8.0~v0.9.1 은 전부 이 머신에서 손으로 올라갔다:
 >
 > ```bash
-> DIARUGA_TAG=v0.9.0 docker compose -f deploy/docker-compose.yml build web
-> DIARUGA_TAG=v0.9.0 docker compose -f deploy/docker-compose.yml push  web
+> DIARUGA_TAG=v0.9.1 docker compose -f deploy/docker-compose.yml build web
+> DIARUGA_TAG=v0.9.1 docker compose -f deploy/docker-compose.yml push  web
 > ```
 >
 > 그래서 **"시험을 통과한 것만 이미지가 된다" 는 관문이 실제로는 사람 손에
