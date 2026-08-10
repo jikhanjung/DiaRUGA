@@ -321,9 +321,12 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       내린다 → **DB 사본 갈아 끼우기** → 기동 게이트 → smoke(운영과 같은 스크립트).
       안전 검사 넷이 **실제로 서는 것을 확인했다** — 운영 DB · NAS 원본 노두
       사진 · 서브경로 `/DiaRUGA` · compose 의 운영 `db/` 마운트.
-- [ ] **`/srv/DiaRUGA/scripts/fix_bp09.py`** — 저장소에 없는 일회성 사본이라
-      `dbsync.sh --list` 와 smoke 의 표류 검사가 매번 세운다. 지울지 저장소로
-      들일지 사람이 정할 일 (100)
+- [x] **`/srv/DiaRUGA/scripts/fix_bp09.py` 를 지웠다** — 2026-08-10.
+      063 때 북평분지의 층을 고친 일회성 스크립트인데, **이미 죽어 있었다**:
+      `from viewer.models import Core` 를 하는데 `Core` 는 063 에서 `Locality`
+      가 됐다(돌려 보면 `ImportError`). 하려던 일도 다 됐다 — 지역 코드는 `BP`,
+      `BP09-0901 (1)` 은 지점 `BP09` 에 붙어 있고 소속 없는 관찰은 0이다.
+      이제 `/srv` 스크립트가 저장소와 완전히 같다.
 - [ ] **테스트 인스턴스를 계속 둘 것인가** (085) — `/srv/DiaRUGA/test/` 에
       **107 MB**(사본 DB 104M + 노두 사진 사본 2.9M)가 있고 지금은 내려 있다.
       nginx 는 그대로 8091 로 넘기므로 **`/DiaRUGATest/` 는 502 다** — 고장이
