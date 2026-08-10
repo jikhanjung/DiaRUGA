@@ -461,7 +461,7 @@ python web/manage.py test viewer                         # 561개 · 135초
 (DB 와 `DATA_ROOT` **둘 다** 본다 — 한쪽만 봤다가 픽스처가 `/data3` 에 사진을
 썼다).
 
-**4겹이 진짜 크로미움으로 눌러 본다**(045). 키 입력·클릭·페이지 이동·**콘솔 오류**·
+**브라우저 레이어가 진짜 크로미움으로 눌러 본다**(045). 키 입력·클릭·페이지 이동·**콘솔 오류**·
 화면 캡처. 이벤트 배선 고장은 이것으로만 잡힌다.
 
 - **커버리지를 목표로 하지 않는다.** **되살려서 잡히는 것을 보고 나서 "있다" 고
@@ -874,9 +874,13 @@ cd /srv/DiaRUGA/test && docker compose down
 - **DB 사본은 기본으로 갈아 끼운다** — 테스트에서 사본이 낡는 것은 기본 고장이다
 - **오리진이 같아 `localStorage` 를 운영과 공유한다** (레이어 토글이 넘어간다)
 
-> **이미지를 Docker Hub 로 올리는 것은 아직 사람이 한다** — 저장소에
-> `DOCKERHUB_USERNAME`·`DOCKERHUB_TOKEN` 시크릿이 없어 CI 의 굽기 겹이 실패한다.
-> **태그마다 CI 에 빨간 줄이 남는 것이 정상이다**(시험 겹은 초록).
+> **시크릿이 08-10 저녁에 들어왔다** — `gh secret list` 에
+> `DOCKERHUB_USERNAME`·`DOCKERHUB_TOKEN` 이 있다. 그전까지는 굽기 레이어가
+> `Username and password required` 로 실패해 **v0.8.0~v0.10.2 를 전부 손으로
+> 올렸다.** **아직 태그로 확인한 적은 없다 — 다음 판을 밀 때 본다**(굽기
+> 레이어가 초록이면 `docker pull` 로 이미지가 올라온 것까지 확인할 것).
+>
+> 손으로 올릴 때는 이렇게 한다.
 >
 > ```bash
 > DIARUGA_TAG=v0.10.2 docker compose -f deploy/docker-compose.yml build web
@@ -1021,7 +1025,8 @@ python ops/db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손�
 - **뷰어에 인증이 없다.** 필요해지면 `DiaRUGA-subpath.conf` 에 `auth_basic` 을
   걸면 된다 — Django 를 건드릴 필요가 없다
 - 표준 deploy 동사 5개 중 셋이 없다 — `rollback`·`preflight`·`seed`. `DEPLOY.md` 도 없다
-- **CI 가 이미지를 못 올린다** — Docker Hub 시크릿이 저장소에 없다
+- **CI 가 이미지를 올리는 것을 아직 확인 안 했다** — 시크릿은 08-10 저녁에
+  들어왔다. **다음 태그가 첫 시험대다**(9.1절)
 - **`/` 가 81% (43 GB 남음).** 도커 자리는 `/data3/DiaRUGA/docker` 로 옮겼고
   `/data3` 는 10% 다 — 이미지가 쌓여도 `/` 를 밀지 않는다
 

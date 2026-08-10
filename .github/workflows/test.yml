@@ -20,7 +20,7 @@ on:
 
 jobs:
   test:
-    name: 뷰어 시험 (1~3겹)
+    name: 뷰어 시험 (1~3 레이어)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -35,7 +35,7 @@ jobs:
 
       # **자료도 DB 도 저장소에 없다.** 시험이 픽스처를 전부 스스로 세운다.
       # 마이그레이션은 실제로 돌린다 — `db_default` 를 빠뜨린 칸은 그래야 보인다.
-      # 4겹은 뺀다 — 크로미움이 필요하고 아래 `browser` job 이 따로 돈다.
+      # 브라우저 레이어는 뺀다 — 크로미움이 필요하고 아래 `browser` job 이 따로 돈다.
       - name: manage.py test
         run: python web/manage.py test viewer --exclude-tag browser --verbosity 2
 
@@ -44,10 +44,10 @@ jobs:
         run: python pipeline/test_zen_meta.py
 
   browser:
-    name: 브라우저 (4겹)
+    name: 브라우저 레이어
     runs-on: ubuntu-latest
     # **실패해도 다른 것을 막지 않는다.** 헤드리스 환경 차이로 처음에는
-    # 흔들릴 것이고, 그때 1~3겹까지 같이 빨개지면 아무도 안 보게 된다.
+    # 흔들릴 것이고, 그때 1~3 레이어까지 같이 빨개지면 아무도 안 보게 된다.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v5

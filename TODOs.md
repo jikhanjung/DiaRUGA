@@ -235,19 +235,16 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 - [ ] **표준 deploy 동사 5개** (preflight/deploy/seed/smoke/rollback) — 016.
       만든 것은 `deploy`(019)·`smoke`(034)이고 **`rollback`·`preflight`·
       `seed`("(none)" 선언)가 없다.** `DEPLOY.md` 도 없다
-- [ ] **CI 가 이미지를 Docker Hub 로 못 올린다 — 시크릿이 없다.** `test.yml` 은
-      태그를 밀면 올린다고 적혀 있는데 `gh secret list` 가 비어 있어
-      `Username and password required` 로 굽기 겹이 실패한다. v0.8.0 이후 판이
-      전부 이 머신에서 손으로 올라갔다 — **"시험을 통과한 것만 이미지가 된다"
-      는 관문이 실제로는 사람 손에 걸려 있다.**
+- [ ] **CI 가 이미지를 Docker Hub 로 올리는지 다음 판에서 확인한다.**
+      시크릿 둘(`DOCKERHUB_USERNAME`·`DOCKERHUB_TOKEN`)이 **2026-08-10 저녁에
+      저장소 설정에 들어왔다**(사용자). 그전까지는 굽기 레이어가
+      `Username and password required` 로 실패해 **v0.8.0~v0.10.2 를 전부 이
+      머신에서 손으로 올렸다** — "시험을 통과한 것만 이미지가 된다" 는 관문이
+      실제로는 사람 손에 걸려 있었다.
 
-      ```bash
-      gh secret set DOCKERHUB_USERNAME --body honestjung
-      gh secret set DOCKERHUB_TOKEN     # 붙여넣기
-      ```
-
-      넣기 전까지 **태그마다 CI 에 빨간 줄이 남는 것이 정상**이다(시험 겹은
-      초록, 굽기 겹만 빨강). 그 상태를 모르면 진짜 실패와 구별이 안 된다
+      **다음 태그를 밀 때 볼 것**: 굽기 레이어가 초록인가 · `docker pull
+      honestjung/diaruga:<판>` 이 되는가(굽기가 성공해도 push 가 빠지면 모른다).
+      되면 손으로 올리는 단계를 배포 절차에서 뺀다
 - [ ] **`smoke.sh` 가 슬라이드마다 화면을 하나만 연다** — 시야 목록뿐이라
       `/crops/`·`/detections/`·`/catalog/`·`/g/<n>/` 이 죽어도 통과한다.
       **086 이 그 구멍으로 나왔다**(두 화면이 v0.8.0 이후 내내 500, 배포 게이트를
