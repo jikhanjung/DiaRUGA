@@ -202,6 +202,18 @@ def _recipe_args(recipe: dict) -> list:
     return out
 
 
+def system_settings_pipeline(request):
+    """시스템 설정 · 파이프라인 — 폴러가 살아 있는가, 무엇이 밀려 있는가 (098).
+
+    097 이 이 화면의 값을 증명했다: 폴러 3단계가 사흘을 조용히 죽어 있었는데
+    멈춘 것을 알려 주는 자리가 없었다. 값 셋 — 마지막 정찰(정찰 파일의 나이) ·
+    마지막 실행(Run) · 끝나지 않은 슬라이드와 그 진행. 해석은 화면이 먼저
+    한다(경고 줄) — 사람이 숫자를 조합해서 알아내게 두지 않는다.
+    """
+    return render(request, "viewer/system_settings_pipeline.html",
+                  {"p": data.pipeline_status()})
+
+
 def system_settings_dataset(request):
     """관리 · 학습 자료 — 검토가 끝난 결과에서 **정답을 뽑는** 자리 (083).
 

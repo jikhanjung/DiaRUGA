@@ -843,6 +843,100 @@ def review_batch_id():
             .values_list("id", flat=True).first())
 
 
+def pipeline_status() -> dict:
+    """파이프라인이 지금 어떤 상태인가 — 시스템 설정 · 파이프라인 탭 (098).
+
+    097 이 이 화면의 값을 증명했다: 폴러 3단계가 사흘을 조용히 죽어 있었는데
+    (026 때는 4시간 반), **멈춘 것을 알려 주는 자리가 없어** 새 슬라이드가
+    pending 에 걸리고서야 사람이 알았다. 뷰어는 늘 열려 있다 — 여기가 그 자리다.
+
+    셋을 모은다:
+
+    - **정찰** — `logs/last_scan.json` 의 mtime 과 내용. 폴러 1단계가 매분
+      다시 쓰므로 이 파일의 나이가 곧 "폴러가 살아 있는가" 다
+    - **실행** — `Run` 최근 것들. "마지막으로 언제 돌았는가" 는 여기 있다
+    - **밀린 슬라이드** — `done` 이 아닌 것 전부와 각각의 진행(시야·합성·검출)
+
+    파일이 없거나 못 읽으면 그렇게 말한다 — 개발 서버(`/data3` 밖)에서는
+    정찰 파일이 없는 것이 정상이라, 없음을 고장처럼 그리지 않는 것은 화면 몫이다.
+    """
+    import json as _json
+    now = timezone.now()
+
+    scan = {"exists": False, "age_min": None, "slides": [], "error": ""}
+    scan_path = Path(settings.DATA_ROOT) / "logs" / "last_scan.json"
+    try:
+        st = scan_path.stat()
+        scan["exists"] = True
+        scan["age_min"] = round((now.timestamp() - st.st_mtime) / 60, 1)
+        d = _json.loads(scan_path.read_text(encoding="utf-8"))
+        scan["slides"] = [{"rel": r.get("rel", ""), "state": r.get("state", ""),
+                          "jpgs": r.get("jpgs", 0),
+                          "stable_min": round(r.get("stable_min") or 0, 1)}
+                         for r in d.get("slides", [])]
+    except FileNotFoundError:
+        pass
+    except (OSError, ValueError) as e:
+        scan["error"] = f"{type(e).__name__}: {e}"
+
+    runs = []
+    for r in (Run.objects.select_related("slide", "batch")
+              .order_by("-started_at")[:12]):
+        dur = None
+        if r.finished_at:
+            dur = round((r.finished_at - r.started_at).total_seconds() / 60, 1)
+        runs.append({
+            "kind": r.kind, "status": r.status,
+            "slide": r.slide.slug if r.slide else "",
+            "batch": r.batch.label if r.batch else "",
+            "started_at": r.started_at, "finished_at": r.finished_at,
+            "minutes": dur,
+            "error": (r.error or "")[:200],
+        })
+
+    # 밀린 슬라이드 — done 이 아닌 전부. 시야·합성·검출 수로 어디까지 왔는지
+    # 함께 낸다 (state_note 는 파이프라인이 적는 문장 그대로).
+    busy = []
+    for sl in Slide.objects.exclude(state="done").order_by("pk"):
+        vps = Viewpoint.objects.filter(slide=sl).count()
+        stacks = Stack.objects.filter(viewpoint__slide=sl).count()
+        dets = (Detection.objects.filter(viewpoint__slide=sl, is_current=True)
+                .values("viewpoint_id").distinct().count())
+        busy.append({
+            "slug": sl.slug, "name": sl.name, "state": sl.state,
+            "note": sl.state_note or "",
+            "n_frames": Frame.objects.filter(slide=sl).count(),
+            "n_vps": vps, "n_stacks": stacks, "n_det_vps": dets,
+            "discovered_at": sl.discovered_at, "copied_at": sl.copied_at,
+        })
+
+    last_done = (Run.objects.exclude(finished_at=None)
+                 .order_by("-finished_at").first())
+
+    # 경고 — 사람이 각 값을 해석하게 두지 않고 화면이 먼저 말한다 (097).
+    #
+    # **긴 작업이 도는 중이면 정찰이 늙는 것이 정상이다.** 폴러는 flock 하나로
+    # 돌아서, 한 주기가 합성·검출(몇 시간)을 쥐고 있으면 다음 정찰이 그만큼
+    # 밀린다 — 실제로 이 화면을 처음 띄운 날 합성 도중이라 거짓 경고부터 냈다.
+    # 도는 실행이 있으면 접는다.
+    warnings = []
+    running = [r for r in runs if r["status"] == "running"]
+    if (scan["exists"] and scan["age_min"] is not None
+            and scan["age_min"] > 5 and not running):
+        warnings.append(f"정찰이 {scan['age_min']:.0f}분째 없다 — 폴러가 멈춰 "
+                        "있을 수 있다 (cron 은 1분마다 돈다)")
+    if busy and not running:
+        newest = last_done.finished_at if last_done else None
+        idle_min = ((now - newest).total_seconds() / 60) if newest else None
+        if idle_min is None or idle_min > 15:
+            warnings.append(
+                f"끝나지 않은 슬라이드가 {len(busy)}개 있는데 도는 실행이 없다 — "
+                "폴러가 데리러 오지 않는 상태일 수 있다 (097 이 그 모양이었다)")
+
+    return {"scan": scan, "runs": runs, "busy": busy,
+            "last_done": last_done, "warnings": warnings, "now": now}
+
+
 def object_links_of(vp) -> list[dict]:
     """이 시야의 같은 개체 묶음 (P11). 화면이 그대로 쓰는 모양으로 낸다.
 

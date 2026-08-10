@@ -33,6 +33,8 @@ urlpatterns = [
          name="system_settings_ops"),
     path("system-settings/dataset/", views.system_settings_dataset,
          name="system_settings_dataset"),
+    path("system-settings/pipeline/", views.system_settings_pipeline,
+         name="system_settings_pipeline"),
     # 옛 주소. **지우지 않는다** — 적어 둔 링크와 브라우저 기록이 깨진다.
     # `core/` 와 같은 갈래이고 같은 이유로 302 다(301 은 브라우저가 캐시해서
     # 나중에 규칙을 다시 손볼 때 되돌릴 방법이 없다).
