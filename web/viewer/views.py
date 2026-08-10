@@ -1367,12 +1367,24 @@ def save_object_link(request, slug, gid):
             geom = {"bbox_xywh": [cand.bbox_x, cand.bbox_y,
                                   cand.bbox_w, cand.bbox_h],
                     "polygon": cand.polygon}
-            resolved.append((img, rb, key, bool(m.get("rep")), geom))
+            # **문턱에서 떨어진 후보도 묶을 수 있다** (102). 그 프레임에서 가장
+            # 좋은 마스크가 탈락해 있는 일이 실제로 있다 — 초점이 흐려 텍스처가
+            # 모자란 판이 그렇다. 사람이 "이것이 그 개체다" 라고 하면 그것은
+            # **검출이 맞다는 판단이기도 하므로 되살린다**(탈락 펼침판을 눌러
+            # 되살리는 것과 같은 뜻이다).
+            #
+            # **서버가 한다.** 화면에서 하려면 그 판(이미지)에 대고 `/review` 를
+            # 따로 보내야 하는데, 그 길은 "그 이미지의 교정 전체를 갈아치운다"
+            # 는 전제라 다른 판의 상태를 실어 보내는 사고가 난다(027·053 계열).
+            # 여기서는 행 하나만 좁게 세운다.
+            resolved.append((img, rb, key, bool(m.get("rep")), geom,
+                             not cand.passed))
             continue
         drawn = ObjectReview.objects.filter(
             image=img, batch__isnull=True, mask_key=key).first()
         if drawn is not None and not drawn.removed:
-            resolved.append((img, None, key, bool(m.get("rep")), drawn.geom))
+            resolved.append((img, None, key, bool(m.get("rep")), drawn.geom,
+                             False))
             continue
         return bad(f"{key} 는 이 화면의 마스크가 아니다")
 
@@ -1389,15 +1401,28 @@ def save_object_link(request, slug, gid):
                 link.save(update_fields=["batch"])
             else:
                 link = ObjectLink.objects.create(viewpoint=vp, batch_id=rb)
-            for img, b, key, rep, geom in resolved:
+            revived = 0
+            for img, b, key, rep, geom, rej in resolved:
                 ObjectLinkMember.objects.create(
                     link=link, image=img, batch_id=b, mask_key=key,
                     is_rep=rep, geom=geom)
+                if not rej:
+                    continue
+                # 탈락 후보를 묶었다 → 되살린다. **있는 행은 안 덮는다** —
+                # 분류·코멘트가 붙어 있을 수 있고, 그것은 다른 축의 판단이다.
+                row, made = ObjectReview.objects.get_or_create(
+                    image=img, batch_id=b, mask_key=key,
+                    defaults={"viewpoint": vp, "accepted": True,
+                              "geom": geom, "bind_method": "exact"})
+                if not made and not row.accepted:
+                    row.accepted = True
+                    row.save(update_fields=["accepted"])
+                revived += 1
     except IntegrityError:
         # 유일 제약 — 그 마스크가 이미 다른 묶음에 속해 있다
         return bad("멤버 중 하나가 이미 다른 묶음에 속해 있다", 409)
 
-    return JsonResponse({"ok": True, "link_id": link.pk,
+    return JsonResponse({"ok": True, "link_id": link.pk, "revived": revived,
                          "links": data.object_links_of(vp)})
 
 

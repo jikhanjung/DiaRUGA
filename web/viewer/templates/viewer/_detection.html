@@ -1993,6 +1993,18 @@
     function nearOf(key) {
       var st = stateOf(key);
       var live = st.cands.filter(function (c) { return !st.removed.has(keyOf(c)); });
+      // **탈락 후보도 후보다** (102 · 사용자 요청). 그 프레임에서 가장 좋은
+      // 마스크가 문턱에서 떨어져 있는 일이 실제로 있다 — 초점이 흐려 텍스처가
+      // 모자란 판이 그렇다. 이미 되살린 것은 `cands` 에 있으므로 뺀다.
+      var seen = {};
+      live.forEach(function (c) { seen[keyOf(c)] = 1; });
+      st.rejects.forEach(function (c) {
+        if (seen[keyOf(c)]) return;
+        // 원본을 안 건드린다 — 표시용 표식만 붙인 사본이다
+        var copy = Object.assign({}, c);
+        copy._rej = true;
+        live.push(copy);
+      });
       var mx = ab[2] * 0.25, my = ab[3] * 0.25;
       var near = live.filter(function (c) {
         var b = c.bbox_xywh;
@@ -2017,7 +2029,9 @@
     if (!existing) {
       order.forEach(function (o) {
         if (o.key === curKey || (o.key in picked)) return;
-        var near = nearOf(o.key);
+        // **미리 고르기는 통과분만 집는다.** 탈락 후보를 자동으로 고르면
+        // 사람이 확인하지 않은 채 되살아난다 — 판정을 자동값에 맡기는 자리다.
+        var near = nearOf(o.key).filter(function (c) { return !c._rej; });
         if (!near.length) return;
         var ious = near.map(function (c) { return bboxIoU(ab, c.bbox_xywh); });
         var bi = ious.indexOf(Math.max.apply(null, ious));
@@ -2032,7 +2046,8 @@
     var head = document.createElement('div');
     head.className = 'shead';
     head.innerHTML = (existing ? '<b>묶음 고치기</b>' : '<b>동일 개체 묶기</b>') +
-      ' — 프레임마다 이 개체를 고르십시오 · <b>★ = 대표</b> · 없으면 (없음)';
+      ' — 프레임마다 이 개체를 고르십시오 · <b>★ = 대표</b> · 없으면 (없음)' +
+      '<br><span class="dim">빨간 점선은 <b>탈락 후보</b>입니다 — 고르면 되살아납니다</span>';
     linkPanel.appendChild(head);
     var x = document.createElement('button');
     x.type = 'button'; x.className = 'sclose'; x.title = '닫기 (Esc)';
@@ -2094,8 +2109,19 @@
         near.forEach(function (c) {
           var b = document.createElement('button');
           b.type = 'button';
-          b.className = 'scell' + (picked[key] === c ? ' on' : '');
+          b.className = 'scell' + (picked[key] === c ? ' on' : '') +
+                        (c._rej ? ' rej' : '');
+          if (c._rej) {
+            b.title = '문턱에서 떨어진 후보 — 고르면 되살아납니다' +
+                      (c.reject ? ' (탈락사유: ' + c.reject + ')' : '');
+          }
           b.appendChild(cropWithMask(c, shotDets[key].rel));
+          if (c._rej) {
+            var tag = document.createElement('span');
+            tag.className = 'ltag';
+            tag.textContent = '탈락';
+            b.appendChild(tag);
+          }
           if (picked[key] === c) b.appendChild(starEl(key));
           b.addEventListener('click', function (ev) {
             ev.stopPropagation();
@@ -2119,7 +2145,17 @@
 
       // 발치 — 저장·풀기
       var n = Object.keys(picked).length;
+      // **되살릴 것을 미리 말한다** — 누르고 나서 아는 것은 늦다.
+      var nRev = Object.keys(picked).filter(function (k) {
+        return picked[k] && picked[k]._rej;
+      }).length;
       foot.innerHTML = '';
+      if (nRev) {
+        var w = document.createElement('span');
+        w.className = 'lrev';
+        w.textContent = '탈락 후보 ' + nRev + '개를 함께 되살립니다';
+        foot.appendChild(w);
+      }
       var saveB = document.createElement('button');
       saveB.type = 'button'; saveB.className = 'btn';
       saveB.textContent = existing ? '묶음 저장 (' + n + '장)' : '묶기 (' + n + '장)';
@@ -2166,7 +2202,8 @@
           closeLinkPanel();
           build();          // 사슬 배지가 그 자리에서 선다 — 새로고침을 안 기다린다
           flashNote(payload.act === 'unlink' ? '묶음을 풀었습니다'
-                    : '묶었습니다 (' + payload.members.length + '장)');
+                    : '묶었습니다 (' + payload.members.length + '장' +
+                      (r.j.revived ? ' · 탈락 ' + r.j.revived + '개 되살림' : '') + ')');
         })
         .catch(function () { err.textContent = '저장 실패 — 네트워크'; });
     }

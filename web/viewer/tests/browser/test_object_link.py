@@ -187,3 +187,40 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         self.errors = [e for e in self.errors
                        if "ERR_FAILED" not in e or "/review" not in e
                        if not e.startswith("console.error: Failed to load resource")]
+
+    def test_탈락_후보가_팝업에_빨간_점선으로_나온다(self):
+        """102 · 사용자 요청. **미리 고르기는 탈락을 안 집는다** — 자동으로
+        골라 두면 사람이 확인하지 않은 채 되살아난다."""
+        from ...models import Candidate
+        # 프레임 판의 닻 자리에 탈락 후보 하나를 세운다
+        det = Detection.objects.filter(image=self.frame_imgs[0],
+                                       is_current=True).first()
+        Candidate.objects.create(
+            detection=det, raw_id=9, mask_key="44_54_58_38",
+            bbox_x=44, bbox_y=54, bbox_w=58, bbox_h=38,
+            center_x=73, center_y=73, area_px=1100, area_um2=5.5,
+            major_um=5.8, minor_um=3.8, long_side_um=5.8, short_side_um=3.8,
+            aspect_ratio=1.5, fill_ratio=0.6, shape_ok=True, circularity=0.8,
+            convexity=0.9, solidity=0.9, elongation=1.5, ellipse_iou=0.8,
+            texture=90.0, predicted_iou=0.9, stability_score=0.9,
+            polygon=[44, 54, 102, 54, 102, 92, 44, 92],
+            passed=False, reject="텍스처부족")
+
+        page = self.open_group()
+        menu = self.context_menu_at(70, 70)
+        self.menu_item(menu, "동일 개체 묶기").click()
+        page.wait_for_selector(".linkpanel", state="visible", timeout=3000)
+
+        rej = page.query_selector_all(".linkpanel .scell.rej")
+        self.assertTrue(rej, "탈락 후보가 팝업에 안 나온다")
+        # 점선·빨강이 실제로 먹는가 (CSS 가 조각 안에 있으면 안 먹는다)
+        st = rej[0].evaluate("""e => {
+            const s = getComputedStyle(e);
+            return [s.borderTopStyle, s.borderTopColor];
+        }""")
+        self.assertEqual(st[0], "dashed", "탈락 표시가 점선이 아니다")
+        # 자동으로 골라져 있으면 안 된다
+        self.assertNotIn("on", rej[0].get_attribute("class").split(),
+                         "탈락 후보가 미리 골라져 있다 — 확인 없이 되살아난다")
+        self.assertIsNotNone(page.query_selector(".linkpanel .ltag"),
+                             "'탈락' 딱지가 없다")

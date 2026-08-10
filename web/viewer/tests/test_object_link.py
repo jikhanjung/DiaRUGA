@@ -241,3 +241,122 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
 
     def test_GET_은_안_받는다(self):
         self.assertEqual(self.c.get(self.url).status_code, 405)
+
+
+class LinkRejectedCandidateTest(DiaRUGATestCase):
+    """탈락 후보를 묶으면 되살아난다 (102 · 사용자 요청).
+
+    P11 §4 는 "탈락 후보는 1판에서 뺀다 — 묶기(정체)와 되살리기(판정)를 한
+    팝업에서 겹치면 저장 의미가 복잡해진다" 로 미뤄 뒀다. 실제로 쓰다 보니
+    **그 프레임에서 가장 좋은 마스크가 문턱에서 떨어져 있는 일**이 있어서
+    열었다 — 다만 "고르면 되살아난다" 를 화면이 먼저 말하고, 서버가 행 하나만
+    좁게 세운다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_frames=3, n_candidates=2)
+        cls.batch = RunBatch.objects.get(label="sam2-시험")
+        cls.stack_img = Image.objects.get(viewpoint=cls.w.vp, kind="stack")
+        cls.frame_img = Image.objects.filter(viewpoint=cls.w.vp,
+                                             kind="frame").order_by("pk").first()
+        # 프레임에 **탈락한** 후보 하나 (passed=False)
+        from ..models import Candidate, Detection, Run
+        from .factories import IMG_H, IMG_W
+        run = Run.objects.create(kind="detect", batch=cls.batch,
+                                 slide=cls.w.slide, status="done")
+        det = Detection.objects.create(
+            viewpoint=cls.w.vp, image=cls.frame_img,
+            image_path=cls.frame_img.path, width=IMG_W, height=IMG_H,
+            scale=1.0, um_per_pixel=0.1, run=run, is_current=True)
+        cls.rej = Candidate.objects.create(
+            detection=det, raw_id=0, mask_key="40_50_60_40",
+            bbox_x=40, bbox_y=50, bbox_w=60, bbox_h=40,
+            center_x=70, center_y=70, area_px=1200, area_um2=6.0,
+            major_um=6.0, minor_um=4.0, long_side_um=6.0, short_side_um=4.0,
+            aspect_ratio=1.5, fill_ratio=0.6, shape_ok=True, circularity=0.8,
+            convexity=0.9, solidity=0.9, elongation=1.5, ellipse_iou=0.85,
+            texture=100.0, predicted_iou=0.9, stability_score=0.9,
+            polygon=[40, 50, 100, 50, 100, 90, 40, 90],
+            passed=False, reject="텍스처부족")
+
+    def setUp(self):
+        from django.test import Client
+        self.c = Client()
+        self.url = f"/d/{self.w.slide.slug}/g/{self.w.vp.idx}/link"
+
+    def post(self, members):
+        import json as _json
+        return self.c.post(self.url, _json.dumps({"members": members}),
+                           content_type="application/json")
+
+    def members(self):
+        return [
+            {"image": self.stack_img.pk, "mask_key": self.w.keys()[0],
+             "rep": True},
+            {"image": self.frame_img.pk, "mask_key": "40_50_60_40",
+             "rep": False},
+        ]
+
+    def test_탈락_후보를_묶으면_되살아난다(self):
+        r = self.post(self.members())
+        self.assertEqual(r.status_code, 200, r.content[:300])
+        self.assertEqual(r.json()["revived"], 1)
+        row = ObjectReview.objects.get(image=self.frame_img,
+                                       mask_key="40_50_60_40")
+        self.assertTrue(row.accepted, "되살아나지 않았다")
+        self.assertFalse(row.removed)
+        # 묶음에도 멤버로 섰다
+        self.assertEqual(ObjectLink.objects.get().members.count(), 2)
+
+    def test_통과분만_묶으면_되살릴_것이_없다(self):
+        """되살리기가 **탈락분에서만** 일어나는가 — 통과분까지 손대면
+        `accepted` 가 뜻을 잃는다(사람이 되살린 것이 아니다)."""
+        from ..models import Candidate
+        # 프레임에 통과 후보를 하나 더 세운다 — 탈락분과 같은 검출에
+        # **`mask_key` 만으로 짚지 않는다** — 팩토리의 합성본 후보가 같은 키를
+        # 쓸 수 있다(실제로 그래서 MultipleObjectsReturned 가 났다). 이 시험이
+        # 세운 프레임 쪽 탈락분에서 검출을 얻는다.
+        det = self.rej.detection
+        Candidate.objects.create(
+            detection=det, raw_id=1, mask_key="200_200_50_50",
+            bbox_x=200, bbox_y=200, bbox_w=50, bbox_h=50,
+            center_x=225, center_y=225, area_px=1250, area_um2=6.2,
+            major_um=5.0, minor_um=5.0, long_side_um=5.0, short_side_um=5.0,
+            aspect_ratio=1.0, fill_ratio=0.6, shape_ok=True, circularity=0.9,
+            convexity=0.9, solidity=0.9, elongation=1.0, ellipse_iou=0.9,
+            texture=3000.0, predicted_iou=0.9, stability_score=0.9,
+            polygon=[200, 200, 250, 200, 250, 250, 200, 250],
+            passed=True, cls="round")
+        ms = self.members()
+        ms[1]["mask_key"] = "200_200_50_50"          # 통과분으로 바꾼다
+        r = self.post(ms)
+        self.assertEqual(r.status_code, 200, r.content[:300])
+        self.assertEqual(r.json()["revived"], 0, "통과분을 되살렸다")
+        self.assertFalse(
+            ObjectReview.objects.filter(mask_key="200_200_50_50").exists(),
+            "통과분에 교정 행을 만들었다")
+
+    def test_이미_붙어_있는_분류는_안_덮는다(self):
+        """되살리기는 다른 축의 판단을 건드리지 않는다."""
+        ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=self.frame_img, batch=self.batch,
+            mask_key="40_50_60_40", label="rod", note="사람이 적었다",
+            geom={"bbox_xywh": [40, 50, 60, 40]})
+        r = self.post(self.members())
+        self.assertEqual(r.status_code, 200, r.content[:300])
+        row = ObjectReview.objects.get(image=self.frame_img,
+                                       mask_key="40_50_60_40")
+        self.assertTrue(row.accepted)
+        self.assertEqual(row.label, "rod", "분류가 덮였다")
+        self.assertEqual(row.note, "사람이 적었다", "코멘트가 덮였다")
+
+    def test_지운_탈락분은_여전히_거절한다(self):
+        ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=self.frame_img, batch=self.batch,
+            mask_key="40_50_60_40", removed=True,
+            geom={"bbox_xywh": [40, 50, 60, 40]})
+        r = self.post(self.members())
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("지운", r.json()["error"])

@@ -1319,7 +1319,18 @@
   .linkpanel .lnone.on { border-color: var(--accent); color: var(--accent); }
   .linkpanel .lerr { color: var(--danger); font-size: 12px; min-height: 0; }
   .linkpanel .lerr:not(:empty) { margin: 4px 0 8px; }
-  .linkpanel .lfoot { display: flex; gap: 10px; margin-top: 12px; }
+  .linkpanel .lfoot { display: flex; gap: 10px; margin-top: 12px;
+                      align-items: center; }
+  /* 탈락 후보 (102) — 탈락 레이어와 **같은 빨간 점선**이다. 화면에서 보던
+     그 표시가 팝업에서도 같은 뜻이어야 눈이 다시 배우지 않는다. */
+  .linkpanel .scell.rej { border-style: dashed; border-color: var(--danger); }
+  .linkpanel .scell.rej.on { border-color: var(--accent); border-style: solid; }
+  .linkpanel .ltag {
+    position: absolute; left: 2px; top: 1px; padding: 0 4px;
+    border-radius: 4px; font-size: 10px; font-weight: 700;
+    background: var(--danger); color: #fff; pointer-events: none;
+  }
+  .linkpanel .lrev { font-size: 12px; color: var(--warn); }
 
   /* 묶인 개체 (P11 3단계). 상자 오른쪽 위의 사슬 — 마스크 색을 안 건드린다
      (색은 분류가 말하고, 묶임은 정체에 대한 다른 축이다). */
