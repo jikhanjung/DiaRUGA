@@ -97,6 +97,35 @@ cron  40 4 * * * …/projects/DiaRUGA/sync_backup_nas.py
 compose + 안내 페이지가 서는 것, 뽑은 것이 저장소 것과 같은 것, 그리고 **저장소가
 없는 자리에서 저장소 갈래를 부르면 "`--from-image` 를 쓸 것" 으로 거절**하는 것.
 
+## 덧 2 — 스크립트는 `/srv` 것인데 모듈은 이미지 것을 물고 있었다
+
+배포 직전에 사용자가 물었다: **"파이프라인은 여전히 손댈 거 없어?"** 있었다.
+
+탐침으로 재 보니 이랬다:
+
+```
+스크립트 본체 : /srv/DiaRUGA/scripts/segment_diatoms.py   ← 새것
+그 안의 judge : /app/judge.py                             ← 옛 이미지 것
+```
+
+전제가 `sys.path.insert(0, str(APP))` 였다. `APP=/app` 을 **맨 앞**에 넣으니
+이미지 안의 `judge.py`·`zen_meta.py`·`runlog.py` 가 **자기 옆의 것을 가린다** —
+파이썬이 `sys.path[0]` 에 놓아 준 스크립트 자신의 디렉토리를 밀어낸 것이다.
+
+지금은 내용이 같아 안 드러났지만, **판정 규칙을 고쳐 `/srv` 에 밀어 넣어도 안
+먹는다.** 이 구조가 세우려던 것("스크립트는 `/srv` 것이 돈다")이 반쯤 거짓이었다.
+
+`insert` 를 `append` 로 바꿨다 — `APP` 은 **Django 코드를 찾는 자리일 뿐**이고
+앞자리를 차지할 이유가 없다. 18개를 함께 고쳤다.
+
+```
+고친 뒤:  judge → /srv/DiaRUGA/scripts/judge.py · Django → 이미지 것 (12 슬라이드)
+```
+
+**이것이 이 구조의 핵심 시험이다** — 한 자리라도 `insert(0, APP)` 로 남으면 그
+스크립트만 조용히 옛 규칙으로 돈다. 확인은 탐침 하나로 되고, `refilter.py
+--dry-run`(판정 규칙을 실제로 쓴다)이 정상으로 도는 것까지 봤다.
+
 ## 남은 거스러미
 
 - `/srv/DiaRUGA/scripts/fix_bp09.py` — 저장소에 없는 일회성 사본이다.

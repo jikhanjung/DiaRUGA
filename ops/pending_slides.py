@@ -30,8 +30,13 @@ import django
 # 안 맞으므로 `DIARUGA_APP` 이 알려 준다 — 컨테이너에서는 이미지 안의 /app 이다.
 APP = Path(os.environ.get("DIARUGA_APP")
           or Path(__file__).resolve().parent.parent)
+# **`APP` 은 Django 코드를 찾는 자리일 뿐이다** (100). `sys.path` 앞에 통째로
+# 밀어 넣으면 **이미지 안의 옛 `judge.py`·`zen_meta.py` 가 자기 옆의 것을 가린다**
+# — `/srv/DiaRUGA/scripts` 로 밀어 넣은 새 규칙이 안 먹는 채로 돌았다(실측).
+# 그래서 **뒤에 붙인다**: 스크립트 자신의 디렉토리(파이썬이 `sys.path[0]` 에
+# 놓는다)가 먼저이고, Django 는 그 뒤에서 찾힌다.
 sys.path.insert(0, str(APP / "web"))
-sys.path.insert(0, str(APP))
+sys.path.append(str(APP))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
