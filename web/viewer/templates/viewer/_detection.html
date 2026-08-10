@@ -720,9 +720,20 @@
       // 있고, 미리보기가 그것을 덮어쓴다 — 담아 두지 않으면 그대로 잃는다.
       if (!previewing) { stash(); previewing = true; }
       var pkey = (key && shotDets[key]) ? key : (stackOnly() ? STACK_KEY : null);
-      var pv = pkey && shotDets[pkey];
-      cands = pv ? (pv.candidates || []).slice().concat(pv.gone || []) : [];
-      rejects = pv ? (pv.rejected || []).slice() : [];
+      // **stateOf 로 간다 — shotDets 가 아니다** (실사용 보고 2026-08-10).
+      // shotDets 는 서버가 준 처음 상태라 이 세션에서 지운 것을 모르고,
+      // 무엇보다 `removed` 를 안 갈아 끼우면 build() 가 **고른 판의 removed**
+      // 로 지움을 판정한다 — 스친 판의 지운 마스크가 산 것처럼 그려졌다.
+      // 클릭(commit)과 같은 상태를 같은 길로 읽어야 hover 와 클릭이 같은
+      // 그림을 낸다. unpreviewState 가 여섯을 전부 되돌리므로 대칭이다.
+      var st0 = pkey ? stateOf(pkey) : null;
+      cands = st0 ? st0.cands : [];
+      rejects = st0 ? st0.rejects : [];
+      removed = st0 ? st0.removed : new Set();
+      accepted = st0 ? st0.accepted : new Set();
+      labels = st0 ? st0.labels : {};
+      notes = st0 ? st0.notes : {};
+      edits = st0 ? (st0.edits || (st0.edits = {})) : {};
       sel.clear();
       build();
       return;
@@ -1333,6 +1344,16 @@
       saveState.textContent = '읽기 전용 화면 — 저장하지 않습니다';
       return Promise.resolve();
     }
+    // **미리보기 중이면 갈무리한 고른 판의 것으로 보낸다** (074의 남은 창).
+    // 전역은 지금 스친 판의 것인데 `image` 는 고른 판(curImage)이다 — 지연
+    // 저장(400ms)이 미리보기 도중에 나가면 **스친 판의 상태가 고른 판의
+    // 이미지로 실려** 고른 판의 교정을 갈아치운다. 미리보기가 removed 까지
+    // 갈아 끼우게 되면서(지운 마스크가 살아 보이던 고침) 이 창이 실제로
+    // 물었다 — 시험이 잡았다.
+    var S = (previewing && curKey && shotState[curKey])
+      ? shotState[curKey]
+      : { cands: cands, removed: removed, accepted: accepted,
+          labels: labels, notes: notes, edits: edits };
     // keepalive: 페이지를 떠나는 중에도 요청이 끊기지 않게 한다.
     return fetch(ROOT + '/review', {
       method: 'POST',
@@ -1366,32 +1387,32 @@
         // **뷰어는 늘 전체를 보낸다.**
         edits: (function () {
           var out = {};
-          cands.forEach(function (c) {
+          S.cands.forEach(function (c) {
             if (!isManual(c) && c.geom_edited && c.polygon && c.polygon.length) {
               out[keyOf(c)] = c.polygon;
             }
           });
           // 되돌리기(빈 배열)는 개체에 안 남으므로 지도 쪽이 이긴다.
-          Object.keys(edits).forEach(function (k) {
-            if (!edits[k] || !edits[k].length) out[k] = [];
+          Object.keys(S.edits).forEach(function (k) {
+            if (!S.edits[k] || !S.edits[k].length) out[k] = [];
           });
           return out;
         })(),
-        drawn: cands.filter(isManual).map(function (c) {
+        drawn: S.cands.filter(isManual).map(function (c) {
           return { key: keyOf(c), polygon: c.polygon,
                    cls: c.cls || '', note: c.note || '' };
         }),
         done: reviewDone,
-        removed: Array.from(removed),
-        accepted: Array.from(accepted),
-        labels: labels,
-        notes: notes,
+        removed: Array.from(S.removed),
+        accepted: Array.from(S.accepted),
+        labels: S.labels,
+        notes: S.notes,
         note: groupNote
       })
     }).then(function (r) {
       if (r.ok) {
         saveState.textContent =
-          '저장됨 — 삭제 ' + removed.size + ' · 복구 ' + accepted.size +
+          '저장됨 — 삭제 ' + S.removed.size + ' · 복구 ' + S.accepted.size +
           (reviewDone ? ' · 검토 완료' : '');
         return;
       }

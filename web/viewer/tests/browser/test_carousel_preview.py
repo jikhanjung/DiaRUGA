@@ -145,3 +145,35 @@ class CarouselPreviewTest(BrowserTestCase):
         self.assertTrue(page.query_selector(".box.gone"),
                         "합성본으로 돌아오니 지운 표시가 사라졌다")
         self.assertEqual(ObjectReview.objects.filter(removed=True).count(), 1)
+
+    def test_스친_판에서도_지운_마스크는_지워_보인다(self):
+        """실사용 보고 (2026-08-10). 미리보기가 shotDets(처음 상태)에서 직접
+        뽑고 `removed` 를 안 갈아 끼워서, **스친 판의 지운 마스크가 산 것처럼**
+        그려졌다 — 클릭하면 맞게 나오니 hover 와 클릭이 다른 그림을 냈다."""
+        from ...models import ObjectReview, RunBatch
+        # 프레임 판의 마스크 하나를 지운 것으로 (서버 상태)
+        det = self.extra[0][2]
+        c = det.candidates.filter(passed=True).first()
+        ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=det.image,
+            batch=RunBatch.objects.get(label="sam2-시험"),
+            mask_key=c.mask_key, removed=True,
+            geom={"bbox_xywh": c.bbox_xywh})
+        self.open_review()
+
+        # 스치기만 한다 — 지운 마스크가 살아 보이면 안 된다
+        self.hover(self.frame.name)
+        alive = self.page.query_selector_all(
+            "#masks-stack polygon:not(.reject)")
+        gone = self.page.query_selector_all(".box.gone")
+        # 지운 것은 폴리곤(칠)이 없어야 하고, 지운 표시 상자로 남아야 한다
+        keys_alive = len(alive)
+        self.hover("__stack__")   # 원위치
+        # 클릭해서 들어간 그림과 같은 수여야 한다
+        self.shot(self.frame.name).click()
+        self.page.wait_for_timeout(400)
+        alive_committed = len(self.page.query_selector_all(
+            "#masks-stack polygon:not(.reject)"))
+        self.assertEqual(keys_alive, alive_committed,
+                         "hover 와 클릭이 다른 그림을 낸다 — 지운 마스크가 "
+                         "미리보기에서 살아 보인다")
