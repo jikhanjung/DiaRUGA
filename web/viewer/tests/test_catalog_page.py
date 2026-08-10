@@ -20,7 +20,8 @@ from django.urls import reverse
 from . import factories as fx
 from .base import DiaRUGATestCase
 from .. import data
-from ..models import ObjectReview, RunBatch
+from ..models import (ObjectLink, ObjectLinkMember, ObjectReview,
+                      RunBatch)
 
 
 class CatalogPageTest(DiaRUGATestCase):
@@ -237,6 +238,88 @@ class SaveCatalogTest(DiaRUGATestCase):
 
     def test_GET_은_안_받는다(self):
         self.assertEqual(self.c.get(self.url).status_code, 405)
+
+
+class SpreadLabelTest(DiaRUGATestCase):
+    """**묶인 개체는 유형을 함께 받는다** (104 · 사용자 보고 2026-08-10).
+
+    묶음은 "이 판들의 이것이 같은 개체다" 라는 말이므로 봉상인지 원형인지는
+    **개체의 성질**이지 판의 성질이 아니다. 그런데 번지게 하는 코드가
+    `save_review` 안에만 있어서, **카드에서 유형을 바꾸면 그 판에만 앉고 묶음의
+    다른 프레임은 그대로였다.** 저장은 성공으로 보이고 묶음 안이 어긋난다 —
+    학습 자료로 내보내면 같은 개체가 봉상이면서 원형인 표본이 된다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=2)
+        RunBatch.objects.filter(for_review=True).update(code="S1")
+
+    def setUp(self):
+        self.c = Client()
+        self.url = reverse("save_catalog", args=["rs23"])
+        self.det = self.w.detection()
+        self.key = self.w.keys()[0]
+        self.frame_img = self.w.vp.images.filter(kind="frame").first()
+        self.sib_key = "500_500_20_20"
+        link = ObjectLink.objects.create(viewpoint=self.w.vp,
+                                        batch=self.det.batch)
+        # **실제 저장이 쓰는 기하 모양이다** (`bbox_xywh`).
+        ObjectLinkMember.objects.create(
+            link=link, image=self.det.image, batch=self.det.batch,
+            mask_key=self.key, is_rep=True,
+            geom={"bbox_xywh": [10, 10, 30, 30],
+                  "polygon": [10, 10, 40, 10, 40, 40, 10, 40]})
+        ObjectLinkMember.objects.create(
+            link=link, image=self.frame_img, batch=self.det.batch,
+            mask_key=self.sib_key,
+            geom={"bbox_xywh": [20, 20, 40, 40],
+                  "polygon": [20, 20, 60, 20, 60, 60, 20, 60]})
+
+    def post(self, expect=200, **fields):
+        p = {"gid": self.w.vp.idx, "image": self.det.image_id, "key": self.key}
+        p.update(fields)
+        r = self.c.post(self.url, data=json.dumps(p),
+                        content_type="application/json")
+        self.assertEqual(r.status_code, expect, r.content[:300])
+        return json.loads(r.content)
+
+    def sib(self):
+        return ObjectReview.objects.filter(image=self.frame_img,
+                                           mask_key=self.sib_key).first()
+
+    def test_유형이_묶음의_다른_판에도_앉는다(self):
+        """**이 시험이 이 클래스의 이유다.**"""
+        out = self.post(cls="rod")
+        self.assertEqual(out["spread"], 1, out)
+        self.assertIsNotNone(self.sib(), "묶음의 다른 판에 행이 안 생겼다")
+        self.assertEqual(self.sib().label, "rod")
+
+    def test_물러도_함께_물린다(self):
+        """지정을 물렀는데 다른 판에만 남아 있으면 묶음 안에서 어긋난다."""
+        self.post(cls="rod")
+        self.post(cls="")
+        self.assertIsNone(self.sib(), "빈 껍데기가 남았다")
+
+    def test_종명은_안_번진다(self):
+        """번지게 할지는 사람이 정할 일이라 앞서가지 않는다
+        (`_spread_link_labels` 가 그은 선과 같다)."""
+        out = self.post(species="Eucampia antarctica")
+        self.assertEqual(out["spread"], 0)
+        self.assertIsNone(self.sib())
+
+    def test_코멘트도_안_번진다(self):
+        self.post(note="가장자리가 넘쳤다")
+        self.assertIsNone(self.sib())
+
+    def test_안_묶인_개체는_번질_곳이_없다(self):
+        other = data.catalog_rows("rs23")[1]
+        r = self.c.post(self.url, data=json.dumps(
+            {"gid": other["group_id"], "image": other["image_id"],
+             "key": other["key"], "cls": "round"}),
+            content_type="application/json")
+        self.assertEqual(json.loads(r.content)["spread"], 0)
 
 
 class ReadOnlyTest(DiaRUGATestCase):

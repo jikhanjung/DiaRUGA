@@ -337,11 +337,16 @@
           });
           card.classList.remove("dirty");
           card.classList.add("saved");
-          say.textContent = "저장됨";
+          // **묶음에 번진 것을 말한다.** 유형은 묶인 다른 판에도 함께 앉는데
+          // (104), 그 판은 이 화면에 없어서 **번졌는지 알 방법이 없다** — 안
+          // 적으면 사람이 판을 넘겨 다시 지정한다(실제로 그 보고를 받았다).
+          var msg = p[1].spread ? "저장됨 · 묶음 " + p[1].spread + "장에 함께"
+                                : "저장됨";
+          say.textContent = msg;
           say.className = "say";
           setTimeout(function () {
-            if (say.textContent === "저장됨") { say.textContent = ""; }
-          }, 1500);
+            if (say.textContent === msg) { say.textContent = ""; }
+          }, 2200);
         })
         .catch(function () {
           card.classList.remove("dirty");

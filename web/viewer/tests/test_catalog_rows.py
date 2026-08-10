@@ -199,20 +199,28 @@ class LinkedViewTest(DiaRUGATestCase):
         self.batch = self.det.batch
         self.frame_img = self.w.vp.images.filter(kind="frame").first()
 
-    def link(self, *sizes):
-        """합성본 멤버 + 프레임 멤버 하나. `sizes` 는 각 멤버의 (w, h)."""
+    def link(self, *sizes, box_key="bbox_xywh"):
+        """합성본 멤버 + 프레임 멤버 하나. `sizes` 는 각 멤버의 (w, h).
+
+        **`box_key` 가 기본으로 `bbox_xywh` 인 것이 요점이다.** 실제 저장
+        (`views.save_object_link`)이 그 키를 쓰는데 이 픽스처가 `bbox` 를 쓰고
+        있었고, 그래서 **시험은 통과하는데 운영에서는 크롭 상자가 비어 원래
+        상자로 되돌아갔다**(2026-08-10). 사람이 그린 멤버는 `ObjectReview.geom`
+        을 그대로 실어 `bbox` 라서, 한 칸에 두 모양이 섞인다 — 둘 다 밟는다.
+        """
         link = ObjectLink.objects.create(viewpoint=self.w.vp, batch=self.batch)
         (sw, sh), (fw, fh) = sizes
+
+        def geom(x, y, w, h):
+            return {box_key: [x, y, w, h],
+                    "polygon": [x, y, x + w, y, x + w, y + h, x, y + h]}
+
         ObjectLinkMember.objects.create(
             link=link, image=self.det.image, batch=self.batch,
-            mask_key=self.key, is_rep=True,
-            geom={"bbox": [10, 10, sw, sh],
-                  "polygon": [10, 10, 10 + sw, 10, 10 + sw, 10 + sh, 10, 10 + sh]})
+            mask_key=self.key, is_rep=True, geom=geom(10, 10, sw, sh))
         ObjectLinkMember.objects.create(
             link=link, image=self.frame_img, batch=self.batch,
-            mask_key="500_500_20_20",
-            geom={"bbox": [20, 20, fw, fh],
-                  "polygon": [20, 20, 20 + fw, 20, 20 + fw, 20 + fh, 20, 20 + fh]})
+            mask_key="500_500_20_20", geom=geom(20, 20, fw, fh))
         return link
 
     def row(self):
@@ -228,6 +236,21 @@ class LinkedViewTest(DiaRUGATestCase):
         r = self.row()
         self.assertEqual(r["view"]["rel"], self.frame_img.path)
         self.assertEqual(r["linked_n"], 2)
+
+    def test_보여줄_상자가_그_멤버의_것이다(self):
+        """**상자가 비면 예외가 안 나고 원래 상자로 되돌아간다** — 운영에서
+        그랬다. 그러면 다른 판의 그림을 이 개체의 옛 자리로 잘라 낸다."""
+        self.link((30, 30), (90, 90))
+        self.assertEqual(self.row()["view"]["bbox_xywh"], [20, 20, 90, 90])
+
+    def test_두_기하_모양을_다_읽는다(self):
+        """`ObjectLinkMember.geom` 은 `bbox_xywh`, 사람이 그린 멤버는 `bbox` 다."""
+        for key in ("bbox_xywh", "bbox"):
+            with self.subTest(키=key):
+                ObjectLink.objects.all().delete()
+                self.link((30, 30), (90, 90), box_key=key)
+                self.assertEqual(self.row()["view"]["bbox_xywh"],
+                                 [20, 20, 90, 90])
 
     def test_합성본이_더_크면_안_바꾼다(self):
         self.link((90, 90), (30, 30))

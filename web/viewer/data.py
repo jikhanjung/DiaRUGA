@@ -747,9 +747,28 @@ def catalog_no_for(row: dict, layer: dict | None, codes: dict) -> tuple:
         return "", str(e)
 
 
+def geom_box(geom) -> list | None:
+    """기하 스냅샷의 bbox. **키가 두 가지다** — 어느 쪽이든 받는다.
+
+    `ObjectReview.geom` 은 `{"bbox": …}` 이고 `ObjectLinkMember.geom` 은
+    `{"bbox_xywh": …}` 다(`views.save_object_link` 가 엔진 후보에서 만든다).
+    그런데 묶음 멤버가 **사람이 그린 개체**면 `ObjectReview.geom` 을 그대로
+    실어서, **같은 칸에 두 모양이 섞인다.**
+
+    한쪽만 읽으면 **빈 값이 나오고 예외는 안 난다** — 실제로 그랬다: 묶은 카드의
+    크롭 상자가 비어 조용히 원래 상자로 되돌아갔고, 다른 판의 그림을 이 개체의
+    옛 자리로 잘라 냈다(2026-08-10). 읽는 자리를 하나로 모아 둔다.
+    """
+    g = geom or {}
+    box = g.get("bbox") or g.get("bbox_xywh")
+    if not box or len(box) != 4:
+        return None
+    return [int(v) for v in box]
+
+
 def _member_area(m) -> int:
     """묶음 멤버가 담은 개체의 넓이. 기하 스냅샷이 원본이고, 없으면 키에서 잰다."""
-    box = (m.geom or {}).get("bbox") or _key_bbox(m.mask_key) or [0, 0, 0, 0]
+    box = geom_box(m.geom) or _key_bbox(m.mask_key) or [0, 0, 0, 0]
     return int(box[2]) * int(box[3])
 
 
@@ -837,9 +856,10 @@ def catalog_rows(slug: str) -> list[dict]:
         if hit:
             best, n = hit
             geom = best.geom or {}
-            if best.image_id != r.get("image_id") and geom.get("polygon"):
+            box = geom_box(geom) or _key_bbox(best.mask_key)
+            if best.image_id != r.get("image_id") and geom.get("polygon") and box:
                 r["view"] = {"rel": best.image.path,
-                             "bbox_xywh": list(geom.get("bbox") or []),
+                             "bbox_xywh": list(box),
                              "polygon": list(geom["polygon"])}
             r["linked_n"] = n
 
@@ -931,15 +951,34 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
         obj.note = str(note).replace("\r\n", "\n").strip()
     obj.save()
 
+    # **묶인 개체는 분류를 함께 받는다** (104). 묶음은 "이 판들의 이것이 같은
+    # 개체다" 라는 말이라, 그것이 봉상인지 원형인지는 **개체의 성질**이지 판의
+    # 성질이 아니다.
+    #
+    # **`save_review` 만 이것을 하고 있었다.** 카탈로그는 개체 하나만 고치는 좁은
+    # 문이라 그 자리를 안 지났고, 그래서 **카드에서 유형을 바꾸면 그 판에만 앉고
+    # 묶음의 다른 프레임은 그대로였다**(사용자 보고 2026-08-10). 저장은 성공으로
+    # 보이는데 묶음 안이 어긋난다 — 학습 자료로 내보내면 같은 개체가 봉상이면서
+    # 원형인 표본이 된다.
+    #
+    # **유형만 번진다.** 종명·코멘트는 판마다 따로 하는 판단이 아니라 개체의
+    # 성질이지만, 번지게 할지는 사람이 정할 일이라 여기서 앞서가지 않는다
+    # (`_spread_link_labels` 머리말의 선과 같다).
+    spread = ({} if cls is None
+              else _spread_link_labels(vp, cur.image, batch, {key},
+                                       {key: obj.label}))
+
     # 표시가 하나도 안 남았으면 지운다. **사람이 그린 개체는 남긴다** — 그 줄이
     # 곧 개체다.
     empty = not (obj.removed or obj.accepted or obj.label or obj.note
                  or obj.species or obj.geom_edited)
+    n_spread = sum(len(v) for v in spread.values())
     if empty and obj.source != "manual":
         obj.delete()
-        return {"species": "", "cls": "", "note": "", "kept": False}
+        return {"species": "", "cls": "", "note": "", "kept": False,
+                "spread": n_spread}
     return {"species": obj.species, "cls": obj.label, "note": obj.note,
-            "kept": True}
+            "kept": True, "spread": n_spread}
 
 
 def species_seen(slug: str = "") -> list[str]:
