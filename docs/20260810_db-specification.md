@@ -1,7 +1,8 @@
 # DiaRUGA DB 명세
 
-**2026-08-04** (`Image` 반영 2026-08-05 — P06 · devlog 055 ·
-**층 개편 2026-08-06 — `Locality`·`Sample`, devlog 063**)
+**2026-08-10** (`Image` 2026-08-05 — P06 · 층 개편 2026-08-06 — 063 ·
+묶음 선택 2026-08-08 — P10 · **같은 개체 묶음 2026-08-09 — P11** ·
+**개체 카탈로그 2026-08-10 — 105**)
 
 규조류 분석 파이프라인이 쓰는 데이터베이스의 명세다. 남극 시추코어에서
 시작했고 육상 노두(북평분지)가 들어와 있다. 테이블 하나하나가
@@ -22,7 +23,7 @@
 | 외래키 | `PRAGMA foreign_keys=ON` |
 | 잠금 대기 | `timeout=20` (초) |
 | 페이지 | 4 096 B |
-| 크기 | 108.6 MB (2026-08-04 기준) |
+| 크기 | 108.6 MB (2026-08-10 기준) |
 
 ### 왜 SQLite 인가
 
@@ -82,9 +83,11 @@ flowchart LR
     VP --> Img[Image<br/>stack·frame·depth] --> Det[Detection<br/>is_current] --> Cand[Candidate<br/>개체]
     Frame -. "1:1" .-> Img
     Stack -. "focused·depth" .-> Img
-    VP --> VR[ViewpointReview<br/>시야 검토 1:1]
-    Img --> OR[ObjectReview<br/>개체 교정]
+    VP --> VR[ViewpointReview<br/>시야 검토 · 묶음마다]
+    Img --> OR[ObjectReview<br/>개체 교정 · 동정]
+    VP --> OL[ObjectLink<br/>같은 개체 묶음] --> OM[ObjectLinkMember]
     Cand -. "mask_key 로 느슨히" .-> OR
+    Cand -. "mask_key 로 느슨히" .-> OM
     Cand -. "cls 문자열" .-> CD[ClassDef<br/>분류 정의]
     RB[RunBatch<br/>이름표] --> Run[Run<br/>실행]
     Run -.-> Det
@@ -98,7 +101,7 @@ flowchart LR
     classDef det fill:#e6f4ea,stroke:#34a853
     classDef side fill:#f8f9fa,stroke:#9aa0a6,color:#5f6368
     class Site,Loc,Smp,Slide,VP,Frame stem
-    class OR,VR human
+    class OR,VR,OL,OM human
     class Det,Cand,Stack,Img det
     class RB,Run,TS,CD,ST side
 ```
@@ -106,6 +109,10 @@ flowchart LR
 **파랑**이 줄기(시료 계통), **초록**이 검출, **빨강**이 사람의 교정, **회색**이
 설정과 이력이다. 실선은 소유(FK — 지우면 따라 지워진다), 점선은 참조이거나 FK 가
 아예 아닌 것이다.
+
+**빨강이 넷이다.** 교정(`ObjectReview`) · 시야 검토(`ViewpointReview`) ·
+**같은 개체 묶음**(`ObjectLink`·`ObjectLinkMember`). 넷 다 사람이 만든 것이라
+재생성 불가이고, 마스크를 FK 가 아니라 `(image, batch, mask_key)` 로 짚는다.
 
 **검출과 교정은 `Image` 에 붙는다** (P06 · devlog 055). `Image` 는 **검출을 돌릴 수
 있는 이미지 한 장**이고 `kind` 가 `stack | frame | depth` 다. 예전에는 `Detection` 이
@@ -133,7 +140,7 @@ flowchart LR
 **"코어" 라고 부르지 않는다** — 노두는 시추한 것이 아니다. 어느 쪽인지는
 `Locality.kind` 가 말하고 그것은 **지점의 성질**이다.
 
-관계 하나하나(방향·필수 여부·`on_delete`)는 [ERD 문서](20260804_db-erd.md)에 있다.
+관계 하나하나(방향·필수 여부·`on_delete`)는 [ERD 문서](20260810_db-erd.md)에 있다.
 
 ---
 
@@ -263,7 +270,7 @@ flowchart LR
 #### `Image` — 검출을 돌릴 수 있는 이미지 한 장
 
 **열쇠는 `path` 다** (`DATA_ROOT` 기준 상대경로, `unique`). 파일 하나에 행 하나이고
-실측 1,952개 — 프레임 1,318 + 합성본 317 + 깊이맵 317.
+실측 2,664개 — 프레임 1,830 + 합성본 417 + 깊이맵 417.
 
 | 칸 | 비고 |
 |---|---|
@@ -308,7 +315,7 @@ flowchart LR
   프레임마다 + 합성본에도** 단다. 그것이 `image.kind` 로 드러난다.
 - **`kind="depth"` 에는 검출이 붙지 않는다.** 깊이맵은 Z 좌표가 없는 상대값이라
   검출 대상이 아니다 — 관행이 아니라 스키마에 적혀 있고
-  `backfill_images.py --verify` 가 지킨다.
+  `migrate/backfill_images.py --verify` 가 지킨다.
 - `superseded_by` 가 `SET_NULL` 이라 옛 검출을 지워도 현재 검출이 딸려 가지 않는다.
 - **같은 묶음 안에서 같은 이미지에 둘 이상 쌓인 것은 기록이 아니라 찌꺼기다**
   (빠진 프레임을 다시 돌리면 이미 끝난 것까지 다시 쌓인다). `prune_detections.py`
@@ -340,22 +347,46 @@ flowchart LR
 
 #### `ObjectReview` — 개체 단위 교정
 
-**`(image, mask_key)` unique.** 예전에는 `(viewpoint, mask_key)` 였는데, 그것은
-**시야마다 볼 이미지가 한 장**일 때만 성립한다 — 프레임별 검출을 검토하기
-시작하면 깨진다(실측으로 시야 452개 중 203개(45 %)에서 `mask_key` 가 프레임끼리
-겹친다). P06 5a 에서 옮겼다.
+**열쇠가 `(image, batch, mask_key)` 다.** 두 번 옮겼다.
+
+- `(viewpoint, mask_key)` → `(image, mask_key)` (P06 5a) — 앞엣것은 **시야마다 볼
+  이미지가 한 장**일 때만 성립한다. 프레임별 검출을 검토하면 깨진다(실측으로
+  시야 452개 중 203개(45 %)에서 `mask_key` 가 프레임끼리 겹친다)
+- `+ batch` (P09 5.1 · P10) — 같은 마스크라도 `sam2-전수` 를 보며 한 판단과
+  `yolo-3차` 를 보며 한 판단은 **다른 줄**이다. 안 가르면 SAM2 시절 "오검출" 이
+  YOLO 검출에 얹혀, 사람은 **자기가 지우지 않은 것이 지워져 있는 것**을 본다
+  (실측 1,076건)
+
+`batch=NULL` 은 **사람이 그린 마스크**다 — 어느 회차에도 속하지 않고
+"이 이미지에 규조각이 있다" 는 사실이다(P09 5.2). SQLite 는 NULL 끼리 안
+부딪힌다고 보므로 유일 제약을 **조건을 갈라 두 벌**로 적는다.
 
 | 칸 | 비고 |
 |---|---|
 | `image` | **FK cascade, NOT NULL** — 어느 이미지를 보고 한 판단인가 |
+| `batch` | **FK PROTECT, null** — 어느 검출을 보며 한 판단인가. `NULL` = 사람이 그린 것 |
 | `viewpoint` | FK cascade — 편의용. 화면·목록이 시야로 묶어 본다 |
 | `mask_key` | **개체를 가리키는 키** |
 | `candidate` | FK null — **바인딩 결과일 뿐이다** |
 | `bind_method` | `exact` / `iou` / `manual` / `orphan` |
 | `bind_score` | IoU 로 붙었을 때의 값 |
 | `geom` | `{"bbox": [x,y,w,h], "polygon": [...]}` |
+| `geom_edited` | 사람이 경계를 고쳤다 (P09 4단계) |
+| `source` | `engine` / `manual` — 그린 개체를 추린다 |
 | `removed` · `accepted` | 지웠다 / 되살렸다 |
 | `label` · `note` | 분류 지정 · 메모 |
+| `species` | **동정** — 사람이 적는 종명 (105). 재생성 불가 |
+
+**한 행이 두 가지를 겸하고 있다.** 모델 주석이 그 선을 그어 놨다:
+
+| 칸 | 무엇에 대한 판단인가 | 속하는 곳 |
+|---|---|---|
+| `removed`·`accepted` | 그 batch 가 낸 그 마스크가 틀렸다/맞다 | **batch** |
+| `label`·`note`·`species` | 이 규조각이 Eucampia 다 | **개체** — batch 를 갈아도 참이다 |
+
+뜻은 갈라 놓고 자리는 한 행이라, 회차를 갈면 동정까지 함께 별개가 된다.
+가르는 안이 `devlog/20260810_P12_object-and-judgement.md` 에 있다 — **아직
+안 했다.**
 
 **교정은 `Candidate` 가 아니라 `mask_key` 에 붙는다.** FK 로 매면 재검출에서
 후보 행이 새로 생기므로 사람의 판단이 조인 실패로 사라진다. 실측으로 같은
@@ -367,10 +398,43 @@ flowchart LR
 
 지운 것까지 전부 저장한다 — **학습의 어려운 음성 표본**이다.
 
-#### `ViewpointReview` — 시야 단위 (1:1)
+#### `ViewpointReview` — 시야 단위 (묶음마다 한 줄)
 
 `done` · `note`. **고칠 것이 없어 교정이 비어도 검토는 끝났을 수 있다**. 그래서
 따로 남긴다.
+
+**1:1 이 아니다** (073). "검토 완료" 는 *그 묶음의 검출을 다 봤다*는 말이라
+`(viewpoint, batch)` 마다 한 줄이고, **시야 코멘트는 묶음을 갈아도 참**이라
+`batch=NULL` 줄 하나에 따로 앉는다. 한 줄에 담아 뒀더니 `sam2-전수` 에서 붙인
+완료가 `yolo-3차` 화면에도 붙어, 아직 아무도 안 본 검출이 "검토 완료" 로 보이고
+"다음 미검토" 가 그 시야를 건너뛰었다.
+
+#### `ObjectLink` / `ObjectLinkMember` — 같은 개체 묶음 (P11)
+
+한 시야는 스테이지가 안 움직인 상태라 **초점면 3~5장에 같은 규조각이 서너 번**
+잡힌다. 그것이 하나라는 것을 이 둘이 말한다. **사람이 프레임마다 골라 만든 것이라
+재생성 불가**이고, `ObjectReview` 와 같은 규약을 따른다.
+
+| 테이블 | 칸 | 비고 |
+|---|---|---|
+| `ObjectLink` | `viewpoint` · `batch` · `note` | 묶음 하나 = 규조각 하나 |
+| `ObjectLinkMember` | `link` · `image` · `batch` · `mask_key` | "그 판에서는 이 마스크" |
+| | `is_rep` | 대표 — 학습 자료로 뽑을 때, 목록에 보일 때의 얼굴 |
+| | `geom` | 기하 스냅샷 — 검출기가 바뀌어도 읽힌다 |
+
+**제약 넷이 이 테이블의 본체다** ([ERD §3](20260810_db-erd.md)) — `(link, image)`
+하나 · `(image, batch, mask_key)` 하나(+ 그린 개체용 짝) · `is_rep` 는 묶음당 하나.
+
+- **묶음은 시야를 못 넘는다** — 다른 시야는 스테이지가 움직인 뒤라 "같은 자리"
+  라는 근거 자체가 없다
+- **회차도 못 넘는다** — 같은 규조각이 두 회차에 잡혀 있어도 하나라고 말할 자리가
+  없다. `YOLO 4차` 가 들어올 때 정한다 (TODOs · devlog 105 덧)
+- **탈락 후보를 묶으면 되살아난다** (102) — 그 자리에서 `ObjectReview(accepted)`
+  가 선다. *묶기가 판정을 만드는* 유일한 자리다
+- **분류는 묶음을 따라 번진다** (104) — 한 판에서 정하면 나머지 멤버의
+  `label` 에 같은 값이 앉는다. **동정(`species`)은 아직 안 번진다**
+- 카탈로그는 묶음을 **그림에만** 쓴다 — 면적이 가장 큰 멤버로 카드 그림을 바꾸고
+  **번호는 안 바꾼다**(논문·표에 적히는 값이다)
 
 ### 3.4 설정과 이력
 
@@ -416,7 +480,7 @@ Chaetoceros 를 넣으며 실제로 겪은 것들이라 `check_db.py` 의 4번 �
 
 | 언제 | 무엇 | 어디 |
 |---|---|---|
-| 처음 DB 를 세울 때 | 다섯 행 (원형·원형 파편·봉상·봉상 파편·Eucampia) | `import_json.py` 의 `CLASS_SEED` → `seed_settings()` |
+| 처음 DB 를 세울 때 | 다섯 행 (원형·원형 파편·봉상·봉상 파편·Eucampia) | `migrate/import_json.py` 의 `CLASS_SEED` → `seed_settings()` |
 | 그 뒤에 더하거나 고칠 때 | 마이그레이션 | `0013` `counted` · `0014` Chaetoceros · `0015` 파편 색 · `0016` `hotkey` · `0017` `short` |
 
 **마이그레이션으로 넣는 이유는 배포마다 같은 상태가 되어야 하기 때문이다.** 손으로
@@ -445,6 +509,11 @@ INSERT 하면 운영 DB 에만 있고 새로 만든 DB(시험·복구)에는 없
   ("전체를 한 번 훑었다" 는 작업이 실행 여럿으로 흩어진다) 엔진을 견주려면 그
   한 번을 한 덩어리로 봐야 한다. 부모 `Run` 을 두지 않은 것은 그쪽이 자기
   `started_at`·`counts` 를 갖게 되어 뜻이 겹치기 때문이다. `(kind, label)` unique.
+- **`for_review` 가 뷰어가 볼 묶음을 정한다** (P10). 참인 것은 **하나뿐**이고
+  DB 가 막는다 — 둘이면 화면마다 다른 판을 보게 되고, 그 상태에서 한 검토가
+  051 을 냈다. 관리 화면에서 고른다.
+- **`code` 는 카탈로그 번호의 꼬리다** (105) — `S1`·`Y3`. 빈 것 말고는 유일하고,
+  `M`·`m` 은 **사람이 그린 개체 몫**이라 회차가 못 가져간다(CheckConstraint).
 
 #### `Setting` — 그 밖의 설정
 
@@ -455,17 +524,20 @@ INSERT 하면 운영 DB 에만 있고 새로 만든 DB(시험·복구)에는 없
 
 ## 4. 반드시 지켜지는 것 (`check_db.py` 가 보는 것)
 
-`python check_db.py` — 1초. `refilter`·`segment` 뒤, `judge.py` 를 고친 뒤,
+`deploy/host/dbrun.sh check_db.py` — 1초. `refilter`·`segment` 뒤, `judge.py` 를 고친 뒤,
 숫자가 이상할 때 돌린다.
 
 | # | 불변식 | 깨지면 |
 |---|---|---|
 | 1 | `passed`·`cls`·`reject` 가 `judge.py` 를 다시 돌린 값과 같다 | 문턱을 바꾸고 다시 안 걸렀다 |
-| 2 | 시야마다 `is_current=True` 인 검출이 **정확히 하나** | 둘이면 어느 것을 보일지 모르고, 없으면 검출이 사라진 것처럼 보인다 |
+| 2 | **이미지마다** 뷰어가 볼 검출이 하나 이하 (P10 — `is_current` + `for_review`) | 둘이면 어느 것을 보일지 모르고, 없으면 검출이 사라진 것처럼 보인다 |
 | 3 | 교정이 현재 검출의 개체를 가리킨다 (`bind_method` 분포) | 재검출에서 교정이 떨어져 나갔다 |
 | 4 | 붙어 있는 `cls`·`label` 이 전부 `ClassDef` 에 있고, 활성 분류에 `hotkey`·`color` 가 있다 | 이름도 색도 없이 나오거나, 마스크가 투명해지거나, 그 분류만 메뉴로만 지정된다 |
 | 5 | 경로가 실제 파일을 가리키고 배율이 있다 | 사진이 안 뜬다 |
-| 6 | 문턱이 **슬라이드 안에서 하나** | 같은 슬라이드의 시야끼리 개수를 못 견준다 |
+| 6 | **층이 앞뒤가 맞는다** — 지역 → 지점 → 시료 → 관찰 (P07) | 소속을 잃은 행은 500 도 404 도 아니고 **화면에서 그냥 사라진다** |
+| 7 | **같은 개체 묶음이 앞뒤가 맞는다** (P11) | 대표가 0개인 묶음, 멤버가 하나뿐인 묶음 |
+| 8 | **카탈로그 번호가 날 수 있고 겹치지 않는다** (105) | 번호가 안 나오거나 두 개체가 같은 번호를 받는다 |
+| 9 | 문턱이 **슬라이드 안에서 하나** | 같은 슬라이드의 시야끼리 개수를 못 견준다 |
 
 **예외가 나지 않고 그냥 틀린 상태**를 잡는 것이 목적이다.
 
@@ -478,17 +550,19 @@ INSERT 하면 운영 DB 에만 있고 새로 만든 DB(시험·복구)에는 없
 ```mermaid
 stateDiagram-v2
     direction LR
-    [*] --> pending : NAS 에서 새 폴더를 봤다
-    pending --> copying : 복사 시작
-    copying --> processing : 파이프라인
+    [*] --> copying : NAS 에서 새 폴더를 봤다 — 반입 시작
+    copying --> pending : 복사 끝. 사진만 온 상태
+    pending --> processing : 폴러가 데리러 온다
     processing --> done
     processing --> failed : 그룹핑을 못 믿겠다
     failed --> processing : 사람이 손보고 다시
     done --> [*]
 ```
 
-NAS 에서 새 폴더를 발견하면 `pending`, 복사 중 `copying`, 파이프라인이 도는 동안
-`processing`, 끝나면 `done`. **그룹핑 신뢰도가 낮으면 자동으로 넘기지 않고**
+반입을 시작하면 `copying`, **복사가 끝나면 `pending`**(사진만 왔고 시야는 아직
+없다 — 시야 0 이 정상이다), 파이프라인이 도는 동안 `processing`, 끝나면 `done`.
+`pending` 이 오래 남아 있으면 폴러가 안 도는 것이고, 그것을 보는 자리가
+**시스템 설정 · 파이프라인 탭**이다(098). **그룹핑 신뢰도가 낮으면 자동으로 넘기지 않고**
 `failed` + `state_note` 로 사람을 부른다.
 
 `processing` 인 동안 검토 저장은 서버가 거절한다 — 반쯤 처리된 슬라이드를 검토하면
@@ -517,47 +591,61 @@ flowchart TB
 
 ---
 
-## 6. 지금 담긴 것 (2026-08-06)
+## 6. 지금 담긴 것 (2026-08-10)
 
 | 테이블 | 행 |
 |---|---|
-| `Site` / **`Locality`** / **`Sample`** / `Slide` | 5 / 5 / 10 / 11 |
-| `Viewpoint` / `Frame` / `Stack` | 508 / 1,444 / 355 |
-| **`Image`** | **2,154** (프레임 1,444 · 합성본 355 · 깊이맵 355) |
-| `Detection` / `Candidate` | 2,132 / 97,299 |
-| `ObjectReview` / `ViewpointReview` | 7,472 / 508 (**완료 508 — 전수**) |
-| `Run` / `RunBatch` | 178 / 2 |
+| `Site` / `Locality` / `Sample` / `Slide` | 5 / 5 / 10 / 12 |
+| `Viewpoint` / `Frame` / `Stack` | 570 / 1,830 / 417 |
+| `Image` | **2,664** (프레임 1,830 · 합성본 417 · 깊이맵 417) |
+| `Detection` / `Candidate` | 2,817 / 122,333 (통과 32,480) |
+| `ObjectReview` / `ViewpointReview` | **7,914** / 521 (완료 311 · 코멘트 6) |
+| **`ObjectLink` / `ObjectLinkMember`** | **4 / 12** |
+| `Run` / `RunBatch` | 213 / 2 |
 | `ThresholdSet` / `ClassDef` / `Setting` | 2 / 6 / 2 |
 
-**지점 5곳 · 시료 10개** — 시추코어 4곳(RS23-GC03 ·
-WAP13-GC47 · AM22-GC10B · GC03-C1)과 **노두 1곳**(BP-BP09). 노두 시료 `0901` 에
-관찰이 둘이다(`BP09-0901` · `BP09-0901 (1)`).
+**지점 5곳 · 시료 10개** — 시추코어 4곳(RS23-GC03 · WAP13-GC47 · AM22-GC10B ·
+GC03-C1)과 **노두 1곳**(BP-BP09).
 
-**교정 7,472건의 속내** — 삭제 6,071 · 되살림 720 ·
-분류 지정 1,371 · 메모 2. 바인딩은 전부 `exact` 다.
+**교정 7,914건의 속내** — 삭제 6,120 · 되살림 863 · 분류 지정 1,774 · 메모 2 ·
+**사람이 그린 개체 171** · 사람이 고친 기하 4 · **동정 0**(카탈로그를 막 열었다).
+바인딩은 전부 `exact`.
 
-**실행 178건** — detect 110, ingest 30, stack 18, group 13, refilter 5, export 2.
+**실행 213건** — detect 136 · ingest 31 · stack 19 · group 14 · refilter 6 ·
+reconcile 5 · export 2.
 
-**묶음 둘** — `sam2-전수` · `yolo-3차` (`yolo-1차`·`2차` 는 046 에서 걷었다).
+**묶음 둘** — `sam2-전수`(`S1`) · **`yolo-3차`(`Y3`, 지금 검토 대상)**.
+`yolo-1차`·`2차` 는 046 에서 걷었다.
 
 **분류 여섯** — 원형 · 원형 파편 · 봉상 · 봉상 파편 · Eucampia · Chaetoceros
 (뒤의 둘이 `is_taxon`, 파편 둘이 `counted=False`).
 
-> 이 교정은 사람이 **508 시야를 전수 검토**해 만든 것이고 **다시 만들 수 없다.**
+**같은 개체 묶음 4개 · 멤버 12** — 손으로 만들기 시작한 참이다. 멤버 12건 중
+3건은 교정 행 없이 묶기만 한 마스크이고 그것이 정상이다.
+
+> 이 교정은 사람이 시야를 하나씩 검토해 만든 것이고 **다시 만들 수 없다.**
 > `stacked/`·`out/` 은 다시 돌리면 나오고 원본 사진은 NAS 에 있지만, 이것만은
-> 아니다. 큰 작업 전에는 반드시 `backup_db.py` 로 사본을 뜬다.
+> 아니다. 큰 작업 전에는 반드시 `ops/backup_db.py` 로 사본을 뜬다.
 
 ---
 
 ## 7. 마이그레이션
 
-`web/viewer/migrations/` 에 0001 … 0022. **전부 걸려 있다** (2026-08-05,
-`v0.5.6` 배포 때). 컨테이너가 뜨면서 `migrate` 가 돈다.
+`web/viewer/migrations/` 에 0001 … **0031**. **전부 걸려 있다** (2026-08-10,
+`v0.10.0` 배포 때). 컨테이너가 뜨면서 `migrate` 가 돈다.
 
-최근 다섯이 `Image` 다 (P06 · devlog 055) — `0019` 테이블과 두 FK(nullable),
-`0020` `Image.viewpoint` 를 `SET_NULL` 로, `0021` `Image.stack` 을 `CASCADE` 로,
-`0022` **조이기**(`target`·`frame` 제거 · `NOT NULL` · 유일 제약 교체).
-그 앞 `0018` 이 `Slide.sample_kind`.
+최근 것들:
+
+| 판 | 무엇 |
+|---|---|
+| `0019`~`0022` | `Image` 도입과 조이기 (P06 · 055) |
+| `0023`~`0028` | 층 개편(`Locality`·`Sample`, 063) · 교정 열쇠에 `batch`(P09) · 묶음 선택(P10) |
+| `0029` | `RunBatch.recipe` |
+| **`0030`** | **`ObjectLink`·`ObjectLinkMember` 테이블 둘** (P11). 있는 테이블을 안 건드려 파이프라인 이미지를 함께 안 올려도 됐다 |
+| **`0031`** | **`ObjectReview.species` · `RunBatch.code`** + 제약 둘 (105) |
+
+**`0022` 는 되돌릴 수 없다.** 0019~0021 은 옛 칸을 그대로 두고 곁들이기만 해서
+판을 되돌리면 옛 코드가 그대로 돌았다.
 
 **`0022` 는 되돌릴 수 없다.** 0019~0021 은 옛 칸을 그대로 두고 곁들이기만 해서
 판을 되돌리면 옛 코드가 그대로 돌았다.
@@ -578,11 +666,17 @@ WAP13-GC47 · AM22-GC10B · GC03-C1)과 **노두 1곳**(BP-BP09). 노두 시료 
 
 ## 8. 아직 빈 곳
 
-- **`ObjectReview.viewpoint` 는 이제 편의용이다.** 진짜 열쇠는 `(image, mask_key)`
-  이고, 둘이 어긋나면 안 된다 — `backfill_images.py --verify` 가 본다
-- **프레임별 검토는 아직 화면이 없다** (P06 5b). 스키마는 그것을 받을 준비가 됐다
-  (`(image, mask_key)`), `save_review` 도 지우는 범위를 이미지로 좁혀 뒀다
-- `import_json.py` 는 **멱등이지만 `Candidate` 를 지우고 다시 만든다.** DB 에서만
+- **`ObjectReview.viewpoint` 는 이제 편의용이다.** 진짜 열쇠는
+  `(image, batch, mask_key)` 이고, 둘이 어긋나면 안 된다 —
+  `migrate/backfill_images.py --verify` 가 본다
+- **`species` 가 아직 비어 있다** — 카탈로그를 막 열었다(105). 동정이 쌓이기
+  시작하면 그때 무게가 드러난다
+- **개체와 판정을 가르는 안이 서 있다** — `ObjectReview` 한 행이 마스크 판정과
+  개체 판단을 겸하고 있다. `devlog/20260810_P12_object-and-judgement.md`.
+  **아직 안 했다** — `YOLO 4차` 가 들어올 때 함께 정한다
+- **묶음이 회차를 못 넘는다** (TODOs · 105 덧) — 같은 규조각이 두 회차에 잡혀
+  있어도 하나라고 말할 자리가 없다
+- `migrate/import_json.py` 는 **멱등이지만 `Candidate` 를 지우고 다시 만든다.** DB 에서만
   한 교정이 있는데 옛 JSON 을 넣으면 JSON 쪽으로 되돌아간다 — 아무 때나 돌리지 않는다
 - `ObjectReview.bind_method` 가 전부 `exact` 다. IoU 바인딩은 코드에 있지만 아직
   실전에서 쓰인 적이 없다 — 엔진을 갈아 끼우는 날 처음 시험대에 오른다

@@ -269,7 +269,7 @@ DB 로 옮기면서 세 가지가 달라졌다.
 
 ## 스키마의 요점 둘
 
-18개 모델의 자세한 모습은 `docs/20260804_db-specification.md` 와 `db-erd.md` 에 있다.
+19개 모델의 자세한 모습은 `docs/20260810_db-specification.md` 와 `db-erd.md` 에 있다.
 여기 적는 것은 **왜 그 모양인가**다.
 
 ```
@@ -311,7 +311,7 @@ FK 로 매면 재검출에서 사람의 판단이 조인 실패로 사라진다.
 
 | | |
 |---|---|
-| `models.py` | 18개 모델. 읽기 전에 파일 첫 주석부터 |
+| `models.py` | 19개 모델. 읽기 전에 파일 첫 주석부터 |
 | `naming.py` | 폴더 이름 → 층. **규칙은 여기 하나뿐이다** |
 | `images.py` | `Image` 를 만드는 문 하나 — 파이프라인 넷과 regroup 이 지난다 |
 | `data.py` | DB → 뷰가 쓰는 dict. **읽기 전용이라는 약속이 있다** |
@@ -963,7 +963,7 @@ git 에 넣으므로 `git diff` 로 "언제 무엇이 달라졌나" 가 보인�
 | `docs/` | 종합 진척 보고서 · DB 명세와 ERD · 운영 문서 |
 
 이 README 는 **파이프라인이 왜 이렇게 되어 있는가**를 맡는다. 지금 어떻게 돌리는가는
-CLAUDE.md·HANDOFF.md 이고, 스키마의 자세한 모습은 `docs/20260804_db-specification.md`
+CLAUDE.md·HANDOFF.md 이고, 스키마의 자세한 모습은 `docs/20260810_db-specification.md`
 와 `db-erd.md` 다.
 
 ## 알려진 한계

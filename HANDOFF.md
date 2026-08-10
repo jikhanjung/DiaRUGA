@@ -695,7 +695,7 @@ SQLite 를 다시 볼 문제가 된다.
 
 | 파일 | 무엇 |
 |---|---|
-| `web/viewer/models.py` | 스키마 18개 모델. 읽기 전에 파일 첫 주석부터. **`Site.area`(한국/남극)와 `Site.region`(해역 이름)은 다른 칸이다**. 층은 `Site → Locality → Sample → Slide` (063) |
+| `web/viewer/models.py` | 스키마 19개 모델. 읽기 전에 파일 첫 주석부터. **`Site.area`(한국/남극)와 `Site.region`(해역 이름)은 다른 칸이다**. 층은 `Site → Locality → Sample → Slide` (063) |
 | `web/viewer/naming.py` | **폴더 이름 → 층. 규칙은 여기 하나뿐이다** — 뷰어·파이프라인·마이그레이션이 같은 것을 본다. Django 도 cv2 도 안 부른다 (063) |
 | `web/viewer/manage_data.py` | 관리 화면이 쓰는 문 — 만들고 옮기고 지운다. **지우기 문턱이 여기 있다** (063) |
 | `web/viewer/outcrop.py` | 노두 현장 사진. NAS 공유에 **파일로만** 산다 — DB 에 행이 없다 (063) |
@@ -725,7 +725,7 @@ SQLite 를 다시 볼 문제가 된다.
 | 문서 | 무엇 |
 |---|---|
 | `20260730_P02_db-schema.md` | DB 설계와 근거. **DB 작업 전에 읽을 것** |
-| `docs/20260804_db-specification.md` · `db-erd.md` | **DB 명세와 ERD.** 스키마 전체를 한자리에서 보려면 여기 (08-04 신설) |
+| `docs/20260810_db-specification.md` · `db-erd.md` | **DB 명세와 ERD.** 스키마 전체를 한자리에서 보려면 여기 (08-10 갱신 — 테이블 19개) |
 | `20260803_P04_yolo-training.md` · `023` · `025` | 학습 계획 · 자료 꾸러미 · 첫 판 성적 |
 | `20260731_015_scale-mismatch.md` | 배율 사고. **계측이 사람 눈과 어긋나면 계측을 의심할 것** |
 | `20260731_016_data-safety-contract.md` | `.guides` 규약 대조. 못 지키는 조항까지 적어 뒀다 |

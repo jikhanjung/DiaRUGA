@@ -49,7 +49,7 @@
 
 | 무엇을 하려는가 | 읽을 것 |
 |---|---|
-| DB·스키마를 건드린다 | `docs/20260804_db-specification.md`·`db-erd.md` (지금 모습), `devlog/20260730_P02_db-schema.md` (설계 근거), `web/viewer/models.py` 머리말 |
+| DB·스키마를 건드린다 | `docs/20260810_db-specification.md`·`db-erd.md` (지금 모습), `devlog/20260730_P02_db-schema.md` (설계 근거), `web/viewer/models.py` 머리말 |
 | 층(지역·지점·시료·관찰)을 만진다 | `devlog/20260806_063_layers-and-locality.md`, `web/viewer/naming.py`, `models.py` 의 `Locality`·`Sample` 머리말 |
 | 분류(속·형태)를 더한다 | `ClassDef` 머리말의 **채울 것 여덟**, `devlog/20260804_038`~`040` |
 | 앞으로 할 일을 고른다 | `TODOs.md`, `devlog/20260729_P01_roadmap.md` |
@@ -253,7 +253,7 @@ pipeline/  group_focus_series.py → focus_stack.py → segment_diatoms.py → r
 한 줄 알려 준다.
 
 web/viewer/
-  models.py      18개 모델. 읽기 전에 파일 첫 주석부터
+  models.py      19개 모델. 읽기 전에 파일 첫 주석부터
   naming.py      폴더 이름 → 층. **규칙은 여기 하나뿐이다** (Django·cv2 를 안 부른다)
   images.py      Image 를 만드는 문 하나 — 파이프라인 넷과 regroup 이 지난다
   data.py        DB → 뷰가 쓰는 dict. **읽기 전용이라는 약속이 있다**
