@@ -106,7 +106,18 @@ fi
 
 # 3) 밀린 슬라이드를 이어서 돌린다. 앞 실행이 끊겼거나 OOM 으로 죽었을 때
 #    다음 주기가 마무리한다. failed 는 건드리지 않는다 — 사람이 봐야 한다.
-TODO=$(run "$T_SCAN" python - <<'PY' 2>/dev/null | tr -d '\r'
+# **heredoc(stdin)으로 먹이면 안 된다.** `run()` 이 `</dev/null` 로 stdin 을
+# 덮는다 — 079 가 묶음 루프의 stdin 을 docker 가 삼키는 것을 막으려고 붙였는데,
+# 이 조회가 그 길로 빈 입력을 받아 **"할 일 없음" 으로 매분 조용히 끝났다.**
+# 8-07 오후부터 8-10 까지 3단계가 통째로 죽어 있었고, pending 슬라이드가
+# 사진만 온 채 멈춰 있었다 (369cm (100)). `-c` 는 stdin 을 안 본다.
+TODO_OUT=$(mktemp); TODO_ERR=$(mktemp)
+trap 'rm -f "$SCAN_OUT" "$TODO_OUT" "$TODO_ERR"' EXIT
+# **조회 실패는 소리를 낸다.** 예전에는 2>/dev/null 이라 실패가 빈 TODO 와
+# 구별되지 않았다 — 빈 것은 정상이지만, 실패한 채 "할 일 없음" 으로 끝나면
+# 이번처럼 며칠을 모른다. (명령 치환 안의 PIPESTATUS 는 밖에서 안 보인다 —
+# 파일로 받아 갈랐다.)
+if ! run "$T_SCAN" python -c '
 import os, sys, django
 sys.path.insert(0, "web"); sys.path.insert(0, ".")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
@@ -114,8 +125,12 @@ django.setup()
 from viewer.models import Slide
 for s in Slide.objects.filter(state__in=("pending", "processing")).order_by("pk"):
     print(f"{s.slug}\t{s.state}\t{s.image_dir}")
-PY
-)
+' >"$TODO_OUT" 2>"$TODO_ERR"; then
+    say "밀린 일 조회 실패 — 3단계를 건너뛰지 않고 멈춘다"
+    sed 's/^/    /' "$TODO_ERR" >>"$LOG"
+    exit 1
+fi
+TODO=$(tr -d '\r' <"$TODO_OUT")
 
 [ -n "$TODO" ] || exit 0        # 할 일 없음 — 조용히 끝낸다
 
