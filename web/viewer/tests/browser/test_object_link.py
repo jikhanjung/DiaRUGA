@@ -224,3 +224,48 @@ class ObjectLinkBrowserTest(BrowserTestCase):
                          "탈락 후보가 미리 골라져 있다 — 확인 없이 되살아난다")
         self.assertIsNotNone(page.query_selector(".linkpanel .ltag"),
                              "'탈락' 딱지가 없다")
+
+    def test_탈락_후보를_골라도_칸이_늘지_않는다(self):
+        """실사용 보고 (2026-08-10): "탈락 후보를 선택하면 옆에 동일한 탈락
+        후보가 하나 더 나타나."
+
+        `nearOf` 가 그릴 때마다 탈락 후보의 **사본**을 새로 만들어서, 고른
+        것(옛 사본)이 새 목록에 없다고 판단해 앞에 하나 더 붙였다. 고르기
+        상태가 바뀌면 다시 그리는 화면이라 **누르는 순간** 드러난다.
+        """
+        from ...models import Candidate
+        det = Detection.objects.filter(image=self.frame_imgs[0],
+                                       is_current=True).first()
+        Candidate.objects.create(
+            detection=det, raw_id=9, mask_key="44_54_58_38",
+            bbox_x=44, bbox_y=54, bbox_w=58, bbox_h=38,
+            center_x=73, center_y=73, area_px=1100, area_um2=5.5,
+            major_um=5.8, minor_um=3.8, long_side_um=5.8, short_side_um=3.8,
+            aspect_ratio=1.5, fill_ratio=0.6, shape_ok=True, circularity=0.8,
+            convexity=0.9, solidity=0.9, elongation=1.5, ellipse_iou=0.8,
+            texture=90.0, predicted_iou=0.9, stability_score=0.9,
+            polygon=[44, 54, 102, 54, 102, 92, 44, 92],
+            passed=False, reject="텍스처부족")
+
+        page = self.open_group()
+        menu = self.context_menu_at(70, 70)
+        self.menu_item(menu, "동일 개체 묶기").click()
+        page.wait_for_selector(".linkpanel", state="visible", timeout=3000)
+
+        # 그 탈락 후보가 있는 줄의 칸 수를 센다
+        row = page.query_selector(".linkpanel .scell.rej").evaluate_handle(
+            "e => e.closest('.lrow')").as_element()
+        before = len(row.query_selector_all(".scell"))
+
+        page.query_selector(".linkpanel .scell.rej").click()
+        page.wait_for_timeout(200)
+
+        # 다시 그린 뒤에도 같은 줄의 칸 수가 그대로여야 한다
+        row2 = page.query_selector(".linkpanel .scell.rej").evaluate_handle(
+            "e => e.closest('.lrow')").as_element()
+        after = len(row2.query_selector_all(".scell"))
+        self.assertEqual(after, before,
+                         f"고르니 칸이 {before} → {after} 로 늘었다 "
+                         "— 같은 탈락 후보가 둘로 보인다")
+        # 그리고 골라진 것은 하나다
+        self.assertEqual(len(row2.query_selector_all(".scell.on")), 1)

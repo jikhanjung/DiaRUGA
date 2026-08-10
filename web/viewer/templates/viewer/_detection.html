@@ -1990,7 +1990,15 @@
 
     // 닻 근처의 살아 있는 후보 — 지운 것은 빠지고 그린 것은 든다 (stateOf).
     // 창은 닻 bbox 1.5배, 거리순 3개 (실측 090).
+    // **판마다 한 번만 계산해 기억한다** (102 고침). 탈락 후보는 표식을 붙인
+    // **사본**이라, 그릴 때마다 새로 만들면 고른 것(옛 사본)이 새 목록에 없다고
+    // 판단해 아래 `unshift` 가 **같은 것을 하나 더 붙였다** — 사용자가 본 그것이다.
+    //
+    // 팝업이 열려 있는 동안 상태는 안 바뀐다(고르기만 한다). 그러니 기억해 두면
+    // 객체가 그대로라 비교가 선다.
+    var nearCache = {};
     function nearOf(key) {
+      if (nearCache[key]) return nearCache[key];
       var st = stateOf(key);
       var live = st.cands.filter(function (c) { return !st.removed.has(keyOf(c)); });
       // **탈락 후보도 후보다** (102 · 사용자 요청). 그 프레임에서 가장 좋은
@@ -2019,7 +2027,8 @@
         return dx * dx + dy * dy;
       }
       near.sort(function (p, q) { return d2(p) - d2(q); });
-      return near.slice(0, 3);
+      nearCache[key] = near.slice(0, 3);
+      return nearCache[key];
     }
 
     // **미리 고르기는 열 때 한 번만 한다** (실측 090 · 사용자 승인): 최선
@@ -2104,7 +2113,14 @@
 
         var near = nearOf(key);
         // 고쳐 열었을 때 이미 고른 것이 창 밖이어도 잃지 않는다
-        if (picked[key] && near.indexOf(picked[key]) < 0) near.unshift(picked[key]);
+        // 고쳐 열었을 때 이미 고른 것이 창 밖이어도 잃지 않는다.
+        // **열쇠로 견준다** — 객체 동일성만 보면 사본이 하나라도 새로 생기는
+        // 순간 같은 것이 둘로 보인다(102 에서 실제로 났다).
+        if (picked[key] && !near.some(function (c) {
+              return keyOf(c) === keyOf(picked[key]);
+            })) {
+          near = [picked[key]].concat(near);
+        }
 
         near.forEach(function (c) {
           var b = document.createElement('button');
