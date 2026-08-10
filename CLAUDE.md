@@ -153,6 +153,8 @@ cd /srv/DiaRUGA && docker compose up -d web      # 바깥 :80 /DiaRUGA/ 을 ngin
 cd /srv/DiaRUGA && docker compose logs -f web
 /srv/DiaRUGA/bin/deploy.sh <태그>                # pull → 스냅샷 → 교체 → 기동 게이트
 /srv/DiaRUGA/bin/smoke.sh                        # 판·행 수·안전망까지 (200 은 "떴다" 일 뿐이다)
+deploy/host/sync_to_srv.sh                       # 저장소 → /srv (개발 중)
+/srv/DiaRUGA/bin/sync_to_srv.sh --from-image <판>  # 이미지 → /srv (저장소가 없어도 된다)
 python ops/db_sentinel.py show                      # 백업이 세운 무결성 깃발이 있는가
 
 docker compose -f deploy/docker-compose.yml build web   # 이미지 굽기는 저장소에서

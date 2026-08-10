@@ -141,6 +141,23 @@ fi
 # **기동 게이트만으로는 모자란다.** 200 은 "떴다" 는 뜻일 뿐이다. 판이 실제로
 # 갈렸는지, DB 를 제대로 물었는지(빈 DB 를 물어도 200 은 나온다), 백업이 무결성
 # 실패를 물고 있는지는 200 에 안 담긴다. `/healthz` 가 degraded 에 **200** 을 내는
+# **8) `/srv` 의 스크립트를 이 판에 맞춘다** (100).
+#
+# 스크립트는 이미지 안(`/app/pipeline`·`/app/ops`)에도 같은 것이 있다 —
+# 거기서 뽑으면 **판이 정의상 맞는다.** 예전에는 사람이 `dbsync.sh` 로 옮겼고,
+# 잊으면 옛 `check_db.py` 가 없는 고장을 외쳤다(080 에서 실제로 났다).
+#
+# **막지는 않는다.** 스크립트가 낡은 것은 방금 올린 판이 잘못됐다는 뜻이 아니다
+# — smoke 의 표류 검사가 경고만 하는 것과 같은 이유다.
+SYNC="${DIARUGA_SYNC:-$SRV/bin/sync_to_srv.sh}"
+if [ -x "$SYNC" ]; then
+    say "/srv 스크립트를 $VER 에 맞춘다"
+    "$SYNC" --from-image "$VER" 2>&1 | sed 's/^/    /' | tee -a /dev/stderr \
+        >/dev/null || say "스크립트 갱신에 실패했다 — 손으로 볼 것"
+else
+    say "sync_to_srv.sh 가 없다 ($SYNC) — /srv 스크립트는 그대로다"
+fi
+
 # 것도 그래서다 — 배포를 세우는 판단은 여기서 한다.
 SMOKE="${DIARUGA_SMOKE:-$SRV/bin/smoke.sh}"
 if [ ! -x "$SMOKE" ]; then

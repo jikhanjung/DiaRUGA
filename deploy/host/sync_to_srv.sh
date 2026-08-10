@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
-# 저장소의 배포 파일을 /srv/DiaRUGA 으로 옮긴다 (.guides/web/deployment.md §2).
+# 배포 파일을 /srv/DiaRUGA 으로 옮긴다 (.guides/web/deployment.md §2).
 #
-#   ./deploy/host/sync_to_srv.sh
+#   ./deploy/host/sync_to_srv.sh                 # 저장소에서 (개발 중)
+#   sync_to_srv.sh --from-image v0.9.1           # 이미지에서 (운영·저장소 없음)
+#
+# ## 근원이 둘인 이유 (100)
+#
+# **저장소가 있으면 저장소에서** — 스크립트만 고쳐 밀어 넣으면 7.2 GB 이미지를
+# 다시 굽지 않아도 되는 것이 `/srv` 를 쓰는 이득의 절반이다.
+#
+# **`--from-image` 는 저장소를 안 본다.** 운영 서버에 저장소가 없을 수 있고
+# (사용자 방침), 그때는 방금 받은 이미지가 곧 근원이다 — `COPY . .` 로 저장소가
+# 통째로 `/app` 에 들어 있다. **이쪽이 판을 정의상 맞춘다**: 스크립트와 Django
+# 코드가 같은 이미지에서 나오므로 어긋날 수가 없다. `deploy.sh` 가 배포 뒤에
+# 이 갈래로 부른다.
 #
 # `git pull` 뒤에 돌린다. **매번 돌려도 해롭지 않다** — cp 뿐이다. 잊으면 배포
 # 파일 변경이 한 판 미뤄질 뿐이다.
@@ -20,10 +32,64 @@
 # 없을 때만 견본에서 만들어 준다.
 set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd || echo /nonexistent)"
 SRV="${DIARUGA_SRV:-/srv/DiaRUGA}"
+IMAGE=""
+if [ "${1:-}" = "--from-image" ]; then
+    IMAGE="${2:-}"
+    [ -n "$IMAGE" ] || { echo "쓰임새: $0 --from-image <판>" >&2; exit 2; }
+    case "$IMAGE" in */*) ;; *) IMAGE="honestjung/diaruga:$IMAGE";; esac
+fi
 
 [ -d "$SRV" ] || { echo "배포 디렉토리가 없다: $SRV" >&2; exit 1; }
+
+# --- 이미지에서 (저장소를 안 본다) ---------------------------------------
+if [ -n "$IMAGE" ]; then
+    echo "$IMAGE → $SRV"
+    docker image inspect "$IMAGE" >/dev/null 2>&1 || {
+        echo "이미지가 없다: $IMAGE (docker pull 을 먼저)" >&2; exit 1; }
+    # **컨테이너를 만들어 놓고 뽑는다.** `docker cp` 는 도는 컨테이너가 아니라
+    # 만들어진 것에서도 되고, 그러면 entrypoint 를 안 건드린다.
+    cid="$(docker create "$IMAGE" true)"
+    trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+    tmp="$(mktemp -d)"
+    for d in pipeline ops; do
+        docker cp "$cid:/app/$d/." "$tmp/" 2>/dev/null || {
+            echo "이미지에 /app/$d 가 없다 — 100 이전 판이다" >&2; exit 1; }
+    done
+    mkdir -p "$SRV/scripts" "$SRV/bin" "$SRV/www"
+    n=0
+    for f in "$tmp"/*.py; do
+        b="$(basename "$f")"
+        case "$b" in test_*) continue;; esac      # 시험은 운영에 안 간다
+        if [ -f "$SRV/scripts/$b" ] && cmp -s "$f" "$SRV/scripts/$b"; then
+            echo "  = scripts/$b"
+        else
+            cp -p "$f" "$SRV/scripts/$b"; echo "  → scripts/$b"; n=$((n + 1))
+        fi
+    done
+    # 배포 파일도 같은 이미지에서 — 저장소가 없어도 서는 것이 요점이다
+    for pair in "deploy/srv/docker-compose.yml:docker-compose.yml" \
+                "deploy/host/deploy.sh:bin/deploy.sh" \
+                "deploy/host/smoke.sh:bin/smoke.sh" \
+                "deploy/poll_nas.sh:bin/poll_nas.sh" \
+                "deploy/host/sync_to_srv.sh:bin/sync_to_srv.sh" \
+                "deploy/nginx/maintenance.html:www/DiaRUGA-maintenance.html" \
+                "deploy/nginx/unavailable.html:www/DiaRUGA-unavailable.html"; do
+        src="${pair%%:*}"; dst="${pair##*:}"
+        docker cp "$cid:/app/$src" "$SRV/$dst" 2>/dev/null || {
+            echo "  ! 이미지에 $src 가 없다 — 건너뛴다" >&2; continue; }
+        case "$dst" in bin/*) chmod +x "$SRV/$dst";; esac
+        echo "  → $dst"
+    done
+    rm -rf "$tmp"
+    echo "완료 (스크립트 $n 개 갱신). .env 는 안 건드렸다."
+    exit 0
+fi
+
+[ -d "$REPO/ops" ] || {
+    echo "저장소를 못 찾았다: $REPO — 저장소가 없으면 --from-image 를 쓸 것" >&2
+    exit 1; }
 
 # 배포용 compose 와 호스트 스크립트. 판(IMAGE_TAG)은 .env 에 있으므로 이 파일들은
 # 저장소의 것과 글자 그대로 같다 — diff 가 나면 누가 손으로 고친 것이다.
@@ -42,7 +108,9 @@ copy deploy/srv/docker-compose.yml docker-compose.yml
 mkdir -p "$SRV/bin"
 # **폴러도 여기 산다** (100). cron 이 저장소를 부르면 저장소가 없는 서버에서
 # 파이프라인이 통째로 안 돈다 — 운영에 필요한 것은 전부 /srv 안에 있어야 한다.
-for f in deploy.sh smoke.sh poll_nas.sh; do
+# **자기 자신도 옮긴다** — `deploy.sh` 가 `/srv/bin/sync_to_srv.sh` 를 부르고,
+# 저장소 없는 서버에서는 그것이 유일한 사본이다.
+for f in deploy.sh smoke.sh poll_nas.sh sync_to_srv.sh; do
     src="deploy/host/$f"
     [ -f "$REPO/$src" ] || src="deploy/$f"      # poll_nas.sh 는 deploy/ 에 있다
     copy "$src" "bin/$f"
