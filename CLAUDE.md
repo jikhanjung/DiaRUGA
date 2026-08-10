@@ -85,8 +85,8 @@ requirements 는 넷으로 갈라져 있다 (P03·032). 호스트 venv 는 `requ
 나눠 쓰며, `-yolo`(ultralytics)가 `--no-deps` 로 파이프라인 위에 얹힌다.
 
 **데이터도 DB 도 저장소 안에 없다.** 위치는 `.env` 가 알려 준다(`.env.template`
-참고 — 없으면 스크립트가 사진을 못 찾는다). `review/`·`groups_*.json` 은 git 추적
-대상이라 저장소에 남아 있다.
+참고 — 없으면 스크립트가 사진을 못 찾는다). **교정 감사 기록 `review/` 만 git 추적
+대상이라 저장소에 남아 있다** — `groups_*.json` 은 DB 이전 전의 산물이라 지웠다.
 
 ```
 /srv/DiaRUGA/   db/  scripts/  bin/  docker-compose.yml  .env      ← 배포
