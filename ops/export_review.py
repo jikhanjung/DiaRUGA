@@ -62,7 +62,23 @@ import sqlite3
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+def _find_root():
+    """`.env` 가 어디 있는지 스스로 찾는다.
+
+    이 스크립트는 **두 자리에서 돈다** — 저장소의 `ops/` 와 배포의
+    `/srv/DiaRUGA/scripts/`. 둘 다 `.env` 는 **한 칸 위**에 있다(저장소 루트 ·
+    `/srv/DiaRUGA`). 옛날에는 스크립트가 저장소 루트에 있어 `parent` 가 맞았고,
+    100 에서 옮기면서 그 전제가 깨졌다 — **시간별 백업이 두 시간 죽었다**.
+    자리를 박아 두지 말고 찾는다.
+    """
+    here = Path(__file__).resolve().parent
+    for d in (here, here.parent):
+        if (d / ".env").exists():
+            return d
+    return here.parent
+
+
+ROOT = _find_root()
 
 
 def _env(key, default):

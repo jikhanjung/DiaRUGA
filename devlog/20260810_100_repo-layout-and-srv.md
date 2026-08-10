@@ -139,3 +139,38 @@ compose + 안내 페이지가 서는 것, 뽑은 것이 저장소 것과 같은 
   > 지운다.
 - **`smoke.sh` 의 표류 검사는 `migrate/`·`tools/` 사본까지 센다.** 운영에 필요
   없는 것들이라 `/srv` 에서 걷는 편이 깔끔한데, 지워도 되는지는 판단이 필요하다
+
+## 덧 — 옮기고 나서 시간별 백업이 두 시간 죽었다
+
+배포 뒤 `smoke.sh` 가 물어 왔다: **`status=degraded — 백업이 낡았다 (3.1 시간
+전)`.** 로그에 두 가지가 있었다.
+
+```
+can't open file '/home/paleoadmin/projects/DiaRUGA/backup_db.py'   ← 옮기기 직전
+DB 가 없다: /srv/DiaRUGA/scripts/DiaRUGA.db                          ← 옮긴 뒤
+```
+
+`backup_db.py`·`db_sentinel.py`·`export_review.py`·`sync_backup_nas.py` 넷은
+**Django 를 안 쓰고 혼자 도는 것들**이라 `.env` 를 제 손으로 읽는다. 그 자리를
+`Path(__file__).parent` 로 박아 뒀는데, 그것이 맞았던 이유는 **스크립트가 저장소
+루트에 있었기** 때문이다. `ops/` 로 옮기면서 전제가 깨졌다.
+
+자리를 박지 말고 찾게 했다 — 제 자리와 **한 칸 위**를 본다. 저장소에서는
+`ops/` → 루트, 배포에서는 `scripts/` → `/srv/DiaRUGA`. 둘 다 거기에 `.env` 가 있다.
+
+```python
+def _find_root():
+    here = Path(__file__).resolve().parent
+    for d in (here, here.parent):
+        if (d / ".env").exists():
+            return d
+    return here.parent
+```
+
+**교훈은 옮긴 것 자체가 아니다.** 옮기면서 `sys.path` 는 챙겼는데(그래서 임포트는
+다 됐다) **자료의 자리를 찾는 코드**는 안 챙겼다. 임포트가 되는 것과 제 자료를
+찾는 것은 다른 일이고, 앞엣것만 확인했다.
+
+그리고 **이것을 알려 준 것이 `smoke.sh` 였다.** `/healthz` 의 `degraded` 를
+200 으로 두고 판단은 smoke 가 하게 해 둔 것(034)이 여기서 값을 했다 — 뷰어는
+멀쩡했고 배포도 통과했는데, 그 밑에서 안전망이 꺼져 있었다.

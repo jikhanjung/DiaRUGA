@@ -1132,12 +1132,26 @@ def find_viewpoint(stem: str = "", slug: str = "",
         if vp is None:
             return None, f"모르는 시야다: {slug} g{gid}"
         if stem:
-            cur = next((d for d in vp.detections.all() if d.is_current), None)
+            # **시야의 현재 검출은 여럿이다** (P09 1단계 · 055). 이미지마다 하나씩
+            # 있고, 화면은 캐러셀로 그중 하나를 띄운다. 그런데 여기서 `.first()`
+            # 로 하나만 집어 견주고 있었다 — 053 과 같은 실수다.
+            #
+            # 그래서 **프레임을 보며 한 교정이 통째로 거절됐다**: 화면이 프레임
+            # 판으로 렌더되면 `stem` 이 `Snap-22119` 인데 집힌 것은 합성본이라
+            # 409 였다. 사람 쪽에서는 마스크가 지워진 채로 보이고 회색 글씨
+            # 한 줄만 지나가서, 오검출 둘을 지운 것이 DB 에 하나도 안 남았다
+            # (실사용 보고 2026-08-10 · am22-gc10b 25cm g0).
+            #
+            # 견줄 것은 **그 시야가 가진 판들**이다. 그중 하나면 "이 시야를 보고
+            # 보낸 것" 이 맞고, 어느 판에 앉힐지는 `image` 가 따로 짚는다
+            # (`save_review` 가 그 이미지에 현재 검출이 없으면 거절한다).
+            stems = {Path(d.image_path).stem
+                     for d in vp.detections.all() if d.is_current and d.image_path}
             # 검출이 아직 없는 시야(검토 준비 중)는 견줄 대상이 없다. 그쪽은
             # `review_blocked` 가 따로 막는다.
-            if cur is not None and Path(cur.image_path).stem != stem:
+            if stems and stem not in stems:
                 return None, (f"화면과 저장 대상이 어긋난다 — {slug} g{gid} 의 "
-                              f"현재 검출은 {Path(cur.image_path).stem} 인데 "
+                              f"판은 {', '.join(sorted(stems))} 인데 "
                               f"{stem} 을 보냈다")
         return vp, ""
 

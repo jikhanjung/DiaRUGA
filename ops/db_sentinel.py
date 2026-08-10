@@ -140,7 +140,10 @@ if __name__ == "__main__":
     def _env_db():
         if "DIARUGA_DB" in os.environ:
             return os.environ["DIARUGA_DB"]
-        root = Path(__file__).resolve().parent
+        # `.env` 는 한 칸 위다 (저장소 루트 · /srv/DiaRUGA).
+        # 100 에서 스크립트를 옮기며 이 전제가 깨진 적이 있다.
+        here = Path(__file__).resolve().parent
+        root = here if (here / ".env").exists() else here.parent
         try:
             for line in (root / ".env").read_text(encoding="utf-8").splitlines():
                 if line.strip().startswith("DIARUGA_DB="):

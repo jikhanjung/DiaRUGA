@@ -17,6 +17,7 @@
    틀리면 017·027·053 과 같은 자리가 된다
 """
 import json
+from pathlib import Path
 
 from django.test import Client
 from django.urls import reverse
@@ -163,6 +164,45 @@ class MultiImageViewpointTest(DiaRUGATestCase):
         alien = "9999_9999_10_10"
         self.post(self.full(image=self.frame_img.pk, removed=[alien]),
                   expect=409)
+        self.assertEqual(ObjectReview.objects.count(), 0)
+
+    # --- 화면이 어느 판으로 렌더됐는가 (실사용 2026-08-10) -------------------
+    #
+    # `stem` 은 **서버가 그 화면을 어느 판으로 그렸는지**를 담아 돌아온다.
+    # 합성본에 보일 것이 하나도 없으면 화면은 프레임 판으로 서고, 그때 화면이
+    # 보내는 stem 은 프레임의 것이다. 그런데 `find_viewpoint` 가 시야의 현재
+    # 검출 중 **아무거나 하나**와 견주고 있어서 그 저장이 통째로 409 였다.
+    #
+    # 위의 시험들이 전부 `stem=합성본` 으로만 보내고 있어 이 갈래를 한 번도 안
+    # 밟았다 — 086 과 같은 이야기다(URL 을 덮는 것과 갈래를 덮는 것은 다르다).
+
+    def test_프레임_판을_보고_보낸_저장이_통한다(self):
+        """실사용에서 오검출 둘을 지운 것이 이렇게 사라졌다."""
+        frame_stem = Path(self.frame_img.path).stem
+        k = self.w.keys()[0]
+        self.post(self.full(stem=frame_stem, image=self.frame_img.pk,
+                            removed=[k]))
+        obj = ObjectReview.objects.get(mask_key=k)
+        self.assertTrue(obj.removed)
+        self.assertEqual(obj.image_id, self.frame_img.pk)
+
+    def test_합성본_판의_stem_도_그대로_통한다(self):
+        """넓히면서 원래 되던 쪽이 막히면 안 된다."""
+        k = self.w.keys()[0]
+        self.post(self.full(stem=self.w.stem(),
+                            image=self.stack_det.image_id, removed=[k]))
+        self.assertTrue(ObjectReview.objects.get(mask_key=k).removed)
+
+    def test_이_시야에_없는_판이면_여전히_거절한다(self):
+        """넓힌 것은 **이 시야의 판들**까지다 — 그 밖은 그대로 막는다.
+
+        (같은 이름의 판이 다른 슬라이드에 있는 것은 이 검사가 못 가른다 —
+        프레임 이름은 슬라이드끼리 겹친다. 시야를 짚는 것은 `(slug, gid)` 이고
+        stem 은 그 위의 덧문이다.)
+        """
+        r = self.post(self.full(stem="Snap-99999", removed=[self.w.keys()[0]]),
+                      expect=409)
+        self.assertIn("어긋난다", r.json()["error"])
         self.assertEqual(ObjectReview.objects.count(), 0)
 
 
