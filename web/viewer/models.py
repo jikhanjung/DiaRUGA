@@ -68,6 +68,16 @@ class RunBatch(models.Model):
     # **비어 있으면 자동으로 안 돈다.** 끝난 회차를 그대로 두는 것이 기본이고,
     # 돌릴 것은 사람이 적어 준다 — 묶음이 늘 때마다 GPU 시간이 곱으로 는다.
     recipe = models.JSONField(default=dict, blank=True, db_default={})
+    # **카탈로그 번호의 꼬리** (`catalog.py`). `RS23-GC03-071-g03-…-S1` 의 `S1`.
+    #
+    # **라벨에서 자동으로 뽑지 않는다.** `yolo-3차`·`yolo-4차` 가 같은 글자로
+    # 누우면 **두 회차의 번호가 겹치고**, 그 번호는 이미 논문·표에 적힌 뒤다.
+    # 관리 화면이 빈 칸에 첫 제안(`catalog.batch_code_seed`)만 채워 주고 정하는
+    # 것은 사람이다. 라벨을 고쳐도 번호가 안 움직이는 것도 갈라 둔 덕이다.
+    #
+    # 비어 있으면 그 묶음의 개체는 **번호가 없다** — 화면이 그것을 적는다.
+    # 조용히 `M`(손그림) 이나 라벨로 대신하면 엔진이 낸 것이 다른 것으로 기록된다.
+    code = models.CharField(max_length=8, blank=True, default="", db_default="")
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
@@ -81,6 +91,14 @@ class RunBatch(models.Model):
             models.UniqueConstraint(fields=["for_review"],
                                     condition=models.Q(for_review=True),
                                     name="uniq_batch_for_review"),
+            # **묶음 코드가 겹치면 두 회차의 카탈로그 번호가 겹친다.** 빈 것은
+            # 여럿일 수 있다 — 아직 안 정한 묶음이고, 그때는 번호가 아예 안 난다.
+            models.UniqueConstraint(fields=["code"], condition=~models.Q(code=""),
+                                    name="uniq_batch_code"),
+            # **`M` 은 손그림 자리다** (`catalog.MANUAL_CODE`). 묶음이 그것을
+            # 가져가면 사람이 그린 개체와 그 묶음의 개체가 한 번호 아래 섞인다.
+            models.CheckConstraint(condition=~models.Q(code__in=["M", "m"]),
+                                   name="batch_code_not_manual"),
         ]
 
     def __str__(self):
@@ -993,6 +1011,23 @@ class ObjectReview(models.Model):
     accepted = models.BooleanField(default=False)
     label = models.CharField(max_length=32, blank=True)
     note = models.TextField(blank=True)
+    # **동정 결과** — 사람이 적는 종명 (개체 카탈로그 화면). `label` 과 축이 다르다:
+    # `label` 은 `ClassDef` 가 정한 목록에서 고르는 것(원형·봉상·Eucampia)이고
+    # 이쪽은 **자유 입력**이다. 종은 목록으로 못 가둔다 — `var.`·`f.`·명명자까지
+    # 붙고, 검토 중에 이름이 바뀐다. 굳으면 그때 테이블로 옮긴다.
+    #
+    # **`ObjectReview` 에 있으니 묶음에 종속된다** (열쇠가 `(image, batch,
+    # mask_key)`). 엔진마다 카탈로그를 별개로 두는 것이 방침이라 그것이 맞다
+    # (사용자 방침 2026-08-10) — 묶음을 갈면 동정을 다시 적는다.
+    #
+    # **`save_review` 가 이 칸만 채워진 행을 지우면 안 된다.** 검토 화면은 종명을
+    # 모르고, 그 POST 는 payload 에 없는 키를 지운다 — "검토 완료" 한 번에 동정이
+    # 통째로 사라진다. `geom_edited` 가 같은 문제를 겪은 자리이고 같은 처리를
+    # 받는다 (`data.save_review` 의 `keys` 에 얹는다).
+    #
+    # **재생성 불가다.** `export_review.py` 가 이 칸도 내보낸다.
+    species = models.CharField(max_length=120, blank=True, default="",
+                               db_default="")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

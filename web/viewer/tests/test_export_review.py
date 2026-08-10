@@ -236,3 +236,101 @@ class ExportFormat4LinksTest(DiaRUGATestCase):
         j, text = self.export()
         self.assertEqual(j["links"], [])
         self.assertIn('"links": []', text)
+
+
+class ExportSpeciesTest(DiaRUGATestCase):
+    """동정한 종명이 감사 기록에 실리는가 (개체 카탈로그, 2026-08-10).
+
+    **`label`·`note` 와 같은 무게의 재생성 불가 자료다** — 사람이 현미경을 보며
+    적는다. 안전망이 그것을 안 담으면 DB 가 상했을 때 되살릴 수 없고, git 에
+    안 남으면 "언제 무엇을 어떻게 고쳤나" 가 사라진다.
+
+    **그런데 적은 개체에만 싣는다.** 늘 실으면 종명이 없는 파일 6,700행이 뜻
+    없이 다시 쓰이고, 그 diff 에 그 사이의 진짜 변화가 묻힌다 — 감사 기록에서는
+    그것이 값이다. `source`·`geom_edited` 와 같은 규칙이다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=3)
+
+    def export(self):
+        raw = connection.cursor().connection
+        was = raw.row_factory
+        raw.row_factory = sqlite3.Row
+        try:
+            views = export_review.fetch(raw)
+        finally:
+            raw.row_factory = was
+        v = views[(self.w.slug, self.w.vp.idx)]
+        text = export_review.render(v)
+        return json.loads(text), text
+
+    def put(self, **kw):
+        det = self.w.detection()
+        return ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=det.image, batch=det.batch,
+            mask_key=self.w.keys()[0], bind_method="exact", **kw)
+
+    def objects(self, doc):
+        return [o for g in doc["images"] for o in g["objects"]]
+
+    def test_적은_종명이_실린다(self):
+        self.put(species="Eucampia antarctica")
+        doc, _ = self.export()
+        o = self.objects(doc)[0]
+        self.assertEqual(o["species"], "Eucampia antarctica")
+
+    def test_안_적었으면_키가_아예_없다(self):
+        """**빈 값을 실으면 종명 없는 6,700행이 뜻 없이 다시 쓰인다.**"""
+        self.put(label="rod")
+        doc, _ = self.export()
+        self.assertNotIn("species", self.objects(doc)[0])
+
+    def test_유형_코멘트와_함께_실린다(self):
+        self.put(label="rod", note="가장자리가 넘쳤다",
+                 species="Eucampia antarctica")
+        o = self.objects(self.export()[0])[0]
+        self.assertEqual((o["label"], o["note"], o["species"]),
+                         ("rod", "가장자리가 넘쳤다", "Eucampia antarctica"))
+
+    def test_한글_종명도_그대로_보인다(self):
+        """`ensure_ascii=False` 라야 diff 가 읽힌다."""
+        self.put(species="유케암피아 남극종")
+        _, text = self.export()
+        self.assertIn("유케암피아 남극종", text)
+
+    def test_개체는_여전히_한_줄이다(self):
+        """키가 하나 늘어도 줄이 쪼개지면 diff 가 못 읽힌다.
+
+        **내보내기에 담기는 것은 교정 행이지 후보 전부가 아니다** — 사람이 손댄
+        것만 감사 기록에 남는다.
+        """
+        self.put(species="Eucampia antarctica")
+        _, text = self.export()
+        lines = [ln for ln in text.split("\n") if '"key":' in ln]
+        self.assertEqual(len(lines), 1, text)
+        self.assertIn("Eucampia antarctica", lines[0])
+
+    def test_렌더가_결정적이다(self):
+        """`--check` 는 문자열 대조다 — 두 번 렌더해 다르면 대조가 못 선다."""
+        self.put(species="Eucampia antarctica")
+        self.assertEqual(self.export()[1], self.export()[1])
+
+    def test_칼럼이_없는_옛_DB_도_읽는다(self):
+        """이 스크립트는 **두 시점을 견주는 도구**라 0031 이전 백업도 읽어야 한다.
+        `PRAGMA table_info` 로 칸을 세어 없으면 빈 값을 끼우는 그 갈래다."""
+        self.put(species="Eucampia antarctica")
+        raw = connection.cursor().connection
+        was = raw.row_factory
+        raw.row_factory = sqlite3.Row
+        try:
+            raw.execute("ALTER TABLE viewer_objectreview DROP COLUMN species")
+            views = export_review.fetch(raw)
+        finally:
+            raw.row_factory = was
+        v = views[(self.w.slug, self.w.vp.idx)]
+        doc = json.loads(export_review.render(v))
+        self.assertNotIn("species",
+                         [o for g in doc["images"] for o in g["objects"]][0])

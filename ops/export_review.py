@@ -118,6 +118,18 @@ OUT = ROOT / "review"
 # 묶은 것이라 교정과 같은 무게의 재생성 불가 자료다 — 같은 감사 기록으로 간다.
 # 묶음이 없는 시야는 `"links": []` 다. 옛 DB(0030 이전 백업)에는 표가 없어
 # 조용히 빈 목록이 된다 — 이 스크립트는 두 시점을 견주는 도구라 옛 판도 읽는다.
+#
+# **형식 번호를 안 올리고 `species` 를 더했다** (개체 카탈로그, 2026-08-10).
+# 동정한 종명이고 `label`·`note` 와 같은 무게의 재생성 불가 자료다 — 사람이
+# 현미경을 보며 적는다.
+#
+# 번호를 올리지 않은 이유가 둘이다. **적힌 개체에만 키를 싣는다**(`source`·
+# `geom_edited` 와 같은 규칙) — 그래서 종명이 없는 파일은 **한 글자도 안 바뀐다.**
+# 형식 3→4 는 `links` 라는 새 층이 생겨 모든 파일이 바뀌었지만 이번은 아니다.
+# 그리고 읽는 쪽이 모르는 키를 만나도 깨지지 않는다(`--check` 는 문자열 대조다).
+#
+# **6,700행을 뜻 없이 다시 쓰지 않는 것이 감사 기록에서는 값이다** — 그 diff 가
+# 한 번 지나가면 그 사이에 실제로 달라진 판단이 그 안에 묻힌다.
 FORMAT = 4
 
 # 묶음(그룹) 정렬 — 합성본이 먼저다. **차례가 정해져 있어야 diff 가 읽힌다.**
@@ -176,6 +188,8 @@ def fetch(conn, slide_slug=None) -> dict:
     batch_col = col("batch_id")
     src_col = col("source", "'engine'")
     edit_col = col("geom_edited", "0")
+    # 동정한 종명 (0031). **옛 DB(백업 파일)에는 없다** — 위와 같은 갈래다.
+    species_col = col("species", "''")
 
     # **묶음은 id 가 아니라 이름으로 적는다.** 감사 기록은 사람이 읽고 두 DB 를
     # 견주는 물건이라, 저장소마다 달라지는 id 를 적으면 diff 가 거짓말을 한다.
@@ -201,7 +215,7 @@ def fetch(conn, slide_slug=None) -> dict:
     for r in conn.execute(f"""
         SELECT viewpoint_id, mask_key, removed, accepted, label, note,
                geom, bind_method, bind_score, {img_col}, {batch_col},
-               {src_col}, {edit_col}
+               {src_col}, {edit_col}, {species_col}
           FROM viewer_objectreview
     """):
         v = views.get(r["viewpoint_id"])
@@ -217,6 +231,11 @@ def fetch(conn, slide_slug=None) -> dict:
             "note": r["note"] or "",
             "bind": r["bind_method"] or "",
         }
+        # **적은 개체에만 싣는다.** 늘 실으면 종명이 없는 파일 6,700행이 뜻
+        # 없이 다시 쓰이고, 그 diff 에 그 사이의 진짜 변화가 묻힌다.
+        # `label` 은 늘 실리는데 이쪽이 다른 것은 그 이유다(형식 머리말).
+        if r["species"]:
+            obj["species"] = r["species"]
         if (r["source"] or "engine") != "engine":
             obj["source"] = r["source"]
         if r["geom_edited"]:

@@ -54,8 +54,19 @@ from django.db.models import Count                                  # noqa: E402
 import judge                                                        # noqa: E402
 from viewer.models import (Candidate, ClassDef, Detection, Frame,    # noqa: E402
                            Locality, ObjectLink, ObjectReview,
-                           Sample, Slide, Stack, Viewpoint,
+                           RunBatch, Sample, Slide, Stack, Viewpoint,
                            ViewpointReview)
+# **번호 규칙은 뷰어 코드에 있다** (`web/viewer/catalog.py`). 그래서 이 검사만
+# **뷰어 이미지를 올린 뒤에 돈다** — 057 이 말하는 "함께 올려야 하는 축" 이고,
+# `dbrun.sh` 는 `/app` 안의 코드를 돌리므로 판이 낡으면 그 파일이 없다.
+#
+# **그때 도구가 죽으면 안 된다.** 이 스크립트의 나머지 여덟 검사는 그 코드와
+# 무관하고, 무결성 검사가 배포 순서에 매달리면 정작 필요한 날 못 돌린다.
+# 그렇다고 조용히 건너뛰면 **덮은 줄 알게 된다** — 그래서 아래에서 크게 적는다.
+try:
+    from viewer import catalog                                       # noqa: E402
+except ImportError:                                                  # 낡은 판
+    catalog = None
 
 VERBOSE = False
 problems = []
@@ -473,6 +484,94 @@ def check_links(slug=None):
            dangling)
 
 
+def check_catalog(slug=None):
+    """카탈로그 번호가 **날 수 있는가, 그리고 겹치지 않는가** (개체 카탈로그).
+
+    번호는 저장하지 않고 층·시야·`mask_key`·묶음 코드로 그때그때 만든다. 그래서
+    어긋날 수가 없는 대신 **재료가 빠지면 번호가 아예 안 난다** — 화면은 "번호
+    없음" 이라고 적지만, 그 상태로 며칠이 지나면 그 관찰만 동정을 못 한 채 남는다.
+    여기서 세는 것이 그것이다.
+
+    그리고 **겹치는 번호는 논문에 실린 뒤에는 못 고친다.** 규칙상 겹칠 수 없지만
+    (`mask_key` 가 `(detection, mask_key)` 유일 제약을 타고, 묶음 코드에 유일
+    제약이 있다) 층 코드를 정규화하면서 두 지점이 한 토막으로 누울 수는 있다
+    (`GC-03` 과 `GC03` 이 다 `GC03` 이다) — 그 갈래를 기계로 본다.
+    """
+    if catalog is None:
+        # 조용히 건너뛰지 않는다 — 안 돈 검사를 OK 로 읽으면 안 된다.
+        print("!! 개체 카탈로그 검사를 못 돌렸다                       "
+              "<-- 이 이미지에 viewer/catalog.py 가 없다 (뷰어 판을 올릴 것)")
+        return
+
+    # 1) 묶음 코드. 비면 그 묶음의 개체는 번호가 하나도 안 난다.
+    batches = list(RunBatch.objects.filter(kind="detect")
+                   .values("id", "label", "code", "for_review"))
+    if not batches:
+        if VERBOSE:
+            print("   (검출 묶음이 아직 없다)")
+        return
+
+    used = [b for b in batches
+            if Detection.objects.filter(is_current=True,
+                                        run__batch_id=b["id"]).exists()]
+    nocode = [b["label"] for b in used if not (b["code"] or "").strip()]
+    report("검출이 있는 묶음에 카탈로그 코드가 있다", len(nocode), len(used),
+           "코드가 없으면 그 묶음의 개체는 번호가 하나도 안 난다", nocode)
+
+    # `M` 은 손그림 자리다 (`catalog.MANUAL_CODE`). DB 제약이 막지만 옛 판으로
+    # 들어온 행이 있을 수 있어 함께 센다 — 막는 것과 확인하는 것은 다른 일이다.
+    manual = [b["label"] for b in batches
+              if (b["code"] or "").upper() == catalog.MANUAL_CODE]
+    report("묶음 코드가 M 이 아니다", len(manual), len(batches),
+           "M 은 사람이 그린 개체 자리다 — 섞이면 한 번호 아래 둘이 된다", manual)
+
+    # 2) 층 코드가 정규화되면서 뭉개지는가. `GC-03` 과 `GC03` 이 한 토막이 된다.
+    seen = defaultdict(set)
+    for loc in Locality.objects.select_related("site"):
+        try:
+            key = (catalog.part(loc.site.code), catalog.part(loc.code))
+        except ValueError:
+            key = None
+        if key:
+            seen[key].add(f"{loc.site.code}-{loc.code}")
+    clash = {k: v for k, v in seen.items() if len(v) > 1}
+    report("지역·지점 코드가 번호에서 안 뭉개진다", len(clash), len(seen),
+           "두 지점이 한 토막으로 누우면 서로 다른 개체가 같은 번호를 받는다",
+           [f"{'-'.join(k)} <- {sorted(v)}" for k, v in clash.items()])
+
+    # 3) 실제로 번호가 나는가. **검토 대상 묶음만** 본다 — 화면이 그것을 연다.
+    slides = Slide.objects.select_related("sample__locality__site")
+    if slug:
+        slides = slides.filter(slug=slug)
+    codes = {b["id"]: (b["code"] or "") for b in batches}
+    # **행은 안 훑는다.** 번호가 나는지는 층이 있는지로 갈린다 — 슬라이드 12개에
+    # 개체 3만이라, 세려고 자료를 물질화하지 말라는 것과 같은 이야기다.
+    noloc = [sl.slug for sl in slides
+             if not (sl.sample and sl.sample.locality
+                     and sl.sample.locality.site)]
+    report("관찰이 카탈로그 번호를 만들 층을 갖고 있다", len(noloc),
+           slides.count(),
+           "소속을 잃은 관찰은 번호가 안 난다 — 화면에서 동정을 못 적는다",
+           noloc)
+
+    # 4) 종명이 붙은 교정 행이 묶음에 들어 있는가. 손그림(NULL)은 제 자리다.
+    named = ObjectReview.objects.exclude(species="")
+    if slug:
+        named = named.filter(viewpoint__slide__slug=slug)
+    n_named = named.count()
+    if n_named:
+        orphan = [o.mask_key for o in
+                  named.filter(batch__isnull=True).exclude(source="manual")[:20]]
+        report("종명이 붙은 교정이 묶음에 들어 있다", len(orphan), n_named,
+               "묶음 없는 엔진 교정은 어느 판의 동정인지 알 수 없다", orphan)
+        nocode2 = [o.mask_key for o in named.select_related("batch")
+                   if o.batch_id and not codes.get(o.batch_id, "")]
+        report("동정한 개체의 묶음에 코드가 있다", len(nocode2), n_named,
+               "코드가 없으면 그 동정을 부를 번호가 없다", nocode2[:20])
+    elif VERBOSE:
+        print("   (아직 동정한 개체가 없다)")
+
+
 def check_thresholds(slug=None):
     """문턱은 **슬라이드 안에서** 하나여야 한다.
 
@@ -534,6 +633,8 @@ def main():
     check_layers(args.slide)
     print("\n=== 8. 같은 개체 묶음 ===")
     check_links(args.slide)
+    print("\n=== 9. 개체 카탈로그 (번호·동정) ===")
+    check_catalog(args.slide)
 
     print()
     if problems:

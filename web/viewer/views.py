@@ -822,6 +822,167 @@ def crops(request, slug):
     )
 
 
+CATALOG_PER_PAGE = 120
+
+# 카드에 얹는 거르개. 크롭 화면(`crops`)과 같은 것을 쓰되 **동정 진행률**을
+# 보는 둘을 더한다 — 이 화면에서 사람이 알고 싶은 것은 "어디까지 했나" 다.
+CATALOG_FILTERS = {
+    "manual": ("수동 복구", lambda r: r.get("manual")),
+    "labeled": ("사람 지정", lambda r: r.get("cls_user")),
+    "noted": ("코멘트 있음", lambda r: r.get("note")),
+    "named": ("동정함", lambda r: r.get("species")),
+    "unnamed": ("동정 안 함", lambda r: not r.get("species")),
+}
+
+
+def catalog(request, slug):
+    """개체 카탈로그 — 검출된 규조 개체마다 카드 하나, 거기에 동정을 적는다.
+
+    **검토 대상 묶음 하나만 따라간다** (사용자 방침 2026-08-10). 고르는 장치를
+    두지 않는 이유는 `data.catalog_rows` 머리말에 있다 — 화면마다 다른 판을 보는
+    상태가 051 이 난 자리다. 대신 **어느 엔진의 판인지 머리에 적는다.**
+    """
+    label = data.slide_label(slug)
+    if label is None:
+        raise Http404(f"unknown dataset: {slug}")
+
+    rows = data.catalog_rows(slug)
+    n_all = len(rows)
+    n_named = sum(1 for r in rows if r.get("species"))
+
+    cls = request.GET.get("cls") or ""
+    if cls in data.CLASSES:
+        rows = [r for r in rows if r.get("cls") == cls]
+    elif cls in CATALOG_FILTERS:
+        rows = [r for r in rows if CATALOG_FILTERS[cls][1](r)]
+
+    # **찾는 것은 번호·종명·코멘트 셋이다.** 번호를 통째로 붙여 넣는 쓰임이
+    # 첫째이므로 부분 일치이고 대소문자를 안 가린다 (`catalog.parse` 와 같다).
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        low = q.lower()
+        rows = [r for r in rows
+                if low in r["catalog_no"].lower()
+                or low in (r.get("species") or "").lower()
+                or low in (r.get("note") or "").lower()]
+
+    for r in rows:
+        # 묶었으면 가장 큰 프레임을 그린다 — 번호는 그대로다 (`link_mains`).
+        view = r.get("view") or r
+        # **세워서 자른다** — 크롭 갤러리와 같다(`crops`). 방향이 통일돼야 형태를
+        # 나란히 비교할 수 있고, 동정은 그 비교로 한다. 축 비율이 1에 가까우면
+        # 안 돌린다(굳이 보간으로 흐릴 이유가 없다 — `crop_geometry`).
+        geo = data.crop_geometry(view, rotate=True)
+        r["src_rel"] = view.get("rel") or r["image_rel"]
+        r["src_bbox"] = view.get("bbox_xywh") or r["bbox_xywh"]
+        r["rot"], r["out"] = (geo["rot"], geo["out"]) if geo else (0, "")
+        if geo:
+            r["sb"] = data.scalebar_for(geo["out_w"], r.get("um_per_pixel") or 0)
+
+    total = len(rows)
+    try:
+        offset = max(0, int(request.GET.get("offset", 0)))
+    except ValueError:
+        offset = 0
+    page = rows[offset:offset + CATALOG_PER_PAGE]
+
+    def page_url(off):
+        qd = {"offset": off}
+        if cls:
+            qd["cls"] = cls
+        if q:
+            qd["q"] = q
+        return f"?{urlencode(qd)}"
+
+    # **왜 못 적는가를 화면이 말한다.** 잠가 놓고 이유를 안 적으면 사람이 같은
+    # 일을 몇 번이고 다시 한다 (063).
+    batch = data.review_batch_info()
+    if batch is None:
+        blocked = ("검토할 묶음이 정해져 있지 않아 개체가 하나도 안 보입니다 — "
+                   "시스템 설정 · 운영에서 고르세요.")
+    elif not batch["code"]:
+        blocked = (f"묶음 \"{batch['label']}\" 의 카탈로그 코드가 비어 있어 "
+                   f"번호를 만들 수 없습니다 — 시스템 설정 · 운영에서 채우세요.")
+    else:
+        blocked = data.review_blocked(
+            Slide.objects.filter(slug=slug).first())
+
+    return render(request, "viewer/catalog.html", {
+        "slug": slug,
+        "label": label,
+        "rows": page,
+        "batch": batch,
+        "review_batch": (batch or {}).get("label", ""),
+        "blocked": blocked,
+        "readonly": bool(blocked),
+        "cls": cls,
+        "filters": [{"key": k, "label": v[0]} for k, v in CATALOG_FILTERS.items()],
+        "q": q,
+        "species_seen": data.species_seen(),
+        "n_all": n_all,
+        "n_named": n_named,
+        "n_left": n_all - n_named,
+        "pct": round(100 * n_named / n_all) if n_all else 0,
+        "total": total,
+        "shown_from": offset + 1 if page else 0,
+        "shown_to": offset + len(page),
+        "per_page": CATALOG_PER_PAGE,
+        "prev_url": page_url(max(0, offset - CATALOG_PER_PAGE)) if offset else None,
+        "next_url": (page_url(offset + CATALOG_PER_PAGE)
+                     if offset + CATALOG_PER_PAGE < total else None),
+    })
+
+
+@require_POST
+def save_catalog(request, slug):
+    """카드 한 장을 저장한다. **개체 하나만 고친다** (`data.save_catalog_entry`).
+
+    `/review` 처럼 범위를 갈아치우지 않으므로 017·027·053 계열의 사고가
+    구조적으로 안 생긴다. 그래도 짚는 것은 그때와 같은 방식이다 —
+    **`(slug, gid)` 로 시야를, id 로 이미지를** 짚고 서버가 다시 확인한다.
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return HttpResponseBadRequest("bad json")
+
+    try:
+        gid = int(payload.get("gid"))
+        image_id = int(payload.get("image"))
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest("bad gid/image")
+
+    vp, why = data.find_viewpoint(slug=slug, gid=gid)
+    if vp is None:
+        return JsonResponse({"ok": False, "error": why}, status=409)
+
+    blocked = data.review_blocked(vp.slide)
+    if blocked:
+        return JsonResponse({"ok": False, "error": blocked}, status=409)
+
+    def text(name, limit):
+        v = payload.get(name)
+        if v is None:
+            return None                      # **안 고친다** (빈 것과 다르다)
+        if not isinstance(v, str):
+            raise ValueError(name)
+        return v[:limit]
+
+    try:
+        fields = {"species": text("species", data.SPECIES_MAX),
+                  "cls": text("cls", 32),
+                  "note": text("note", NOTE_MAX)}
+    except ValueError:
+        return HttpResponseBadRequest("bad field")
+
+    try:
+        saved = data.save_catalog_entry(vp, image_id, payload.get("key"),
+                                        **fields)
+    except ValueError as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=409)
+    return JsonResponse({"ok": True, **saved})
+
+
 def crop(request):
     """
     ?p=<DATA_ROOT 기준 상대경로>&b=<x,y,w,h>&w=<출력 폭>

@@ -21,7 +21,7 @@ from django.db import connection, transaction
 from django.db.models import Case, Count, Prefetch, Q, When
 from django.utils import timezone
 
-from . import antarctica, korea, outcrop
+from . import antarctica, catalog, korea, outcrop
 from . import shape
 from .models import (Candidate, ClassDef, Detection, Frame, Locality,
                      ObjectLink, ObjectLinkMember, ObjectReview,
@@ -392,6 +392,10 @@ def _apply_review(det: Detection, reviews: dict, state) -> dict:
             d["cls_user"] = True
         if o.note:
             d["note"] = o.note
+        # 동정 결과 (개체 카탈로그). **`cls` 와 다른 축이다** — `cls` 는 `ClassDef`
+        # 가 정한 목록에서 고른 것이고 이쪽은 사람이 적은 종명이다.
+        if o.species:
+            d["species"] = o.species
 
     kept.sort(key=lambda r: -(r.get("area_px") or 0))
     for i, d in enumerate(kept):
@@ -615,7 +619,7 @@ def slide_label(slug: str) -> str | None:
     return Slide.objects.filter(slug=slug).values_list("name", flat=True).first()
 
 
-def candidate_rows(slug: str) -> list[dict]:
+def candidate_rows(slug: str, batch_id=None) -> list[dict]:
     """데이터셋 전체의 검출 개체를 한 목록으로. **시야를 한 번만 훑는다.**
 
     예전에는 뷰가 `dataset_detail()` 로 시야 74개를 훑은 뒤, 그룹마다 다시
@@ -625,17 +629,33 @@ def candidate_rows(slug: str) -> list[dict]:
     `image_rel` 은 검출에 적힌 경로가 아니라 뷰어가 실제로 찾아낸 파일의
     상대경로다 — 크롭 요청이 그 경로로 이미지를 다시 열기 때문에, 검출 기록이
     절대경로인 경우에도 어긋나지 않아야 한다.
+
+    `batch_id` 를 주면 그 묶음의 검출을 훑는다 (`current_detections` 와 같은
+    규칙). 안 주면 검토 대상 묶음이고, 그것이 크롭 화면·계측 표·개체 카탈로그가
+    보는 것이다.
+
+    **어느 묶음인지는 여기서 한 번만 묻는다.** 예전에는 `current_detections` 가
+    시야마다 `review_batch_id()` 를 다시 물었다 — 실측으로 한 화면에 390~560번이고
+    (`bp09-0901` 시야 86개, `369cm` 시야 74개), 값은 매번 같다. 개수를 세려고
+    자료를 물질화하지 말라는 것과 같은 이야기다(CLAUDE.md).
     """
     slide = Slide.objects.filter(slug=slug).first()
     if slide is None:
         return []
 
+    if batch_id is None:
+        batch_id = review_batch_id()
+    # 검토 대상이 없으면 **빈 목록**이다 — `current_detections` 와 같은 규칙이고,
+    # 조용히 아무 묶음이나 보여주지 않는다 (P10 3.6).
+    if batch_id is None:
+        return []
+
     rows = []
-    for vp in _viewpoints_of(slide, only_current=True):
+    for vp in _viewpoints_of(slide, only_current=True, batch_id=batch_id):
         # **이미지마다 자기 검출을 만든다** (P09 1단계). 시야 하나에 현재 검출이
         # 여럿일 수 있고(합성본 하나 + 프레임마다 하나), `_frames` 는 그것을
         # 경로로 맞춘다 — 검토 화면(`viewpoint_detail`)과 같은 자료다.
-        dets = current_detections(vp)
+        dets = current_detections(vp, batch_id)
         if not dets:
             continue
         bmap = batch_ids_of(dets)
@@ -644,24 +664,296 @@ def candidate_rows(slug: str) -> list[dict]:
         st = getattr(vp, "stack", None)
         # 합성본 검출이 있으면 그쪽을, 없으면 각 프레임 검출을 훑는다.
         stacked = by_path.get(st.focused_path) if st else None
+        # `frame_seq` 는 **개체가 프레임에서 나왔을 때만** 준다 — 합성본이면
+        # `None` 이고, 카탈로그 번호의 `f` 토막이 그것을 그대로 따른다
+        # (`catalog.catalog_no`). `f` 가 붙어 있느냐가 곧 "어느 이미지를 보고 잰
+        # 것이냐" 를 말한다.
         if stacked:
-            sources = [(Path(st.focused_path).stem, stacked[1], st.focused_path)]
+            sources = [(Path(st.focused_path).stem, stacked[1],
+                        st.focused_path, stacked[0], None)]
         else:
             # **프레임마다 자기 검출을 준다.** 예전에는 대표 검출 하나를 프레임
             # 수만큼 되돌려 같은 개체가 여러 줄로 나왔다.
-            sources = [(f["name"], f["detection"], f["rel"])
+            sources = [(f["name"], f["detection"], f["rel"], f["image_id"],
+                        f["seq"])
                        for f in _frames(vp, by_path) if f["detection"]]
-        for stem, d, image_rel in sources:
+        for stem, d, image_rel, image_id, frame_seq in sources:
             for c in d["candidates"]:
                 rows.append({
                     "group_id": vp.idx,
                     "stem": stem,
                     "image_rel": image_rel,
+                    # 카탈로그가 번호를 만들고 묶음을 짚는 데 쓴다. 화면이
+                    # `(이미지, 묶음, 키)` 로 개체를 짚으므로 셋이 함께 다녀야 한다.
+                    "image_id": image_id,
+                    "batch_id": d.get("batch_id"),
+                    "frame_seq": frame_seq,
                     "reviewed": d.get("review_done"),
                     "um_per_pixel": d.get("um_per_pixel"),
                     **c,
                 })
     return rows
+
+
+# --- 개체 카탈로그 ----------------------------------------------------------
+# 검출 개체에 **카탈로그 번호와 동정**을 얹어 카드로 내는 자리. 번호 규칙 자체는
+# `catalog.py` 하나뿐이고 여기는 그 재료를 모아 준다.
+
+
+def layer_codes(slide) -> dict | None:
+    """카탈로그 번호의 앞쪽 토막 — 지역·지점·시료·관찰. 소속이 없으면 `None`.
+
+    **소속을 잃은 관찰이 실제로 있었다** (063). 그때 `RS23--071-…` 같은 번호를
+    내면 되읽을 수도 없으므로 **번호가 없는 것이 맞다** — 화면이 그것을 적어서
+    사람이 층을 채워야 한다는 것을 알 수 있게 한다.
+    """
+    smp = slide.sample
+    loc = smp.locality if smp else None
+    site = loc.site if loc else None
+    if not (smp and loc and site):
+        return None
+    return {"site": site.code, "locality": loc.code, "sample": smp.code,
+            "obs_no": slide.obs_no}
+
+
+def batch_codes() -> dict:
+    """묶음 pk → 카탈로그 코드. **비어 있을 수 있다** — 아직 안 정한 묶음이다."""
+    return dict(RunBatch.objects.values_list("id", "code"))
+
+
+def catalog_no_for(row: dict, layer: dict | None, codes: dict) -> tuple:
+    """개체 하나의 번호와, 못 만들었으면 그 이유. `(번호, 이유)`.
+
+    **못 만든 것을 빈 문자열로만 내면 안 된다.** 화면이 "번호 없음" 만 적으면
+    사람은 무엇을 채워야 하는지 알 수 없다 — 지우기 문턱을 버튼에 적는 것과
+    같은 이야기다(063).
+
+    **`M`(손그림)과 "코드를 아직 안 정했다" 를 안 섞는다.** `RunBatch.code` 가
+    비었다고 `M` 을 붙이면 **엔진이 낸 개체가 손그림으로 기록된다** — 예외가
+    안 나고 그냥 틀리는 종류다.
+    """
+    if layer is None:
+        return "", "관찰이 소속(지역·지점·시료)을 잃었다"
+    manual = row.get("source") == "manual"
+    code = "" if manual else (codes.get(row.get("batch_id")) or "")
+    if not manual and not code:
+        return "", "이 묶음의 카탈로그 코드를 아직 안 정했다"
+    try:
+        return catalog.catalog_no(**layer, viewpoint=row["group_id"],
+                                  mask_key=row["key"],
+                                  frame_seq=row.get("frame_seq"),
+                                  batch_code=code), ""
+    except ValueError as e:
+        return "", str(e)
+
+
+def _member_area(m) -> int:
+    """묶음 멤버가 담은 개체의 넓이. 기하 스냅샷이 원본이고, 없으면 키에서 잰다."""
+    box = (m.geom or {}).get("bbox") or _key_bbox(m.mask_key) or [0, 0, 0, 0]
+    return int(box[2]) * int(box[3])
+
+
+def link_mains(slide) -> dict:
+    """`(이미지, 묶음, 키)` → **그 규조각이 가장 크게 보이는 멤버** (P11).
+
+    묶음은 "초점면 여러 장의 이 마스크들이 한 규조각" 을 말한다. 카탈로그 카드는
+    그중 **가장 크게 보이는 프레임**을 그린다 (사용자 방침 2026-08-10) — 동정은
+    개체가 크고 선명하게 보일 때 된다.
+
+    **번호는 안 바뀐다. 그림만 바꾼다.** 번호가 묶는 행위에 따라 움직이면 이미
+    적어 둔 번호가 무효가 된다 — 그래서 `frame_seq` 는 개체가 실제로 나온
+    이미지를 그대로 따르고, 여기서 고른 것은 `view` 로만 나간다.
+
+    **멤버가 하나뿐인 묶음은 건너뛴다.** 묶은 것이 아니라 만들다 만 것이고,
+    그림을 바꿀 이유가 없다.
+    """
+    out = {}
+    links = (ObjectLink.objects.filter(viewpoint__slide=slide)
+             .prefetch_related("members__image"))
+    for link in links:
+        members = list(link.members.all())
+        if len(members) < 2:
+            continue
+        best = max(members, key=_member_area)
+        for m in members:
+            out[(m.image_id, m.batch_id, m.mask_key)] = (best, len(members))
+    return out
+
+
+def review_batch_info() -> dict | None:
+    """검토 대상 묶음의 이름과 카탈로그 코드. 없으면 `None`.
+
+    개체 카탈로그의 머리에 **어느 엔진의 판인지**를 적는다 (사용자 방침
+    2026-08-10). 화면이 검토 대상 묶음 하나만 따라가므로 고르는 장치는 없고,
+    엔진을 갈려면 관리 화면에서 검토 대상을 갈면 **검토·크롭·카탈로그가 함께**
+    옮겨 간다 — 화면마다 다른 판을 보는 상태가 아예 안 생긴다.
+
+    `code` 가 비어 있을 수 있다. 그러면 그 묶음의 개체는 번호가 안 나고
+    (`catalog_no_for`), 화면이 그 이유를 적는다.
+    """
+    b = (RunBatch.objects.filter(for_review=True)
+         .values("id", "label", "code").first())
+    return dict(b) if b else None
+
+
+def catalog_rows(slug: str) -> list[dict]:
+    """개체 카탈로그 화면 한 판. `candidate_rows` 에 번호·동정·묶음을 얹는다.
+
+    **`candidate_rows` 를 다시 짜지 않는다.** 어느 이미지의 개체를 낼 것인가
+    (합성본이 있으면 합성본, 없으면 프레임)는 이미 그 함수가 정하고 있고, 규칙이
+    둘이 되면 크롭 화면과 카탈로그가 서로 다른 개체를 센다.
+
+    **여기 담기는 것은 통과분과 사람이 되살린 것이다** (사용자 방침 2026-08-10).
+    동정할 대상이 그것이고, 지운 것까지 내면 카드가 몇 배가 된다.
+
+    **검토 대상 묶음 하나만 따라간다** (사용자 방침 2026-08-10). 엔진마다 카탈로그가
+    완전히 별개인 것은 그대로인데(`ObjectReview` 의 열쇠에 `batch` 가 있다), 두
+    판을 나란히 여는 장치는 두지 않는다 — 관리 화면에서 검토 대상을 갈면
+    **검토·크롭·카탈로그가 함께** 옮겨 가고, 그러면 화면마다 다른 판을 보는
+    상태가 아예 안 생긴다. 051 이 그 상태에서 났다.
+
+    번호 차례로 늘어놓는다 — 시야, 그 안에서 위아래·좌우 순이다. 크롭 화면은
+    크기 내림차순인데(의심스러운 것을 뒤로 모으려고) 카탈로그는 **번호를 따라
+    읽는 표**라 차례가 달라야 한다.
+    """
+    slide = (Slide.objects.filter(slug=slug)
+             .select_related("sample__locality__site").first())
+    if slide is None:
+        return []
+
+    layer = layer_codes(slide)
+    codes = batch_codes()
+    mains = link_mains(slide)
+
+    rows = candidate_rows(slug)
+    for r in rows:
+        r["catalog_no"], r["catalog_why"] = catalog_no_for(r, layer, codes)
+        r.setdefault("species", "")
+        r.setdefault("note", "")
+        # **묶었으면 가장 큰 프레임을 그린다.** 원래 행은 안 건드리고 `view` 로만
+        # 낸다 — 크롭·지표·번호가 전부 원래 이미지 기준이라, 섞으면 화면이 다른
+        # 이미지의 숫자를 이 개체 옆에 적는다.
+        hit = mains.get((r.get("image_id"), r.get("batch_id"), r["key"]))
+        if hit:
+            best, n = hit
+            geom = best.geom or {}
+            if best.image_id != r.get("image_id") and geom.get("polygon"):
+                r["view"] = {"rel": best.image.path,
+                             "bbox_xywh": list(geom.get("bbox") or []),
+                             "polygon": list(geom["polygon"])}
+            r["linked_n"] = n
+
+    rows.sort(key=lambda r: (r["group_id"],
+                             (r.get("bbox_xywh") or [0, 0])[1],
+                             (r.get("bbox_xywh") or [0, 0])[0]))
+    return rows
+
+
+SPECIES_MAX = 120
+
+
+def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
+                       cls=None, note=None) -> dict:
+    """개체 **하나**의 동정을 고친다 (개체 카탈로그 6단계).
+
+    ## 왜 `/review` 를 안 쓰는가
+
+    그 POST 는 **그 (이미지, 묶음) 의 교정 전체를 갈아치운다** — "뷰어는 늘
+    전체를 보낸다" 가 전제다. 017·027·053 이 전부 그 줄에서 났고 두 번은 운영
+    자료를 잃었다(14건 · 37건). 카탈로그는 카드 하나를 고치는 화면이라 그 전제를
+    만들 수 없고, 만들 이유도 없다.
+
+    **여기는 짚은 개체 한 줄만 건드린다.** 지우는 범위가 없으므로 그 계열의
+    사고가 구조적으로 안 생긴다.
+
+    ## 무엇을 고치는가
+
+    `species`(종명) · `cls`(유형) · `note`(코멘트) 셋. `None` 은 **안 고친다** 는
+    말이고 `""` 는 **비운다** 는 말이다 — 둘을 같이 다루면 카드가 안 보내는 칸을
+    저장이 지운다(`drawn` 과 같은 규칙).
+
+    **삭제·되살림·기하는 안 건드린다.** 그것은 검토 화면이 하는 판단이다.
+
+    ## 아무것도 안 남으면 그 줄을 지운다
+
+    `save_review` 와 같은 규칙이다 — 표시가 사라진 행을 남겨 두면 "교정 전체
+    초기화" 가 안 되고 그 행을 세는 자리가 어긋난다. **사람이 그린 개체는
+    예외다**: 그 줄이 곧 개체라서 지우면 개체가 사라진다.
+    """
+    if vp is None:
+        raise ValueError("모르는 시야다")
+
+    dets = current_detections(vp)
+    image_id = getattr(image, "pk", image)
+    cur = next((d for d in dets if d.image_id == image_id), None)
+    if cur is None:
+        # **조용히 대표 이미지에 앉히지 않는다** (`save_review` 와 같은 이유).
+        # 사람이 보고 있던 것과 다른 자리에 판단이 쌓인다.
+        raise ValueError("그 이미지에는 이 시야의 현재 검출이 없다 — 저장하지 않았다")
+    batch = cur.batch
+    if batch is None:
+        raise ValueError("이 시야의 현재 검출이 묶음에 안 들어 있다 — 저장하지 않았다")
+
+    key = str(key or "")
+    cand = next((c for c in cur.candidates.all() if c.mask_key == key), None)
+    # **사람이 그린 개체는 `batch=NULL` 에 산다** (P09 5.2). 카드에는 함께
+    # 나오므로 저장도 그 줄을 찾아가야 한다 — 엔진 줄에 앉히면 같은 키로 행이
+    # 둘이 되고 화면에 두 번 나온다.
+    manual = ObjectReview.objects.filter(
+        image=image_id, batch__isnull=True, mask_key=key).first()
+    row_batch = None if manual else batch
+
+    obj = (manual or ObjectReview.objects.filter(
+        image=image_id, batch=batch, mask_key=key).first())
+    if obj is None:
+        # **현재 검출에 없는 키는 받지 않는다** (`save_review` 와 같은 문).
+        # 다른 화면을 보고 보낸 것이고, 받으면 화면에 없는 개체가 생긴다.
+        if cand is None:
+            raise ValueError(
+                f"현재 검출에 없는 개체다 — 저장하지 않았다 (키 {key})")
+        obj = ObjectReview(viewpoint=vp, image_id=image_id, batch=row_batch,
+                           mask_key=key, candidate=cand,
+                           bind_method="exact", bind_score=1.0)
+        # 기하는 모든 교정 행이 들고 있는다 — 검출기가 바뀌어도 읽혀야 한다
+        obj.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
+
+    if species is not None:
+        obj.species = str(species).strip()[:SPECIES_MAX]
+    if cls is not None:
+        cls = str(cls)
+        # **모듈 수준 `CLASSES` 는 `__getattr__` 로만 난다** — 이 파일 안에서
+        # 맨 이름으로 부르면 `NameError` 다. 밖에서 `data.CLASSES` 로 쓰는 것과
+        # 다르다.
+        if cls and cls not in [r["key"] for r in _class_rows()]:
+            raise ValueError(f"모르는 유형이다: {cls}")
+        obj.label = cls
+    if note is not None:
+        obj.note = str(note).replace("\r\n", "\n").strip()
+    obj.save()
+
+    # 표시가 하나도 안 남았으면 지운다. **사람이 그린 개체는 남긴다** — 그 줄이
+    # 곧 개체다.
+    empty = not (obj.removed or obj.accepted or obj.label or obj.note
+                 or obj.species or obj.geom_edited)
+    if empty and obj.source != "manual":
+        obj.delete()
+        return {"species": "", "cls": "", "note": "", "kept": False}
+    return {"species": obj.species, "cls": obj.label, "note": obj.note,
+            "kept": True}
+
+
+def species_seen(slug: str = "") -> list[str]:
+    """이미 쓴 종명들 — 카드의 **자동완성** 목록.
+
+    목록으로 가두지 않는 대신 이것을 준다 (`ObjectReview.species` 머리말).
+    같은 종을 `Eucampia antarctica` 와 `Eucampia  antarctica` 로 두 번 적는 일이
+    표에서만 드러나면 이미 늦다.
+
+    **관찰을 안 가린다.** 종 이름은 슬라이드에 매인 것이 아니고, 옆 시료에서
+    이미 쓴 이름이야말로 지금 쓰려는 것이다.
+    """
+    return sorted(ObjectReview.objects.exclude(species="")
+                  .values_list("species", flat=True).distinct())
 
 
 def scales_by_slide() -> dict:
@@ -955,7 +1247,7 @@ def object_links_of(vp) -> list[dict]:
     return out
 
 
-def current_detections(vp: Viewpoint) -> list:
+def current_detections(vp: Viewpoint, batch_id=None) -> list:
     """그 시야의 현재 검출들. **여럿일 수 있다** (P09 1단계).
 
     합성본에 하나 + 프레임마다 하나가 된다 — YOLO 는 합성본이 아니라 원본
@@ -964,6 +1256,14 @@ def current_detections(vp: Viewpoint) -> list:
 
     **이미지마다 하나라는 것이 불변식이다.** 0025 마이그레이션이 그것을 확인하고
     통과했다 — 어긋나면 어느 묶음의 판단인지 정할 수 없어 교정을 못 앉힌다.
+
+    `batch_id` 를 주면 **그 묶음**을 본다. 안 주면 검토 대상 묶음이고, 그것이
+    지금까지의 뜻 그대로다 — **기본값을 바꾸면 안 된다.** 부르는 자리가 열 곳이
+    넘고, 뜻이 바뀌는데 자리가 흩어져 있으면 전부 틀리면서 예외는 안 난다.
+
+    묶음을 짚어 부르는 것은 **개체 카탈로그**다 (2026-08-10). 검토는 한 번에 한
+    묶음이지만 동정은 엔진마다 따로 채우기로 했고, 그러려면 검토 대상이 아닌
+    묶음도 읽을 수 있어야 한다.
     """
     dets = [d for d in vp.detections.all() if d.is_current]
     # **`is_current` 하나로는 모자란다** (P10). 그것은 "그 묶음 안에서 최신"
@@ -973,7 +1273,7 @@ def current_detections(vp: Viewpoint) -> list:
     # 검토 대상이 없으면 **빈 목록**이다. 조용히 아무 묶음이나 보여주면 사람이
     # 무엇을 검토하고 있는지 모른 채 교정을 쌓는다 (P10 3.6). 그 상태는
     # `check_db.py` 가 센다.
-    rb = review_batch_id()
+    rb = review_batch_id() if batch_id is None else batch_id
     if rb is None:
         return []
     bmap = batch_ids_of(dets)
@@ -1046,7 +1346,15 @@ def _with_reviews(vp: Viewpoint, det, batch_id) -> dict:
     reviews = {o.mask_key: o for o in vp.object_reviews.all()
                if o.image_id == det.image_id
                and (o.batch_id == batch_id or o.batch_id is None)}
-    return _apply_review(det, reviews, review_state(vp))
+    # **`batch_id` 를 넘긴다.** 안 넘기면 `review_state` 가 검토 대상 묶음을
+    # 시야마다 다시 묻는다 — 크롭 화면 한 판에 390~560번이었다. 그리고 뜻으로도
+    # 이쪽이 맞다: 지금 보고 있는 검출의 묶음에 대한 완료 표시여야 한다.
+    out = _apply_review(det, reviews, review_state(vp, batch_id))
+    # **어느 묶음을 보고 있는가.** 개체 카탈로그가 번호의 꼬리를 여기서 얻고,
+    # 저장할 때 `(이미지, 묶음, 키)` 로 개체를 짚는다. `_apply_review` 는 검출
+    # 하나만 알고 묶음은 부르는 쪽이 짚어 주므로 여기서 얹는다.
+    out["batch_id"] = batch_id
+    return out
 
 
 def review_blocked(stem_or_slide) -> str:
@@ -1824,7 +2132,8 @@ def locality_detail(site_code: str, loc_code: str,
     }
 
 
-def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False):
+def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False,
+                   batch_id=None):
     """시야와 그 아래를 한 번에 당겨 온다.
 
     **`light` 는 검출을 아예 안 당긴다.** 시야 목록은 개체를 SQL 로 세고 마스크만
@@ -1839,6 +2148,12 @@ def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False
     **끄고 부르는 자리가 있다** — `engine_viewpoint` 는 `?batch=` 로 고른 묶음의
     검출을 봐야 하므로 현재 검출만 당기면 화면이 빈다. 그래서 기본을 켜지 않고
     부르는 쪽이 고르게 뒀다.
+
+    **`batch_id` 는 `only_current` 의 범위를 그 묶음으로 바꾼다** (개체 카탈로그,
+    2026-08-10). `reviewing()` 은 검토 대상 묶음으로 못 박혀 있어서, 그대로 두면
+    다른 묶음을 짚어 열어도 **후보가 한 개도 안 올라오고 화면이 빈다** — 예외도
+    404 도 없이 "검출이 없다" 로 보인다. 여기와 `current_detections` 가 같은
+    묶음을 봐야 하고, 어긋나면 조용히 빈 화면이 된다.
     """
     qs = (Viewpoint.objects.filter(slide=slide)
           .select_related("sharpest_frame", "stack"))
@@ -1848,7 +2163,8 @@ def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False
     if only_current:
         # **검토 대상 묶음의 것만** (P10 1단계). `is_current` 만 걸면 나란히
         # 쌓아 둔 다른 엔진의 검출까지 딸려 와 화면이 섞인다.
-        dets = dets.reviewing()
+        dets = (dets.filter(is_current=True, run__batch_id=batch_id)
+                if batch_id is not None else dets.reviewing())
     # **`image` 를 함께 당긴다.** 부르는 쪽이 `d.image.path` 로 검출을 이미지에
     # 맞춘다(`by_path`) — 안 붙이면 검출마다 질의가 하나씩 붙고, 크롭 화면처럼
     # 시야를 전부 훑는 자리에서 그대로 백 번이 된다.
@@ -2009,6 +2325,10 @@ def _frames(vp: Viewpoint, by_path: dict) -> list[dict]:
             "sharp_pct": (round(100 * f.sharpness / top)
                           if f.sharpness and top else 0),
             "is_sharpest": f.is_sharpest,
+            # 폴더 안 순서. **카탈로그 번호의 `f` 토막이 이것이다** — 시야 안에서
+            # 겹치지 않는다(실측 570 시야 0건). 프레임 이름은 슬라이드끼리
+            # 겹치므로(053) 번호에 쓸 수 없다.
+            "seq": f.seq,
             "rel": f.path,
             "exists": (Path(settings.DATA_ROOT) / f.path).exists(),
             # 그 프레임 이미지에 붙은 현재 검출. 없으면 None 이고, 캐러셀에서
@@ -2297,6 +2617,24 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # **고친 기하도 표시다.** `keys` 에 안 넣으면 같은 저장의 마지막 줄이
     # "표시가 사라진 행" 으로 보고 지운다.
     keys |= set(edits)
+
+    # **종명이 든 행은 이 payload 가 대표하지 않는다** (개체 카탈로그, 2026-08-10).
+    #
+    # 동정은 `/d/<슬라이드>/catalog/` 가 적고 **검토 화면은 그 칸을 모른다.** 그런데
+    # 종명만 채운 행은 삭제·되살림·유형·코멘트가 전부 비어 있어, 얹지 않으면
+    # 아래 삭제 줄이 "표시가 사라진 행" 으로 보고 지운다 — 사람이 아무것도 안
+    # 하고 **"검토 완료" 만 눌러도 동정이 통째로 사라진다.** 017·027·053 이
+    # 전부 그 줄에서 났고, 종명은 현미경을 보며 적는 것이라 재생성 불가다.
+    #
+    # **`edits` 와 달리 늘 얹는다.** 저쪽은 "고치기를 아는 화면이면 그것이 전부"
+    # 라 갈래가 있지만, `/review` 는 **어느 판에서도** 종명을 보내지 않는다.
+    #
+    # **청소는 계속 된다** — 종명을 비우면 이 집합에서 빠지므로, 그 다음 저장이
+    # 아무 표시도 안 남은 행을 예전처럼 지운다.
+    keys |= set(ObjectReview.objects
+                .filter(image=image, batch=batch)
+                .exclude(species="")
+                .values_list("mask_key", flat=True))
     # **그 검출의 개체만 본다.** 예전에는 시야의 현재 검출 전부를 훑었는데,
     # 시야마다 현재 검출이 하나일 때만 같은 뜻이다 — 여럿이면 **프레임 A 의 키가
     # 프레임 B 의 화면에서 통과한다.** `mask_key` 는 프레임끼리 45% 겹치므로

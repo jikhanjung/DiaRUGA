@@ -58,6 +58,11 @@ urlpatterns = [
     path("d/<slug:slug>/mark-all/", views.mark_all, name="mark_all"),
     path("d/<slug:slug>/detections/", views.detections, name="detections"),
     path("d/<slug:slug>/crops/", views.crops, name="crops"),
+    # 개체 카탈로그 — 개체마다 카드 하나, 거기에 동정을 적는다.
+    # **저장은 개체 하나만 고치는 좁은 문이다** (`save_catalog`) — `/review` 처럼
+    # 범위를 갈아치우지 않으므로 017·027·053 계열의 사고가 안 생긴다.
+    path("d/<slug:slug>/catalog/", views.catalog, name="catalog"),
+    path("d/<slug:slug>/catalog/save", views.save_catalog, name="save_catalog"),
     path("thresholds/", views.threshold_page, name="thresholds_all"),
     path("d/<slug:slug>/thresholds/", views.threshold_page, name="thresholds"),
     path("api/threshold/preview", views.threshold_preview, name="threshold_preview"),

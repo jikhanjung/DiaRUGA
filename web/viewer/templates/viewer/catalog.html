@@ -1,0 +1,370 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block title %}{{ label }} 개체 카탈로그 — DiaRUGA{% endblock %}
+{% block subtitle %}<a href="{% url 'index' %}">데이터셋</a> /
+  <a href="{% url 'dataset' slug %}">{{ label }}</a> / <b>개체 카탈로그</b> ·
+  {{ total }}개{% if shown_to %} 중 {{ shown_from }}~{{ shown_to }}{% endif %}{% endblock %}
+{% block nav %}
+  <a href="{% url 'dataset' slug %}">그룹 목록</a>
+  <a href="{% url 'crops' slug %}">검출 결과</a>
+  <a href="{% url 'detections' slug %}">계측 표</a>
+{% endblock %}
+
+{% block content %}
+{% comment %}
+  개체마다 카드 하나 — 왼쪽에 규조 그림, 오른쪽에 번호·종명·유형·코멘트.
+
+  **검토 대상 묶음 하나만 따라간다** (사용자 방침 2026-08-10). 고르는 장치를 안
+  두는 이유는 `data.catalog_rows` 머리말에 있다 — 화면마다 다른 판을 보는 상태가
+  051 이 난 자리다. 대신 **어느 엔진의 판인지 머리에 적는다**: 번호의 꼬리가 그
+  코드라서, 적어 둔 번호만 보고도 어느 검출인지 알 수 있다.
+{% endcomment %}
+
+<style>
+  /* 카드 — 왼쪽 그림, 오른쪽 칸. 카드 자체가 두 열이다. */
+  .cat { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); }
+  .catcard {
+    display: grid; grid-template-columns: 150px 1fr;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+    overflow: hidden;
+  }
+  .catcard.dirty { border-color: var(--warn); }
+  .catcard.saved { border-color: var(--good); }
+  .catcard .pic {
+    display: flex; align-items: center; justify-content: center;
+    position: relative; background: #000; min-height: 150px;
+  }
+  .catcard .pic .cimg { position: relative; display: inline-block; line-height: 0; }
+  .catcard .pic img { display: block; max-width: 150px; max-height: 190px; }
+  .catcard .pic .csb {
+    position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+    font-size: 9.5px; line-height: 1.1; color: #fff; text-align: center;
+    text-shadow: 0 1px 2px #000, 0 0 3px #000; pointer-events: none;
+  }
+  .catcard .pic .csb b {
+    display: block; height: 2.5px; background: #fff; border-radius: 1px;
+    margin-bottom: 1.5px; box-shadow: 0 0 2px rgba(0,0,0,.9);
+  }
+  .catcard .fld { padding: 8px 10px; display: grid; gap: 5px; align-content: start; }
+  .catcard .no {
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
+    color: var(--fg); line-height: 1.35;
+    display: flex; gap: 6px; align-items: baseline;
+  }
+  /* 번호는 한 줄로 둔다 — 접히면 표에서 눈으로 훑을 때 자리가 어긋난다.
+     좁으면 가로로 흐르게 하고, 통째로 고르기는 그대로 된다. */
+  .catcard .no .v { flex: 1 1 auto; min-width: 0; overflow-x: auto;
+                    white-space: nowrap; scrollbar-width: none; }
+  .catcard .no .v::-webkit-scrollbar { display: none; }
+  .catcard .no button {
+    flex: none; font-size: 10.5px; padding: 1px 6px; border-radius: 5px;
+    background: transparent; border: 1px solid var(--line); color: var(--dim);
+    cursor: pointer;
+  }
+  .catcard .no button:hover { border-color: var(--accent); color: var(--accent); }
+  .catcard .no.none { color: var(--warn); font-family: inherit; font-size: 11.5px; }
+  .catcard .row { display: flex; gap: 6px; align-items: center; }
+  .catcard .row > label { flex: none; width: 3.4em; font-size: 11.5px; color: var(--dim); }
+  .catcard input[type=text], .catcard select, .catcard textarea {
+    flex: 1 1 auto; min-width: 0; font: inherit; font-size: 12.5px;
+    padding: 3px 6px; border-radius: 6px;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+  }
+  .catcard textarea { resize: vertical; min-height: 2.2em; }
+  .catcard input:focus, .catcard select:focus, .catcard textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .catcard .meta { font-size: 11px; color: var(--dim); display: flex; gap: 7px; flex-wrap: wrap; }
+  /* **시야로 가는 길이 눈에 보여야 한다.** 그림에도 링크가 걸려 있지만 그것은
+     말풍선으로만 알 수 있다 — 크롭 화면은 도구줄에 한 줄 적어 두었다. */
+  .catcard .meta .togroup { color: var(--accent); }
+  /* **`[disabled]` 를 CSS 로 감추지 않는다** — 브라우저가 실제로 못 누르게 하는
+     것이 잠그는 것이고, 여기는 그것이 잠갔다는 표시만 한다 (051). */
+  .catcard input[disabled], .catcard select[disabled], .catcard textarea[disabled] {
+    opacity: .55; cursor: not-allowed;
+  }
+  .catsearch { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .catsearch input {
+    font: inherit; font-size: 12px; padding: 3px 9px; border-radius: 999px;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+    min-width: 22ch;
+  }
+  .catsearch input:focus { outline: none; border-color: var(--accent); }
+  .catbar {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .catprog { flex: none; font-size: 12.5px; }
+  .catprog b { color: var(--accent); }
+  .catprog i { display: inline-block; width: 90px; height: 5px; border-radius: 3px;
+               background: var(--line); overflow: hidden; vertical-align: middle;
+               margin: 0 6px; }
+  .catprog i s { display: block; height: 100%; background: var(--accent); }
+</style>
+
+<div class="catbar">
+  {% include "viewer/_batchtag.html" with review_batch=review_batch only %}
+  {% if batch and batch.code %}
+    <span class="badge" title="카탈로그 번호의 꼬리입니다 — 번호만 보고도 어느 검출인지 알 수 있습니다">번호 꼬리 · {{ batch.code }}</span>
+  {% endif %}
+  <span class="catprog">동정 <b>{{ n_named }}</b> / {{ n_all }}
+    <i><s style="width:{{ pct }}%"></s></i>{{ pct }}%</span>
+  <form class="catsearch" method="get">
+    {% if cls %}<input type="hidden" name="cls" value="{{ cls }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="번호 · 종명 · 코멘트">
+    {% if q %}<a class="chip" href="?{% if cls %}cls={{ cls }}{% endif %}">지우기</a>{% endif %}
+  </form>
+</div>
+
+{% if blocked %}
+  {% comment %}
+    **왜 못 적는가를 말한다.** 잠가 놓고 이유를 안 적으면 사람이 같은 일을 몇
+    번이고 다시 한다 (063). 그리고 **입력칸도 함께 잠근다** — 되는 것처럼 보이는
+    화면이 051 에서 37건을 잃은 자리다.
+  {% endcomment %}
+  <div class="note warn">{{ blocked }}</div>
+{% endif %}
+
+<div class="croptools">
+  <span class="dim">형태</span>
+  <a class="chip{% if not cls %} on{% endif %}" href="?{% if q %}q={{ q }}{% endif %}">전체</a>
+  {% class_list as classes %}
+  {% for d in classes %}
+    <a class="chip{% if cls == d.key %} on{% endif %}"
+       href="?cls={{ d.key }}{% if q %}&q={{ q }}{% endif %}">{{ d.label }}</a>
+  {% endfor %}
+  {% for f in filters %}
+    <a class="chip{% if cls == f.key %} on{% endif %}"
+       href="?cls={{ f.key }}{% if q %}&q={{ q }}{% endif %}">{{ f.label }}</a>
+  {% endfor %}
+  <span class="dim" style="margin-left:auto">
+    번호 차례 · 그림이나 g번호를 누르면 그 시야로 간다
+  </span>
+</div>
+
+{% if not rows %}
+  <div class="note">
+    {% if q %}“{{ q }}” 로 찾은 개체가 없다.
+    {% elif cls %}이 거르개에 걸리는 개체가 없다.
+    {% else %}보여줄 개체가 없다.{% endif %}
+  </div>
+{% endif %}
+
+<datalist id="species-seen">
+  {% for s in species_seen %}<option value="{{ s }}">{% endfor %}
+</datalist>
+
+<div class="cat">
+{% for r in rows %}
+  <div class="catcard{% if r.cls %} {{ r.cls }}{% endif %}"
+       data-gid="{{ r.group_id }}" data-image="{{ r.image_id }}" data-key="{{ r.key }}">
+    <a class="pic" href="{% url 'group' slug r.group_id %}"
+       title="g{{ r.group_id }} · 장축 {{ r.major_um }} µm · 눌러서 그 시야로">
+      <span class="cimg">
+        <img loading="lazy" src="{% cropurl r.src_rel r.src_bbox 300 r.rot r.out %}"
+             alt="{{ r.catalog_no|default:r.key }}">
+        {% if r.sb %}<span class="csb" style="width:{{ r.sb.pct }}%"><b></b>{{ r.sb.label }}</span>{% endif %}
+      </span>
+    </a>
+    <div class="fld">
+      {% if r.catalog_no %}
+        <div class="no"><span class="v">{{ r.catalog_no }}</span>
+          <button type="button" class="copy" title="번호 복사">복사</button></div>
+      {% else %}
+        <div class="no none" title="{{ r.catalog_why }}">번호 없음 — {{ r.catalog_why }}</div>
+      {% endif %}
+      <div class="row"><label>종명</label>
+        <input type="text" class="species" list="species-seen" value="{{ r.species }}"
+               maxlength="120"
+               {% if readonly %}disabled{% endif %}></div>
+      <div class="row"><label>유형</label>
+        <select class="cls" {% if readonly %}disabled{% endif %}>
+          <option value="">—</option>
+          {% for d in classes %}
+            <option value="{{ d.key }}"{% if r.cls == d.key %} selected{% endif %}>{{ d.label }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="row"><label>코멘트</label>
+        <textarea class="note" rows="1" maxlength="500"
+                  {% if readonly %}disabled{% endif %}>{{ r.note }}</textarea></div>
+      <div class="meta">
+        <a class="togroup" href="{% url 'group' slug r.group_id %}"
+           title="이 개체가 있는 시야를 연다">g{{ r.group_id }} →</a>
+        <span>{{ r.major_um }} µm</span>
+        {% if r.frame_seq is not None %}<span>프레임 {{ r.frame_seq }}</span>{% endif %}
+        {% if r.linked_n %}<span title="같은 개체로 묶인 판 {{ r.linked_n }}장 중 가장 크게 보이는 것을 그린다">묶음 {{ r.linked_n }}</span>{% endif %}
+        {% if r.manual %}<span class="warn">수동 복구</span>{% endif %}
+        <span class="say"></span>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+{% if prev_url or next_url %}
+<div class="croptools" style="margin-top:14px">
+  {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 이전 {{ per_page }}개</a>{% endif %}
+  {% if next_url %}<a class="chip" href="{{ next_url }}">다음 {{ per_page }}개 →</a>{% endif %}
+  <span class="dim">한 페이지에 {{ per_page }}개까지 — 크롭이 개체마다 한 장이라 그 이상은 무겁다</span>
+</div>
+{% endif %}
+
+<script>
+(function () {
+  // **읽기 전용이면 배선을 아예 안 건다** (051). 입력칸은 `disabled` 라 브라우저가
+  // 막지만, 배선까지 걸어 두면 나중에 누가 `disabled` 를 떼는 순간 조용히 저장이
+  // 나간다. **막는 자리를 하나로 둔다.**
+  var READONLY = {{ readonly|yesno:"true,false" }};
+
+  // 절대경로를 박지 말 것 — 서브경로 `/DiaRUGA/` 아래에서 돈다 (CLAUDE.md).
+  var SAVE = "{% url 'save_catalog' slug %}";
+
+  document.querySelectorAll(".catcard .copy").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var t = b.parentNode.querySelector(".v").textContent;
+      navigator.clipboard.writeText(t).then(function () {
+        b.textContent = "복사됨";
+        setTimeout(function () { b.textContent = "복사"; }, 1200);
+      });
+    });
+  });
+
+  if (READONLY) return;
+
+  function csrf() {
+    var m = document.cookie.match(/(^|;)\s*csrftoken=([^;]+)/);
+    return m ? m[2] : "";
+  }
+
+  // 페이지를 떠날 때 **아직 안 보낸 것을 마저 보낸다.**
+  //
+  // 카드의 그림과 g번호가 그 시야로 가는 링크라서, **적다 말고 누르는 일이 잦다.**
+  // 글자 칸은 900ms 쉬거나 자리를 떠야 보내는데, 링크를 누르면 그 사이에 페이지가
+  // 사라진다 — 종명을 치고 바로 시야로 넘어가면 **그 한 줄이 없던 일이 된다.**
+  // 저장했다는 표시도 못 봤으니 사람은 적은 줄 안다.
+  //
+  // `keepalive` 를 켜면 문서가 사라져도 요청이 끝까지 간다.
+  var flushers = [];
+  window.addEventListener("pagehide", function () {
+    flushers.forEach(function (f) { f(); });
+  });
+
+  document.querySelectorAll(".catcard").forEach(function (card) {
+    var say = card.querySelector(".say");
+    var fields = {
+      species: card.querySelector(".species"),
+      cls: card.querySelector(".cls"),
+      note: card.querySelector(".note"),
+    };
+    // 마지막으로 **서버가 안다고 확인된** 값. 200 이 곧 "그렇게 저장됐다" 는
+    // 뜻은 아니라서, 보낸 것이 아니라 돌아온 것을 여기 적는다.
+    var known = {species: fields.species.value, cls: fields.cls.value,
+                 note: fields.note.value};
+    // 요청을 겹치지 않게 한 줄로 세운다. 겹치면 **먼저 보낸 것의 응답이 나중에
+    // 친 글자를 덮는다** — 실제로 그랬다: 종명을 저장한 응답이 돌아오면서, 그
+    // 사이에 친 코멘트를 서버가 아는 빈 값으로 되돌렸다. 화면은 "저장됨" 이라
+    // 적혀 있고 새로고침하면 코멘트만 없다.
+    var inflight = false, pending = false, timer = null;
+
+    function diff() {
+      // **안 바뀐 칸은 안 보낸다.** 서버는 없는 칸을 "안 고친다" 로 받는다 —
+      // 빈 것과 없는 것을 가르는 그 규칙의 클라이언트 쪽 짝이다.
+      var body = null;
+      Object.keys(fields).forEach(function (k) {
+        if (fields[k].value !== known[k]) {
+          body = body || {};
+          body[k] = fields[k].value;
+        }
+      });
+      return body;
+    }
+
+    function post(body, keepalive) {
+      return fetch(SAVE, {method: "POST", credentials: "same-origin",
+                          keepalive: !!keepalive,
+                          headers: {"Content-Type": "application/json",
+                                    "X-CSRFToken": csrf()},
+                          body: JSON.stringify(body)});
+    }
+
+    function stamp(body) {
+      body.gid = +card.dataset.gid;
+      body.image = +card.dataset.image;
+      body.key = card.dataset.key;
+      return body;
+    }
+
+    function flush() {
+      // 떠나는 참이다 — **줄 세우기를 건너뛰고** 지금 다른 것만 보낸다.
+      // 응답은 안 본다: 그것을 받을 화면이 이미 없다.
+      clearTimeout(timer);
+      var body = diff();
+      if (body) { post(stamp(body), true); }
+    }
+
+    function done() {
+      inflight = false;
+      if (pending || diff()) { pending = false; send(); }
+    }
+
+    function send() {
+      if (inflight) { pending = true; return; }
+      var body = diff();
+      if (!body) return;
+      // 보낸 순간의 값. 응답이 왔을 때 **그 뒤로 사람이 더 쳤는지**를 이것으로 안다.
+      var sent = {};
+      Object.keys(fields).forEach(function (k) { sent[k] = fields[k].value; });
+      stamp(body);
+
+      inflight = true;
+      card.classList.remove("saved");
+      card.classList.add("dirty");
+      post(body, false)
+        .then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
+        .then(function (p) {
+          if (!(p[0] && p[1].ok)) {
+            card.classList.remove("dirty");
+            say.textContent = "저장 실패 — " + (p[1].error || "다시 시도하세요");
+            say.className = "say warn";
+            return;
+          }
+          known = {species: p[1].species, cls: p[1].cls, note: p[1].note};
+          Object.keys(fields).forEach(function (k) {
+            // **보낸 뒤로 사람이 더 친 칸은 안 건드린다.** 덮으면 방금 친 글자가
+            // 사라지고, 화면에는 "저장됨" 이 적혀 있다. 그 칸은 `done()` 이
+            // 다시 보낸다.
+            if (fields[k].value === sent[k]) { fields[k].value = known[k]; }
+          });
+          card.classList.remove("dirty");
+          card.classList.add("saved");
+          say.textContent = "저장됨";
+          say.className = "say";
+          setTimeout(function () {
+            if (say.textContent === "저장됨") { say.textContent = ""; }
+          }, 1500);
+        })
+        .catch(function () {
+          card.classList.remove("dirty");
+          say.textContent = "저장 실패 — 연결을 확인하세요";
+          say.className = "say warn";
+        })
+        .then(done, done);
+    }
+
+    Object.keys(fields).forEach(function (k) {
+      var el = fields[k];
+      // 셀렉트는 고르는 즉시, 글자 칸은 자리를 뜨거나 잠깐 멈추면.
+      el.addEventListener("change", send);
+      el.addEventListener("blur", send);
+      if (el.tagName !== "SELECT") {
+        el.addEventListener("input", function () {
+          clearTimeout(timer);
+          timer = setTimeout(send, 900);
+        });
+      }
+    });
+    flushers.push(flush);
+  });
+})();
+</script>
+{% endblock %}

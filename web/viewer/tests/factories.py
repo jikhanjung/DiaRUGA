@@ -300,7 +300,8 @@ def add_frame_detections(vp, *, n_candidates=2):
     return out
 
 
-def add_other_engine(vp, *, label=None, n_candidates=2, frames=False) -> Run:
+def add_other_engine(vp, *, label=None, n_candidates=2, frames=False,
+                     current=False, code="") -> Run:
     """같은 시야에 **다른 엔진의 검출**을 하나 더 쌓는다. `Run` 을 돌려준다.
 
     **검출은 덮어쓰지 않고 쌓는다** — `is_current` 가 뷰어가 볼 것을 가리킨다
@@ -310,9 +311,21 @@ def add_other_engine(vp, *, label=None, n_candidates=2, frames=False) -> Run:
     **그리고 그때가 읽기 전용이다** (051). 교정은 `mask_key`(bbox 문자열)로
     붙는데 엔진이 다르면 거의 전부 어긋나므로 저장을 받으면 안 된다. 읽기
     전용 화면을 시험하려면 이 자료가 있어야 한다.
+
+    `current=True` 면 **그 묶음 안에서 현재 검출**로 세운다. 운영이 그 모양이다 —
+    `is_current` 는 "그 묶음 안에서 최신" 이라 묶음마다 따로 켜져 있고(실측으로
+    `sam2-전수`·`yolo-3차` 둘 다 켜져 있다), 개체 카탈로그처럼 **묶음을 짚어
+    여는 화면**은 그 자료라야 밟힌다. 기본값이 `False` 인 것은 051 계열 시험이
+    "옛 검출" 을 필요로 하기 때문이다.
+
+    `code` 는 그 묶음의 카탈로그 코드 (`RunBatch.code`).
     """
     batch, _ = RunBatch.objects.get_or_create(
-        kind="detect", label=label or f"yolo-시험-{vp.slide.slug}")
+        kind="detect", label=label or f"yolo-시험-{vp.slide.slug}",
+        defaults={"code": code})
+    if code and batch.code != code:
+        batch.code = code
+        batch.save(update_fields=["code"])
     run = Run.objects.create(kind="detect", batch=batch, slide=vp.slide,
                              status="done")
 
@@ -334,7 +347,7 @@ def add_other_engine(vp, *, label=None, n_candidates=2, frames=False) -> Run:
             width=cur.width, height=cur.height, scale=1.0,
             um_per_pixel=cur.um_per_pixel, um_per_pixel_source="xml",
             n_raw_masks=n_candidates, n_sized=n_candidates,
-            run=run, is_current=False))
+            run=run, is_current=current))
 
     # **현재 검출과 다른 자리에 둔다.** 같은 bbox 를 쓰면 `mask_key` 가 겹쳐
     # 교정이 우연히 붙고, "엔진이 다르면 키가 어긋난다" 는 전제가 시험 자료에서

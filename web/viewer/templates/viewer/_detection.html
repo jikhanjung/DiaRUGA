@@ -399,13 +399,23 @@
       (repName ? ' · 대표: ' + repName.replace('Snap-', '') : '') + '</div>';
   }
 
+  // **글자를 그대로 심지 않는다.** 종명·코멘트는 사람이 치는 자유 입력이라
+  // `<` 하나가 말풍선을 통째로 망가뜨린다 — 예외도 안 나고 그냥 안 보인다.
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
   function tipHtml(c) {
-    return '<b>#' + c.id + ' · ' + (CLS_FULL[c.cls] || '미분류') +
+    // **동정한 종명이 맨 위다** (사용자 방침 2026-08-10). 개체 카탈로그에서 적은
+    // 것이고, 커서를 올렸을 때 가장 먼저 읽혀야 하는 것이 그것이다 — 형태
+    // (원형·봉상)는 그 다음이다. 학명이라 이탤릭 굵게 쓴다(`.dettip .sp`).
+    return (c.species ? '<span class="sp">' + esc(c.species) + '</span>' : '') +
+      '<b>#' + c.id + ' · ' + (CLS_FULL[c.cls] || '미분류') +
       (c.cls_user ? ' · 사람 지정' : '') + (c.manual ? ' · 수동복구' : '') + '</b>' +
       linkTipLine(c) +
       (c.cls_user && c.cls_auto ? '<div class="dim">자동 판정: ' +
         (CLS_FULL[c.cls_auto] || '미분류') + '</div>' : '') +
-      (c.note ? '<div style="margin:3px 0;white-space:pre-wrap">📝 ' + c.note + '</div>' : '') +
+      (c.note ? '<div style="margin:3px 0;white-space:pre-wrap">📝 ' + esc(c.note) + '</div>' : '') +
       (c.reject ? '<div class="dim">탈락사유: ' + c.reject + '</div>' : '') +
       // **왜 지표가 비었는지 적는다** (P09 2단계). 이 개체는 `Candidate` 가 없어
       // 잰 적이 없다 — 빈칸만 보이면 고장으로 읽힌다. 아래 표를 감추지는
