@@ -360,3 +360,134 @@ class LinkRejectedCandidateTest(DiaRUGATestCase):
         r = self.post(self.members())
         self.assertEqual(r.status_code, 400)
         self.assertIn("지운", r.json()["error"])
+
+
+class LinkLabelSpreadTest(DiaRUGATestCase):
+    """묶인 개체는 **분류를 함께 받는다** (사용자 요청 2026-08-10).
+
+    묶음은 "이 판들의 이것이 같은 개체다" 라는 말이다. 그런데 분류는 판마다
+    따로 앉아 있어서, 한 판에서 봉상이라고 정해도 나머지는 그대로였다 —
+    사람이 판 수만큼 같은 판단을 되풀이해야 하고, 되풀이하다 하나를 빠뜨리면
+    **묶음 안에서 분류가 어긋난다**(학습 자료에서는 모순이다).
+
+    여기서 지키는 것:
+
+    1. 한 판에서 정하면 나머지 판에 같은 분류가 앉는다
+    2. **물리는 것도 번진다** — 한 판만 지정이 남아 있으면 안 된다
+    3. 분류 말고는 안 건드린다 — 삭제·되살림·코멘트는 판마다 따로 하는 판단이다
+    4. 묶이지 않은 개체는 아무 데도 안 번진다
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_frames=3, n_candidates=2)
+        cls.batch = RunBatch.objects.get(label="sam2-시험")
+        cls.extra = fx.add_frame_detections(cls.w.vp)
+        cls.stack_img = Image.objects.get(viewpoint=cls.w.vp, kind="stack")
+        cls.f1_img = cls.extra[0][1]
+        cls.f2_img = cls.extra[1][1]
+
+    def setUp(self):
+        from django.test import Client
+        self.c = Client()
+        self.key = self.w.keys()[0]
+        self.other = self.w.keys()[1]
+        # 합성본·프레임 둘을 한 개체로 묶는다. 픽스처가 판마다 같은 자리에
+        # 후보를 세우므로 `mask_key` 가 그대로 맞는다.
+        self.link = ObjectLink.objects.create(viewpoint=self.w.vp,
+                                              batch=self.batch)
+        for i, img in enumerate((self.stack_img, self.f1_img, self.f2_img)):
+            ObjectLinkMember.objects.create(
+                link=self.link, image=img, batch=self.batch,
+                mask_key=self.key, is_rep=(i == 0),
+                geom={"bbox_xywh": [40, 50, 60, 40]})
+
+    def save(self, labels, image=None, **over):
+        import json as _json
+        payload = {"stem": self.w.stem(), "slug": self.w.slide.slug,
+                   "gid": self.w.vp.idx, "done": False,
+                   "removed": [], "accepted": [], "notes": {},
+                   "labels": labels,
+                   "image": image or self.stack_img.pk}
+        payload.update(over)
+        from django.urls import reverse
+        r = self.c.post(reverse("save_review"), _json.dumps(payload),
+                        content_type="application/json")
+        self.assertEqual(r.status_code, 200, r.content[:300])
+        return r.json()
+
+    def label_of(self, img):
+        row = ObjectReview.objects.filter(image=img, mask_key=self.key).first()
+        return row.label if row else None
+
+    # --- 1. 번진다 ----------------------------------------------------------
+
+    def test_한_판에서_정하면_나머지_판도_같은_분류다(self):
+        self.save({self.key: "rod"})
+        self.assertEqual(self.label_of(self.stack_img), "rod")
+        self.assertEqual(self.label_of(self.f1_img), "rod",
+                         "묶인 판에 분류가 안 번졌다")
+        self.assertEqual(self.label_of(self.f2_img), "rod")
+
+    def test_화면에_알려_준다(self):
+        """다른 판의 상태는 화면이 열릴 때 받은 것이라, 안 알려 주면 그 판의
+        다음 저장이 도로 지운다 — 뷰어는 늘 전체를 보낸다."""
+        out = self.save({self.key: "rod"})
+        linked = out.get("linked") or {}
+        self.assertIn(str(self.f1_img.pk), linked)
+        self.assertEqual(linked[str(self.f1_img.pk)][self.key], "rod")
+        self.assertNotIn(str(self.stack_img.pk), linked,
+                         "내가 보낸 판까지 되돌려줄 이유가 없다")
+
+    def test_프레임에서_정해도_합성본으로_번진다(self):
+        """방향이 없다 — 어느 판에서 정하든 묶음 전체가 같아진다."""
+        self.save({self.key: "round"}, image=self.f1_img.pk,
+                  stem=self.f1_img.path.rsplit("/", 1)[-1].rsplit(".", 1)[0])
+        self.assertEqual(self.label_of(self.stack_img), "round")
+        self.assertEqual(self.label_of(self.f2_img), "round")
+
+    # --- 2. 물리는 것도 번진다 ---------------------------------------------
+
+    def test_지정을_물리면_다른_판에서도_지워진다(self):
+        self.save({self.key: "rod"})
+        self.save({})
+        self.assertIsNone(self.label_of(self.f1_img),
+                          "한 판만 지정이 남았다 — 묶음 안에서 어긋난다")
+        self.assertFalse(
+            ObjectReview.objects.filter(image=self.f1_img,
+                                        mask_key=self.key).exists(),
+            "표시가 하나도 없는 빈 껍데기가 남았다")
+
+    def test_다른_표시가_있으면_행은_남는다(self):
+        """분류만 지운다 — 그 판에서 따로 한 판단은 그대로여야 한다."""
+        self.save({self.key: "rod"})
+        row = ObjectReview.objects.get(image=self.f1_img, mask_key=self.key)
+        row.note = "이 판이 제일 선명하다"
+        row.save()
+
+        self.save({})
+        row.refresh_from_db()
+        self.assertEqual(row.label, "")
+        self.assertEqual(row.note, "이 판이 제일 선명하다",
+                         "분류를 물리면서 남의 코멘트를 지웠다")
+
+    # --- 3·4. 넘지 않는 선 --------------------------------------------------
+
+    def test_삭제는_안_번진다(self):
+        """묶음은 정체(같은 개체)에 대한 말이고, 오검출 판정은 판마다 다르다 —
+        한 프레임에서만 흐릿하게 잡힌 것을 지울 수 있어야 한다."""
+        self.save({}, removed=[self.key])
+        self.assertTrue(ObjectReview.objects
+                        .get(image=self.stack_img, mask_key=self.key).removed)
+        row = ObjectReview.objects.filter(image=self.f1_img,
+                                          mask_key=self.key).first()
+        self.assertTrue(row is None or not row.removed,
+                        "삭제가 다른 판으로 번졌다")
+
+    def test_안_묶인_개체는_안_번진다(self):
+        self.save({self.other: "rod"})
+        self.assertIsNone(self.label_of(self.f1_img))
+        self.assertFalse(ObjectReview.objects
+                         .filter(image=self.f1_img, mask_key=self.other)
+                         .exists())

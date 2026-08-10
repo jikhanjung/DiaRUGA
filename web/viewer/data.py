@@ -24,7 +24,7 @@ from django.utils import timezone
 from . import antarctica, korea, outcrop
 from . import shape
 from .models import (Candidate, ClassDef, Detection, Frame, Locality,
-                     ObjectLink, ObjectReview,
+                     ObjectLink, ObjectLinkMember, ObjectReview,
                      Run, RunBatch, Site, Slide, Stack, Viewpoint,
                      ViewpointReview)
 
@@ -2392,10 +2392,89 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
      .exclude(mask_key__in=keys).delete())
 
     n_drawn = _save_drawn(vp, image, drawn, (cur.width, cur.height))
+
+    # **묶인 개체는 분류를 함께 받는다** (P11 · 2026-08-10).
+    #
+    # 묶음은 "이 판들의 이것이 같은 개체다" 라는 말이므로, 그중 하나가 봉상이면
+    # 나머지도 봉상이다. 사람이 판을 넘겨 다시 지정하게 두면 **틀릴 수 있는 일**
+    # 이 되고(한 판만 다르게 지정된 묶음은 학습 자료에서 모순이다), 무엇보다
+    # 같은 판단을 판 수만큼 되풀이하게 된다.
+    wants = dict(labels)
+    for it in (drawn or []):
+        if it.get("key"):
+            wants[str(it["key"])] = it.get("cls") or ""
+    spread = _spread_link_labels(vp, image, batch, known, wants)
+
     out = {"removed": len(removed), "accepted": len(accepted),
            "labels": len(labels), "notes": len(notes)}
     if n_drawn is not None:
         out["drawn"] = n_drawn
+    if spread:
+        # **화면이 이것을 받아야 한다.** 다른 판의 상태는 화면이 열릴 때 받은
+        # 것이라 지금 번진 분류를 모르고, 그 판에서 다음 저장이 나가면 "표시가
+        # 사라진 행" 으로 보고 지운다 — 뷰어는 늘 전체를 보낸다.
+        out["linked"] = spread
+    return out
+
+
+def _spread_link_labels(vp, image, batch, known, wants) -> dict:
+    """이 이미지에서 정한 분류를 **같은 묶음의 다른 판**에 번지게 한다.
+
+    돌려주는 것은 `{이미지 id: {mask_key: 분류}}` — 바뀐 것만 담는다.
+
+    **이 payload 가 대표하는 개체만 본다** (`known`). 화면에 없던 키까지 훑으면
+    다른 화면이 정한 것을 이쪽의 빈칸으로 덮는다.
+
+    `""` 는 "분류 없음" 이고 그것도 번진다 — 지정을 물렀는데 다른 판에만 남아
+    있으면 묶음 안에서 어긋난다. 다만 **분류 말고는 아무것도 안 건드린다**:
+    삭제·되살림·코멘트·종명은 판마다 따로 하는 판단이다.
+    """
+    mine = list(ObjectLinkMember.objects
+                .filter(link__viewpoint=vp, image=image,
+                        mask_key__in=list(known))
+                .select_related("link"))
+    if not mine:
+        return {}
+    # 이 화면이 대표하지 않는 것은 뺀다 — 사람이 그린 개체(batch=None)는 자기
+    # 묶음(batch)이 없고, 엔진 개체는 이 판의 묶음이라야 한다.
+    mine = [m for m in mine if m.batch_id in (batch.pk, None)]
+    if not mine:
+        return {}
+
+    out = {}
+    sibs = (ObjectLinkMember.objects
+            .filter(link_id__in={m.link_id for m in mine})
+            .exclude(pk__in=[m.pk for m in mine])
+            .select_related("image"))
+    by_link = {}
+    for s in sibs:
+        by_link.setdefault(s.link_id, []).append(s)
+
+    for m in mine:
+        want = wants.get(m.mask_key, "")
+        for s in by_link.get(m.link_id, []):
+            row = ObjectReview.objects.filter(
+                image_id=s.image_id, batch_id=s.batch_id,
+                mask_key=s.mask_key).first()
+            if row is None:
+                if not want:
+                    continue          # 없던 행을 빈 분류로 만들 이유가 없다
+                row = ObjectReview(viewpoint=vp, image_id=s.image_id,
+                                   batch_id=s.batch_id, mask_key=s.mask_key,
+                                   bind_method="exact", geom=s.geom)
+            elif row.label == want:
+                continue              # 이미 같다 — 화면에 알릴 것도 없다
+            row.label = want
+            # **빈 껍데기는 안 남긴다.** 분류를 물렀는데 표시가 하나도 없는 행이
+            # 남으면, 그 판의 다음 저장이 "표시가 사라진 행" 으로 보고 지운다 —
+            # 결과는 같지만 그때까지 세는 자리마다 유령이 하나씩 는다.
+            if (not want and row.pk and not row.removed and not row.accepted
+                    and not row.note and not getattr(row, "species", "")
+                    and not row.geom_edited):
+                row.delete()
+            else:
+                row.save()
+            out.setdefault(str(s.image_id), {})[s.mask_key] = want
     return out
 
 

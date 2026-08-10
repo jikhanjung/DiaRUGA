@@ -1415,7 +1415,9 @@
           '저장됨 — 삭제 ' + S.removed.size + ' · 복구 ' + S.accepted.size +
           (reviewDone ? ' · 검토 완료' : '');
         saveFailed(false);
-        return;
+        // 묶음을 따라 번진 분류를 다른 판의 상태에도 옮긴다 (아래 주석).
+        return r.json().then(function (j) { spreadLabels(j && j.linked); },
+                             function () {});
       }
       // **실패는 다시 저장할 것으로 남는다.** 첫 줄이 savePending 을 끄므로
       // 여기서 되살리지 않으면 flushSave 가 "할 일 없음" 으로 지나가고, 방금
@@ -1467,6 +1469,62 @@
     }
     failBar.textContent = '⚠ 저장되지 않았습니다 — ' + (why || '') +
       ' · 이 화면의 판단은 아직 DB 에 없습니다';
+  }
+
+  // **묶음을 따라 번진 분류를 화면에도 옮긴다** (P11 · 2026-08-10).
+  //
+  // 서버가 "이 묶음의 나머지 판에도 같은 분류를 적었다" 고 알려 온다. 그걸
+  // 흘리면 두 가지가 어긋난다.
+  //
+  //   1. 판을 넘겨야 보인다 — 새로고침 전에는 옛 분류다 (102 덧 2 와 같은 자리)
+  //   2. **그 판의 다음 저장이 도로 지운다** — 화면의 `labels` 는 열릴 때 받은
+  //      것이라 번진 분류를 모르고, 뷰어는 늘 전체를 보낸다
+  //
+  // 두 번째가 더 나쁘다. 화면은 아무 말도 안 하고, 사람이 다른 판에서 뭔가를
+  // 지운 순간 앞서 지정한 분류가 사라진다.
+  //
+  // **`shotDets`(서버가 준 처음 상태)와 `shotState`(사람이 만진 것) 둘 다**
+  // 고친다 — 아직 안 열어 본 판은 앞엣것에서 상태가 만들어진다.
+  function spreadLabels(map) {
+    if (!map || !shotDets) return;
+    var byImage = {};
+    Object.keys(shotDets).forEach(function (k) {
+      byImage[String(shotDets[k].image)] = k;
+    });
+    var touchedCur = false;
+    Object.keys(map).forEach(function (imgId) {
+      var k = byImage[imgId];
+      if (!k) return;                       // 이 화면에 없는 판이면 그만이다
+      var labelMap = map[imgId];
+      var raw = shotDets[k] || {};
+      var st = shotState[k];                // 없으면 아직 안 연 판이다
+      Object.keys(labelMap).forEach(function (mk) {
+        var cls = labelMap[mk];
+        applyCls(raw.labels || (raw.labels = {}),
+                 (raw.candidates || []).concat(raw.gone || []), mk, cls);
+        if (st) applyCls(st.labels, st.cands, mk, cls);
+        if (k === curKey) touchedCur = true;
+      });
+    });
+    if (touchedCur) build();                // 지금 보는 판이면 그 자리에서 선다
+  }
+
+  // 분류 하나를 얹는다 — `setLabel` 과 **같은 규칙**이어야 한다(자동 판정은
+  // `cls_auto` 에 남기고 사람의 지정을 위에 얹는다). 규칙이 둘이면 번진 분류만
+  // 되돌리기·색이 다르게 군다.
+  function applyCls(labelMap, list, mk, cls) {
+    if (cls) labelMap[mk] = cls; else delete labelMap[mk];
+    list.forEach(function (c) {
+      if (keyOf(c) !== mk || isManual(c)) return;
+      if (cls) {
+        if (c.cls_auto === undefined) c.cls_auto = c.cls || null;
+        c.cls = cls;
+        c.cls_user = true;
+      } else {
+        if (c.cls_auto !== undefined) c.cls = c.cls_auto;
+        c.cls_user = false;
+      }
+    });
   }
 
   function save() {
