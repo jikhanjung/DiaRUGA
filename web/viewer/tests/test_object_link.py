@@ -491,3 +491,108 @@ class LinkLabelSpreadTest(DiaRUGATestCase):
         self.assertFalse(ObjectReview.objects
                          .filter(image=self.f1_img, mask_key=self.other)
                          .exists())
+
+
+class LinkUnifyEndpointTest(DiaRUGATestCase):
+    """묶으면서 분류·종명을 **하나로 맞춘다** (사용자 요청 2026-08-10).
+
+    묶기 전에 판마다 따로 적어 둔 것이 서로 다를 수 있다. 화면이 그것을 알리고
+    사람이 하나를 고르면 여기로 실려 온다. 여기서 지키는 것:
+
+    1. 고른 값이 **멤버 전부**에 앉는다 (행이 없던 판에는 새로 만든다)
+    2. **안 보낸 칸은 안 건드린다** — `None` 과 `""` 는 다른 말이다
+    3. 분류·종명 말고는 안 건드린다 — 삭제·되살림·코멘트는 판마다 하는 판단이다
+    4. 모르는 분류는 거절한다 (화면에서 막는 것은 막는 것이 아니다)
+    5. **묶기가 실패하면 맞추기도 함께 물러난다** — 한쪽만 남으면 안 된다
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_frames=3, n_candidates=2)
+        cls.batch = RunBatch.objects.get(label="sam2-시험")
+        cls.extra = fx.add_frame_detections(cls.w.vp)
+        cls.stack_img = Image.objects.get(viewpoint=cls.w.vp, kind="stack")
+        cls.f1_img = cls.extra[0][1]
+
+    def setUp(self):
+        from django.test import Client
+        self.c = Client()
+        self.url = f"/d/{self.w.slide.slug}/g/{self.w.vp.idx}/link"
+        self.key = self.w.keys()[0]
+
+    def post(self, **over):
+        import json as _json
+        body = {"members": [
+            {"image": self.stack_img.pk, "mask_key": self.key, "rep": True},
+            {"image": self.f1_img.pk, "mask_key": self.key, "rep": False}]}
+        body.update(over)
+        return self.c.post(self.url, _json.dumps(body),
+                           content_type="application/json")
+
+    def row(self, img):
+        return ObjectReview.objects.filter(image=img,
+                                           mask_key=self.key).first()
+
+    def test_고른_분류가_멤버_전부에_앉는다(self):
+        r = self.post(label="rod")
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.assertEqual(self.row(self.stack_img).label, "rod")
+        self.assertEqual(self.row(self.f1_img).label, "rod",
+                         "행이 없던 판에 안 만들어졌다")
+        self.assertEqual(r.json()["unified"][str(self.f1_img.pk)]["label"],
+                         "rod", "화면에 알려 주지 않는다")
+
+    def test_종명도_같이_맞춘다(self):
+        self.post(species="Eucampia antarctica")
+        self.assertEqual(self.row(self.f1_img).species, "Eucampia antarctica")
+        self.assertEqual(self.row(self.stack_img).species,
+                         "Eucampia antarctica")
+
+    def test_안_보낸_칸은_안_건드린다(self):
+        """`그대로` 를 고르면 그 칸은 payload 에 아예 없다."""
+        pre = ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=self.f1_img, batch=self.batch,
+            mask_key=self.key, label="round", species="Fragilariopsis")
+        self.post(label="rod")            # 종명은 안 보낸다
+        pre.refresh_from_db()
+        self.assertEqual(pre.label, "rod")
+        self.assertEqual(pre.species, "Fragilariopsis",
+                         "안 보낸 종명이 지워졌다")
+
+    def test_빈_문자열은_비운다(self):
+        pre = ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=self.f1_img, batch=self.batch,
+            mask_key=self.key, label="round")
+        self.post(label="")
+        pre.refresh_from_db()
+        self.assertEqual(pre.label, "")
+
+    def test_비우는데_행이_없으면_안_만든다(self):
+        """빈 껍데기를 남기면 그 행을 세는 자리가 어긋난다."""
+        self.post(label="", species="")
+        self.assertFalse(ObjectReview.objects.filter(image=self.f1_img,
+                                                     mask_key=self.key).exists())
+
+    def test_삭제_코멘트는_안_건드린다(self):
+        pre = ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=self.f1_img, batch=self.batch,
+            mask_key=self.key, removed=True, note="흐릿하다")
+        self.post(label="rod")
+        pre.refresh_from_db()
+        self.assertTrue(pre.removed, "묶으면서 삭제 판정이 뒤집혔다")
+        self.assertEqual(pre.note, "흐릿하다")
+
+    def test_모르는_분류는_거절한다(self):
+        r = self.post(label="없는분류")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(ObjectLink.objects.count(), 0,
+                         "거절했는데 묶음은 만들어졌다")
+
+    def test_묶기가_실패하면_맞추기도_물러난다(self):
+        """대표가 둘이면 묶기가 서고, 그때 분류도 안 남아야 한다."""
+        r = self.post(label="rod", members=[
+            {"image": self.stack_img.pk, "mask_key": self.key, "rep": True},
+            {"image": self.f1_img.pk, "mask_key": self.key, "rep": True}])
+        self.assertEqual(r.status_code, 400)
+        self.assertIsNone(self.row(self.f1_img))

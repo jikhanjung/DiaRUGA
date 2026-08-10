@@ -1491,6 +1491,26 @@ def save_object_link(request, slug, gid):
     if rb is None:
         return bad("검토 대상 묶음이 정해져 있지 않다")
 
+    # **묶으면서 분류·종명을 하나로 맞춘다** (사용자 요청 2026-08-10).
+    #
+    # 묶음은 "이 판들의 이것이 한 개체다" 라는 말이므로 분류도 종명도 하나여야
+    # 하는데, 묶기 **전에** 판마다 따로 적어 둔 것이 서로 다를 수 있다. 화면이
+    # 그것을 알리고 사람이 하나를 고르면 여기로 실려 온다.
+    #
+    # **안 보내면 안 건드린다** (`None`). `""` 는 **비운다**는 말이다 —
+    # `save_catalog_entry` 와 같은 규칙이고, 둘을 같이 다루면 화면이 안 보낸
+    # 칸을 저장이 지운다.
+    unify_label = payload.get("label")
+    if unify_label is not None:
+        unify_label = str(unify_label)
+        if unify_label and unify_label not in data.CLASSES:
+            return bad(f"모르는 분류다: {unify_label}")
+    unify_species = payload.get("species")
+    if unify_species is not None:
+        if not isinstance(unify_species, str):
+            return bad("종명이 문자열이 아니다")
+        unify_species = unify_species.strip()[:data.SPECIES_MAX]
+
     members = payload.get("members") or []
     if len(members) < 2:
         return bad("멤버가 둘 미만이다 — 혼자인 묶음은 뜻이 없다")
@@ -1579,12 +1599,68 @@ def save_object_link(request, slug, gid):
                     row.accepted = True
                     row.save(update_fields=["accepted"])
                 revived += 1
+
+            # **고른 값을 멤버 전부에 적는다.** 묶음이 서기 전에 하면 아직
+            # 멤버가 아닌 마스크에 쓰게 되고, 같은 트랜잭션 안이라 묶기가
+            # 실패하면 이것도 함께 물러난다 — 한쪽만 남는 길을 안 만든다.
+            unified = _unify_members(vp, resolved, unify_label, unify_species)
     except IntegrityError:
         # 유일 제약 — 그 마스크가 이미 다른 묶음에 속해 있다
         return bad("멤버 중 하나가 이미 다른 묶음에 속해 있다", 409)
 
     return JsonResponse({"ok": True, "link_id": link.pk, "revived": revived,
+                         "unified": unified,
                          "links": data.object_links_of(vp)})
+
+
+def _unify_members(vp, resolved, label, species) -> dict:
+    """묶음 멤버 전부의 분류·종명을 고른 값으로 맞춘다 (P11 · 2026-08-10).
+
+    돌려주는 것은 `{이미지 id: {"label": …, "species": …}}` — **화면이 이걸
+    받아야 한다.** 다른 판의 상태는 화면이 열릴 때 받은 것이라 방금 맞춘 값을
+    모르고, 그 판에서 다음 저장이 나가면 "표시가 사라진 행" 으로 보고 지운다
+    (104 와 같은 자리).
+
+    **분류·종명 말고는 안 건드린다** — 삭제·되살림·코멘트·기하는 판마다 하는
+    판단이라 묶는다고 같아질 이유가 없다.
+    """
+    if label is None and species is None:
+        return {}
+    out = {}
+    blank = not (label or species)
+    for img, b, key, _rep, geom, _rej in resolved:
+        row = ObjectReview.objects.filter(
+            image=img, batch_id=b, mask_key=key).first()
+        if row is None:
+            # **빈 껍데기를 안 만든다.** 둘 다 비우라는 말인데 행이 없으면
+            # 만들 이유가 없다 — `save_review` 의 청소가 지울 행을 여기서
+            # 새로 만드는 꼴이 된다.
+            if blank:
+                out[str(img.pk)] = {k: v for k, v in
+                                    (("label", label), ("species", species))
+                                    if v is not None}
+                continue
+            row = ObjectReview(viewpoint=vp, image=img, batch_id=b,
+                               mask_key=key, geom=geom, bind_method="exact")
+            row.save()
+        fields = []
+        if label is not None and row.label != label:
+            row.label = label
+            fields.append("label")
+        if species is not None and row.species != species:
+            row.species = species
+            fields.append("species")
+        if fields:
+            row.save(update_fields=fields)
+        # 바뀌지 않았어도 화면에 알린다 — 아직 교정 행이 없던 판은 화면 쪽
+        # 상태에도 없어서, 안 알리면 그 판만 옛 값으로 남는다.
+        ent = {}
+        if label is not None:
+            ent["label"] = label
+        if species is not None:
+            ent["species"] = species
+        out[str(img.pk)] = ent
+    return out
 
 
 @require_POST

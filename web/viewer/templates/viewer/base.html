@@ -1332,6 +1332,27 @@
   }
   .linkpanel .lrev { font-size: 12px; color: var(--warn); }
 
+  /* 묶으면 분류·종명이 하나가 된다 (2026-08-10). 엇갈릴 때만 도드라지게 —
+     늘 붉으면 사람이 곧 안 읽는다. */
+  .linkpanel .lunify:empty { display: none; }
+  .linkpanel .urow {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    padding: 5px 10px; border-top: 1px solid var(--line); font-size: 12px;
+  }
+  /* **테마 토큰을 쓴다** — 밝은 쪽에 맞춰 색을 박으면 어두운 테마에서 흰
+     덩어리가 된다. 배너 색이 이미 테마마다 갈려 있으므로 그것을 빌린다. */
+  .linkpanel .urow.clash { background: var(--warn-bg); color: var(--warn-fg); }
+  .linkpanel .ulab { color: var(--dim); }
+  .linkpanel .urow.clash .ulab { color: var(--warn-fg); font-weight: 600; }
+  .linkpanel .uchip {
+    border: 1px solid var(--line); background: #fff; border-radius: 10px;
+    padding: 1px 8px; font-size: 12px; cursor: pointer; color: var(--fg);
+  }
+  .linkpanel .uchip.on {
+    border-color: var(--accent); background: var(--accent); color: #fff;
+  }
+  .linkpanel .uchip.keep.on { background: var(--dim); border-color: var(--dim); }
+
   /* 묶인 개체 (P11 3단계). 상자 오른쪽 위의 사슬 — 마스크 색을 안 건드린다
      (색은 분류가 말하고, 묶임은 정체에 대한 다른 축이다). */
   .box.linked::after {

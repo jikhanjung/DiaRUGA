@@ -105,3 +105,94 @@ class LinkLabelSpreadBrowserTest(BrowserTestCase):
         self.assertEqual(row.label, "rod",
                          "그 판의 다음 저장이 번진 분류를 도로 지웠다")
 
+
+
+class LinkUnifyBrowserTest(BrowserTestCase):
+    """묶기 팝업이 **분류·종명 충돌을 알린다** (사용자 요청 2026-08-10).
+
+    묶기 전에 판마다 따로 적어 둔 분류·종명이 다를 수 있다. 조용히 대표 것으로
+    덮으면 남의 동정을 잃는다 — 종명은 현미경을 보며 적는 것이라 재생성 불가다.
+
+    그래서 **알리고 고르게 한다.** 기본은 `그대로` 라서 아무것도 안 누르면
+    아무것도 안 덮는다. 이 갈래는 3겹에서 안 보인다 — 팝업이 값을 모아 세고
+    칩을 그리는 일 전체가 화면 쪽이다.
+    """
+
+    def make_data(self):
+        fx.make_classes()
+        self.w = fx.make_world(slug=f"rs23-{self.uniq}",
+                               site_code=f"RS{self.uniq}",
+                               n_frames=3, n_candidates=2)
+        self.extra = fx.add_frame_detections(self.w.vp)
+        self.batch = RunBatch.objects.get(label="sam2-시험")
+        self.stack_img = Image.objects.get(viewpoint=self.w.vp, kind="stack")
+        self.frame, self.frame_img, _ = self.extra[0]
+        self.key = self.w.keys()[0]
+        # **판마다 다른 분류를 미리 적어 둔다** — 묶기 전에 벌어지는 상황 그대로
+        ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=self.stack_img, batch=self.batch,
+            mask_key=self.key, label="rod")
+        ObjectReview.objects.create(
+            viewpoint=self.w.vp, image=self.frame_img, batch=self.batch,
+            mask_key=self.key, label="round")
+
+    def open_panel(self):
+        page = self.open(reverse("group", args=[self.w.slug, self.w.vp.idx]))
+        page.wait_for_selector(".detview .box")
+        menu = self.context_menu_at(40 + 60 // 2, 50 + 40 // 2)
+        self.assertIsNotNone(menu, "우클릭 메뉴가 안 열렸다")
+        for el in menu.query_selector_all("button, .mi"):
+            if "동일 개체 묶기" in (el.inner_text() or ""):
+                el.click()
+                break
+        else:
+            self.fail("묶기 항목이 메뉴에 없다")
+        page.wait_for_selector(".linkpanel", state="visible", timeout=3000)
+        return page
+
+    def labels(self):
+        return sorted(ObjectReview.objects.filter(mask_key=self.key)
+                      .values_list("label", flat=True))
+
+    def test_엇갈리면_알린다(self):
+        page = self.open_panel()
+        clash = page.query_selector(".linkpanel .urow.clash")
+        self.assertIsNotNone(clash, "분류가 엇갈리는데 아무 말도 없다")
+        text = clash.inner_text()
+        self.assertIn("분류가 엇갈립니다", text)
+        self.assertIn("봉상", text)
+        self.assertIn("원형", text)
+        # **기본은 `그대로`** — 아무것도 안 눌렀는데 덮을 것을 미리 골라 두면
+        # 사람이 못 보고 저장한다
+        on = page.query_selector(".linkpanel .urow.clash .uchip.on")
+        self.assertIsNotNone(on, "고른 것이 하나도 없다")
+        self.assertIn("그대로", on.inner_text())
+
+    def test_고르면_묶인_판이_모두_그_분류가_된다(self):
+        page = self.open_panel()
+        for b in page.query_selector_all(".linkpanel .urow.clash .uchip"):
+            if "봉상" in (b.inner_text() or ""):
+                b.click()
+                break
+        else:
+            self.fail("봉상 칩이 없다")
+        page.wait_for_timeout(150)
+        page.query_selector(".linkpanel .lfoot .btn").click()
+        page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
+
+        link = ObjectLink.objects.get()
+        n = link.members.count()
+        self.assertGreaterEqual(n, 2)
+        # 미리 고르기가 프레임을 여럿 잡으므로 멤버 수는 자료가 정한다 —
+        # 보는 것은 **전부 같은 분류가 됐는가**다
+        self.assertEqual(set(self.labels()), {"rod"}, "고른 분류로 안 맞춰졌다")
+        self.assertEqual(len(self.labels()), n,
+                         "멤버 수만큼 안 앉았다 (행이 없던 판을 빠뜨렸다)")
+
+    def test_안_고르면_아무것도_안_덮는다(self):
+        page = self.open_panel()
+        page.query_selector(".linkpanel .lfoot .btn").click()
+        page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
+        self.assertEqual(ObjectLink.objects.count(), 1, "묶이지도 않았다")
+        self.assertEqual(self.labels(), ["rod", "round"],
+                         "고르지도 않았는데 분류가 덮였다")

@@ -2265,6 +2265,9 @@
         body.appendChild(row);
       });
 
+      // 묶으면 분류·종명이 하나가 된다 — 엇갈리면 알리고 고르게 한다
+      renderUnify();
+
       // 발치 — 저장·풀기
       var n = Object.keys(picked).length;
       // **되살릴 것을 미리 말한다** — 누르고 나서 아는 것은 늦다.
@@ -2297,9 +2300,116 @@
       }
     }
 
+    // **묶으면 분류·종명은 하나가 된다** (사용자 요청 2026-08-10).
+    //
+    // 묶음은 "이 판들의 이것이 한 개체다" 라는 말이므로 분류도 종명도 하나여야
+    // 하는데, **묶기 전에 판마다 따로 적어 둔 것이 서로 다를 수 있다.** 조용히
+    // 대표 것으로 덮으면 남의 동정을 잃는다 — 종명은 현미경을 보며 적는 것이다.
+    //
+    // 그래서 **엇갈리면 알리고 사람이 고른다.** 기본은 `그대로` 라서, 아무것도
+    // 안 누르면 아무것도 안 덮는다.
+    //
+    // 하나뿐이면(나머지는 비어 있다) 그것을 미리 골라 둔다 — 덮을 판단이
+    // 없으므로 잃을 것이 없고, 그것이 "같은 개체" 라는 말의 뜻이다.
+    var unify = { label: undefined, species: undefined };   // undefined = 그대로
+    var unifyTouched = { label: false, species: false };
+    var unifyBox = document.createElement('div');
+    unifyBox.className = 'lunify';
+    linkPanel.appendChild(unifyBox);
+
+    // 고른 멤버들이 들고 있는 값. **사람이 지정한 것만 본다** — `cls` 는 엔진의
+    // 자동 판정일 수 있고, 그것을 사람의 분류로 올려 적으면 안 된다.
+    function valuesOf(field) {
+      var seen = {};
+      Object.keys(picked).forEach(function (k) {
+        var c = picked[k];
+        if (!c) return;
+        var v = field === 'label' ? (stateOf(k).labels[keyOf(c)] || '')
+                                  : (c.species || '');
+        if (!v) return;
+        seen[v] = (seen[v] || 0) + 1;
+      });
+      return seen;
+    }
+
+    function renderUnify() {
+      unifyBox.innerHTML = '';
+      // 조사가 붙으므로 엇갈릴 때의 문구를 따로 든다 ("분류이" 가 아니다)
+      [['label', '분류', '분류가 엇갈립니다',
+        function (v) { return CLS_FULL[v] || CLS_KO[v] || v; }],
+       ['species', '종명', '종명이 엇갈립니다',
+        function (v) { return v; }]].forEach(function (spec) {
+        var field = spec[0], title = spec[1], clash = spec[2], show = spec[3];
+        var seen = valuesOf(field);
+        var vals = Object.keys(seen);
+        if (!vals.length) { unify[field] = undefined; return; }
+
+        // 하나뿐이면 미리 고른다 (사람이 손대기 전까지만)
+        if (vals.length === 1 && !unifyTouched[field]) unify[field] = vals[0];
+        if (vals.length > 1 && !unifyTouched[field]) unify[field] = undefined;
+
+        var row = document.createElement('div');
+        row.className = 'urow' + (vals.length > 1 ? ' clash' : '');
+        var lab = document.createElement('span');
+        lab.className = 'ulab';
+        lab.textContent = vals.length > 1 ? clash : title;
+        row.appendChild(lab);
+
+        vals.forEach(function (v) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'uchip' + (unify[field] === v ? ' on' : '');
+          b.textContent = show(v) + (seen[v] > 1 ? ' ×' + seen[v] : '');
+          b.title = '고른 판 전부를 ' + show(v) + ' 로 맞춘다';
+          b.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            unifyTouched[field] = true;
+            unify[field] = v;
+            renderUnify();
+          });
+          row.appendChild(b);
+        });
+
+        var keep = document.createElement('button');
+        keep.type = 'button';
+        keep.className = 'uchip keep' + (unify[field] === undefined ? ' on' : '');
+        keep.textContent = '그대로';
+        keep.title = '판마다 지금 값을 그대로 둔다';
+        keep.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          unifyTouched[field] = true;
+          unify[field] = undefined;
+          renderUnify();
+        });
+        row.appendChild(keep);
+        unifyBox.appendChild(row);
+      });
+    }
+
     var foot = document.createElement('div');
     foot.className = 'lfoot';
     linkPanel.appendChild(foot);
+
+    function applyUnified(payload) {
+      if (payload.label === undefined && payload.species === undefined) return;
+      Object.keys(picked).forEach(function (k) {
+        var c = picked[k];
+        if (!c) return;
+        var st = stateOf(k), mk = keyOf(c);
+        if (payload.label !== undefined) {
+          // `setLabel` 과 같은 규칙 — 규칙이 둘이면 색·되돌리기가 다르게 군다
+          applyCls(st.labels, st.cands, mk, payload.label);
+          if (k === curKey) { labels = st.labels; cands = st.cands; }
+        }
+        if (payload.species !== undefined) {
+          st.cands.forEach(function (x) {
+            if (keyOf(x) !== mk) return;
+            if (payload.species) x.species = payload.species;
+            else delete x.species;
+          });
+        }
+      });
+    }
 
     function submit(body_) {
       var payload = body_ || {
@@ -2311,6 +2421,12 @@
                    rep: k === repKey };
         })
       };
+      // **고른 값만 싣는다.** `그대로` 는 아예 안 보내고(서버가 안 건드린다),
+      // 빈 문자열은 "비운다" 는 말이라 뜻이 다르다.
+      if (!body_) {
+        if (unify.label !== undefined) payload.label = unify.label;
+        if (unify.species !== undefined) payload.species = unify.species;
+      }
       saveGate.then(function () {
         // **저장이 아직 안 됐으면 묶지 않는다** (실사용 2026-08-10).
         //
@@ -2366,6 +2482,10 @@
               }
             });
           }
+          // **맞춘 값을 화면 상태에도 옮긴다** (104 와 같은 자리). 서버는
+          // 멤버 전부에 적었는데 다른 판의 `labels`·`species` 는 열릴 때 받은
+          // 것이라 모른다 — 그 판에서 다음 저장이 나가면 도로 지운다.
+          if (payload.act !== 'unlink') applyUnified(payload);
           closeLinkPanel();
           build();          // 사슬 배지가 그 자리에서 선다 — 새로고침을 안 기다린다
           flashNote(payload.act === 'unlink' ? '묶음을 풀었습니다'
