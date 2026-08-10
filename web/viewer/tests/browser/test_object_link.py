@@ -9,8 +9,8 @@ from django.urls import reverse
 
 from .base import BrowserTestCase
 from .. import factories as fx
-from ...models import (Candidate, Detection, Image, ObjectLink, Run,
-                       RunBatch)
+from ...models import (Candidate, Detection, Image, ObjectLink,
+                       ObjectReview, Run, RunBatch)
 
 
 class ObjectLinkBrowserTest(BrowserTestCase):
@@ -131,3 +131,59 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         self.assertIsNotNone(menu)
         self.assertIsNone(self.menu_item(menu, "동일 개체"),
                           "판이 하나인데 묶기 항목이 나온다")
+
+    def test_저장이_한_번_미끄러진_그린_마스크도_묶인다(self):
+        """실사용 g25 의 사고 (2026-08-10). 마스크를 그렸는데 /review 저장이
+        한 번 실패하면 — 옛 코드는 `savePending` 을 이미 꺼 둔 채라 다시
+        시도하지 않았고, 그 마스크는 **화면에는 있는데 DB 에는 영영 없었다.**
+        묶기 POST 는 모르는 열쇠라며 "이 화면의 마스크가 아니다" 로 거절했다.
+
+        고침 둘을 함께 본다: 실패가 `savePending` 을 되살리는 것, 그리고 묶기
+        팝업이 열릴 때 그 밀린 저장을 먼저 밀어내는 것.
+        """
+        page = self.open_group()
+
+        # /review 를 한 번만 떨어뜨린다 — 연결이 순간 끊긴 상황
+        state = {"failed": 0}
+        def wreck(route):
+            if state["failed"] == 0:
+                state["failed"] += 1
+                route.abort()
+            else:
+                route.continue_()
+        page.route("**/review", wreck)
+
+        # 빈 자리에 마스크를 그린다 (draw 도구 → 점 셋 → 첫 점으로 닫기)
+        page.click('#tools-stack button[data-act="draw"]')
+        page.wait_for_timeout(150)
+        for x, y in ((400, 300), (470, 300), (470, 360)):
+            self.click_image(x, y)
+        self.click_image(400, 300)
+        page.wait_for_timeout(900)          # 지연 저장이 나가고 — 떨어진다
+        self.assertEqual(state["failed"], 1, "저장 실패를 만들지 못했다")
+
+        # 그린 마스크(중심께)에서 우클릭 → 묶기 → 프레임 후보는 없을 테니
+        # 합성본 근처의 엔진 후보 하나를 프레임에서 고르는 대신, 그냥
+        # 미리 골라진 것 없이 닻+없음이면 저장이 안 되므로 —
+        # 엔진 후보(70,70) 위에서 여는 편이 확실하다: 닻은 엔진 마스크,
+        # 다른 판 후보가 미리 골라져 있고, **팝업 열기가 밀린 저장을 먼저
+        # 밀어낸다** 는 것이 이 시험의 요점이다.
+        menu = self.context_menu_at(70, 70)
+        self.menu_item(menu, "동일 개체 묶기").click()
+        page.wait_for_selector(".linkpanel", state="visible", timeout=3000)
+        page.wait_for_timeout(600)          # saveGate(재시도 저장)가 돌 시간
+        page.query_selector(".linkpanel .lfoot .btn").click()
+        page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
+
+        # 묶음이 섰고 — 그린 마스크도 (재시도 덕에) DB 에 있다
+        self.assertEqual(ObjectLink.objects.count(), 1)
+        drawn = ObjectReview.objects.filter(batch__isnull=True,
+                                            source="manual")
+        self.assertEqual(drawn.count(), 1,
+                         "실패했던 저장이 재시도되지 않았다 — 그린 마스크가 DB 에 없다")
+
+        # **일부러 떨어뜨린 요청의 콘솔 오류는 이 시험의 조건이지 고장이 아니다.**
+        # 그 한 줄만 걸러 낸다 — 통째로 비우면 진짜 JS 오류까지 덮는다.
+        self.errors = [e for e in self.errors
+                       if "ERR_FAILED" not in e or "/review" not in e
+                       if not e.startswith("console.error: Failed to load resource")]

@@ -916,7 +916,7 @@
   function closeAsk() { if (ask) { ask.remove(); ask = null; } }
 
   function leave(url) {
-    flushSave();               // 지연 저장이 남아 있으면 밀어내고 떠난다
+    flushSave(true);           // 지연 저장이 남아 있으면 밀어내고 떠난다
     location.href = url;
   }
 
@@ -1393,13 +1393,21 @@
         saveState.textContent =
           '저장됨 — 삭제 ' + removed.size + ' · 복구 ' + accepted.size +
           (reviewDone ? ' · 검토 완료' : '');
-      } else if (r.status === 409) {
-        // 자동 처리가 끝나기 전에는 서버가 받지 않는다 (P01 §1)
-        saveState.textContent = '아직 검토를 열지 않았습니다 — 저장하지 않았습니다';
-      } else {
-        saveState.textContent = '저장하지 못했습니다';
+        return;
       }
-    }).catch(function () { saveState.textContent = '저장하지 못했습니다 (연결 확인)'; });
+      // **실패는 다시 저장할 것으로 남는다.** 첫 줄이 savePending 을 끄므로
+      // 여기서 되살리지 않으면 flushSave 가 "할 일 없음" 으로 지나가고, 방금
+      // 그린 마스크가 화면에는 있는데 DB 에는 영영 없는 상태가 된다 — 묶기가
+      // "이 화면의 마스크가 아니다" 로 거절한 그 자리다 (실사용 g25).
+      savePending = true;
+      saveState.textContent = (r.status === 409)
+        // 자동 처리가 끝나기 전에는 서버가 받지 않는다 (P01 §1)
+        ? '아직 검토를 열지 않았습니다 — 저장하지 않았습니다'
+        : '저장하지 못했습니다 — 다음 동작에서 다시 시도합니다';
+    }).catch(function () {
+      savePending = true;
+      saveState.textContent = '저장하지 못했습니다 (연결 확인) — 다시 시도합니다';
+    });
   }
 
   function save() {
@@ -1418,10 +1426,18 @@
   }
 
   // 지연 저장이 걸려 있는 채로 시야를 옮기면 그 교정이 사라진다. 떠나기 전에 밀어낸다.
-  function flushSave() {
-    if (!savePending) return;
+  function flushSave(leaving) {
+    if (!savePending) return Promise.resolve();
     clearTimeout(saveTimer);
-    postReview(true);
+    // **약속을 돌려준다** — 묶기(P11)가 이 저장 뒤에 서야 한다. 지연 저장이
+    // 나가기 전에 묶기 POST 가 먼저 닿으면, 방금 그린 마스크를 서버가 몰라
+    // "이 화면의 마스크가 아니다" 로 거절한다 (실사용에서 났다).
+    //
+    // **keepalive 는 정말 떠날 때(leaving)만.** 페이지가 남는 자리(판 넘기기·
+    // 묶기 팝업)에서 쓰면 이득이 없고, keepalive 요청은 브라우저가 본문
+    // 64KB 를 넘으면 **보내 보지도 않고 거절한다** — 교정·그린 폴리곤이 많은
+    // 시야가 정확히 그 크기다.
+    return postReview(!!leaving);
   }
 
   // --- 분류 직접 지정 -------------------------------------------------------
@@ -1922,6 +1938,11 @@
     var ab = anchor.bbox_xywh;
     var existing = linkOf(curImage, anchorKey);
 
+    // **지연 저장을 먼저 밀어내고, 그 약속을 들고 있는다.** 방금 그린 마스크는
+    // 400ms 지연 저장에 실려 있는데, 묶기 POST 가 그보다 먼저 닿으면 서버가
+    // 그 열쇠를 모른다. 여는 시점에 밀어내고 submit 이 이 약속 뒤에 선다.
+    var saveGate = flushSave() || Promise.resolve();
+
     // 판 순서는 캐러셀 그대로 (합성본 → 프레임). 검출이 있는 판만.
     var order = [];
     shots.forEach(function (sh) {
@@ -2111,10 +2132,12 @@
                    rep: k === repKey };
         })
       };
-      fetch(location.pathname.replace(/\/?$/, '/') + 'link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      saveGate.then(function () {
+        return fetch(location.pathname.replace(/\/?$/, '/') + 'link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
       }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
         .then(function (r) {
           if (!r.j.ok) { err.textContent = r.j.error || ('저장 실패 (' + r.s + ')'); return; }
@@ -2992,7 +3015,7 @@
     engPick.addEventListener('change', function (e) {
       var t = e.target;
       if (!t || t.type !== 'radio' || !t.value) return;
-      flushSave();                 // 지연 저장이 걸려 있으면 밀어내고 떠난다
+      flushSave(true);             // 지연 저장이 걸려 있으면 밀어내고 떠난다
       location.href = t.value;
     });
   }
