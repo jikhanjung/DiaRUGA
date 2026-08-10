@@ -92,10 +92,16 @@ if ! run "$T_SCAN" python scan_nas.py --stable-min "$STABLE_MIN" \
     exit 1
 fi
 
-NEW=$(python3 -c "
+# **실패를 "새것 없음" 으로 접지 않는다** (097 과 같은 무늬였다). 예전에는
+# `|| echo 0` 이라 JSON 이 깨지면 반입이 조용히 영영 멈췄다. 순수 JSON 파싱이라
+# 호스트 python3 로 충분하다 — 장고도 컨테이너도 안 쓴다.
+if ! NEW=$(python3 -c "
 import json
 d=json.load(open('$SCAN_JSON'))
-print(sum(1 for r in d['slides'] if r['state']=='new'))" 2>/dev/null || echo 0)
+print(sum(1 for r in d['slides'] if r['state']=='new'))" 2>>"$LOG"); then
+    say "정찰 JSON 을 읽지 못했다 ($SCAN_JSON) — 이 주기를 세운다"
+    exit 1
+fi
 
 # 2) 새것이 있으면 가져온다
 if [ "$NEW" -gt 0 ]; then
