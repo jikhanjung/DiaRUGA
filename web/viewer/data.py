@@ -1034,8 +1034,13 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
 
     # 표시가 하나도 안 남았으면 지운다. **사람이 그린 개체는 남긴다** — 그 줄이
     # 곧 개체다.
+    #
+    # **묶음의 멤버도 남긴다** (P12). 소속이 곧 이 행이라, 값을 비웠다는 이유로
+    # 지우면 **묶음에서 한 판이 조용히 빠진다.** 묶음을 푸는 문은 `/link` 이고
+    # 카탈로그 카드가 아니다 — `save_review` 의 청소가 얹는 것과 같은 갈래다.
+    linked = obj.diatom_object.members.count() > 1
     empty = not (obj.removed or obj.accepted or dobj.label or obj.note
-                 or dobj.species or obj.geom_edited)
+                 or dobj.species or obj.geom_edited or linked)
     n_spread = sum(len(v) for v in spread.values())
     if empty and obj.source != "manual":
         oid = obj.diatom_object_id
@@ -2751,6 +2756,23 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     keys |= set(ObjectReview.objects
                 .filter(image=image, batch=batch)
                 .exclude(diatom_object__species="")
+                .values_list("mask_key", flat=True))
+
+    # **묶음의 멤버인 행도 이 payload 가 대표하지 않는다** (P12).
+    #
+    # 소속이 곧 판정 행이 됐다 — 예전에는 `ObjectLinkMember` 로 따로 있어서
+    # 교정 행이 지워져도 묶음은 멀쩡했다. 지금 그 행을 청소가 지우면 **묶음에서
+    # 한 판이 조용히 빠진다**: 검토 화면은 묶음을 만들지도 지우지도 않으므로
+    # (`/link` 이 따로 있다) payload 에 없다는 것이 "묶음에서 뺐다" 는 뜻일 수가
+    # 없다. 종명·`geom_edited` 를 얹는 것과 **같은 갈래**다 — 이 화면이 모르는
+    # 칸은 이 화면이 대표하지 못한다.
+    #
+    # **혼자인 개체는 얹지 않는다.** 그것은 소속이 아니라 1:1 껍데기이고,
+    # 표시가 사라졌으면 예전처럼 지워야 한다(개체는 `prune_objects` 가 걷는다).
+    keys |= set(ObjectReview.objects
+                .filter(image=image, batch=batch)
+                .annotate(n_siblings=Count("diatom_object__members"))
+                .filter(n_siblings__gte=2)
                 .values_list("mask_key", flat=True))
     # **그 검출의 개체만 본다.** 예전에는 시야의 현재 검출 전부를 훑었는데,
     # 시야마다 현재 검출이 하나일 때만 같은 뜻이다 — 여럿이면 **프레임 A 의 키가

@@ -14,11 +14,15 @@
 `ObjectLink` 는 `DiatomObject` 가 됐다. 그래서 **개체 수는 묶음 수가 아니다** —
 판정마다 하나씩 서고, 묶은 것만 멤버가 둘 이상이다. 시험도 그 눈으로 센다.
 """
+import json
+
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
+from django.urls import reverse
 
 from .base import DiaRUGATestCase
 from . import factories as fx
+from .. import data
 from ..models import Image, DiatomObject, ObjectReview, RunBatch
 
 
@@ -501,6 +505,84 @@ class LinkLabelSpreadTest(DiaRUGATestCase):
         self.assertFalse(ObjectReview.objects
                          .filter(image=self.f1_img, mask_key=self.other)
                          .exists())
+
+
+class CleanupKeepsMembersTest(DiaRUGATestCase):
+    """**청소가 묶음 멤버를 지우면 안 된다** (P12 에서 생긴 구멍).
+
+    `save_review` 의 마지막 줄은 payload 가 대표하지 않는 행을 지운다 — "뷰어는
+    늘 전체를 보낸다" 가 전제다. P12 에서 **소속이 곧 판정 행**이 되면서 그
+    청소가 묶음 멤버까지 집게 됐다: 표시가 하나도 없는 멤버(다른 판에서 분류를
+    받고 이 판은 비어 있는 경우가 흔하다)가 저장 한 번에 사라지고, **묶음에서
+    한 판이 조용히 빠진다.**
+
+    묶음을 푸는 문은 `/link` 이고 검토 화면이 아니다 — payload 에 없다는 것이
+    "묶음에서 뺐다" 는 뜻일 수가 없다.
+
+    **되살려서 잡히는 것을 봤다**: 이 시험은 고치기 전 `1 != 2` 로 선다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_frames=3, n_candidates=2)
+
+    def setUp(self):
+        from django.test import Client
+        self.c = Client()
+        self.det = self.w.detection()
+        self.key = self.w.keys()[0]
+        self.frame = self.w.vp.images.filter(kind="frame").first()
+        rows = [
+            fx.new_review(viewpoint=self.w.vp, image=self.det.image,
+                          batch=self.det.batch, mask_key=self.key),
+            fx.new_review(viewpoint=self.w.vp, image=self.frame,
+                          batch=self.det.batch, mask_key="500_500_20_20"),
+        ]
+        self.link = fx.link_reviews(rows, rep=0)
+
+    def save_review(self, **over):
+        p = {"stem": self.w.stem(), "slug": self.w.slug, "gid": self.w.vp.idx,
+             "done": False, "removed": [], "accepted": [],
+             "labels": {}, "notes": {}}
+        p.update(over)
+        r = self.c.post(reverse("save_review"), data=json.dumps(p),
+                        content_type="application/json")
+        self.assertEqual(r.status_code, 200, r.content[:300])
+
+    def test_빈_payload_가_멤버를_안_지운다(self):
+        self.save_review()
+        self.assertEqual(self.link.members.count(), 2, "청소가 멤버를 지웠다")
+
+    def test_분류를_물려도_멤버로_남는다(self):
+        """분류를 지정했다 물리면 그 행에 표시가 하나도 안 남는다 — 예전이라면
+        지울 행이지만 지금은 그것이 소속이다."""
+        self.save_review(labels={self.key: "rod"})
+        self.save_review()
+        self.assertEqual(self.link.members.count(), 2)
+        row = ObjectReview.objects.get(image=self.det.image, mask_key=self.key)
+        self.assertEqual(row.label, "", "분류는 물려야 한다")
+
+    def test_안_묶인_빈_행은_예전처럼_지운다(self):
+        """혼자인 개체는 소속이 아니라 1:1 껍데기다 — 개체까지 함께 걷힌다."""
+        solo = fx.new_review(viewpoint=self.w.vp, image=self.det.image,
+                             batch=self.det.batch, mask_key=self.w.keys()[1],
+                             label="rod")
+        oid = solo.diatom_object_id
+        self.save_review()
+        self.assertFalse(ObjectReview.objects.filter(pk=solo.pk).exists(),
+                         "표시가 사라진 1:1 행이 남았다")
+        self.assertFalse(DiatomObject.objects.filter(pk=oid).exists(),
+                         "멤버 없는 개체가 유령으로 남았다")
+
+    def test_카탈로그에서_비워도_멤버로_남는다(self):
+        """카드가 값을 비우면 그 줄을 지우는데, 멤버면 지우면 안 된다."""
+        data.save_catalog_entry(self.w.vp, self.det.image, self.key,
+                                species="Eucampia antarctica")
+        data.save_catalog_entry(self.w.vp, self.det.image, self.key,
+                                species="", cls="", note="")
+        self.assertEqual(self.link.members.count(), 2,
+                         "카탈로그가 비우면서 멤버를 지웠다")
 
 
 class LinkUnifyEndpointTest(DiaRUGATestCase):
