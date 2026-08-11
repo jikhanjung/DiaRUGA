@@ -145,6 +145,20 @@ def label(self) -> str:
   소속이 아니라 1:1 껍데기라 예전처럼 지워야 한다.
 
   `CleanupKeepsMembersTest` 넷으로 못 박았고, 고치기 전에 셋이 서는 것을 봤다
+- **묶기가 판정 행을 `orphan` 으로 세웠다.** 테스트 인스턴스에서 사용자가 시야
+  하나를 실제로 묶어 본 것을 들여다보다 찾았다 — 후보가 멀쩡히 있는데
+  (`bind_method='orphan'`·`candidate=NULL`) 두 프레임이 그렇게 앉았다.
+  `save_object_link` 이 `judgement_for` 에 **후보를 안 넘겼다**: 옛 코드는
+  `get_or_create(defaults={"bind_method": "exact"})` 로 박아 두고 있었다.
+
+  거짓 고아는 조용하다. `check_db` 3번의 바인딩 집계가 흐려지고, 엔진을 갈 때
+  `rebind.py` 가 다시 맺을 필요 없는 것을 맺으려 들고, 앞으로 만들 `/orphans/`
+  화면에 멀쩡한 개체가 뜬다. **운영이 지금 7,726건 전부 `exact` 라 이 길은 한
+  번도 시험대에 오른 적이 없다**(TODOs P02 8번) — 그래서 더 안 보인다.
+
+  `LinkBindsToCandidateTest` 로 못 박았고, 고치기 전에 `'orphan' != 'exact'` 로
+  서는 것을 봤다. **화면 시험이 아니라 사람이 눌러 본 자국을 읽어서 찾았다** —
+  085 가 테스트 인스턴스를 만든 이유가 이것이다
 
 ## 사라진 것
 

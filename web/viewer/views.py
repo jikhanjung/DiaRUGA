@@ -1571,14 +1571,20 @@ def save_object_link(request, slug, gid):
             # 따로 보내야 하는데, 그 길은 "그 이미지의 교정 전체를 갈아치운다"
             # 는 전제라 다른 판의 상태를 실어 보내는 사고가 난다(027·053 계열).
             # 여기서는 행 하나만 좁게 세운다.
+            # **후보를 들고 간다.** 판정 행을 새로 세울 때 이것을 안 넘기면
+            # `bind_method="orphan"` · `candidate=NULL` 로 앉는다 — 짝이
+            # 멀쩡히 있는데 "재검출로 짝을 잃은 교정" 으로 기록되는 것이고,
+            # `check_db` 3번의 바인딩 집계와 `/orphans/`·`rebind` 가 그 값을
+            # 본다. 실제로 그렇게 앉았다 (테스트 인스턴스 2026-08-11).
             resolved.append((img, rb, key, bool(m.get("rep")), geom,
-                             not cand.passed))
+                             not cand.passed, cand))
             continue
         drawn = ObjectReview.objects.filter(
             image=img, batch__isnull=True, mask_key=key).first()
         if drawn is not None and not drawn.removed:
+            # 사람이 그린 것은 후보가 없다 — 행도 이미 있다
             resolved.append((img, None, key, bool(m.get("rep")), drawn.geom,
-                             False))
+                             False, None))
             continue
         return bad(f"{key} 는 이 화면의 마스크가 아니다")
 
@@ -1589,8 +1595,8 @@ def save_object_link(request, slug, gid):
             # **없으면 세운다.** P12 이후 판정 행이 곧 멤버이고, 개체는 그
             # 행이 설 때 함께 선다 (`data.judgement_for` 가 그 문이다).
             rows, revived = [], 0
-            for img, b, key, rep, geom, rej in resolved:
-                row = data.judgement_for(vp, img, b, key)
+            for img, b, key, rep, geom, rej, cand in resolved:
+                row = data.judgement_for(vp, img, b, key, cand)
                 fields = []
                 if not row.geom:
                     row.geom = geom

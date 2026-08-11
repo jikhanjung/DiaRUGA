@@ -23,7 +23,8 @@ from django.urls import reverse
 from .base import DiaRUGATestCase
 from . import factories as fx
 from .. import data
-from ..models import Image, DiatomObject, ObjectReview, RunBatch
+from ..models import (Candidate, Image, DiatomObject, ObjectReview,
+                      RunBatch)
 
 
 class ObjectLinkSchemaTest(DiaRUGATestCase):
@@ -505,6 +506,57 @@ class LinkLabelSpreadTest(DiaRUGATestCase):
         self.assertFalse(ObjectReview.objects
                          .filter(image=self.f1_img, mask_key=self.other)
                          .exists())
+
+
+class LinkBindsToCandidateTest(DiaRUGATestCase):
+    """묶으면서 세운 판정 행이 **후보에 제대로 맺히는가** (P12 에서 놓쳤다).
+
+    `bind_method` 는 "이 교정이 지금 검출의 어느 후보를 가리키는가" 다.
+    `orphan` 은 **짝을 못 찾았다**는 뜻이고, `check_db` 3번의 바인딩 집계와
+    `rebind.py`·`/orphans/` 가 그 값을 본다.
+
+    묶기가 `judgement_for` 에 후보를 안 넘겨 **짝이 멀쩡히 있는데 `orphan` 으로
+    앉았다** — 테스트 인스턴스에서 실제로 그렇게 앉은 것을 보고 찾았다.
+    거짓 고아는 나중에 고아 화면에 멀쩡한 개체를 띄운다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_frames=3, n_candidates=2)
+
+    def setUp(self):
+        from django.test import Client
+        self.c = Client()
+        self.det = self.w.detection()
+        self.imgs = list(Image.objects.filter(viewpoint=self.w.vp, kind="frame")
+                         .order_by("pk"))
+
+    def test_묶으면서_세운_행이_후보에_맺힌다(self):
+        # 프레임에도 현재 검출을 깐다 — 그래야 그 판의 마스크를 묶을 수 있다
+        fx.add_frame_detections(self.w.vp)
+        keys = [c.mask_key for c in
+                self.det.candidates.all().order_by("mask_key")]
+        key = keys[0]
+        ms = [{"image": self.det.image_id, "mask_key": key, "rep": True}]
+        for img in self.imgs[:1]:
+            cand = Candidate.objects.filter(
+                detection__image=img, detection__is_current=True,
+                mask_key=key).first()
+            self.assertIsNotNone(cand, "픽스처가 프레임에 같은 키를 안 냈다")
+            ms.append({"image": img.pk, "mask_key": key, "rep": False})
+
+        r = self.c.post(
+            reverse("save_link", args=[self.w.slug, self.w.vp.idx]),
+            data=json.dumps({"members": ms}),
+            content_type="application/json")
+        self.assertEqual(r.status_code, 200, r.content[:300])
+
+        for m in ms:
+            row = ObjectReview.objects.get(image_id=m["image"], mask_key=key)
+            self.assertEqual(row.bind_method, "exact",
+                             f"짝이 있는데 {row.bind_method} 로 앉았다")
+            self.assertIsNotNone(row.candidate_id, "후보를 안 물었다")
 
 
 class CleanupKeepsMembersTest(DiaRUGATestCase):
