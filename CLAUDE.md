@@ -459,6 +459,16 @@ python ops/export_review.py --db <백업> --out /tmp/before && diff -r /tmp/befo
 
 ## 커밋
 
+**하루치 브랜치에서 작업한다** — `work/<YYYYMMDD>-<계정>` (2026-08-12 부터).
+그날 첫 작업 전에 만들고(`git switch -c work/20260812-jikhanjung`), **커밋·push·
+확인을 전부 그 브랜치 기준으로** 한다. **브랜치를 파는 것과 그 위에서 확인하는
+것은 다르다** — 체크아웃을 안 하면 `git status`·`git log` 는 계속 `main` 을 본다.
+**`main` 병합은 사람이 정한다.**
+
+**계정마다 작업 트리가 따로다**(`jikhanjung`·`paleoadmin`·`sclee`). 남의 트리에서
+접어 둔 것(stash·미커밋)은 여기 `git stash list` 에 **안 보이고 저장소에도 안
+남는다** — 안 보인다고 유실된 것이 아니다. **미커밋 상태를 인수 근거로 삼지 말 것.**
+
 메시지는 한국어 평서문으로, **무엇을 했는지**를 쓴다. 최근 예:
 
 ```
