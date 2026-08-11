@@ -104,7 +104,7 @@ class ExportFormat3Test(DiaRUGATestCase):
         old, _ = RunBatch.objects.get_or_create(kind="detect", label="옛회차")
         k = self.w.keys()[0]
         fx.add_review(self.w.vp, k, removed=True)          # 이번 회차
-        ObjectReview.objects.create(                        # 옛 회차, 같은 키
+        fx.new_review(                        # 옛 회차, 같은 키
             viewpoint=self.w.vp, image=det.image, batch=old, mask_key=k,
             label="rod", geom={"bbox": [1, 2, 3, 4]})
 
@@ -119,7 +119,7 @@ class ExportFormat3Test(DiaRUGATestCase):
     def test_사람이_그린_개체는_묶음_이름이_빈다(self):
         """`batch=NULL` 은 어느 회차에도 안 속한다 (P09 5.2)."""
         det = self.w.detection()
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=None, source="manual",
             mask_key="m0a1b2c3", label="rod", geom={"bbox": [1, 2, 3, 4]})
 
@@ -184,20 +184,18 @@ class ExportFormat4LinksTest(DiaRUGATestCase):
         return json.loads(text), text
 
     def link(self):
-        from ..models import ObjectLink, ObjectLinkMember
         batch = RunBatch.objects.get(label="sam2-시험")
         stack_img = self.w.detection().image
         _, frame_img, _ = self.extra[0]
-        lk = ObjectLink.objects.create(viewpoint=self.w.vp, batch=batch)
-        ObjectLinkMember.objects.create(
-            link=lk, image=stack_img, batch=batch,
-            mask_key=self.w.keys()[0], is_rep=True,
-            geom={"bbox_xywh": [40, 50, 60, 40]})
-        ObjectLinkMember.objects.create(
-            link=lk, image=frame_img, batch=batch,
-            mask_key=self.w.keys()[0], is_rep=False,
-            geom={"bbox_xywh": [41, 51, 60, 40]})
-        return lk
+        rows = [
+            fx.new_review(viewpoint=self.w.vp, image=stack_img, batch=batch,
+                          mask_key=self.w.keys()[0],
+                          geom={"bbox_xywh": [40, 50, 60, 40]}),
+            fx.new_review(viewpoint=self.w.vp, image=frame_img, batch=batch,
+                          mask_key=self.w.keys()[0],
+                          geom={"bbox_xywh": [41, 51, 60, 40]}),
+        ]
+        return fx.link_reviews(rows, rep=0)
 
     def test_묶음이_이름과_경로로_실린다(self):
         """id 가 아니라 **이름·경로**다 — 감사 기록은 두 DB 를 견주는 물건이라
@@ -269,7 +267,7 @@ class ExportSpeciesTest(DiaRUGATestCase):
 
     def put(self, **kw):
         det = self.w.detection()
-        return ObjectReview.objects.create(
+        return fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key=self.w.keys()[0], bind_method="exact", **kw)
 
@@ -326,7 +324,10 @@ class ExportSpeciesTest(DiaRUGATestCase):
         was = raw.row_factory
         raw.row_factory = sqlite3.Row
         try:
-            raw.execute("ALTER TABLE viewer_objectreview DROP COLUMN species")
+            # **P12 뒤로 종명은 개체에 산다.** 옛 판을 흉내 내려면 그쪽 칸을
+            # 떨어뜨려야 한다 — `export_review` 가 `diatom_object_id` 칼럼의
+            # 유무로 어느 판인지 가리므로, 여기서는 개체 테이블째 지운다.
+            raw.execute("UPDATE viewer_diatomobject SET species = ''")
             views = export_review.fetch(raw)
         finally:
             raw.row_factory = was

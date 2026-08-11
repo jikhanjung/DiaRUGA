@@ -130,8 +130,17 @@ class BrowserTestCase(StaticLiveServerTestCase):
             self.errors.append(f"console.error: {m.text}")
             if m.type == "error" else None))
 
+    # 시험이 **일부러 실패 응답을 부를 때** 그 자국을 지운다. 4xx 를 받으면
+    # 크로미움이 스스로 `Failed to load resource` 를 콘솔에 적는데, 그것은 JS
+    # 고장이 아니라 **서버가 제대로 거절했다는 증거**다. 문구를 못 박아 두어
+    # 진짜 오류까지 함께 눈감는 일이 없게 한다.
+    def expect_http_error(self, status):
+        self._expect_http = getattr(self, "_expect_http", set()) | {int(status)}
+
     def tearDown(self):
-        errors = list(self.errors)
+        expected = getattr(self, "_expect_http", set())
+        errors = [e for e in self.errors
+                  if not any(f"status of {s} " in e for s in expected)]
         # **떠나기 전에 빈 쪽으로 옮긴다.** 페이지가 아직 썸네일을 받는 중이면
         # 그 요청을 처리하는 서버 스레드가 **읽기 트랜잭션을 쥔 채** 남고,
         # 곧바로 도는 `flush` 가 그것과 부딪힌다 (아래 `_fixture_teardown`).

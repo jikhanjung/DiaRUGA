@@ -925,26 +925,30 @@ class ViewpointReview(models.Model):
 
 
 class ObjectReview(models.Model):
-    """개체 단위 교정. **재생성 불가한 자료다.**
+    """개체 단위 교정 — **그 판에서 그 마스크를 어떻게 봤는가.** 재생성 불가한 자료다.
 
     `candidate` 는 바인딩 결과일 뿐이고 진짜 키는 **`(image, batch, mask_key)`**
     다. `geom` 에 기하를 스스로 들고 있어 검출기가 바뀌어도 읽을 수 있다 —
     지운 것까지 전부 저장한다(학습의 어려운 음성 표본이다).
 
     **회차가 돌면 이 표가 사실상 정답 자료 표가 된다** (P09 1). 이름이 뜻보다
-    좁아진 것이지 구조가 틀린 것은 아니다.
+    좁아진 것이지 구조가 틀린 것은 아니다 — P12 에서 개명을 일부러 안 했다.
+    7,914 행을 개명 마이그레이션에 태우는 것이 이 저장소에서 가장 비싼 위험이고
+    (`Core`→`Locality`, 063), 이름은 그만한 값이 아니다.
 
-    ## 무엇이 무엇에 속하는가 (P09 5.2)
+    ## 무엇이 무엇에 속하는가 (P09 5.2 · P12 에서 자리를 갈랐다)
 
-    | 칸 | 무엇에 대한 판단인가 | 속하는 곳 |
+    | 칸 | 무엇에 대한 판단인가 | 사는 곳 |
     |---|---|---|
-    | `removed`·`accepted` | 그 batch 가 낸 그 마스크가 틀렸다/맞다 | **batch** |
-    | `label`·`note` | 이 규조각이 Eucampia 다 | 개체 — batch 를 갈아도 참이다 |
+    | `removed`·`accepted`·`geom` | 그 batch 가 낸 그 마스크가 틀렸다/맞다 | **여기** |
+    | `note` | 이 판에서는 초점이 안 맞는다 | **여기** — 판마다 따로 적는다 |
+    | `label`·`species` | 이 규조각이 Eucampia 다 | **`DiatomObject`** |
     | 사람이 그린 마스크 | 여기 규조각이 있다 | 이미지 — **어느 batch 에도 없다** |
 
-    그래서 batch 를 갈 때 `removed`·`accepted` 는 안 따라가고 `label`·`note` 는
-    IoU 로 물려주되 **사람이 확인한다.** 옮기는 것을 안 가리고 통째로 잠그면
-    막아야 할 것과 살려야 할 것을 함께 막는다.
+    **분류·종명은 여기 없다.** 개체의 성질이지 판의 성질이 아니라서 `DiatomObject`
+    로 올렸다 — 그래서 묶인 판들 사이에 어긋날 수가 없고, 104 가 저장할 때마다
+    번지게 하던 코드(`_spread_link_labels`)와 그것을 지키던 검사가 사라졌다.
+    **진실이 하나면 전파할 것이 없다.**
     """
 
     BIND = [(b, b) for b in ("exact", "iou", "manual", "orphan")]
@@ -1005,33 +1009,49 @@ class ObjectReview(models.Model):
     # 회차에 엔진이 얼마나 나아졌는지를 못 잰다.
     geom_edited = models.BooleanField(default=False, db_default=False)
 
+    # **이 판정이 가리키는 개체** (P12). 여러 프레임에 걸쳐 잡힌 같은 규조각이
+    # 이 FK 로 하나가 된다 — 예전의 `ObjectLink` + `ObjectLinkMember` 가 하던
+    # 일인데, 그때는 **묶은 것에만** 있어서 분류·종명의 집이 둘이 됐다.
+    #
+    # **비어 있지 않다.** 판정 행이 서는 순간 개체도 함께 선다(대개 1:1 이고,
+    # 사람이 묶으면 N:1 이 된다). 조건부로 두면 읽는 자리 79곳이 전부 "개체가
+    # 없으면 빈 값" 갈래를 타야 하고, 안 고친 자리는 예외 없이 조용히 다르게
+    # 굴러간다(038·040 의 모양).
+    #
+    # **지운 마스크도 개체를 갖는다.** "규조각이 아니다" 라고 판정한 것에 개체가
+    # 서는 것이 어색해 보이지만, 뗐다가는 **지웠다 되살리는 사이에 묶음이
+    # 깨진다** — 102 가 만든 "탈락 후보를 되살려 묶는다" 흐름과 정면으로
+    # 부딪힌다. 지워진 판정이 여럿인 묶음에 남아 있는 것은 저장 쪽이 막고
+    # `check_db.py` 8번이 센다.
+    #
+    # `CASCADE` 다 — 개체를 지우는 길은 판정을 전부 걷어낼 때뿐이고, 그때 남은
+    # 판정 행은 뜻이 없다.
+    diatom_object = models.ForeignKey("DiatomObject", on_delete=models.CASCADE,
+                                      related_name="members")
+    # 이 개체의 얼굴 — 학습 자료로 뽑을 때, 목록에 보일 때 이 판을 쓴다.
+    # 개체마다 정확히 하나(0 은 저장 쪽이 막는다. DB 제약은 "둘 이상" 만 막는다).
+    is_rep = models.BooleanField(default=False, db_default=False)
+
     # 둘을 한 칼럼으로 합치지 않는다 — 되살렸다가 다시 지운 개체가 있고,
     # "사람이 지웠다가 이긴다" 는 규칙이 두 값의 조합으로 표현된다.
     removed = models.BooleanField(default=False)
     accepted = models.BooleanField(default=False)
-    label = models.CharField(max_length=32, blank=True)
+    # **판마다 따로 적는 말이다** — "이 판에서는 초점이 안 맞는다" 처럼. 그래서
+    # 분류·종명과 달리 `DiatomObject` 로 안 올렸다(옮기면 프레임마다 다른 말이
+    # 하나로 뭉개진다). 104·107 도 코멘트는 안 번지게 해 왔다.
     note = models.TextField(blank=True)
-    # **동정 결과** — 사람이 적는 종명 (개체 카탈로그 화면). `label` 과 축이 다르다:
-    # `label` 은 `ClassDef` 가 정한 목록에서 고르는 것(원형·봉상·Eucampia)이고
-    # 이쪽은 **자유 입력**이다. 종은 목록으로 못 가둔다 — `var.`·`f.`·명명자까지
-    # 붙고, 검토 중에 이름이 바뀐다. 굳으면 그때 테이블로 옮긴다.
-    #
-    # **`ObjectReview` 에 있으니 묶음에 종속된다** (열쇠가 `(image, batch,
-    # mask_key)`). 엔진마다 카탈로그를 별개로 두는 것이 방침이라 그것이 맞다
-    # (사용자 방침 2026-08-10) — 묶음을 갈면 동정을 다시 적는다.
-    #
-    # **`save_review` 가 이 칸만 채워진 행을 지우면 안 된다.** 검토 화면은 종명을
-    # 모르고, 그 POST 는 payload 에 없는 키를 지운다 — "검토 완료" 한 번에 동정이
-    # 통째로 사라진다. `geom_edited` 가 같은 문제를 겪은 자리이고 같은 처리를
-    # 받는다 (`data.save_review` 의 `keys` 에 얹는다).
-    #
-    # **재생성 불가다.** `export_review.py` 가 이 칸도 내보낸다.
-    species = models.CharField(max_length=120, blank=True, default="",
-                               db_default="")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [
+            # **한 개체는 한 이미지에서 하나다** — 같은 프레임의 마스크 둘이 같은
+            # 규조각일 수 없다 (옛 `uniq_linkmember_image`).
+            models.UniqueConstraint(fields=["diatom_object", "image"],
+                                    name="uniq_objreview_object_image"),
+            # 대표는 개체마다 하나 (옛 `uniq_linkmember_rep`)
+            models.UniqueConstraint(fields=["diatom_object"],
+                                    condition=models.Q(is_rep=True),
+                                    name="uniq_objreview_rep"),
             # **batch 가 열쇠에 들어간다** (P09 5.1). 같은 이미지의 같은 마스크라도
             # 어느 검출을 보고 한 판단인지가 다르면 다른 행이다.
             models.UniqueConstraint(
@@ -1052,86 +1072,99 @@ class ObjectReview(models.Model):
             # 삭제 범위와 화면 조회가 전부 이 짝으로 짚는다 (P09 5.1)
             models.Index(fields=["image", "batch"]),
             models.Index(fields=["source"]),
+            models.Index(fields=["diatom_object"]),
         ]
+
+    # **읽기 전용 통로다.** 분류·종명은 `DiatomObject` 에 살지만, 읽는 자리가
+    # 79곳이라 전부 `o.diatom_object.label` 로 고치면 그만큼 밟을 곳이 는다.
+    # 진실은 여전히 한 곳이고 여기서는 비추기만 한다.
+    #
+    # **쓰기는 막혀 있다** — `o.label = …` 은 `AttributeError` 다. 조용히 안
+    # 먹히는 것보다 시끄럽게 죽는 편이 낫다 (setter 를 달면 어느 개체에 쓸지가
+    # 애매해지고, 묶인 판들에 번지는 것을 여기가 몰래 하게 된다).
+    #
+    # **조인이 숨는다는 것이 값이다.** 부르는 쪽은 `select_related("diatom_object")`
+    # 를 걸어야 한다 — 안 걸면 판정 수만큼 질의가 난다. 목록 화면이 그 실수로
+    # 1.3초였던 적이 있다.
+    @property
+    def label(self) -> str:
+        return self.diatom_object.label
+
+    @property
+    def species(self) -> str:
+        return self.diatom_object.species
 
     def __str__(self):
         marks = [n for n, v in (("삭제", self.removed), ("복구", self.accepted),
-                                ("분류", self.label), ("메모", self.note)) if v]
-        return f"{self.mask_key} {'·'.join(marks) or '-'}"
+                                ("메모", self.note)) if v]
+        return f"{self.mask_key}{' ★' if self.is_rep else ''} {'·'.join(marks) or '-'}"
 
 
-class ObjectLink(models.Model):
-    """같은 개체 묶음 — 한 시야 안에서 여러 이미지의 마스크가 **한 규조각**이다 (P11).
+class DiatomObject(models.Model):
+    """규조각 하나 — **사람이 하나로 보는 대상** (P12. 옛 이름은 `ObjectLink`).
 
-    같은 시야는 스테이지가 안 움직인다. 초점면 3~5장에 같은 규조각이 서너 번
-    잡히는데, 그것이 하나라는 것을 이 표가 말한다. **사람이 프레임마다 골라
-    만든 것이라 재생성 불가다** — `ObjectReview` 와 같은 무게이고 같은 규약을
-    따른다(멤버가 FK 대신 `(image, batch, mask_key)` 로 마스크를 짚고 `geom`
-    을 스스로 든다).
+    초점면 3~5장에 같은 규조각이 서너 번 잡히는데, 그것이 하나라는 것을 이 표가
+    말한다. 판정(`ObjectReview`)이 여기에 매달리고, **분류·종명은 여기 산다** —
+    "이것이 Eucampia 다" 는 개체의 성질이지 어느 판에서 봤느냐의 성질이 아니다.
 
-    **묶음은 시야를 못 넘는다.** 다른 시야는 스테이지가 움직인 뒤라 "같은
-    자리" 라는 근거 자체가 없다.
+    ## 왜 갈랐나 (P12)
+
+    예전에는 `ObjectReview` 가 판정과 동정을 겸하고, 묶음(`ObjectLink`)이
+    **묶은 것에만** 따로 있었다. 그래서 분류의 집이 둘이 되어 104 가 저장할
+    때마다 번지게 해야 했고, 규칙이 생기기 전에 붙은 판단은 소급이 안 돼
+    묶음 셋 중 둘이 어긋나 있었다. 진실을 한 자리로 모아 그 계열을 닫는다.
+
+    ## 모든 판정이 개체를 갖는다
+
+    묶이지 않은 마스크도 개체가 하나 선다(1:1). "묶였나?" 를 조건으로 삼는
+    순간 읽는 쪽이 두 갈래가 되고, 안 고친 자리가 옛 값을 보여준다 — P12 가
+    B안을 버린 이유가 그것이다. 그래서 **묶기 = 개체 둘을 합치는 것**,
+    **풀기 = 개체를 가르는 것**이 된다.
+
+    **개체가 곧 규조각 수는 아니다.** 아무 표시 없이 통과시킨 마스크는 판정 행이
+    없어 개체도 없다 — 집계는 여전히 `Candidate` 에서 나오고, 이 표는 그 위에서
+    **프레임에 겹쳐 잡힌 것을 하나로 세게** 해 준다.
+
+    **시야를 못 넘는다.** 다른 시야는 스테이지가 움직인 뒤라 "같은 자리" 라는
+    근거 자체가 없다. **회차도 안 넘는다** — 한 회차의 검토 결과로 학습 자료를
+    만들어 다음 회차를 돌리면 그 이전 회차는 더 볼 일이 없는 자료다(사용자 방침
+    2026-08-11). 그래서 `batch` 가 여기 그대로 남아 있다.
     """
 
     viewpoint = models.ForeignKey(Viewpoint, on_delete=models.CASCADE,
-                                  related_name="object_links")
+                                  related_name="diatom_objects")
     # **어느 묶음의 검출을 보며 묶었나.** PROTECT 다 — RunBatch 를 지우려면
     # 그 검출을 보며 만든 사람의 묶음부터 지워야 한다. SET_NULL 로 조용히
     # 잃으면 "어느 검출에 대한 판단인지" 가 사라진다 (drop_batch.py 가 문이다).
     batch = models.ForeignKey(RunBatch, on_delete=models.PROTECT,
                               null=True, blank=True,
-                              related_name="object_links")
+                              related_name="diatom_objects")
+    # **분류** — `ClassDef` 가 정한 목록에서 고른다 (원형·봉상·Eucampia).
+    # 예전에는 `ObjectReview.label` 이었고 묶음마다 번지게 해야 했다 (104).
+    label = models.CharField(max_length=32, blank=True)
+    # **동정 결과** — 사람이 적는 종명 (개체 카탈로그 화면). `label` 과 축이 다르다:
+    # 저쪽은 목록에서 고르는 것이고 이쪽은 **자유 입력**이다. 종은 목록으로 못
+    # 가둔다 — `var.`·`f.`·명명자까지 붙고, 검토 중에 이름이 바뀐다. 굳으면 그때
+    # 테이블로 옮긴다.
+    #
+    # **재생성 불가다.** 현미경을 보며 적는 것이고 `export_review.py` 가 내보낸다.
+    species = models.CharField(max_length=120, blank=True, default="",
+                               db_default="")
+    # 묶음에 대한 메모. 개체를 두고 하는 말이라 판마다 적는 `ObjectReview.note`
+    # 와 다르다 — 그쪽은 "이 판에서는 초점이 안 맞는다" 를 적는 자리다.
     note = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = [models.Index(fields=["viewpoint"])]
+        indexes = [models.Index(fields=["viewpoint"]),
+                   models.Index(fields=["viewpoint", "batch"])]
 
     def __str__(self):
-        return f"link#{self.pk} vp={self.viewpoint_id} ({self.members.count()})"
+        return f"obj#{self.pk} vp={self.viewpoint_id} ({self.members.count()})"
 
 
-class ObjectLinkMember(models.Model):
-    """묶음의 멤버 — "이 이미지에서는 이 마스크가 그 개체다" (P11).
-
-    이미지마다 하나다(한 규조각은 한 프레임에 한 번 나온다). 대표(`is_rep`)는
-    묶음에 정확히 하나 — 학습 자료로 뽑을 때, 목록에 보일 때 그것이 이 개체의
-    얼굴이다.
-    """
-
-    link = models.ForeignKey(ObjectLink, on_delete=models.CASCADE,
-                             related_name="members")
-    image = models.ForeignKey(Image, on_delete=models.CASCADE,
-                              related_name="link_members")
-    # **어느 검출의 마스크인가.** NULL 은 사람이 그린 것 (P09 5.2 와 같은 뜻).
-    batch = models.ForeignKey(RunBatch, on_delete=models.PROTECT,
-                              null=True, blank=True, related_name="+")
-    mask_key = models.CharField(max_length=64)
-    is_rep = models.BooleanField(default=False, db_default=False)
-    # 기하 스냅샷 — 검출기가 바뀌어도 묶음이 읽힌다 (ObjectReview.geom 과 같다)
-    geom = models.JSONField(null=True, blank=True)
-
-    class Meta:
-        constraints = [
-            # 한 이미지에서 한 개만 — 같은 프레임의 마스크 둘이 같은 개체일 수 없다
-            models.UniqueConstraint(fields=["link", "image"],
-                                    name="uniq_linkmember_image"),
-            # 한 마스크는 한 묶음에만. NULL(사람이 그린 것)은 SQLite 가 부딪히지
-            # 않는다고 보므로 ObjectReview 와 같은 짝 제약이다.
-            models.UniqueConstraint(fields=["image", "batch", "mask_key"],
-                                    condition=models.Q(batch__isnull=False),
-                                    name="uniq_linkmember_key"),
-            models.UniqueConstraint(fields=["image", "mask_key"],
-                                    condition=models.Q(batch__isnull=True),
-                                    name="uniq_linkmember_manual"),
-            # 대표는 묶음마다 정확히 하나 (0 도 안 된다 — 저장 쪽이 지킨다.
-            # DB 제약은 "둘 이상" 만 막을 수 있다)
-            models.UniqueConstraint(fields=["link"],
-                                    condition=models.Q(is_rep=True),
-                                    name="uniq_linkmember_rep"),
-        ]
-        indexes = [models.Index(fields=["image", "batch"])]
-
-    def __str__(self):
-        return f"{self.mask_key}{' ★' if self.is_rep else ''}"
+# `ObjectLinkMember` 는 P12 에서 `ObjectReview` 로 흡수됐다. 둘은 열쇠가 같고
+# (`(image, batch, mask_key)`) `geom` 스냅샷을 각자 들고 `Candidate` 에 FK 로
+# 안 매달리는 규약도 같았다 — 다른 것은 무엇을 말하느냐뿐이었고(하나는 판정,
+# 하나는 소속), 그래서 한 마스크에 대해 행이 둘로 갈려 있었다.

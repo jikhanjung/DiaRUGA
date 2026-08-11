@@ -56,7 +56,7 @@ class ReviewBatchScopeTest(DiaRUGATestCase):
         det = self.w.detection()
         other, _ = RunBatch.objects.get_or_create(kind="detect",
                                                   label="yolo-다른묶음")
-        return ObjectReview.objects.create(
+        return fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=other,
             mask_key=mask_key, removed=True,
             geom={"bbox": [1, 2, 3, 4], "polygon": [1, 2, 4, 2, 4, 6, 1, 6]})
@@ -94,7 +94,8 @@ class ReviewBatchScopeTest(DiaRUGATestCase):
     def test_저장한_교정이_현재_검출의_묶음을_가리킨다(self):
         k = self.w.keys()[0]
         self.post(self.full(labels={k: "rod"}))
-        obj = ObjectReview.objects.get(mask_key=k, label="rod")
+        obj = ObjectReview.objects.get(mask_key=k,
+                                         diatom_object__label="rod")
         self.assertEqual(obj.batch_id, self.w.detection().batch.pk)
         self.assertEqual(obj.source, "engine")
 
@@ -107,7 +108,7 @@ class ReviewBatchScopeTest(DiaRUGATestCase):
         여기가 무너지면 사람이 그린 마스크가 **검토 저장 한 번에** 사라진다.
         """
         det = self.w.detection()
-        drawn = ObjectReview.objects.create(
+        drawn = fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=None, source="manual",
             mask_key="m0a1b2c3", label="rod",
             geom={"bbox": [10, 10, 20, 20],
@@ -125,9 +126,9 @@ class ReviewBatchScopeTest(DiaRUGATestCase):
         kw = dict(viewpoint=self.w.vp, image=det.image, batch=None,
                   source="manual", mask_key="m0a1b2c3",
                   geom={"bbox": [1, 1, 2, 2]})
-        ObjectReview.objects.create(**kw)
+        fx.new_review(**kw)
         with self.assertRaises(IntegrityError):
-            ObjectReview.objects.create(**kw)
+            fx.new_review(**kw)
 
     # --- 묶음이 없는 검출 --------------------------------------------------
 
@@ -172,7 +173,7 @@ class RebindScopeTest(DiaRUGATestCase):
         other, _ = RunBatch.objects.get_or_create(kind="detect", label="yolo-딴것")
         cand = det.candidates.filter(passed=True).first()
         # 같은 이미지·같은 자리인데 묶음만 다른 교정. IoU 로는 반드시 맞는다.
-        theirs = ObjectReview.objects.create(
+        theirs = fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=other,
             mask_key="딴묶음키", removed=True,
             geom={"bbox": cand.bbox_xywh, "polygon": list(cand.polygon)})
@@ -187,7 +188,7 @@ class RebindScopeTest(DiaRUGATestCase):
     def test_사람이_그린_개체는_다시_맺지_않는다(self):
         det = self.w.detection()
         cand = det.candidates.filter(passed=True).first()
-        drawn = ObjectReview.objects.create(
+        drawn = fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=None, source="manual",
             mask_key="m7f3a91c2",
             geom={"bbox": cand.bbox_xywh, "polygon": list(cand.polygon)})
@@ -202,7 +203,7 @@ class RebindScopeTest(DiaRUGATestCase):
         """좁히느라 **하던 일까지 막지는 않았는가.**"""
         det = self.w.detection()
         cand = det.candidates.filter(passed=True).first()
-        mine = ObjectReview.objects.create(
+        mine = fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key="어긋난키", removed=True,
             geom={"bbox": cand.bbox_xywh, "polygon": list(cand.polygon)})

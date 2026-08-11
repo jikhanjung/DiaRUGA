@@ -23,8 +23,9 @@ from django.test import Client
 from django.urls import reverse
 
 from . import factories as fx
+from .. import data
 from .base import DiaRUGATestCase
-from ..models import ObjectReview
+from ..models import DiatomObject, ObjectReview
 
 
 class SpeciesSurvivesReviewTest(DiaRUGATestCase):
@@ -53,11 +54,18 @@ class SpeciesSurvivesReviewTest(DiaRUGATestCase):
         return r
 
     def put_species(self, key=None, species="Eucampia antarctica", **extra):
-        """개체 카탈로그 화면이 만드는 것과 같은 행."""
-        obj, _ = ObjectReview.objects.get_or_create(
-            image=self.det.image, batch=self.det.batch, mask_key=key or self.key,
-            defaults={"viewpoint": self.w.vp, "bind_method": "exact"})
-        obj.species = species
+        """개체 카탈로그 화면이 만드는 것과 같은 행.
+
+        **판정을 세우는 문 하나를 지난다** (`data.judgement_for`) — 개체가 함께
+        서고, 종명·분류는 그 개체에 앉는다 (P12).
+        """
+        obj = data.judgement_for(self.w.vp, self.det.image, self.det.batch,
+                                 key or self.key)
+        dobj = obj.diatom_object
+        dobj.species = species
+        if "label" in extra:
+            dobj.label = extra.pop("label")
+        dobj.save()
         for k, v in extra.items():
             setattr(obj, k, v)
         obj.save()
@@ -133,7 +141,8 @@ class SpeciesSurvivesReviewTest(DiaRUGATestCase):
         된다 — 더는 지킬 것이 없다."""
         self.put_species()
         self.post(done=True)
-        ObjectReview.objects.filter(mask_key=self.key).update(species="")
+        DiatomObject.objects.filter(
+            members__mask_key=self.key).update(species="")
         self.post(done=True)
         self.assertFalse(ObjectReview.objects.filter(mask_key=self.key).exists())
 
@@ -145,13 +154,13 @@ class SpeciesSurvivesReviewTest(DiaRUGATestCase):
         않는다."""
         w2 = fx.make_world(slug="rs23-b", n_candidates=2)
         det2 = w2.detection()
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=w2.vp, image=det2.image, batch=det2.batch,
             mask_key=w2.keys()[0], bind_method="exact",
             species="Chaetoceros sp.")
         self.put_species()
         self.post(done=True)
-        self.assertEqual(ObjectReview.objects.filter(
+        self.assertEqual(DiatomObject.objects.filter(
             species="Chaetoceros sp.").count(), 1)
 
 
@@ -189,7 +198,7 @@ class DrawnSpeciesSurvivesTest(DiaRUGATestCase):
 
     def test_다시_저장해도_종명이_남는다(self):
         self.post(drawn=self.draw())
-        ObjectReview.objects.filter(mask_key=self.mkey).update(
+        DiatomObject.objects.filter(members__mask_key=self.mkey).update(
             species="Eucampia antarctica")
         self.post(drawn=self.draw())
         self.assertEqual(
@@ -200,7 +209,7 @@ class DrawnSpeciesSurvivesTest(DiaRUGATestCase):
         """`drawn` 이 아예 없으면 손대지 않는다 — 이미 있는 규칙이고, 종명도
         그 아래에서 함께 지켜진다."""
         self.post(drawn=self.draw())
-        ObjectReview.objects.filter(mask_key=self.mkey).update(
+        DiatomObject.objects.filter(members__mask_key=self.mkey).update(
             species="Eucampia antarctica")
         self.post()
         self.assertEqual(

@@ -16,7 +16,7 @@ from django.urls import reverse
 
 from .base import BrowserTestCase
 from .. import factories as fx
-from ...models import ObjectReview, RunBatch
+from ...models import DiatomObject, ObjectReview, RunBatch
 
 
 class CatalogEditTest(BrowserTestCase):
@@ -87,12 +87,12 @@ class CatalogEditTest(BrowserTestCase):
         card.locator(".species").fill("Eucampia antarctica")
         card.locator(".species").blur()
         page.wait_for_timeout(1500)
-        self.assertTrue(ObjectReview.objects.filter(species__gt="").exists())
+        self.assertTrue(DiatomObject.objects.filter(species__gt="").exists())
 
         card.locator(".species").fill("")
         card.locator(".species").blur()
         page.wait_for_timeout(1500)
-        self.assertFalse(ObjectReview.objects.filter(species__gt="").exists())
+        self.assertFalse(DiatomObject.objects.filter(species__gt="").exists())
 
     def test_그림을_누르면_그_시야로_간다(self):
         """크롭 화면과 같은 자리로 간다. **그림과 g번호 둘 다** — 그림만 링크면
@@ -130,7 +130,7 @@ class CatalogEditTest(BrowserTestCase):
         page.wait_for_timeout(1500)
 
         self.assertEqual(
-            list(ObjectReview.objects.values_list("species", flat=True)),
+            list(DiatomObject.objects.values_list("species", flat=True)),
             ["Eucampia antarctica"])
 
     def test_저장되면_카드가_그렇게_말한다(self):
@@ -175,7 +175,7 @@ class CatalogReadOnlyTest(BrowserTestCase):
             e.dispatchEvent(new Event('blur', {bubbles: true}));
         }""")
         page.wait_for_timeout(1500)
-        self.assertFalse(ObjectReview.objects.filter(species="몰래").exists())
+        self.assertFalse(DiatomObject.objects.filter(species="몰래").exists())
 
     def test_왜_못_적는지_보인다(self):
         page = self.open(reverse("catalog", args=[self.w.slide.slug]))

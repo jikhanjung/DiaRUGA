@@ -36,7 +36,7 @@ class OrphanOnScreenTest(BrowserTestCase):
                                site_code=f"RS{self.uniq}", n_candidates=3)
         det = self.w.detection()
         x, y, w, h = ORPHAN_BOX
-        self.orphan = ObjectReview.objects.create(
+        self.orphan = fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key=ORPHAN_KEY, bind_method="orphan", label="eucampia",
             note="엔진이 놓친 것",
@@ -48,7 +48,7 @@ class OrphanOnScreenTest(BrowserTestCase):
         # 목록에서 오는데 그 목록은 후보에서만 만들어지므로, 안 그리면 키가
         # payload 에서 통째로 빠진다.
         bx, by, bw, bh = BARE_BOX
-        self.bare = ObjectReview.objects.create(
+        self.bare = fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key=BARE_KEY, bind_method="orphan", removed=True,
             geom={"bbox": BARE_BOX,

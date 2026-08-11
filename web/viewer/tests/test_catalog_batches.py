@@ -78,7 +78,7 @@ class SwitchReviewBatchTest(DiaRUGATestCase):
         """**이것이 "완전히 별개" 의 뜻이다.**"""
         self.use("S1")
         row = data.catalog_rows("rs23")[0]
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image_id=row["image_id"],
             batch_id=row["batch_id"], mask_key=row["key"],
             bind_method="exact", species="Eucampia antarctica")
@@ -93,7 +93,7 @@ class SwitchReviewBatchTest(DiaRUGATestCase):
         """갈아탄 동안 사라지는 것이 아니라 **다른 판에 그대로 있다.**"""
         self.use("S1")
         row = data.catalog_rows("rs23")[0]
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image_id=row["image_id"],
             batch_id=row["batch_id"], mask_key=row["key"],
             bind_method="exact", species="Eucampia antarctica")

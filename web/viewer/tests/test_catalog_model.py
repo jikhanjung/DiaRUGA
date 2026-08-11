@@ -9,9 +9,10 @@
 """
 from django.db import IntegrityError, connection, transaction
 
-from ..models import ObjectReview, RunBatch
+from ..models import DiatomObject, ObjectReview, RunBatch
 from .base import DiaRUGATestCase
 from .factories import make_world
+from . import factories
 
 
 class BatchCodeConstraintTest(DiaRUGATestCase):
@@ -55,7 +56,7 @@ class SpeciesFieldTest(DiaRUGATestCase):
     def test_기본값은_비어_있다(self):
         w = make_world()
         det = w.detection()
-        o = ObjectReview.objects.create(
+        o = factories.new_review(
             viewpoint=w.vp, image=det.image, mask_key=w.keys()[0])
         self.assertEqual(o.species, "")
 
@@ -63,7 +64,7 @@ class SpeciesFieldTest(DiaRUGATestCase):
         w = make_world()
         det = w.detection()
         name = "Fragilariopsis kerguelensis (O'Meara) Hustedt"
-        o = ObjectReview.objects.create(
+        o = factories.new_review(
             viewpoint=w.vp, image=det.image, mask_key=w.keys()[0],
             species=name)
         self.assertEqual(ObjectReview.objects.get(pk=o.pk).species, name)
@@ -73,7 +74,7 @@ class SpeciesFieldTest(DiaRUGATestCase):
         입력이다. 한 칸에 섞으면 둘 중 하나를 못 적는다."""
         w = make_world()
         det = w.detection()
-        o = ObjectReview.objects.create(
+        o = factories.new_review(
             viewpoint=w.vp, image=det.image, mask_key=w.keys()[0],
             label="round", species="Eucampia antarctica")
         o.refresh_from_db()
@@ -92,18 +93,22 @@ class DbDefaultTest(DiaRUGATestCase):
     """
 
     def test_species_없이_넣어도_들어간다(self):
+        """**개체 쪽 `db_default` 를 본다** (P12 에서 칸이 옮겨 갔다).
+
+        `DiatomObject` 를 만드는 옛 판 코드가 `species` 를 안 실어도 들어가야
+        한다 — Django 의 `default` 는 파이썬 쪽이라 판이 다른 이미지의 INSERT
+        에는 칼럼이 아예 안 들어간다(HANDOFF 3.7).
+        """
         w = make_world()
-        det = w.detection()
         with connection.cursor() as cur:
             cur.execute("""
-                INSERT INTO viewer_objectreview
-                    (viewpoint_id, image_id, batch_id, mask_key, candidate_id,
-                     bind_method, bind_score, geom, source, geom_edited,
-                     removed, accepted, label, note, updated_at)
-                VALUES (%s, %s, NULL, %s, NULL, 'orphan', NULL, '{}', 'engine',
-                        0, 0, 0, '', '', '2026-08-10 00:00:00')
-            """, [w.vp.pk, det.image_id, "9_9_9_9"])
-        o = ObjectReview.objects.get(mask_key="9_9_9_9")
+                INSERT INTO viewer_diatomobject
+                    (viewpoint_id, batch_id, label, note,
+                     created_at, updated_at)
+                VALUES (%s, NULL, '', '',
+                        '2026-08-10 00:00:00', '2026-08-10 00:00:00')
+            """, [w.vp.pk])
+        o = DiatomObject.objects.get(viewpoint=w.vp)
         self.assertEqual(o.species, "")
 
     def test_code_없이_넣어도_들어간다(self):

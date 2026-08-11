@@ -23,8 +23,8 @@ from django.utils import timezone
 
 from . import antarctica, catalog, korea, outcrop
 from . import shape
-from .models import (Candidate, ClassDef, Detection, Frame, Locality,
-                     ObjectLink, ObjectLinkMember, ObjectReview,
+from .models import (Candidate, ClassDef, Detection, DiatomObject, Frame,
+                     Locality, ObjectReview,
                      Run, RunBatch, Site, Slide, Stack, Viewpoint,
                      ViewpointReview)
 
@@ -747,13 +747,81 @@ def catalog_no_for(row: dict, layer: dict | None, codes: dict) -> tuple:
         return "", str(e)
 
 
+def _reviews_prefetch(attr="object_reviews") -> Prefetch:
+    """교정을 미리 물어 올 때 **개체까지 함께 문다** (P12).
+
+    분류·종명이 `DiatomObject` 로 옮겨 가면서 `o.label` 이 조인 하나가 됐다.
+    안 물면 판정 수만큼 질의가 난다 — 목록 화면이 그 실수로 1.3초였다.
+    """
+    return Prefetch(attr, queryset=ObjectReview.objects
+                    .select_related("diatom_object"))
+
+
+def reviews_of(vp) -> list:
+    """그 시야의 교정들. **미리 물어 왔으면 그것을 쓴다.**
+
+    부르는 자리가 둘이다 — 목록·크롭 화면은 `_reviews_prefetch()` 로 시야
+    수백 개를 한 번에 물어 오고, 낱개로 여는 화면은 그냥 부른다. 뒤엣것에서
+    `select_related` 를 빠뜨리면 개체마다 질의가 하나씩 는다.
+    """
+    cache = getattr(vp, "_prefetched_objects_cache", None) or {}
+    if "object_reviews" in cache:
+        return list(vp.object_reviews.all())
+    return list(vp.object_reviews.select_related("diatom_object"))
+
+
+def judgement_for(vp, image, batch, key, cand=None) -> ObjectReview:
+    """판정 행 하나를 가져오거나 세운다 — **개체를 함께 세우는 문 하나** (P12).
+
+    `ObjectReview.diatom_object` 는 비어 있을 수 없다. 그래서 행을 만드는 자리가
+    셋(검토 저장 · 사람이 그리기 · 카탈로그)인데 **개체를 만드는 규칙이 셋이면
+    안 된다** — 하나만 빠뜨려도 `IntegrityError` 이고, 더 나쁘게는 대표(`is_rep`)
+    없는 개체가 서서 학습 자료를 뽑을 때 얼굴이 없는 개체가 된다.
+
+    **새 개체는 늘 1:1 이고 자기가 대표다.** 묶는 것은 사람이 하는 일이라
+    (P11) 여기서 앞서가지 않는다.
+    """
+    # **id 로도 인스턴스로도 불린다.** 뷰는 `review_batch_id()` 가 준 id 를 들고
+    # 있고 저장 경로는 객체를 들고 있다 — 한쪽만 받으면 부르는 자리가 매번
+    # 변환을 기억해야 하고, 빠뜨리면 `ValueError` 가 저장 한복판에서 난다.
+    image_id = getattr(image, "pk", image)
+    batch_id = getattr(batch, "pk", batch)
+    row = ObjectReview.objects.filter(
+        image_id=image_id, batch_id=batch_id, mask_key=key).select_related(
+        "diatom_object").first()
+    if row is not None:
+        return row
+    obj = DiatomObject.objects.create(viewpoint=vp, batch_id=batch_id)
+    return ObjectReview.objects.create(
+        viewpoint=vp, image_id=image_id, batch_id=batch_id, mask_key=key,
+        diatom_object=obj, is_rep=True, candidate=cand,
+        bind_method="exact" if cand else "orphan",
+        bind_score=1.0 if cand else None)
+
+
+def prune_objects(ids) -> int:
+    """멤버가 하나도 안 남은 개체를 걷는다. 돌려주는 것은 지운 수.
+
+    판정 행을 지우면 그 개체가 유령으로 남는다 — 예외는 안 나고 개체 수를 세는
+    자리마다 하나씩 는다. **판정을 지우는 자리는 전부 여기를 지난다.**
+
+    `DiatomObject` 를 먼저 지우면 `CASCADE` 가 살아 있는 판정까지 끌고 가므로
+    **반드시 판정을 지운 뒤에** 부른다.
+    """
+    if not ids:
+        return 0
+    ghosts = (DiatomObject.objects.filter(pk__in=set(ids), members__isnull=True)
+              .values_list("pk", flat=True))
+    n, _ = DiatomObject.objects.filter(pk__in=list(ghosts)).delete()
+    return n
+
+
 def geom_box(geom) -> list | None:
     """기하 스냅샷의 bbox. **키가 두 가지다** — 어느 쪽이든 받는다.
 
-    `ObjectReview.geom` 은 `{"bbox": …}` 이고 `ObjectLinkMember.geom` 은
-    `{"bbox_xywh": …}` 다(`views.save_object_link` 가 엔진 후보에서 만든다).
-    그런데 묶음 멤버가 **사람이 그린 개체**면 `ObjectReview.geom` 을 그대로
-    실어서, **같은 칸에 두 모양이 섞인다.**
+    `ObjectReview.geom` 은 `{"bbox": …}` 인데, P12 이전의 `ObjectLinkMember.geom`
+    이 `{"bbox_xywh": …}` 로 들어온 것이 그대로 남아 있다 — 흡수하면서 옛 모양을
+    다시 쓰지 않았을 뿐 **이미 앉은 값은 그 모양이다.**
 
     한쪽만 읽으면 **빈 값이 나오고 예외는 안 난다** — 실제로 그랬다: 묶은 카드의
     크롭 상자가 비어 조용히 원래 상자로 되돌아갔고, 다른 판의 그림을 이 개체의
@@ -787,12 +855,14 @@ def link_mains(slide) -> dict:
     그림을 바꿀 이유가 없다.
     """
     out = {}
-    links = (ObjectLink.objects.filter(viewpoint__slide=slide)
+    # **묶은 것만 가져온다.** P12 이후 판정마다 개체가 하나씩 서므로, 거르지
+    # 않으면 슬라이드의 개체 수천 개를 전부 물질화한다 — 세는 것을 물질화하지
+    # 말라는 그 줄이다.
+    links = (DiatomObject.objects.filter(viewpoint__slide=slide)
+             .annotate(n_members=Count("members")).filter(n_members__gte=2)
              .prefetch_related("members__image"))
     for link in links:
         members = list(link.members.all())
-        if len(members) < 2:
-            continue
         best = max(members, key=_member_area)
         for m in members:
             out[(m.image_id, m.batch_id, m.mask_key)] = (best, len(members))
@@ -924,21 +994,24 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     row_batch = None if manual else batch
 
     obj = (manual or ObjectReview.objects.filter(
-        image=image_id, batch=batch, mask_key=key).first())
+        image=image_id, batch=batch, mask_key=key)
+        .select_related("diatom_object").first())
     if obj is None:
         # **현재 검출에 없는 키는 받지 않는다** (`save_review` 와 같은 문).
         # 다른 화면을 보고 보낸 것이고, 받으면 화면에 없는 개체가 생긴다.
         if cand is None:
             raise ValueError(
                 f"현재 검출에 없는 개체다 — 저장하지 않았다 (키 {key})")
-        obj = ObjectReview(viewpoint=vp, image_id=image_id, batch=row_batch,
-                           mask_key=key, candidate=cand,
-                           bind_method="exact", bind_score=1.0)
+        obj = judgement_for(vp, image_id, row_batch, key, cand)
         # 기하는 모든 교정 행이 들고 있는다 — 검출기가 바뀌어도 읽혀야 한다
         obj.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
 
+    # **분류·종명은 개체에 적는다** (P12). 묶여 있으면 그 개체를 나눠 가진 다른
+    # 판들이 같은 값을 보게 된다 — 104 가 저장할 때마다 번지게 하던 일이
+    # 구조로 바뀐 자리다. **번질 것이 없으니 전파 코드도 없다.**
+    dobj = obj.diatom_object
     if species is not None:
-        obj.species = str(species).strip()[:SPECIES_MAX]
+        dobj.species = str(species).strip()[:SPECIES_MAX]
     if cls is not None:
         cls = str(cls)
         # **모듈 수준 `CLASSES` 는 `__getattr__` 로만 난다** — 이 파일 안에서
@@ -946,52 +1019,45 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
         # 다르다.
         if cls and cls not in [r["key"] for r in _class_rows()]:
             raise ValueError(f"모르는 유형이다: {cls}")
-        obj.label = cls
+        dobj.label = cls
     if note is not None:
         obj.note = str(note).replace("\r\n", "\n").strip()
+    dobj.save(update_fields=["label", "species", "updated_at"])
     obj.save()
 
-    # **묶인 개체는 분류를 함께 받는다** (104). 묶음은 "이 판들의 이것이 같은
-    # 개체다" 라는 말이라, 그것이 봉상인지 원형인지는 **개체의 성질**이지 판의
-    # 성질이 아니다.
-    #
-    # **`save_review` 만 이것을 하고 있었다.** 카탈로그는 개체 하나만 고치는 좁은
-    # 문이라 그 자리를 안 지났고, 그래서 **카드에서 유형을 바꾸면 그 판에만 앉고
-    # 묶음의 다른 프레임은 그대로였다**(사용자 보고 2026-08-10). 저장은 성공으로
-    # 보이는데 묶음 안이 어긋난다 — 학습 자료로 내보내면 같은 개체가 봉상이면서
-    # 원형인 표본이 된다.
-    #
-    # **유형만 번진다.** 종명·코멘트는 판마다 따로 하는 판단이 아니라 개체의
-    # 성질이지만, 번지게 할지는 사람이 정할 일이라 여기서 앞서가지 않는다
-    # (`_spread_link_labels` 머리말의 선과 같다).
-    spread = ({} if cls is None
-              else _spread_link_labels(vp, cur.image, batch, {key},
-                                       {key: obj.label}))
+    # 화면이 고쳐야 할 다른 판들 — **쓰지 않는다, 알리기만 한다** (P12).
+    # 개체가 값을 들고 있으므로 이미 다 반영돼 있지만, 다른 판의 화면 상태는
+    # 열릴 때 받은 것이라 그것을 모른다. 그 판에서 다음 저장이 나가면 자기가
+    # 아는 빈 값을 보내 **방금 적은 것을 지운다** (104 에서 겪은 자리다).
+    spread = ({} if (cls is None and species is None)
+              else linked_siblings(dobj, image_id))
 
     # 표시가 하나도 안 남았으면 지운다. **사람이 그린 개체는 남긴다** — 그 줄이
     # 곧 개체다.
-    empty = not (obj.removed or obj.accepted or obj.label or obj.note
-                 or obj.species or obj.geom_edited)
+    empty = not (obj.removed or obj.accepted or dobj.label or obj.note
+                 or dobj.species or obj.geom_edited)
     n_spread = sum(len(v) for v in spread.values())
     if empty and obj.source != "manual":
+        oid = obj.diatom_object_id
         obj.delete()
+        prune_objects([oid])
         return {"species": "", "cls": "", "note": "", "kept": False,
                 "spread": n_spread}
-    return {"species": obj.species, "cls": obj.label, "note": obj.note,
+    return {"species": dobj.species, "cls": dobj.label, "note": obj.note,
             "kept": True, "spread": n_spread}
 
 
 def species_seen(slug: str = "") -> list[str]:
     """이미 쓴 종명들 — 카드의 **자동완성** 목록.
 
-    목록으로 가두지 않는 대신 이것을 준다 (`ObjectReview.species` 머리말).
+    목록으로 가두지 않는 대신 이것을 준다 (`DiatomObject.species` 머리말).
     같은 종을 `Eucampia antarctica` 와 `Eucampia  antarctica` 로 두 번 적는 일이
     표에서만 드러나면 이미 늦다.
 
     **관찰을 안 가린다.** 종 이름은 슬라이드에 매인 것이 아니고, 옆 시료에서
     이미 쓴 이름이야말로 지금 쓰려는 것이다.
     """
-    return sorted(ObjectReview.objects.exclude(species="")
+    return sorted(DiatomObject.objects.exclude(species="")
                   .values_list("species", flat=True).distinct())
 
 
@@ -1274,9 +1340,14 @@ def object_links_of(vp) -> list[dict]:
     멤버는 `(image, mask_key)` 로 화면의 마스크와 만난다 — 화면 쪽 `keyOf` 와
     같은 규칙이다. batch 는 안 낸다: 화면은 검토 대상 묶음 하나만 보고 있고,
     다른 묶음의 마스크는 애초에 안 그려진다.
+
+    **멤버가 둘 이상인 것만 낸다.** P12 이후 판정마다 개체가 하나씩 서지만
+    화면이 말하는 "묶음" 은 여전히 *여러 판이 한 규조각* 인 것이다 — 1:1 까지
+    내면 화면이 마스크마다 묶음 표시를 그린다.
     """
     out = []
-    for l in (ObjectLink.objects.filter(viewpoint=vp)
+    for l in (DiatomObject.objects.filter(viewpoint=vp)
+              .annotate(n_members=Count("members")).filter(n_members__gte=2)
               .prefetch_related("members")):
         out.append({
             "id": l.pk,
@@ -1382,7 +1453,7 @@ def _with_reviews(vp: Viewpoint, det, batch_id) -> dict:
     # 회차에도 안 속한다 — 엔진에 대한 판단이 아니라 **이미지에 대한 사실**이라
     # 회차를 갈아타도 그 자리에 있어야 한다. 거르면 화면에서 사라지고, 사라지면
     # 다음 저장에 지워진다(2단계에서 본 그 길이다).
-    reviews = {o.mask_key: o for o in vp.object_reviews.all()
+    reviews = {o.mask_key: o for o in reviews_of(vp)
                if o.image_id == det.image_id
                and (o.batch_id == batch_id or o.batch_id is None)}
     # **`batch_id` 를 넘긴다.** 안 넘기면 `review_state` 가 검토 대상 묶음을
@@ -1434,7 +1505,7 @@ def _viewpoints_by_stem(stem: str) -> list:
     안 쓰고 `.first()` 로 아무거나 집고 있었다. 고르는 일은 부르는 쪽에 맡긴다.
     """
     qs = (Viewpoint.objects
-          .prefetch_related("detections__candidates", "object_reviews"))
+          .prefetch_related("detections__candidates", _reviews_prefetch()))
     if stem.endswith("_focused"):
         return list(qs.filter(tag=stem[: -len("_focused")]))
     ids = (Frame.objects.filter(name=stem)
@@ -1474,7 +1545,7 @@ def find_viewpoint(stem: str = "", slug: str = "",
     """
     if slug and gid is not None:
         vp = (Viewpoint.objects
-              .prefetch_related("detections__candidates", "object_reviews")
+              .prefetch_related("detections__candidates", _reviews_prefetch())
               .filter(slide__slug=slug, idx=gid).first())
         if vp is None:
             return None, f"모르는 시야다: {slug} g{gid}"
@@ -1531,7 +1602,7 @@ def stack_for(tag: str) -> dict | None:
     st = (Stack.objects.filter(viewpoint__tag=tag)
           .select_related("viewpoint")
           .prefetch_related("viewpoint__detections__candidates",
-                            "viewpoint__object_reviews").first())
+                            "viewpoint__object_reviews__diatom_object").first())
     if st is None:
         return None
     return _stack_dict(st, detection_for_viewpoint(st.viewpoint))
@@ -1617,7 +1688,7 @@ WITH rep AS (
      WHERE d.is_current AND rb.for_review
 )
 SELECT v.slide_id AS slide_id,
-       CASE WHEN r.label IS NOT NULL AND r.label <> '' THEN r.label
+       CASE WHEN o.label IS NOT NULL AND o.label <> '' THEN o.label
             WHEN NOT c.passed THEN CASE
                  WHEN c.elongation < 1.4 THEN 'round'
                  WHEN c.elongation >= 2.0 AND c.elongation <= 20.0 THEN 'rod'
@@ -1628,13 +1699,16 @@ SELECT v.slide_id AS slide_id,
        COUNT(*) FILTER (WHERE c.passed)                                     AS n_auto,
        COUNT(*) FILTER (WHERE ((c.passed AND NOT COALESCE(r.removed, 0))
                             OR (NOT c.passed AND COALESCE(r.accepted, 0)))
-                          AND r.label IS NOT NULL AND r.label <> '')        AS n_labeled
+                          AND o.label IS NOT NULL AND o.label <> '')        AS n_labeled
 FROM viewer_candidate c
 JOIN rep ON rep.det_id = c.detection_id AND rep.rn = 1
 JOIN viewer_viewpoint v ON v.id = rep.viewpoint_id
 LEFT JOIN viewer_objectreview r
        ON r.image_id = rep.image_id AND r.mask_key = c.mask_key
       AND r.batch_id IS rep.batch_id
+-- 분류는 개체에 산다 (P12). `LEFT JOIN` 이라 판정이 없으면 `o.label` 도 NULL 이고,
+-- 아래 `IS NOT NULL` 검사가 예전 그대로 걸린다.
+LEFT JOIN viewer_diatomobject o ON o.id = r.diatom_object_id
 WHERE {where}
 GROUP BY v.slide_id, eff_cls
 
@@ -1650,11 +1724,12 @@ UNION ALL
 -- `n_auto` 는 0 이다. 엔진이 낸 것이 아니라 사람이 만든 것이라, "자동 검출
 -- 몇 개" 에 섞이면 엔진 성적을 잘못 읽는다.
 SELECT v.slide_id AS slide_id,
-       COALESCE(NULLIF(r.label, ''), '') AS eff_cls,
+       COALESCE(NULLIF(o.label, ''), '') AS eff_cls,
        COUNT(*)                                                  AS n_kept,
        0                                                         AS n_auto,
-       COUNT(*) FILTER (WHERE r.label IS NOT NULL AND r.label <> '') AS n_labeled
+       COUNT(*) FILTER (WHERE o.label IS NOT NULL AND o.label <> '') AS n_labeled
 FROM viewer_objectreview r
+JOIN viewer_diatomobject o ON o.id = r.diatom_object_id
 JOIN rep ON rep.image_id = r.image_id AND rep.rn = 1
 JOIN viewer_viewpoint v ON v.id = rep.viewpoint_id
 WHERE r.batch_id IS NULL AND r.source = 'manual' AND {where}
@@ -1689,7 +1764,7 @@ WITH rep AS (
      WHERE d.is_current AND rb.for_review
 )
 SELECT rep.viewpoint_id, c.polygon,
-       CASE WHEN r.label IS NOT NULL AND r.label <> '' THEN r.label
+       CASE WHEN o.label IS NOT NULL AND o.label <> '' THEN o.label
             WHEN NOT c.passed THEN 'manual'
             ELSE COALESCE(NULLIF(c.cls, ''), 'none') END AS mask_cls
 FROM viewer_candidate c
@@ -1698,6 +1773,9 @@ JOIN viewer_viewpoint v ON v.id = rep.viewpoint_id
 LEFT JOIN viewer_objectreview r
        ON r.image_id = rep.image_id AND r.mask_key = c.mask_key
       AND r.batch_id IS rep.batch_id
+-- 분류는 개체에 산다 (P12). `LEFT JOIN` 이라 판정이 없으면 `o.label` 도 NULL 이고,
+-- 아래 `IS NOT NULL` 검사가 예전 그대로 걸린다.
+LEFT JOIN viewer_diatomobject o ON o.id = r.diatom_object_id
 WHERE v.slide_id = %s
   AND ((c.passed AND NOT COALESCE(r.removed, 0))
        OR (NOT c.passed AND COALESCE(r.accepted, 0)))
@@ -2212,7 +2290,7 @@ def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False
         Prefetch("detections",
                  queryset=dets.select_related("image")
                               .prefetch_related("candidates")),
-        "object_reviews")
+        _reviews_prefetch())
 
 
 def dataset_detail(slug: str) -> dict | None:
@@ -2672,7 +2750,7 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # 아무 표시도 안 남은 행을 예전처럼 지운다.
     keys |= set(ObjectReview.objects
                 .filter(image=image, batch=batch)
-                .exclude(species="")
+                .exclude(diatom_object__species="")
                 .values_list("mask_key", flat=True))
     # **그 검출의 개체만 본다.** 예전에는 시야의 현재 검출 전부를 훑었는데,
     # 시야마다 현재 검출이 하나일 때만 같은 뜻이다 — 여럿이면 **프레임 A 의 키가
@@ -2719,14 +2797,9 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
         ViewpointReview.objects.filter(viewpoint=vp, batch=None).delete()
     for key in keys:
         cand = by_key.get(key)
-        obj, _ = ObjectReview.objects.get_or_create(
-            image=image, batch=batch, mask_key=key,
-            defaults={"viewpoint": vp, "candidate": cand,
-                      "bind_method": "exact" if cand else "orphan",
-                      "bind_score": 1.0 if cand else None})
+        obj = judgement_for(vp, image, batch, key, cand)
         obj.removed = key in removed
         obj.accepted = key in accepted
-        obj.label = labels.get(key, "")
         obj.note = notes.get(key, "")
         if cand and obj.candidate_id != cand.id:
             obj.candidate = cand
@@ -2765,22 +2838,39 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # **`batch=None` 인 행은 안 지운다.** 사람이 그린 개체이고, 그것은 어느
     # 묶음에도 속하지 않아 이 payload 가 대표하지 않는다 (P09 5.2). 지우는 것은
     # 3단계에서 `drawn` 목록이 맡는다.
-    (ObjectReview.objects.filter(image=image, batch=batch)
-     .exclude(mask_key__in=keys).delete())
+    # **분류를 개체에 앉힌다** (P12). 묶여 있으면 그 개체를 나눠 가진 다른 판이
+    # 같은 값을 보게 된다 — 104 가 저장할 때마다 판마다 적어 넣던 일이 자리
+    # 하나로 바뀌었다.
+    #
+    # **`keys` 가 아니라 `known` 을 훑는다.** 지정을 *물리면* 그 키는 payload 의
+    # `labels` 에서 사라지고 다른 표시도 없으면 `keys` 에도 안 들어온다 — `keys`
+    # 만 보면 **물림이 개체에 안 닿아 다른 판에 옛 분류가 남는다.** 옛
+    # `_spread_link_labels` 도 같은 이유로 `known` 을 봤다.
+    touched = []
+    for row in (ObjectReview.objects.filter(image=image, batch=batch,
+                                            mask_key__in=known)
+                .select_related("diatom_object")):
+        want = labels.get(row.mask_key, "")
+        dobj = row.diatom_object
+        if dobj.label != want:
+            dobj.label = want
+            dobj.save(update_fields=["label", "updated_at"])
+            touched.append(dobj)
+
+    stale = (ObjectReview.objects.filter(image=image, batch=batch)
+             .exclude(mask_key__in=keys))
+    orphaned = list(stale.values_list("diatom_object_id", flat=True))
+    stale.delete()
+    # **판정을 지운 뒤에 개체를 걷는다.** 순서를 바꾸면 `CASCADE` 가 살아 있는
+    # 판정까지 끌고 간다.
+    prune_objects(orphaned)
 
     n_drawn = _save_drawn(vp, image, drawn, (cur.width, cur.height))
 
-    # **묶인 개체는 분류를 함께 받는다** (P11 · 2026-08-10).
-    #
-    # 묶음은 "이 판들의 이것이 같은 개체다" 라는 말이므로, 그중 하나가 봉상이면
-    # 나머지도 봉상이다. 사람이 판을 넘겨 다시 지정하게 두면 **틀릴 수 있는 일**
-    # 이 되고(한 판만 다르게 지정된 묶음은 학습 자료에서 모순이다), 무엇보다
-    # 같은 판단을 판 수만큼 되풀이하게 된다.
-    wants = dict(labels)
-    for it in (drawn or []):
-        if it.get("key"):
-            wants[str(it["key"])] = it.get("cls") or ""
-    spread = _spread_link_labels(vp, image, batch, known, wants)
+    # 묶인 판들에 **화면 상태를 맞추라고 알린다** (P12 · 옛 104 의 전파 자리).
+    # 값은 이미 개체 하나에 앉아 있어 고칠 것이 없다 — 다른 판의 화면이 그것을
+    # 모르는 것만 남았다.
+    spread = linked_siblings(touched, getattr(image, "pk", image))
 
     out = {"removed": len(removed), "accepted": len(accepted),
            "labels": len(labels), "notes": len(notes)}
@@ -2794,64 +2884,30 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     return out
 
 
-def _spread_link_labels(vp, image, batch, known, wants) -> dict:
-    """이 이미지에서 정한 분류를 **같은 묶음의 다른 판**에 번지게 한다.
+def linked_siblings(objs, except_image_id) -> dict:
+    """이 개체를 나눠 가진 **다른 판의 마스크들**. `{이미지 id: {mask_key: 분류}}`.
 
-    돌려주는 것은 `{이미지 id: {mask_key: 분류}}` — 바뀐 것만 담는다.
+    **아무것도 쓰지 않는다 — 알리기만 한다.** P12 이후 분류는 개체 하나에 살아
+    이미 모든 판에 반영돼 있다. 예전(104)의 `_spread_link_labels` 는 판마다 행을
+    고쳐 앉히는 일이었고, 그것을 지키는 검사와 소급 불가 문제를 함께 달고
+    있었다. 지금 남은 일은 **화면에 알리는 것뿐**이다.
 
-    **이 payload 가 대표하는 개체만 본다** (`known`). 화면에 없던 키까지 훑으면
-    다른 화면이 정한 것을 이쪽의 빈칸으로 덮는다.
+    알려야 하는 이유는 그대로다: 다른 판의 화면 상태는 열릴 때 받은 것이라
+    방금 바뀐 분류를 모르고, 그 판에서 다음 저장이 나가면 **자기가 아는 빈 값을
+    보내 지운다** (뷰어는 늘 전체를 보낸다).
 
-    `""` 는 "분류 없음" 이고 그것도 번진다 — 지정을 물렀는데 다른 판에만 남아
-    있으면 묶음 안에서 어긋난다. 다만 **분류 말고는 아무것도 안 건드린다**:
-    삭제·되살림·코멘트·종명은 판마다 따로 하는 판단이다.
+    `except_image_id` 는 방금 저장한 판이다 — 그 화면은 이미 알고 있다.
     """
-    mine = list(ObjectLinkMember.objects
-                .filter(link__viewpoint=vp, image=image,
-                        mask_key__in=list(known))
-                .select_related("link"))
-    if not mine:
+    objs = [objs] if isinstance(objs, DiatomObject) else list(objs)
+    if not objs:
         return {}
-    # 이 화면이 대표하지 않는 것은 뺀다 — 사람이 그린 개체(batch=None)는 자기
-    # 묶음(batch)이 없고, 엔진 개체는 이 판의 묶음이라야 한다.
-    mine = [m for m in mine if m.batch_id in (batch.pk, None)]
-    if not mine:
-        return {}
-
+    by_obj = {o.pk: o for o in objs}
     out = {}
-    sibs = (ObjectLinkMember.objects
-            .filter(link_id__in={m.link_id for m in mine})
-            .exclude(pk__in=[m.pk for m in mine])
-            .select_related("image"))
-    by_link = {}
-    for s in sibs:
-        by_link.setdefault(s.link_id, []).append(s)
-
-    for m in mine:
-        want = wants.get(m.mask_key, "")
-        for s in by_link.get(m.link_id, []):
-            row = ObjectReview.objects.filter(
-                image_id=s.image_id, batch_id=s.batch_id,
-                mask_key=s.mask_key).first()
-            if row is None:
-                if not want:
-                    continue          # 없던 행을 빈 분류로 만들 이유가 없다
-                row = ObjectReview(viewpoint=vp, image_id=s.image_id,
-                                   batch_id=s.batch_id, mask_key=s.mask_key,
-                                   bind_method="exact", geom=s.geom)
-            elif row.label == want:
-                continue              # 이미 같다 — 화면에 알릴 것도 없다
-            row.label = want
-            # **빈 껍데기는 안 남긴다.** 분류를 물렀는데 표시가 하나도 없는 행이
-            # 남으면, 그 판의 다음 저장이 "표시가 사라진 행" 으로 보고 지운다 —
-            # 결과는 같지만 그때까지 세는 자리마다 유령이 하나씩 는다.
-            if (not want and row.pk and not row.removed and not row.accepted
-                    and not row.note and not getattr(row, "species", "")
-                    and not row.geom_edited):
-                row.delete()
-            else:
-                row.save()
-            out.setdefault(str(s.image_id), {})[s.mask_key] = want
+    for m in (ObjectReview.objects.filter(diatom_object_id__in=by_obj)
+              .exclude(image_id=except_image_id)
+              .values_list("diatom_object_id", "image_id", "mask_key")):
+        oid, image_id, key = m
+        out.setdefault(str(image_id), {})[key] = by_obj[oid].label
     return out
 
 
@@ -2927,18 +2983,23 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0)) -> int | None:
                      item.get("cls") or "", item.get("note") or ""))
 
     for key, geom, cls, note in keep:
-        obj, _ = ObjectReview.objects.get_or_create(
-            image=image, batch=None, mask_key=key,
-            defaults={"viewpoint": vp, "source": "manual",
-                      "bind_method": "manual"})
+        obj = judgement_for(vp, image, None, key)
         obj.source = "manual"
+        obj.bind_method = "manual"
         obj.geom = geom
-        obj.label = cls
         obj.note = note
         obj.save()
+        # 분류는 개체에 앉는다 (P12)
+        dobj = obj.diatom_object
+        if dobj.label != cls:
+            dobj.label = cls
+            dobj.save(update_fields=["label", "updated_at"])
 
-    (ObjectReview.objects.filter(image=image, batch__isnull=True)
-     .exclude(mask_key__in=[k for k, *_ in keep]).delete())
+    stale = (ObjectReview.objects.filter(image=image, batch__isnull=True)
+             .exclude(mask_key__in=[k for k, *_ in keep]))
+    orphaned = list(stale.values_list("diatom_object_id", flat=True))
+    stale.delete()
+    prune_objects(orphaned)
     return len(keep)
 
 

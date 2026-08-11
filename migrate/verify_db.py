@@ -165,15 +165,18 @@ check("시야 코멘트", j_gnote, ViewpointReview.objects.exclude(note="").coun
 check("개체 교정 행", j_rows, ObjectReview.objects.count())
 check("삭제", j_removed, ObjectReview.objects.filter(removed=True).count())
 check("되살림", j_accepted, ObjectReview.objects.filter(accepted=True).count())
-check("분류 지정", j_labels, ObjectReview.objects.exclude(label="").count())
+check("분류 지정", j_labels,
+      ObjectReview.objects.exclude(diatom_object__label="").count())
 check("개체 코멘트", j_notes, ObjectReview.objects.exclude(note="").count())
 
 jl = Counter()
 for r in reviews.values():
     for v in (r.get("labels") or {}).values():
         jl[v] += 1
-dbl = dict(ObjectReview.objects.exclude(label="").values_list("label")
-           .annotate(n=Count("id")).values_list("label", "n"))
+dbl = dict(ObjectReview.objects.exclude(diatom_object__label="")
+           .values_list("diatom_object__label")
+           .annotate(n=Count("id"))
+           .values_list("diatom_object__label", "n"))
 for k in sorted(set(jl) | set(dbl)):
     check(f"label={k}", jl.get(k, 0), dbl.get(k, 0))
 

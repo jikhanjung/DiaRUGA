@@ -117,7 +117,8 @@ class MultiImageViewpointTest(DiaRUGATestCase):
     def test_프레임에_저장하면_프레임_이미지에_앉는다(self):
         k = self.w.keys()[0]
         self.post(self.full(image=self.frame_img.pk, labels={k: "rod"}))
-        obj = ObjectReview.objects.get(mask_key=k, label="rod")
+        obj = ObjectReview.objects.get(mask_key=k,
+                                         diatom_object__label="rod")
         self.assertEqual(obj.image_id, self.frame_img.pk)
 
     def test_프레임_저장이_합성본_교정을_안_지운다(self):
@@ -144,7 +145,8 @@ class MultiImageViewpointTest(DiaRUGATestCase):
         """옛 화면(배포 중에 열려 있던 탭)이 그렇다 — 예전과 결과가 같다."""
         k = self.w.keys()[0]
         self.post(self.full(labels={k: "rod"}))
-        self.assertEqual(ObjectReview.objects.get(mask_key=k, label="rod")
+        self.assertEqual(ObjectReview.objects.get(mask_key=k,
+                                         diatom_object__label="rod")
                          .image_id, self.stack_det.image_id)
 
     # --- 짚은 것이 이 시야의 것인가 -----------------------------------------
@@ -258,7 +260,7 @@ class SummaryCountsOneImageTest(DiaRUGATestCase):
         det = self.w.detection()
         old, _ = RunBatch.objects.get_or_create(kind="detect", label="옛회차")
         for c in det.candidates.all():              # 같은 키, 다른 묶음
-            ObjectReview.objects.create(
+            fx.new_review(
                 viewpoint=self.w.vp, image=det.image, batch=old,
                 mask_key=c.mask_key, label="rod",
                 geom={"bbox": c.bbox_xywh, "polygon": list(c.polygon)})
@@ -293,7 +295,7 @@ class OrphanReviewSurvivesTest(DiaRUGATestCase):
     def orphan(self):
         """현재 검출에 대응 후보가 없는 교정 — 사람의 판단만 남은 것."""
         det = self.w.detection()
-        return ObjectReview.objects.create(
+        return fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key="900_900_50_50", bind_method="orphan", label="eucampia",
             note="엔진이 놓친 것", geom={"bbox": [900, 900, 50, 50],

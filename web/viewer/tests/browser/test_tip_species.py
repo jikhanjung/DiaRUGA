@@ -14,7 +14,7 @@ from django.urls import reverse
 from .base import BrowserTestCase
 from .. import factories as fx
 from ... import data
-from ...models import ObjectReview, RunBatch
+from ...models import DiatomObject, ObjectReview, RunBatch
 
 SPECIES = "Eucampia antarctica"
 
@@ -29,7 +29,7 @@ class TipSpeciesTest(BrowserTestCase):
         det = self.w.detection()
         self.key = self.w.keys()[0]
         self.cand = det.candidates.get(mask_key=self.key)
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key=self.key, bind_method="exact",
             label="rod", species=SPECIES)
@@ -88,7 +88,7 @@ class TipSpeciesTest(BrowserTestCase):
     def test_꺽쇠가_든_종명도_그대로_보인다(self):
         """**글자를 그대로 심으면 `<` 하나가 말풍선을 통째로 망가뜨린다** —
         예외도 안 나고 그냥 안 보인다. 종명은 자유 입력이다."""
-        ObjectReview.objects.filter(mask_key=self.key).update(
+        DiatomObject.objects.filter(members__mask_key=self.key).update(
             species="Eucampia <sp.> aff. antarctica")
         page = self.open_view()
         self.hover_it(page)

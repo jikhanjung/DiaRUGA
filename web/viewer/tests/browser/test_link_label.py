@@ -15,7 +15,7 @@ from django.urls import reverse
 
 from .base import BrowserTestCase
 from .. import factories as fx
-from ...models import Image, ObjectLink, ObjectLinkMember, ObjectReview, RunBatch
+from ...models import Image, ObjectReview, RunBatch
 
 
 class LinkLabelSpreadBrowserTest(BrowserTestCase):
@@ -33,11 +33,11 @@ class LinkLabelSpreadBrowserTest(BrowserTestCase):
         # 합성본과 첫 프레임의 같은 자리를 한 개체로 묶어 둔다 — 픽스처가 판마다
         # 같은 자리에 후보를 세우므로 `mask_key` 가 그대로 맞는다.
         self.key = self.w.keys()[0]
-        link = ObjectLink.objects.create(viewpoint=self.w.vp, batch=self.batch)
-        for i, img in enumerate((self.stack_img, self.frame_img)):
-            ObjectLinkMember.objects.create(
-                link=link, image=img, batch=self.batch, mask_key=self.key,
-                is_rep=(i == 0), geom={"bbox_xywh": [40, 50, 60, 40]})
+        rows = [fx.new_review(viewpoint=self.w.vp, image=img, batch=self.batch,
+                              mask_key=self.key, bind_method="exact",
+                              geom={"bbox_xywh": [40, 50, 60, 40]})
+                for img in (self.stack_img, self.frame_img)]
+        fx.link_reviews(rows, rep=0)
 
     def open_review(self):
         page = self.open(reverse("group", args=[self.w.slug, self.w.vp.idx]))
@@ -129,10 +129,10 @@ class LinkUnifyBrowserTest(BrowserTestCase):
         self.frame, self.frame_img, _ = self.extra[0]
         self.key = self.w.keys()[0]
         # **판마다 다른 분류를 미리 적어 둔다** — 묶기 전에 벌어지는 상황 그대로
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=self.stack_img, batch=self.batch,
             mask_key=self.key, label="rod")
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=self.frame_img, batch=self.batch,
             mask_key=self.key, label="round")
 
@@ -152,7 +152,7 @@ class LinkUnifyBrowserTest(BrowserTestCase):
 
     def labels(self):
         return sorted(ObjectReview.objects.filter(mask_key=self.key)
-                      .values_list("label", flat=True))
+                      .values_list("diatom_object__label", flat=True))
 
     def test_엇갈리면_알린다(self):
         page = self.open_panel()
@@ -180,7 +180,7 @@ class LinkUnifyBrowserTest(BrowserTestCase):
         page.query_selector(".linkpanel .lfoot .btn").click()
         page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
 
-        link = ObjectLink.objects.get()
+        link = fx.links().get()
         n = link.members.count()
         self.assertGreaterEqual(n, 2)
         # 미리 고르기가 프레임을 여럿 잡으므로 멤버 수는 자료가 정한다 —
@@ -189,10 +189,19 @@ class LinkUnifyBrowserTest(BrowserTestCase):
         self.assertEqual(len(self.labels()), n,
                          "멤버 수만큼 안 앉았다 (행이 없던 판을 빠뜨렸다)")
 
-    def test_안_고르면_아무것도_안_덮는다(self):
+    def test_안_고르면_묶기가_거절된다(self):
+        """**P12 에서 뜻이 옮겨 갔다.** 예전에는 분류가 판마다 살아서 "묶되
+        아무것도 안 덮는다" 가 가능했다. 지금은 개체가 값을 하나만 들 수 있어
+        **"그대로" 가 성립하지 않는다** — 그릇의 값이 남의 동정을 덮는다.
+
+        그래서 서버가 거절한다. 지키는 것은 같다: **사람이 적은 것을 자동으로
+        덮지 않는다.** 화면은 팝업이 물어보게 돼 있고, 여기 걸리는 것은 그
+        팝업을 안 지난 요청이다.
+        """
+        self.expect_http_error(409)          # 서버가 거절하는 것이 이 시험이다
         page = self.open_panel()
         page.query_selector(".linkpanel .lfoot .btn").click()
-        page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
-        self.assertEqual(ObjectLink.objects.count(), 1, "묶이지도 않았다")
+        page.wait_for_timeout(500)
+        self.assertEqual(fx.links().count(), 0, "덮으면서 묶였다")
         self.assertEqual(self.labels(), ["rod", "round"],
                          "고르지도 않았는데 분류가 덮였다")

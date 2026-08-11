@@ -20,7 +20,7 @@ from django.urls import reverse
 from . import factories as fx
 from .base import DiaRUGATestCase
 from .. import data
-from ..models import (ObjectLink, ObjectLinkMember, ObjectReview,
+from ..models import (DiatomObject, ObjectReview,
                       RunBatch)
 
 
@@ -65,7 +65,7 @@ class CatalogPageTest(DiaRUGATestCase):
 
     def test_동정_안_한_것만_거른다(self):
         row = data.catalog_rows("rs23")[0]
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint_id=row["group_id"] and self.w.viewpoints[row["group_id"]].pk
             or self.w.vp.pk,
             image_id=row["image_id"], batch_id=row["batch_id"],
@@ -86,7 +86,7 @@ class CatalogPageTest(DiaRUGATestCase):
 
     def test_종명으로_찾는다(self):
         row = data.catalog_rows("rs23")[0]
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image_id=row["image_id"],
             batch_id=row["batch_id"], mask_key=row["key"],
             bind_method="exact", species="Eucampia antarctica")
@@ -94,7 +94,7 @@ class CatalogPageTest(DiaRUGATestCase):
 
     def test_코멘트로_찾는다(self):
         row = data.catalog_rows("rs23")[0]
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image_id=row["image_id"],
             batch_id=row["batch_id"], mask_key=row["key"],
             bind_method="exact", note="가장자리가 넘쳤다")
@@ -204,7 +204,7 @@ class SaveCatalogTest(DiaRUGATestCase):
 
     def test_삭제_되살림을_안_건드린다(self):
         """그것은 검토 화면이 하는 판단이다."""
-        o = ObjectReview.objects.create(
+        o = fx.new_review(
             viewpoint=self.w.vp, image_id=self.r0["image_id"],
             batch_id=self.r0["batch_id"], mask_key=self.r0["key"],
             bind_method="exact", removed=True)
@@ -225,7 +225,7 @@ class SaveCatalogTest(DiaRUGATestCase):
         other_img = data.catalog_rows("rs23-b")[0]["image_id"]
         out = self.post(409, image=other_img, species="x")
         self.assertIn("현재 검출이 없다", out["error"])
-        self.assertFalse(ObjectReview.objects.filter(species="x").exists())
+        self.assertFalse(DiatomObject.objects.filter(species="x").exists())
 
     def test_모르는_유형은_409(self):
         out = self.post(409, cls="없는분류")
@@ -234,7 +234,7 @@ class SaveCatalogTest(DiaRUGATestCase):
     def test_모르는_시야는_409(self):
         out = self.post(409, gid=999, species="x")
         self.assertIn("모르는 시야", out["error"])
-        self.assertFalse(ObjectReview.objects.filter(species="x").exists())
+        self.assertFalse(DiatomObject.objects.filter(species="x").exists())
 
     def test_GET_은_안_받는다(self):
         self.assertEqual(self.c.get(self.url).status_code, 405)
@@ -263,19 +263,18 @@ class SpreadLabelTest(DiaRUGATestCase):
         self.key = self.w.keys()[0]
         self.frame_img = self.w.vp.images.filter(kind="frame").first()
         self.sib_key = "500_500_20_20"
-        link = ObjectLink.objects.create(viewpoint=self.w.vp,
-                                        batch=self.det.batch)
         # **실제 저장이 쓰는 기하 모양이다** (`bbox_xywh`).
-        ObjectLinkMember.objects.create(
-            link=link, image=self.det.image, batch=self.det.batch,
-            mask_key=self.key, is_rep=True,
-            geom={"bbox_xywh": [10, 10, 30, 30],
-                  "polygon": [10, 10, 40, 10, 40, 40, 10, 40]})
-        ObjectLinkMember.objects.create(
-            link=link, image=self.frame_img, batch=self.det.batch,
-            mask_key=self.sib_key,
-            geom={"bbox_xywh": [20, 20, 40, 40],
-                  "polygon": [20, 20, 60, 20, 60, 60, 20, 60]})
+        rows = [
+            fx.new_review(viewpoint=self.w.vp, image=self.det.image,
+                          batch=self.det.batch, mask_key=self.key,
+                          geom={"bbox_xywh": [10, 10, 30, 30],
+                                "polygon": [10, 10, 40, 10, 40, 40, 10, 40]}),
+            fx.new_review(viewpoint=self.w.vp, image=self.frame_img,
+                          batch=self.det.batch, mask_key=self.sib_key,
+                          geom={"bbox_xywh": [20, 20, 40, 40],
+                                "polygon": [20, 20, 60, 20, 60, 60, 20, 60]}),
+        ]
+        fx.link_reviews(rows, rep=0)
 
     def post(self, expect=200, **fields):
         p = {"gid": self.w.vp.idx, "image": self.det.image_id, "key": self.key}
@@ -293,25 +292,29 @@ class SpreadLabelTest(DiaRUGATestCase):
         """**이 시험이 이 클래스의 이유다.**"""
         out = self.post(cls="rod")
         self.assertEqual(out["spread"], 1, out)
-        self.assertIsNotNone(self.sib(), "묶음의 다른 판에 행이 안 생겼다")
         self.assertEqual(self.sib().label, "rod")
 
     def test_물러도_함께_물린다(self):
         """지정을 물렀는데 다른 판에만 남아 있으면 묶음 안에서 어긋난다."""
         self.post(cls="rod")
         self.post(cls="")
-        self.assertIsNone(self.sib(), "빈 껍데기가 남았다")
+        self.assertEqual(self.sib().label, "")
 
-    def test_종명은_안_번진다(self):
-        """번지게 할지는 사람이 정할 일이라 앞서가지 않는다
-        (`_spread_link_labels` 가 그은 선과 같다)."""
+    def test_종명도_함께_앉는다(self):
+        """**P12 에서 뒤집혔다.** 예전에는 "종명은 안 번진다" 가 규칙이었다 —
+        분류만 번지게 해 놓고 종명은 판마다 따로 살았기 때문이다. 지금은 둘 다
+        개체의 성질이라 같은 자리에 있고, **번질 것이 없다.**
+
+        P12 가 "그때까지의 규칙 셋" 으로 적어 둔 것 중 하나가 이것이었다.
+        """
         out = self.post(species="Eucampia antarctica")
-        self.assertEqual(out["spread"], 0)
-        self.assertIsNone(self.sib())
+        self.assertEqual(out["spread"], 1, out)
+        self.assertEqual(self.sib().species, "Eucampia antarctica")
 
-    def test_코멘트도_안_번진다(self):
+    def test_코멘트는_안_번진다(self):
+        """판마다 하는 말이다 — "이 판에서는 초점이 안 맞는다" 같은 것."""
         self.post(note="가장자리가 넘쳤다")
-        self.assertIsNone(self.sib())
+        self.assertEqual(self.sib().note, "")
 
     def test_안_묶인_개체는_번질_곳이_없다(self):
         other = data.catalog_rows("rs23")[1]
@@ -365,7 +368,7 @@ class ReadOnlyTest(DiaRUGATestCase):
                              "key": row["key"], "species": "몰래"}),
             content_type="application/json")
         self.assertEqual(r.status_code, 409)
-        self.assertFalse(ObjectReview.objects.filter(species="몰래").exists())
+        self.assertFalse(DiatomObject.objects.filter(species="몰래").exists())
 
 
 class NoCodeTest(DiaRUGATestCase):

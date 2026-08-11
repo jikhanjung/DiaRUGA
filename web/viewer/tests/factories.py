@@ -28,11 +28,14 @@
 """
 from dataclasses import dataclass, field
 
+from django.db.models import Count
+
 from .base import write_image
 from .. import data
 from ..images import ensure_frame_image, ensure_stack_images
 from ..models import (Candidate, ClassDef, Detection, Frame, Image, Locality,
-                      ObjectReview, Run, RunBatch, Sample, Site, Slide, Stack,
+                      DiatomObject, ObjectReview, Run, RunBatch, Sample, Site,
+                      Slide, Stack,
                       ThresholdSet, Viewpoint, ViewpointReview)
 
 
@@ -393,7 +396,7 @@ def add_other_engine(vp, *, label=None, n_candidates=2, frames=False,
 
 
 def add_review(vp, mask_key, *, image=None, removed=False, accepted=False,
-               label="", note="") -> ObjectReview:
+               label="", note="", species="") -> ObjectReview:
     """교정 한 줄. **`(image, batch, mask_key)` 가 열쇠다.**
 
     `geom` 을 반드시 채운다 — 교정은 기하를 스스로 들고 있어야 검출기가 바뀌어도
@@ -402,6 +405,10 @@ def add_review(vp, mask_key, *, image=None, removed=False, accepted=False,
 
     `image` 를 주면 그 이미지의 현재 검출에 붙인다. 안 주면 대표 이미지다 —
     `World.detection()` 과 같은 규칙을 본다(둘로 갈라지면 어긋난다).
+
+    **개체(`DiatomObject`)를 함께 세운다** (P12). 판정은 개체 없이 설 수 없고,
+    분류·종명은 그쪽에 산다 — 여기서 갈래를 만들면 시험 자료가 운영과 다른
+    모양이 되고, 그런 시험은 덮은 줄 알게 한다.
     """
     if image is None:
         det = data.representative_detection(vp)
@@ -412,10 +419,79 @@ def add_review(vp, mask_key, *, image=None, removed=False, accepted=False,
     geom = {}
     if cand is not None:
         geom = {"bbox": cand.bbox_xywh, "polygon": list(cand.polygon)}
+    obj = DiatomObject.objects.create(viewpoint=vp, batch=det.batch,
+                                      label=label, species=species)
     return ObjectReview.objects.create(
         viewpoint=vp, image=det.image, batch=det.batch, mask_key=mask_key,
         candidate=cand, bind_method="exact" if cand else "orphan", geom=geom,
-        removed=removed, accepted=accepted, label=label, note=note)
+        diatom_object=obj, is_rep=True,
+        removed=removed, accepted=accepted, note=note)
+
+
+def new_review(**kw) -> ObjectReview:
+    """판정 행을 손으로 세우는 자리 — **개체를 함께 세운다** (P12).
+
+    `ObjectReview.objects.create(...)` 를 시험이 직접 부르면 개체가 없어
+    `NOT NULL` 로 죽는다. 그리고 죽지 않게 고치더라도, 시험만 옆문으로 만드는
+    자료는 **운영에 없는 모양**이 된다(이 파일 머리말의 그 규칙이다).
+
+    `label`·`species` 는 개체로 넘긴다. `add_review` 는 후보를 찾아 `geom` 까지
+    채우는 정식 문이고, 이쪽은 **고아·다른 묶음처럼 후보가 없는 자료**를 세울
+    때 쓴다.
+    """
+    label = kw.pop("label", "")
+    species = kw.pop("species", "")
+    obj = kw.pop("diatom_object", None)
+    if obj is None:
+        vp = kw.get("viewpoint") or kw.get("viewpoint_id")
+        if vp is None:
+            # 이미지에서 시야를 얻는다 — 부르는 자리마다 시야를 다시 적게
+            # 하면 그 값이 이미지와 어긋날 자리가 생긴다.
+            img = kw["image"]
+            vp = getattr(img, "viewpoint", None) or Image.objects.get(
+                pk=getattr(img, "pk", img)).viewpoint
+            kw["viewpoint"] = vp
+        vp_id = getattr(vp, "pk", vp)
+        # **둘을 같이 주면 안 된다** — `batch=<객체>` 와 `batch_id=None` 을 함께
+        # 넘기면 뒤엣것이 이겨 묶음이 조용히 비워진다.
+        b = kw.get("batch")
+        obj = DiatomObject.objects.create(
+            viewpoint_id=vp_id, label=label, species=species,
+            **({"batch": b} if b is not None else
+               {"batch_id": kw.get("batch_id")}))
+    kw.setdefault("is_rep", True)
+    return ObjectReview.objects.create(diatom_object=obj, **kw)
+
+
+def links(vp=None):
+    """**묶음** — 멤버가 둘 이상인 개체만 (P12).
+
+    P12 뒤로는 판정마다 개체가 하나씩 서므로 `DiatomObject.objects.count()` 는
+    "묶음 몇 개" 가 아니다. 화면·감사 기록이 말하는 묶음은 여전히 *여러 판이
+    한 규조각* 인 것이고, 시험도 그 눈으로 세야 한다.
+    """
+    qs = (DiatomObject.objects.annotate(_n=Count("members"))
+          .filter(_n__gte=2))
+    return qs if vp is None else qs.filter(viewpoint=vp)
+
+
+def link_reviews(rows, rep=0) -> DiatomObject:
+    """판정 여럿을 **한 개체로 묶는다** (P12). 돌려주는 것은 그 개체.
+
+    묶기는 개체를 합치는 일이라, 그릇 하나만 남기고 나머지는 유령이 된다 —
+    `data.prune_objects` 와 같은 순서로 **옮긴 뒤에** 걷는다.
+    """
+    rows = list(rows)
+    target = rows[rep].diatom_object
+    ghosts = []
+    for i, row in enumerate(rows):
+        if row.diatom_object_id != target.pk:
+            ghosts.append(row.diatom_object_id)
+        row.diatom_object = target
+        row.is_rep = (i == rep)
+        row.save(update_fields=["diatom_object", "is_rep"])
+    DiatomObject.objects.filter(pk__in=ghosts, members__isnull=True).delete()
+    return target
 
 
 def _write(rel):

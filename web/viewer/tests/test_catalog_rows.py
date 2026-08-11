@@ -14,7 +14,7 @@
 from . import factories as fx
 from .base import DiaRUGATestCase
 from .. import data
-from ..models import ObjectLink, ObjectLinkMember, ObjectReview, RunBatch
+from ..models import DiatomObject, ObjectReview, RunBatch
 
 
 class CatalogNumberTest(DiaRUGATestCase):
@@ -128,7 +128,7 @@ class ManualObjectTest(DiaRUGATestCase):
 
     def test_손그림은_꼬리가_M_이다(self):
         det = self.w.detection()
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=None,
             mask_key="m1a2b3c4d", source="manual", bind_method="manual",
             geom={"bbox": [10, 20, 30, 40],
@@ -156,7 +156,7 @@ class SpeciesOnRowTest(DiaRUGATestCase):
     def test_적은_종명이_카드에_온다(self):
         det = self.w.detection()
         key = self.w.keys()[0]
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key=key, bind_method="exact",
             species="Eucampia antarctica")
@@ -171,7 +171,7 @@ class SpeciesOnRowTest(DiaRUGATestCase):
     def test_유형과_따로_온다(self):
         det = self.w.detection()
         key = self.w.keys()[0]
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key=key, bind_method="exact", label="rod",
             species="Eucampia antarctica", note="가장자리가 넘쳤다")
@@ -208,20 +208,21 @@ class LinkedViewTest(DiaRUGATestCase):
         상자로 되돌아갔다**(2026-08-10). 사람이 그린 멤버는 `ObjectReview.geom`
         을 그대로 실어 `bbox` 라서, 한 칸에 두 모양이 섞인다 — 둘 다 밟는다.
         """
-        link = ObjectLink.objects.create(viewpoint=self.w.vp, batch=self.batch)
         (sw, sh), (fw, fh) = sizes
 
         def geom(x, y, w, h):
             return {box_key: [x, y, w, h],
                     "polygon": [x, y, x + w, y, x + w, y + h, x, y + h]}
 
-        ObjectLinkMember.objects.create(
-            link=link, image=self.det.image, batch=self.batch,
-            mask_key=self.key, is_rep=True, geom=geom(10, 10, sw, sh))
-        ObjectLinkMember.objects.create(
-            link=link, image=self.frame_img, batch=self.batch,
-            mask_key="500_500_20_20", geom=geom(20, 20, fw, fh))
-        return link
+        rows = [
+            fx.new_review(viewpoint=self.w.vp, image=self.det.image,
+                          batch=self.batch, mask_key=self.key,
+                          geom=geom(10, 10, sw, sh)),
+            fx.new_review(viewpoint=self.w.vp, image=self.frame_img,
+                          batch=self.batch, mask_key="500_500_20_20",
+                          geom=geom(20, 20, fw, fh)),
+        ]
+        return fx.link_reviews(rows, rep=0)
 
     def row(self):
         return next(x for x in data.catalog_rows("rs23") if x["key"] == self.key)
@@ -247,7 +248,7 @@ class LinkedViewTest(DiaRUGATestCase):
         """`ObjectLinkMember.geom` 은 `bbox_xywh`, 사람이 그린 멤버는 `bbox` 다."""
         for key in ("bbox_xywh", "bbox"):
             with self.subTest(키=key):
-                ObjectLink.objects.all().delete()
+                ObjectReview.objects.all().delete(); DiatomObject.objects.all().delete()
                 self.link((30, 30), (90, 90), box_key=key)
                 self.assertEqual(self.row()["view"]["bbox_xywh"],
                                  [20, 20, 90, 90])
@@ -266,12 +267,10 @@ class LinkedViewTest(DiaRUGATestCase):
 
     def test_멤버가_하나면_건너뛴다(self):
         """묶은 것이 아니라 만들다 만 것이다 — 그림을 바꿀 이유가 없다."""
-        link = ObjectLink.objects.create(viewpoint=self.w.vp, batch=self.batch)
-        ObjectLinkMember.objects.create(
-            link=link, image=self.det.image, batch=self.batch,
-            mask_key=self.key, is_rep=True,
-            geom={"bbox": [10, 10, 30, 30],
-                  "polygon": [10, 10, 40, 10, 40, 40, 10, 40]})
+        fx.new_review(viewpoint=self.w.vp, image=self.det.image,
+                      batch=self.batch, mask_key=self.key,
+                      geom={"bbox": [10, 10, 30, 30],
+                            "polygon": [10, 10, 40, 10, 40, 40, 10, 40]})
         r = self.row()
         self.assertNotIn("view", r)
         self.assertNotIn("linked_n", r)

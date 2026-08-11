@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import Count
 from django.http import (FileResponse, Http404, HttpResponse,
                          HttpResponseBadRequest, JsonResponse)
 from django.shortcuts import redirect, render
@@ -18,8 +19,9 @@ from django.views.decorators.http import require_POST
 
 from . import (antarctica, data, korea, manage_data, outcrop,
                regroup, thresholds as th)
-from .models import (Candidate, Detection, Image as ImageModel,  # noqa: E501
-                     Locality, ObjectLink, ObjectLinkMember,
+from .models import (Candidate, Detection, DiatomObject,  # noqa: E501
+                     Image as ImageModel,
+                     Locality,
                      ObjectReview, Run,
                      Sample, Site,
                      Slide, ThresholdSet, Viewpoint)
@@ -1478,10 +1480,21 @@ def save_object_link(request, slug, gid):
     link_id = payload.get("link_id")
 
     if act == "unlink":
-        link = ObjectLink.objects.filter(pk=link_id, viewpoint=vp).first()
+        link = DiatomObject.objects.filter(pk=link_id, viewpoint=vp).first()
         if link is None:
             return bad("그 묶음이 이 시야에 없다", 404)
-        link.delete()
+        # **개체를 지우지 않는다 — 가른다** (P12). `ObjectReview.diatom_object`
+        # 가 `CASCADE` 라 `link.delete()` 는 이제 **그 판들의 교정을 통째로
+        # 지운다.** 풀기는 "이것들이 한 개체가 아니다" 라는 말이지 "이 판단들이
+        # 없던 일" 이라는 말이 아니다.
+        with transaction.atomic():
+            rows = list(ObjectReview.objects.filter(diatom_object=link)
+                        .select_related("diatom_object"))
+            for row in rows[1:]:
+                _split_off(row, link)
+            if rows:
+                # 남은 하나는 혼자이므로 자기가 대표다
+                ObjectReview.objects.filter(pk=rows[0].pk).update(is_rep=True)
         return JsonResponse({"ok": True, "links": data.object_links_of(vp)})
 
     if act != "save":
@@ -1571,39 +1584,120 @@ def save_object_link(request, slug, gid):
 
     try:
         with transaction.atomic():
-            if link_id:
-                link = ObjectLink.objects.filter(pk=link_id,
-                                                 viewpoint=vp).first()
-                if link is None:
-                    return bad("그 묶음이 이 시야에 없다", 404)
-                # 고치기는 갈아끼우기다 — 묶음 하나 단위라 안전하다
-                link.members.all().delete()
-                link.batch_id = rb
-                link.save(update_fields=["batch"])
-            else:
-                link = ObjectLink.objects.create(viewpoint=vp, batch_id=rb)
-            revived = 0
+            # ── 1. 멤버마다 판정 행을 확보한다 ─────────────────────────────
+            #
+            # **없으면 세운다.** P12 이후 판정 행이 곧 멤버이고, 개체는 그
+            # 행이 설 때 함께 선다 (`data.judgement_for` 가 그 문이다).
+            rows, revived = [], 0
             for img, b, key, rep, geom, rej in resolved:
-                ObjectLinkMember.objects.create(
-                    link=link, image=img, batch_id=b, mask_key=key,
-                    is_rep=rep, geom=geom)
-                if not rej:
-                    continue
-                # 탈락 후보를 묶었다 → 되살린다. **있는 행은 안 덮는다** —
-                # 분류·코멘트가 붙어 있을 수 있고, 그것은 다른 축의 판단이다.
-                row, made = ObjectReview.objects.get_or_create(
-                    image=img, batch_id=b, mask_key=key,
-                    defaults={"viewpoint": vp, "accepted": True,
-                              "geom": geom, "bind_method": "exact"})
-                if not made and not row.accepted:
-                    row.accepted = True
-                    row.save(update_fields=["accepted"])
-                revived += 1
+                row = data.judgement_for(vp, img, b, key)
+                fields = []
+                if not row.geom:
+                    row.geom = geom
+                    fields.append("geom")
+                if rej:
+                    # 탈락 후보를 묶었다 → 되살린다. **있는 행은 안 덮는다** —
+                    # 분류·코멘트가 붙어 있을 수 있고, 다른 축의 판단이다.
+                    if not row.accepted:
+                        row.accepted = True
+                        fields.append("accepted")
+                    revived += 1
+                if fields:
+                    row.save(update_fields=fields)
+                rows.append((row, rep))
 
-            # **고른 값을 멤버 전부에 적는다.** 묶음이 서기 전에 하면 아직
-            # 멤버가 아닌 마스크에 쓰게 되고, 같은 트랜잭션 안이라 묶기가
-            # 실패하면 이것도 함께 물러난다 — 한쪽만 남는 길을 안 만든다.
-            unified = _unify_members(vp, resolved, unify_label, unify_species)
+            # ── 2. 합칠 그릇을 고른다 ────────────────────────────────────
+            if link_id:
+                link = DiatomObject.objects.filter(pk=link_id,
+                                                   viewpoint=vp).first()
+                if link is None:
+                    raise _Reject("그 묶음이 이 시야에 없다", 404)
+            else:
+                # **대표의 개체를 그릇으로 쓴다.** 분류·종명이 개체에 살고,
+                # 대표는 사람이 "이 개체의 얼굴" 로 고른 판이다 — 그쪽 값을
+                # 남기는 것이 덮어쓰기를 가장 적게 한다.
+                link = next((r.diatom_object for r, rep in rows if rep),
+                            rows[0][0].diatom_object)
+
+            # **이미 다른 묶음에 속한 마스크는 안 받는다** (409). P12 이후로는
+            # 옮기는 것이 기술적으로 가능해졌는데, 그러면 **남의 묶음이 조용히
+            # 깨진다** — 사람이 먼저 풀고 다시 묶어야 한다.
+            #
+            # **고치는 요청(`link_id`)일 때만 그릇 자신을 뺀다.** 새로 묶는
+            # 요청이라면 그릇으로 고른 개체가 이미 묶음이어도 안 된다 — 그쪽이
+            # "이미 묶인 마스크를 새 묶음의 대표로 보냈다" 는 경우다.
+            others = (DiatomObject.objects
+                      .filter(pk__in={r.diatom_object_id for r, _ in rows})
+                      .annotate(n=Count("members")).filter(n__gte=2))
+            if link_id:
+                others = others.exclude(pk=link.pk)
+            if others.exists():
+                raise _Reject("멤버 중 하나가 이미 다른 묶음에 속해 있다", 409)
+
+            # **그릇이 안 든 값은 멤버에게서 물려받는다.** 대표의 개체를 그릇으로
+            # 삼으므로, 대표가 비어 있고 다른 판에만 분류·종명이 있으면 합치는
+            # 순간 그것이 사라진다 — **묶는다고 남의 동정을 잃으면 안 된다.**
+            # 107 의 팝업이 "하나뿐이면 미리 고른다" 로 하던 일을 서버도 한다
+            # (화면을 안 거치고 들어오는 요청이 있다). 여럿이 다르면 여기서
+            # 고르지 않는다 — 그것은 사람이 팝업에서 정할 일이다.
+            #
+            # **엇갈리는데 안 골랐으면 묶지 않는다.** 개체가 값을 하나만 들 수
+            # 있으므로 "그대로" 는 성립하지 않는다 — 그릇의 값이 남의 동정을
+            # 덮는다. 107 의 팝업이 그것을 물어보게 돼 있고, 여기 걸리는 것은
+            # **팝업을 안 지난 요청**이다. 종명은 현미경을 보며 적는 것이라
+            # 자동으로 고르면 안 된다.
+            carried = []
+            given = {"label": unify_label, "species": unify_species}
+            for fld in ("label", "species"):
+                vals = {getattr(r.diatom_object, fld) for r, _ in rows
+                        if getattr(r.diatom_object, fld)}
+                if given[fld] is not None or len(vals) < 2:
+                    if not getattr(link, fld) and len(vals) == 1:
+                        setattr(link, fld, next(iter(vals)))
+                        carried.append(fld)
+                    continue
+                what = "분류" if fld == "label" else "종명"
+                raise _Reject(
+                    f"판마다 {what} 이 다르다 — 무엇을 남길지 골라야 묶을 수 "
+                    f"있다 ({' · '.join(sorted(vals))})", 409)
+            link.batch_id = rb
+            link.save(update_fields=["batch", "updated_at"] + carried)
+
+            # ── 3. 이번 목록에 없는 옛 멤버는 떼어 낸다 ──────────────────
+            #
+            # **지우지 않는다.** 예전에는 `link.members.all().delete()` 로
+            # 갈아끼웠는데, 지금 그 줄은 교정을 지운다.
+            keep = {r.pk for r, _ in rows}
+            for row in (ObjectReview.objects.filter(diatom_object=link)
+                        .exclude(pk__in=keep).select_related("diatom_object")):
+                _split_off(row, link)
+
+            # ── 4. 그릇으로 옮긴다 ──────────────────────────────────────
+            #
+            # **대표를 먼저 내린다.** `is_rep` 은 개체당 하나라는 유일 제약이
+            # 있어, 새 대표를 세우기 전에 옛 대표가 남아 있으면 부딪힌다.
+            ObjectReview.objects.filter(diatom_object=link, is_rep=True).update(
+                is_rep=False)
+            orphaned, rep_pk = [], None
+            for row, rep in rows:
+                if row.diatom_object_id != link.pk:
+                    orphaned.append(row.diatom_object_id)
+                    row.diatom_object = link
+                row.is_rep = False
+                row.save(update_fields=["diatom_object", "is_rep"])
+                if rep:
+                    rep_pk = row.pk
+            if rep_pk is None:
+                rep_pk = rows[0][0].pk
+            ObjectReview.objects.filter(pk=rep_pk).update(is_rep=True)
+            data.prune_objects(orphaned)
+
+            # **고른 값을 개체에 적는다.** 묶음이 선 뒤라야 한다 — 그 전에
+            # 하면 아직 합쳐지지 않은 개체에 쓰게 되고, 같은 트랜잭션 안이라
+            # 묶기가 실패하면 이것도 함께 물러난다.
+            unified = _unify_members(link, resolved, unify_label, unify_species)
+    except _Reject as e:
+        return bad(e.msg, e.status)
     except IntegrityError:
         # 유일 제약 — 그 마스크가 이미 다른 묶음에 속해 있다
         return bad("멤버 중 하나가 이미 다른 묶음에 속해 있다", 409)
@@ -1613,54 +1707,69 @@ def save_object_link(request, slug, gid):
                          "links": data.object_links_of(vp)})
 
 
-def _unify_members(vp, resolved, label, species) -> dict:
-    """묶음 멤버 전부의 분류·종명을 고른 값으로 맞춘다 (P11 · 2026-08-10).
+class _Reject(Exception):
+    """묶기를 거절한다 — **`atomic()` 안에서는 예외로만 물러난다.**
+
+    `return` 은 트랜잭션을 되돌리지 않는다. 거절하기 전에 세운 판정 행(그리고
+    그것이 데리고 온 개체)이 그대로 남아, **거절했는데 빈 껍데기가 생긴다** —
+    103 에서 겪은 "한쪽은 거절, 한쪽은 통과" 와 같은 모양이다.
+    """
+
+    def __init__(self, msg, status=400):
+        super().__init__(msg)
+        self.msg, self.status = msg, status
+
+
+def _split_off(row, src) -> DiatomObject:
+    """판정 하나를 묶음에서 떼어 **자기 개체**로 보낸다 (P12 의 "풀기").
+
+    분류·종명은 **물려준다.** 묶여 있는 동안 그 값은 이 판의 것이기도 했고,
+    가른다고 해서 사람이 적은 동정이 사라질 이유가 없다 — 재생성 불가 자료를
+    구조 변경의 부수 효과로 잃지 않는다.
+    """
+    obj = DiatomObject.objects.create(
+        viewpoint_id=src.viewpoint_id, batch_id=src.batch_id,
+        label=src.label, species=src.species)
+    ObjectReview.objects.filter(pk=row.pk).update(diatom_object=obj,
+                                                  is_rep=True)
+    return obj
+
+
+def _unify_members(link, resolved, label, species) -> dict:
+    """묶음의 분류·종명을 고른 값으로 맞춘다 (107 · P12 에서 한 줄이 됐다).
 
     돌려주는 것은 `{이미지 id: {"label": …, "species": …}}` — **화면이 이걸
     받아야 한다.** 다른 판의 상태는 화면이 열릴 때 받은 것이라 방금 맞춘 값을
-    모르고, 그 판에서 다음 저장이 나가면 "표시가 사라진 행" 으로 보고 지운다
+    모르고, 그 판에서 다음 저장이 나가면 자기가 아는 옛 값을 보내 되돌린다
     (104 와 같은 자리).
+
+    **쓰는 자리는 개체 하나다.** 예전에는 멤버마다 행을 찾아 적고, 행이 없으면
+    세우고, 빈 껍데기를 안 만들려고 갈래를 타야 했다 — 분류가 판마다 살았기
+    때문이다. 지금은 개체가 들고 있어 그 전부가 필요 없다.
 
     **분류·종명 말고는 안 건드린다** — 삭제·되살림·코멘트·기하는 판마다 하는
     판단이라 묶는다고 같아질 이유가 없다.
     """
     if label is None and species is None:
         return {}
-    out = {}
-    blank = not (label or species)
-    for img, b, key, _rep, geom, _rej in resolved:
-        row = ObjectReview.objects.filter(
-            image=img, batch_id=b, mask_key=key).first()
-        if row is None:
-            # **빈 껍데기를 안 만든다.** 둘 다 비우라는 말인데 행이 없으면
-            # 만들 이유가 없다 — `save_review` 의 청소가 지울 행을 여기서
-            # 새로 만드는 꼴이 된다.
-            if blank:
-                out[str(img.pk)] = {k: v for k, v in
-                                    (("label", label), ("species", species))
-                                    if v is not None}
-                continue
-            row = ObjectReview(viewpoint=vp, image=img, batch_id=b,
-                               mask_key=key, geom=geom, bind_method="exact")
-            row.save()
-        fields = []
-        if label is not None and row.label != label:
-            row.label = label
-            fields.append("label")
-        if species is not None and row.species != species:
-            row.species = species
-            fields.append("species")
-        if fields:
-            row.save(update_fields=fields)
-        # 바뀌지 않았어도 화면에 알린다 — 아직 교정 행이 없던 판은 화면 쪽
-        # 상태에도 없어서, 안 알리면 그 판만 옛 값으로 남는다.
-        ent = {}
-        if label is not None:
-            ent["label"] = label
-        if species is not None:
-            ent["species"] = species
-        out[str(img.pk)] = ent
-    return out
+    fields = []
+    if label is not None and link.label != label:
+        link.label = label
+        fields.append("label")
+    if species is not None and link.species != species:
+        link.species = species
+        fields.append("species")
+    if fields:
+        link.save(update_fields=fields + ["updated_at"])
+
+    # 바뀌지 않았어도 화면에 알린다 — 아직 교정 행이 없던 판은 화면 쪽 상태에도
+    # 없어서, 안 알리면 그 판만 옛 값으로 남는다.
+    ent = {}
+    if label is not None:
+        ent["label"] = label
+    if species is not None:
+        ent["species"] = species
+    return {str(img.pk): dict(ent) for img, *_ in resolved}
 
 
 @require_POST

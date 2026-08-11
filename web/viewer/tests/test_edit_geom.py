@@ -135,7 +135,7 @@ class EditGeomTest(DiaRUGATestCase):
     def test_되돌릴_엔진_개체가_없으면_거절한다(self):
         """고아에는 되돌릴 원본이 없다 — 지우면 그릴 것이 없어진다."""
         det = self.w.detection()
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
             mask_key="900_900_50_50", bind_method="orphan",
             geom={"bbox": [900, 900, 50, 50],

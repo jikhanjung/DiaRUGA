@@ -52,8 +52,9 @@ django.setup()
 from django.db.models import Count                                  # noqa: E402
 
 import judge                                                        # noqa: E402
-from viewer.models import (Candidate, ClassDef, Detection, Frame,    # noqa: E402
-                           Locality, ObjectLink, ObjectReview,
+from viewer.models import (Candidate, ClassDef, Detection, DiatomObject,
+                           Frame,    # noqa: E402
+                           Locality, ObjectReview,
                            RunBatch, Sample, Slide, Stack, Viewpoint,
                            ViewpointReview)
 # **번호 규칙은 뷰어 코드에 있다** (`web/viewer/catalog.py`). 그래서 이 검사만
@@ -290,7 +291,7 @@ def check_classes(slug=None):
     report("개체 분류가 ClassDef 에 있다", len(bad), len(used),
            f"정의되지 않은 분류: {list(bad)}", [f"{k}: {v}개" for k, v in bad.items()])
 
-    lab = Counter(ObjectReview.objects.exclude(label="")
+    lab = Counter(DiatomObject.objects.exclude(label="")
                   .values_list("label", flat=True))
     bad2 = {k: v for k, v in lab.items() if k not in known}
     report("사람이 지정한 분류가 ClassDef 에 있다", len(bad2), len(lab),
@@ -430,7 +431,10 @@ def check_links(slug=None):
     상태다**: 대표가 없는 묶음은 학습 자료로 뽑을 때 얼굴이 없고, 남의 시야
     이미지를 문 멤버는 화면에 안 그려져 조용히 사라진다.
     """
-    qs = ObjectLink.objects.all()
+    # **묶음은 멤버가 둘 이상인 개체다** (P12). 판정마다 개체가 하나씩 서므로
+    # 거르지 않으면 개체 수천 개를 훑고, "혼자인 묶음" 검사가 전부 걸린다.
+    qs = (DiatomObject.objects.annotate(n_members=Count("members"))
+          .filter(n_members__gte=2))
     if slug:
         qs = qs.filter(viewpoint__slide__slug=slug)
     links = list(qs.prefetch_related("members__image"))
@@ -444,14 +448,26 @@ def check_links(slug=None):
     norep = [l for l in links if sum(1 for m in l.members.all() if m.is_rep) != 1]
     report("묶음마다 대표가 하나다", len(norep), len(links),
            "대표가 없으면 학습 자료로 뽑을 때 얼굴이 없다",
-           [f"link#{l.pk}" for l in norep])
+           [f"obj#{l.pk}" for l in norep])
 
-    # 멤버가 둘 미만인 묶음. 틀린 것은 아니지만 묶음의 뜻이 없다 —
-    # 팝업에서 다 풀고 하나만 남긴 채 저장된 자리다.
-    single = [l for l in links if l.members.count() < 2]
-    report("묶음에 멤버가 둘 이상이다", len(single), len(links),
-           "혼자인 묶음은 뜻이 없다 — 풀다 만 자리다",
-           [f"link#{l.pk}" for l in single])
+    # **멤버가 하나도 없는 개체** (P12). 판정을 지우면 개체가 유령으로 남는데
+    # 예외는 안 나고 개체를 세는 자리마다 하나씩 는다 — `data.prune_objects`
+    # 를 안 지난 삭제 경로가 있다는 뜻이다.
+    ghosts = list(DiatomObject.objects.filter(members__isnull=True)
+                  .values_list("pk", flat=True)[:20])
+    n_ghost = DiatomObject.objects.filter(members__isnull=True).count()
+    report("개체마다 판정이 하나 이상 있다", n_ghost,
+           DiatomObject.objects.count(),
+           "멤버 없는 개체는 유령이다 — prune_objects 를 안 지난 삭제가 있다",
+           [f"obj#{p}" for p in ghosts])
+
+    # **묶음 안의 지운 마스크.** 제약으로 못 막는 자리다(개체는 지워도 남는다) —
+    # "이 개체는 오검출이면서 실재한다" 가 되고 학습 자료가 모순이 된다.
+    bad_rm = [f"obj#{l.pk}" for l in links
+              if any(m.removed for m in l.members.all())]
+    report("묶음에 지운 마스크가 없다", len(bad_rm), len(links),
+           "오검출로 지운 판이 묶음에 남아 있다",
+           bad_rm)
 
     # 멤버의 이미지가 묶음의 시야에 속하는가. 어긋나면 화면이 못 그린다.
     stray = [l for l in links
@@ -459,7 +475,7 @@ def check_links(slug=None):
                     for m in l.members.all())]
     report("멤버가 묶음의 시야 안에 있다", len(stray), len(links),
            "남의 시야 이미지를 문 멤버는 화면에 안 그려진다",
-           [f"link#{l.pk}" for l in stray])
+           [f"obj#{l.pk}" for l in stray])
 
     # 멤버가 실재하는 마스크를 가리키는가 — 그 (image, batch) 현재 검출의
     # 통과 후보이거나, 사람이 그린 교정(geom)이거나.
@@ -477,7 +493,7 @@ def check_links(slug=None):
                     detection__run__batch_id=m.batch_id,
                     mask_key=m.mask_key).exists()
             if not ok:
-                dangling.append(f"link#{l.pk}/{m.mask_key}")
+                dangling.append(f"obj#{l.pk}/{m.mask_key}")
     report("멤버의 마스크가 실재한다", len(dangling),
            sum(l.members.count() for l in links),
            "재검출로 사라진 마스크다 — geom 스냅샷으로만 남아 있다",
@@ -555,7 +571,7 @@ def check_catalog(slug=None):
            noloc)
 
     # 4) 종명이 붙은 교정 행이 묶음에 들어 있는가. 손그림(NULL)은 제 자리다.
-    named = ObjectReview.objects.exclude(species="")
+    named = ObjectReview.objects.exclude(diatom_object__species="")
     if slug:
         named = named.filter(viewpoint__slide__slug=slug)
     n_named = named.count()

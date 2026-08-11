@@ -1,22 +1,25 @@
-"""같은 개체 묶음의 스키마 약속 (P11 1단계).
+"""같은 개체 묶음의 스키마 약속 (P11 1단계 · P12 에서 자리가 바뀌었다).
 
 사람이 프레임마다 골라 만든 것이라 **재생성 불가**다 — 약속이 깨지면 교정과
 같은 무게로 잃는다. 여기서 지키는 것:
 
 1. **한 이미지에서 하나** — 같은 프레임의 마스크 둘이 같은 개체일 수 없다
-2. **한 마스크는 한 묶음에만** — 두 묶음이 같은 마스크를 물면 "이것이 어느
-   개체인가" 에 답이 둘이 된다
+2. **한 마스크는 한 개체에만** — 판정 행이 곧 멤버라 `(image, batch, mask_key)`
+   유일 제약이 그것을 이미 보장한다
 3. **대표는 둘일 수 없다** — DB 가 막는다 (0개는 저장 쪽 약속 — check_db 가 센다)
-4. **RunBatch 를 지우면 묶음이 막는다** (PROTECT) — 조용히 NULL 이 되어
+4. **RunBatch 를 지우면 개체가 막는다** (PROTECT) — 조용히 NULL 이 되어
    "어느 검출을 보고 한 판단인지" 를 잃으면 안 된다
+
+**P12: 멤버가 곧 판정이다.** `ObjectLinkMember` 가 `ObjectReview` 로 흡수돼
+`ObjectLink` 는 `DiatomObject` 가 됐다. 그래서 **개체 수는 묶음 수가 아니다** —
+판정마다 하나씩 서고, 묶은 것만 멤버가 둘 이상이다. 시험도 그 눈으로 센다.
 """
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 
 from .base import DiaRUGATestCase
 from . import factories as fx
-from ..models import (Image, ObjectLink, ObjectLinkMember, ObjectReview,
-                      RunBatch)
+from ..models import Image, DiatomObject, ObjectReview, RunBatch
 
 
 class ObjectLinkSchemaTest(DiaRUGATestCase):
@@ -32,13 +35,21 @@ class ObjectLinkSchemaTest(DiaRUGATestCase):
                     .order_by("pk"))
 
     def make_link(self, keys=("10_10_50_50", "12_11_50_50")):
+        """판정을 프레임마다 세우고 **한 개체로 묶는다** (P12).
+
+        `fx.link_reviews` 가 운영의 묶기와 같은 순서를 밟는다 — 그릇 하나만
+        남기고 나머지 개체를 걷는다.
+        """
         imgs = self.imgs()
-        link = ObjectLink.objects.create(viewpoint=self.w.vp, batch=self.batch)
-        for i, key in enumerate(keys):
-            ObjectLinkMember.objects.create(
-                link=link, image=imgs[i], batch=self.batch,
-                mask_key=key, is_rep=(i == 0))
-        return link
+        rows = [self.judgement(imgs[i], key) for i, key in enumerate(keys)]
+        return fx.link_reviews(rows, rep=0)
+
+    def judgement(self, img, key, batch=-1):
+        b = self.batch if batch == -1 else batch
+        return fx.new_review(viewpoint=self.w.vp, image=img, batch=b,
+                             mask_key=key, bind_method="exact",
+                             geom={"bbox": [1, 2, 3, 4],
+                                   "polygon": [1, 2, 4, 2, 4, 6, 1, 6]})
 
     def test_묶고_대표가_선다(self):
         link = self.make_link()
@@ -47,25 +58,23 @@ class ObjectLinkSchemaTest(DiaRUGATestCase):
 
     def test_한_이미지에서_둘은_못_묶는다(self):
         link = self.make_link()
+        row = self.judgement(self.imgs()[0], "99_99_20_20")
         with self.assertRaises(IntegrityError), transaction.atomic():
-            ObjectLinkMember.objects.create(
-                link=link, image=self.imgs()[0], batch=self.batch,
-                mask_key="99_99_20_20")
+            ObjectReview.objects.filter(pk=row.pk).update(diatom_object=link)
 
     def test_한_마스크는_한_묶음에만(self):
+        """열쇠가 `(image, batch, mask_key)` 라 판정 행이 애초에 하나뿐이다 —
+        같은 마스크를 두 개체가 물 자리가 구조적으로 없다."""
         self.make_link()
-        other = ObjectLink.objects.create(viewpoint=self.w.vp, batch=self.batch)
         with self.assertRaises(IntegrityError), transaction.atomic():
-            ObjectLinkMember.objects.create(
-                link=other, image=self.imgs()[0], batch=self.batch,
-                mask_key="10_10_50_50", is_rep=True)
+            self.judgement(self.imgs()[0], "10_10_50_50")
 
     def test_대표는_둘일_수_없다(self):
         link = self.make_link()
+        row = self.judgement(self.imgs()[2], "30_30_40_40")
         with self.assertRaises(IntegrityError), transaction.atomic():
-            ObjectLinkMember.objects.create(
-                link=link, image=self.imgs()[2], batch=self.batch,
-                mask_key="30_30_40_40", is_rep=True)
+            ObjectReview.objects.filter(pk=row.pk).update(
+                diatom_object=link, is_rep=True)
 
     def test_묶음이_문_RunBatch_는_못_지운다(self):
         """PROTECT — 조용히 NULL 이 되면 어느 검출에 대한 판단인지 잃는다."""
@@ -76,19 +85,16 @@ class ObjectLinkSchemaTest(DiaRUGATestCase):
     def test_사람이_그린_마스크도_멤버가_된다(self):
         """batch=NULL (P09 5.2 와 같은 뜻) — 짝 제약이 그쪽도 잡는가."""
         imgs = self.imgs()
-        link = ObjectLink.objects.create(viewpoint=self.w.vp, batch=self.batch)
-        ObjectLinkMember.objects.create(link=link, image=imgs[0], batch=None,
-                                        mask_key="5_5_30_30", is_rep=True)
-        other = ObjectLink.objects.create(viewpoint=self.w.vp, batch=self.batch)
+        self.judgement(imgs[0], "5_5_30_30", batch=None)
         with self.assertRaises(IntegrityError), transaction.atomic():
-            ObjectLinkMember.objects.create(
-                link=other, image=imgs[0], batch=None, mask_key="5_5_30_30")
+            self.judgement(imgs[0], "5_5_30_30", batch=None)
 
     def test_시야를_지우면_묶음도_간다(self):
-        """CASCADE — 시야가 사라지면 그 안의 묶음은 뜻이 없다."""
+        """CASCADE — 시야가 사라지면 그 안의 개체는 뜻이 없다."""
         self.make_link()
         self.w.vp.delete()
-        self.assertEqual(ObjectLink.objects.count(), 0)
+        self.assertEqual(DiatomObject.objects.count(), 0)
+        self.assertEqual(ObjectReview.objects.count(), 0)
 
 
 class SaveLinkEndpointTest(DiaRUGATestCase):
@@ -151,7 +157,7 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
     def test_묶고_기하가_스스로_선다(self):
         r = self.post({"members": self.good_members()})
         self.assertEqual(r.status_code, 200, r.content[:200])
-        link = ObjectLink.objects.get()
+        link = fx.links().get()
         self.assertEqual(link.viewpoint, self.w.vp)
         m = link.members.get(is_rep=True)
         # **기하는 서버가 뜬다** — 화면이 보낸 것을 믿지 않는다
@@ -160,21 +166,21 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
 
     def test_고치면_갈아끼운다(self):
         self.post({"members": self.good_members()})
-        link = ObjectLink.objects.get()
+        link = fx.links().get()
         ms = self.good_members()
         ms.append({"image": self.frame_imgs[1].pk,
                    "mask_key": "40_50_60_40", "rep": False})
         r = self.post({"link_id": link.pk, "members": ms})
         self.assertEqual(r.status_code, 200, r.content[:200])
-        self.assertEqual(ObjectLink.objects.count(), 1)
+        self.assertEqual(fx.links().count(), 1)
         self.assertEqual(link.members.count(), 3)
 
     def test_푼다(self):
         self.post({"members": self.good_members()})
-        link = ObjectLink.objects.get()
+        link = fx.links().get()
         r = self.post({"act": "unlink", "link_id": link.pk})
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(ObjectLink.objects.count(), 0)
+        self.assertEqual(fx.links().count(), 0)
 
     def test_남의_시야_이미지는_거절한다(self):
         other = fx.make_world(slug="wap13", site_code="WAP13",
@@ -185,7 +191,7 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
         ms[1]["image"] = stranger.pk
         r = self.post({"members": ms})
         self.assertEqual(r.status_code, 400)
-        self.assertEqual(ObjectLink.objects.count(), 0)
+        self.assertEqual(fx.links().count(), 0)
 
     def test_없는_마스크는_거절한다(self):
         ms = self.good_members()
@@ -194,7 +200,7 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
 
     def test_지운_마스크는_거절한다(self):
         """오검출로 지운 것을 묶으면 "오검출이면서 실재한다" 가 된다."""
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=self.frame_imgs[0], batch=self.batch,
             mask_key="40_50_60_40", removed=True,
             geom={"bbox_xywh": [40, 50, 60, 40]})
@@ -223,10 +229,10 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
         ]
         r = self.post({"members": ms})
         self.assertEqual(r.status_code, 409)
-        self.assertEqual(ObjectLink.objects.count(), 1)
+        self.assertEqual(fx.links().count(), 1)
 
     def test_사람이_그린_마스크도_묶인다(self):
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=self.frame_imgs[1], batch=None,
             mask_key="7_7_30_30", source="manual",
             geom={"bbox_xywh": [7, 7, 30, 30],
@@ -236,7 +242,7 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
                    "rep": False})
         r = self.post({"members": ms})
         self.assertEqual(r.status_code, 200, r.content[:200])
-        m = ObjectLink.objects.get().members.get(mask_key="7_7_30_30")
+        m = fx.links().get().members.get(mask_key="7_7_30_30")
         self.assertIsNone(m.batch_id)
 
     def test_GET_은_안_받는다(self):
@@ -308,7 +314,7 @@ class LinkRejectedCandidateTest(DiaRUGATestCase):
         self.assertTrue(row.accepted, "되살아나지 않았다")
         self.assertFalse(row.removed)
         # 묶음에도 멤버로 섰다
-        self.assertEqual(ObjectLink.objects.get().members.count(), 2)
+        self.assertEqual(fx.links().get().members.count(), 2)
 
     def test_통과분만_묶으면_되살릴_것이_없다(self):
         """되살리기가 **탈락분에서만** 일어나는가 — 통과분까지 손대면
@@ -334,13 +340,15 @@ class LinkRejectedCandidateTest(DiaRUGATestCase):
         r = self.post(ms)
         self.assertEqual(r.status_code, 200, r.content[:300])
         self.assertEqual(r.json()["revived"], 0, "통과분을 되살렸다")
-        self.assertFalse(
-            ObjectReview.objects.filter(mask_key="200_200_50_50").exists(),
-            "통과분에 교정 행을 만들었다")
+        # **P12: 행은 생긴다** — 판정 행이 곧 멤버라 묶으려면 있어야 한다.
+        # 지켜야 할 것은 그 행이 **되살림 표시를 안 단다**는 쪽이다.
+        row = ObjectReview.objects.get(mask_key="200_200_50_50")
+        self.assertFalse(row.accepted, "통과분에 되살림 표시를 달았다")
+        self.assertFalse(row.removed)
 
     def test_이미_붙어_있는_분류는_안_덮는다(self):
         """되살리기는 다른 축의 판단을 건드리지 않는다."""
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=self.frame_img, batch=self.batch,
             mask_key="40_50_60_40", label="rod", note="사람이 적었다",
             geom={"bbox_xywh": [40, 50, 60, 40]})
@@ -353,7 +361,7 @@ class LinkRejectedCandidateTest(DiaRUGATestCase):
         self.assertEqual(row.note, "사람이 적었다", "코멘트가 덮였다")
 
     def test_지운_탈락분은_여전히_거절한다(self):
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=self.frame_img, batch=self.batch,
             mask_key="40_50_60_40", removed=True,
             geom={"bbox_xywh": [40, 50, 60, 40]})
@@ -395,13 +403,11 @@ class LinkLabelSpreadTest(DiaRUGATestCase):
         self.other = self.w.keys()[1]
         # 합성본·프레임 둘을 한 개체로 묶는다. 픽스처가 판마다 같은 자리에
         # 후보를 세우므로 `mask_key` 가 그대로 맞는다.
-        self.link = ObjectLink.objects.create(viewpoint=self.w.vp,
-                                              batch=self.batch)
-        for i, img in enumerate((self.stack_img, self.f1_img, self.f2_img)):
-            ObjectLinkMember.objects.create(
-                link=self.link, image=img, batch=self.batch,
-                mask_key=self.key, is_rep=(i == 0),
-                geom={"bbox_xywh": [40, 50, 60, 40]})
+        rows = [fx.new_review(viewpoint=self.w.vp, image=img, batch=self.batch,
+                              mask_key=self.key, bind_method="exact",
+                              geom={"bbox_xywh": [40, 50, 60, 40]})
+                for img in (self.stack_img, self.f1_img, self.f2_img)]
+        self.link = fx.link_reviews(rows, rep=0)
 
     def save(self, labels, image=None, **over):
         import json as _json
@@ -452,12 +458,15 @@ class LinkLabelSpreadTest(DiaRUGATestCase):
     def test_지정을_물리면_다른_판에서도_지워진다(self):
         self.save({self.key: "rod"})
         self.save({})
-        self.assertIsNone(self.label_of(self.f1_img),
-                          "한 판만 지정이 남았다 — 묶음 안에서 어긋난다")
-        self.assertFalse(
+        self.assertEqual(self.label_of(self.f1_img), "",
+                         "한 판만 지정이 남았다 — 묶음 안에서 어긋난다")
+        # **P12: 다른 판의 행은 남는다.** 그 행이 곧 묶음의 멤버이기 때문이다 —
+        # 지우면 분류를 물렸다는 이유로 **묶음이 깨진다.** 예전에는 멤버가 따로
+        # 있어서 빈 교정 행을 치울 수 있었다.
+        self.assertTrue(
             ObjectReview.objects.filter(image=self.f1_img,
                                         mask_key=self.key).exists(),
-            "표시가 하나도 없는 빈 껍데기가 남았다")
+            "묶음 멤버가 분류를 물렸다는 이유로 사라졌다")
 
     def test_다른_표시가_있으면_행은_남는다(self):
         """분류만 지운다 — 그 판에서 따로 한 판단은 그대로여야 한다."""
@@ -487,7 +496,8 @@ class LinkLabelSpreadTest(DiaRUGATestCase):
 
     def test_안_묶인_개체는_안_번진다(self):
         self.save({self.other: "rod"})
-        self.assertIsNone(self.label_of(self.f1_img))
+        # 묶인 키(`self.key`)는 그대로 비어 있다. **행은 있다** — 그것이 멤버다.
+        self.assertEqual(self.label_of(self.f1_img), "")
         self.assertFalse(ObjectReview.objects
                          .filter(image=self.f1_img, mask_key=self.other)
                          .exists())
@@ -551,7 +561,7 @@ class LinkUnifyEndpointTest(DiaRUGATestCase):
 
     def test_안_보낸_칸은_안_건드린다(self):
         """`그대로` 를 고르면 그 칸은 payload 에 아예 없다."""
-        pre = ObjectReview.objects.create(
+        pre = fx.new_review(
             viewpoint=self.w.vp, image=self.f1_img, batch=self.batch,
             mask_key=self.key, label="round", species="Fragilariopsis")
         self.post(label="rod")            # 종명은 안 보낸다
@@ -561,21 +571,23 @@ class LinkUnifyEndpointTest(DiaRUGATestCase):
                          "안 보낸 종명이 지워졌다")
 
     def test_빈_문자열은_비운다(self):
-        pre = ObjectReview.objects.create(
+        pre = fx.new_review(
             viewpoint=self.w.vp, image=self.f1_img, batch=self.batch,
             mask_key=self.key, label="round")
         self.post(label="")
         pre.refresh_from_db()
         self.assertEqual(pre.label, "")
 
-    def test_비우는데_행이_없으면_안_만든다(self):
-        """빈 껍데기를 남기면 그 행을 세는 자리가 어긋난다."""
+    def test_비우라는_말은_개체를_비운다(self):
+        """**P12 에서 뜻이 옮겨 갔다.** 예전에는 "행을 안 만든다" 가 지킬 것이었다
+        — 분류가 판마다 살아서 빈 껍데기가 생길 수 있었기 때문이다. 지금은 값이
+        개체 하나에 있으므로 지킬 것은 **그 개체가 비었는가**다."""
         self.post(label="", species="")
-        self.assertFalse(ObjectReview.objects.filter(image=self.f1_img,
-                                                     mask_key=self.key).exists())
+        row = ObjectReview.objects.get(image=self.f1_img, mask_key=self.key)
+        self.assertEqual((row.label, row.species), ("", ""))
 
     def test_삭제_코멘트는_안_건드린다(self):
-        pre = ObjectReview.objects.create(
+        pre = fx.new_review(
             viewpoint=self.w.vp, image=self.f1_img, batch=self.batch,
             mask_key=self.key, removed=True, note="흐릿하다")
         self.post(label="rod")
@@ -586,7 +598,7 @@ class LinkUnifyEndpointTest(DiaRUGATestCase):
     def test_모르는_분류는_거절한다(self):
         r = self.post(label="없는분류")
         self.assertEqual(r.status_code, 400)
-        self.assertEqual(ObjectLink.objects.count(), 0,
+        self.assertEqual(fx.links().count(), 0,
                          "거절했는데 묶음은 만들어졌다")
 
     def test_묶기가_실패하면_맞추기도_물러난다(self):

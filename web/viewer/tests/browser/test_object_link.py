@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from .base import BrowserTestCase
 from .. import factories as fx
-from ...models import (Candidate, Detection, Image, ObjectLink,
+from ...models import (Candidate, Detection, Image, DiatomObject,
                        ObjectReview, Run, RunBatch)
 
 
@@ -77,7 +77,7 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         btn.click()
         page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
 
-        link = ObjectLink.objects.get()
+        link = fx.links().get()
         self.assertEqual(link.members.count(), 3)
         rep = link.members.get(is_rep=True)
         self.assertEqual(rep.image.kind, "stack", "기본 대표는 닻(합성본)이다")
@@ -104,7 +104,7 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         self.assertIn("2장", btn.inner_text())
         btn.click()
         page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
-        self.assertEqual(ObjectLink.objects.get().members.count(), 2)
+        self.assertEqual(fx.links().get().members.count(), 2)
 
     def test_별로_대표를_옮긴다(self):
         page = self.open_group()
@@ -119,7 +119,7 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         page.wait_for_timeout(150)
         page.query_selector(".linkpanel .lfoot .btn").click()
         page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
-        rep = ObjectLink.objects.get().members.get(is_rep=True)
+        rep = fx.links().get().members.get(is_rep=True)
         self.assertEqual(rep.image.kind, "frame", "별을 옮겼는데 대표가 닻이다")
 
     def test_판이_하나면_메뉴에_항목이_없다(self):
@@ -176,7 +176,7 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
 
         # 묶음이 섰고 — 그린 마스크도 (재시도 덕에) DB 에 있다
-        self.assertEqual(ObjectLink.objects.count(), 1)
+        self.assertEqual(fx.links().count(), 1)
         drawn = ObjectReview.objects.filter(batch__isnull=True,
                                             source="manual")
         self.assertEqual(drawn.count(), 1,

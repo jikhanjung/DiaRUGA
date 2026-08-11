@@ -154,7 +154,7 @@ class CarouselPreviewTest(BrowserTestCase):
         # 프레임 판의 마스크 하나를 지운 것으로 (서버 상태)
         det = self.extra[0][2]
         c = det.candidates.filter(passed=True).first()
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.w.vp, image=det.image,
             batch=RunBatch.objects.get(label="sam2-시험"),
             mask_key=c.mask_key, removed=True,

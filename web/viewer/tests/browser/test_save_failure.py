@@ -21,7 +21,7 @@ from django.urls import reverse
 
 from .base import BrowserTestCase
 from .. import factories as fx
-from ...models import ObjectLink, ObjectReview
+from ...models import DiatomObject, ObjectReview
 
 
 class SaveFailureTest(BrowserTestCase):
@@ -117,7 +117,7 @@ class SaveFailureTest(BrowserTestCase):
         btn.click()
         page.wait_for_timeout(1200)
 
-        self.assertEqual(ObjectLink.objects.count(), 0,
+        self.assertEqual(fx.links().count(), 0,
                          "앞선 교정이 저장 안 됐는데 묶음이 만들어졌다 — "
                          "한쪽만 남는다")
         err = page.query_selector(".linkpanel .lerr, .linkpanel .err")

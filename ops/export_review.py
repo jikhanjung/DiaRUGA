@@ -182,14 +182,28 @@ def fetch(conn, slide_slug=None) -> dict:
     cols = {r[1] for r in conn.execute("PRAGMA table_info(viewer_objectreview)")}
 
     def col(name, default="NULL"):
-        return name if name in cols else f"{default} AS {name}"
+        # **테이블 이름을 붙여 낸다** — P12 뒤로는 개체 테이블과 조인하므로
+        # 맨 이름이면 어느 쪽 칸인지 모호해진다.
+        return f"r.{name}" if name in cols else f"{default} AS {name}"
 
     img_col = col("image_id")
     batch_col = col("batch_id")
     src_col = col("source", "'engine'")
     edit_col = col("geom_edited", "0")
-    # 동정한 종명 (0031). **옛 DB(백업 파일)에는 없다** — 위와 같은 갈래다.
-    species_col = col("species", "''")
+    # **분류·종명이 어디 사는가가 판마다 다르다** (P12, 0032). 새 판은
+    # `DiatomObject` 에 있고 옛 판(백업 파일)은 `ObjectReview` 에 있다 — 이
+    # 스크립트는 두 시점을 견주는 도구라 **양쪽을 다 읽어야 한다.**
+    #
+    # 내보내는 모양은 안 바뀐다. 감사 기록의 형식 번호를 올리지 않는 이유이고,
+    # 그래야 P12 전후의 `review/` 를 그대로 diff 할 수 있다.
+    new_home = "diatom_object_id" in cols
+    if new_home:
+        label_col, species_col = "o.label", "o.species"
+        obj_join = " LEFT JOIN viewer_diatomobject o ON o.id = r.diatom_object_id"
+    else:
+        label_col = "r.label"
+        species_col = "r.species" if "species" in cols else "'' AS species"
+        obj_join = ""
 
     # **묶음은 id 가 아니라 이름으로 적는다.** 감사 기록은 사람이 읽고 두 DB 를
     # 견주는 물건이라, 저장소마다 달라지는 id 를 적으면 diff 가 거짓말을 한다.
@@ -213,10 +227,12 @@ def fetch(conn, slide_slug=None) -> dict:
             pass
 
     for r in conn.execute(f"""
-        SELECT viewpoint_id, mask_key, removed, accepted, label, note,
-               geom, bind_method, bind_score, {img_col}, {batch_col},
-               {src_col}, {edit_col}, {species_col}
-          FROM viewer_objectreview
+        SELECT r.viewpoint_id, r.mask_key, r.removed, r.accepted,
+               {label_col} AS label, r.note,
+               r.geom, r.bind_method, r.bind_score,
+               {img_col}, {batch_col}, {src_col}, {edit_col},
+               {species_col} AS species
+          FROM viewer_objectreview r{obj_join}
     """):
         v = views.get(r["viewpoint_id"])
         if v is None:
@@ -262,17 +278,38 @@ def fetch(conn, slide_slug=None) -> dict:
     # 위의 `image_id` 칸 처리와 같은 갈래다.
     for v in views.values():
         v["links"] = []
-    have_links = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table'"
-        " AND name='viewer_objectlink'").fetchone()
-    if have_links:
-        link_rows = {}
-        for r in conn.execute("""
+    # **테이블이 판마다 다르다** (P12, 0032). 새 판은 `viewer_diatomobject` 에
+    # 멤버가 `viewer_objectreview` 로 흡수돼 있고, 옛 판(백업 파일)은
+    # `viewer_objectlink` + `viewer_objectlinkmember` 다.
+    #
+    # **묶음이 아닌 것은 안 낸다.** 새 판에서는 판정마다 개체가 하나씩 서므로
+    # 거르지 않으면 감사 기록에 개체 7,900개가 "묶음" 으로 실린다 — 형식이
+    # 말하는 묶음은 여전히 *여러 판이 한 규조각* 인 것이다.
+    tables = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'")}
+    if "viewer_diatomobject" in tables:
+        link_sql = """
             SELECT l.id, l.viewpoint_id, l.batch_id, l.note,
-                   m.image_id, m.batch_id AS mbatch, m.mask_key, m.is_rep, m.geom
+                   m.image_id, m.batch_id AS mbatch, m.mask_key, m.is_rep,
+                   m.geom
+              FROM viewer_diatomobject l
+              JOIN viewer_objectreview m ON m.diatom_object_id = l.id
+             WHERE l.id IN (SELECT diatom_object_id FROM viewer_objectreview
+                             GROUP BY diatom_object_id HAVING COUNT(*) > 1)
+        """
+    elif "viewer_objectlink" in tables:
+        link_sql = """
+            SELECT l.id, l.viewpoint_id, l.batch_id, l.note,
+                   m.image_id, m.batch_id AS mbatch, m.mask_key, m.is_rep,
+                   m.geom
               FROM viewer_objectlink l
               JOIN viewer_objectlinkmember m ON m.link_id = l.id
-        """):
+        """
+    else:
+        link_sql = ""
+    if link_sql:
+        link_rows = {}
+        for r in conn.execute(link_sql):
             v = views.get(r["viewpoint_id"])
             if v is None:
                 continue

@@ -153,7 +153,7 @@ class BatchShapeTest(DiaRUGATestCase):
         frame = next(f for f in d["frames"] if f["detection"])
         key = frame["detection"]["candidates"][0]["key"]
         img = Image.objects.get(pk=frame["image_id"])
-        ObjectReview.objects.create(
+        fx.new_review(
             viewpoint=self.vp, image=img, batch=self.yolo.batch,
             mask_key=key, removed=True, bind_method="exact")
 
