@@ -942,8 +942,39 @@ def catalog_rows(slug: str) -> list[dict]:
 SPECIES_MAX = 120
 
 
+def check_grade_pose(label: str, grade="", pose="") -> None:
+    """이 분류에 **등급·자세를 매길 수 있는가.** 못 매기면 `ValueError`.
+
+    **파편에는 주지 않는다** (2026-08-11 사용자). 파편(`ClassDef.counted=0`)은
+    완형을 유추할 수 있어도 확실하지 않고, 무엇보다 *한 개체로 인정하는 규칙을
+    만족하지 못한 것*이라 우수성을 물을 자리가 아니다.
+
+    **화면이 칸을 안 보여주는 것으로는 안 막은 것이다** (063). `.tools` 를 CSS 로
+    감췄다고 믿었는데 세 화면이 계속 도구를 내보이고 있던 적이 있다(051) — 그때
+    사람은 되는 줄 알고 한 시야를 검토했다.
+
+    **비우는 것은 늘 된다.** 분류를 파편으로 바꾸는 길에서 이미 매긴 값을
+    걷어내야 하는데, 그 길까지 막으면 고칠 방법이 없어진다.
+    """
+    grade, pose, label = str(grade or ""), str(pose or ""), str(label or "")
+    if grade and grade not in dict(ObjectReview.GRADE):
+        raise ValueError(f"모르는 등급이다: {grade}")
+    if pose and pose not in dict(DiatomObject.POSE):
+        raise ValueError(f"모르는 자세다: {pose}")
+    if not (grade or pose):
+        return
+    row = next((r for r in _class_rows() if r["key"] == label), None)
+    if label and row is None:
+        raise ValueError(f"모르는 유형이다: {label}")
+    # 분류를 아직 안 정한 개체가 흔하다 — 매기는 순서를 강제하지 않는다.
+    if row is not None and not row["counted"]:
+        raise ValueError(
+            f"파편에는 등급·자세를 매기지 않는다 (유형 {label}). 이미 매긴 것이 "
+            f"있으면 먼저 비울 것")
+
+
 def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
-                       cls=None, note=None) -> dict:
+                       cls=None, note=None, grade=None, pose=None) -> dict:
     """개체 **하나**의 동정을 고친다 (개체 카탈로그 6단계).
 
     ## 왜 `/review` 를 안 쓰는가
@@ -1022,7 +1053,18 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
         dobj.label = cls
     if note is not None:
         obj.note = str(note).replace("\r\n", "\n").strip()
-    dobj.save(update_fields=["label", "species", "updated_at"])
+    # **등급은 판정에, 자세는 개체에** (2026-08-11). 축이 반대라 자리가 갈린다 —
+    # 등급은 초점면마다 다르고(`removed` 와 같은 자리), 자세는 스테이지가 안
+    # 움직이니 묶인 판들이 나눠 갖는다(`label`·`species` 와 같은 자리).
+    if grade is not None:
+        obj.grade = str(grade).strip()
+    if pose is not None:
+        dobj.pose = str(pose).strip()
+    # **고친 뒤의 모습으로 검사한다.** 이 한 번의 저장이 분류를 파편으로 바꾸면서
+    # 등급은 그대로 두는 길이 있는데, 보낸 값만 보면 그것이 통과한다 — 남는 것은
+    # "파편인데 A" 인 행이다.
+    check_grade_pose(dobj.label, obj.grade, dobj.pose)
+    dobj.save(update_fields=["label", "species", "pose", "updated_at"])
     obj.save()
 
     # 화면이 고쳐야 할 다른 판들 — **쓰지 않는다, 알리기만 한다** (P12).
@@ -1040,15 +1082,19 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     # 카탈로그 카드가 아니다 — `save_review` 의 청소가 얹는 것과 같은 갈래다.
     linked = obj.diatom_object.members.count() > 1
     empty = not (obj.removed or obj.accepted or dobj.label or obj.note
-                 or dobj.species or obj.geom_edited or linked)
+                 or dobj.species or obj.geom_edited or linked
+                 # **등급·자세도 표시다** — 안 세면 종명을 비우는 한 번에 등급까지
+                 # 함께 사라진다. 105 가 이 자리에서 실패 둘을 봤다.
+                 or obj.grade or dobj.pose)
     n_spread = sum(len(v) for v in spread.values())
     if empty and obj.source != "manual":
         oid = obj.diatom_object_id
         obj.delete()
         prune_objects([oid])
-        return {"species": "", "cls": "", "note": "", "kept": False,
-                "spread": n_spread}
+        return {"species": "", "cls": "", "note": "", "grade": "", "pose": "",
+                "kept": False, "spread": n_spread}
     return {"species": dobj.species, "cls": dobj.label, "note": obj.note,
+            "grade": obj.grade, "pose": dobj.pose,
             "kept": True, "spread": n_spread}
 
 
@@ -2740,22 +2786,28 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # "표시가 사라진 행" 으로 보고 지운다.
     keys |= set(edits)
 
-    # **종명이 든 행은 이 payload 가 대표하지 않는다** (개체 카탈로그, 2026-08-10).
+    # **카탈로그 카드가 적는 칸이 든 행은 이 payload 가 대표하지 않는다**
+    # (종명 2026-08-10 · 등급·자세 2026-08-11).
     #
-    # 동정은 `/d/<슬라이드>/catalog/` 가 적고 **검토 화면은 그 칸을 모른다.** 그런데
-    # 종명만 채운 행은 삭제·되살림·유형·코멘트가 전부 비어 있어, 얹지 않으면
-    # 아래 삭제 줄이 "표시가 사라진 행" 으로 보고 지운다 — 사람이 아무것도 안
-    # 하고 **"검토 완료" 만 눌러도 동정이 통째로 사라진다.** 017·027·053 이
-    # 전부 그 줄에서 났고, 종명은 현미경을 보며 적는 것이라 재생성 불가다.
+    # 셋 다 `/d/<슬라이드>/catalog/` 가 적고 **검토 화면은 그 칸들을 모른다.**
+    # 그런데 그것만 채운 행은 삭제·되살림·유형·코멘트가 전부 비어 있어, 얹지
+    # 않으면 아래 삭제 줄이 "표시가 사라진 행" 으로 보고 지운다 — 사람이
+    # 아무것도 안 하고 **"검토 완료" 만 눌러도 통째로 사라진다.** 017·027·053 이
+    # 전부 그 줄에서 났고, 셋 다 현미경을 보며 적는 것이라 재생성 불가다.
+    #
+    # **`exclude(a="", b="", c="")` 는 셋이 모두 빈 행만 뺀다** — 하나라도 값이
+    # 있으면 남긴다. 셋을 따로 물으면 질의가 셋이 되고, 칸이 늘 때마다 한 줄씩
+    # 더하다가 빠뜨린다. **규칙이 하나면 자리도 하나여야 한다.**
     #
     # **`edits` 와 달리 늘 얹는다.** 저쪽은 "고치기를 아는 화면이면 그것이 전부"
-    # 라 갈래가 있지만, `/review` 는 **어느 판에서도** 종명을 보내지 않는다.
+    # 라 갈래가 있지만, `/review` 는 **어느 판에서도** 이 칸들을 보내지 않는다.
     #
-    # **청소는 계속 된다** — 종명을 비우면 이 집합에서 빠지므로, 그 다음 저장이
+    # **청소는 계속 된다** — 값을 비우면 이 집합에서 빠지므로, 그 다음 저장이
     # 아무 표시도 안 남은 행을 예전처럼 지운다.
     keys |= set(ObjectReview.objects
                 .filter(image=image, batch=batch)
-                .exclude(diatom_object__species="")
+                .exclude(diatom_object__species="", grade="",
+                         diatom_object__pose="")
                 .values_list("mask_key", flat=True))
 
     # **묶음의 멤버인 행도 이 payload 가 대표하지 않는다** (P12).

@@ -953,6 +953,16 @@ class ObjectReview(models.Model):
 
     BIND = [(b, b) for b in ("exact", "iou", "manual", "orphan")]
     SOURCE = [(s, s) for s in ("engine", "manual")]
+    # **등급 — 이 판에서 이 규조각이 얼마나 잘 보이는가** (2026-08-11 사용자).
+    # 우수한 개체를 골라 먼저 학습시키기 위한 것이고, 순서가 있다(A > B > C).
+    #
+    # **`A` 는 종명까지 동정된 것을 뜻한다** — 다만 **매기는 사람의 기준이지
+    # 시스템이 막는 규칙이 아니다**(2026-08-11 사용자). 등급을 먼저 매기고 종명은
+    # 나중에 적는 것이 실제 순서라, 저장 때 거절하면 그 순서를 막는다.
+    # `check_db` 도 이것은 안 센다.
+    GRADE = [("A", "A — 동정키도 완형도 잘 드러난다"),
+             ("B", "B — 완형이나 형태가 덜 드러난다 · 또는 상태가 나쁘나 동정키가 남았다"),
+             ("C", "C — 완형도 동정키도 잘 안 드러난다")]
 
     # **편의용으로 남는다.** 진짜 열쇠는 `(image, mask_key)` 다 — 화면·목록이
     # 시야로 묶어 보는 일이 많아 조인을 줄이려고 둔다. `image.viewpoint` 와
@@ -1040,6 +1050,22 @@ class ObjectReview(models.Model):
     # 분류·종명과 달리 `DiatomObject` 로 안 올렸다(옮기면 프레임마다 다른 말이
     # 하나로 뭉개진다). 104·107 도 코멘트는 안 번지게 해 왔다.
     note = models.TextField(blank=True)
+
+    # **등급은 판의 성질이다** (2026-08-11 사용자 결정). 같은 규조각이라도 초점면
+    # 마다 areolae 가 보이고 안 보인다 — 그래서 `removed`·`accepted` 와 같은 자리
+    # (판에 대한 판정)이고, **묶여 있어도 번지지 않는다.** 자세(`DiatomObject.pose`)
+    # 와 축이 반대라 배선이 갈린다: 저쪽은 개체 하나에 살아 저절로 공유된다.
+    #
+    # **완형에만 매긴다** — 파편(`counted=0`)은 완형을 유추할 수 있어도 확실하지
+    # 않고, 무엇보다 *한 개체로 인정하는 규칙을 만족하지 못한 것*이라 우수성을
+    # 물을 자리가 아니다. 분류가 파편이면 화면에 칸이 아예 안 뜨고 서버가 다시
+    # 검사한다 (화면에서 막는 것은 막는 것이 아니다 · 063).
+    #
+    # **빈 값이 "안 매겼다" 다.** 값이 셋뿐이라 `ClassDef` 처럼 테이블로 두지
+    # 않는다 — 분류를 더할 때 여덟 칸 + CSS 를 따라 고쳐야 하는 비용(038)을
+    # 여기서는 치를 이유가 없다.
+    grade = models.CharField(max_length=1, choices=GRADE, blank=True,
+                             default="", db_default="")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -1150,6 +1176,23 @@ class DiatomObject(models.Model):
     # **재생성 불가다.** 현미경을 보며 적는 것이고 `export_review.py` 가 내보낸다.
     species = models.CharField(max_length=120, blank=True, default="",
                                db_default="")
+    # **자세는 개체의 성질이다** (2026-08-11 사용자 결정). 스테이지가 안 움직이니
+    # 초점을 옮겨도 누운 자세는 그대로다 — 그래서 `label`·`species` 와 같은 자리이고
+    # **묶인 판들이 이 값을 나눠 갖는다.** 등급(`ObjectReview.grade`)과 축이 반대다.
+    #
+    # 번지게 할 코드는 없다 — 진실이 여기 하나뿐이라 P12 뒤로 그럴 것이 없다.
+    # 대신 **묶을 때 값이 엇갈리면 거절한다**(108): 개체가 값을 하나만 들 수 있어
+    # "그대로" 가 성립하지 않는다. 107 의 팝업이 물어야 한다.
+    #
+    # `label` 과 달리 목록이 짧고 안 는다 — `valve`/`girdle`/`other` 셋이고
+    # 순서가 없다. 등급과 함께 적어 두면 나중에 *"C 인 것들이 자세 때문인가"* 를
+    # 물을 수 있다 (대면관으로 누우면 판면의 동정키가 안 보여 B·C 가 된다).
+    #
+    # **완형에만 매긴다** — `ObjectReview.grade` 와 같은 규칙이다.
+    POSE = [("valve", "valve view"), ("girdle", "girdle view"),
+            ("other", "other position")]
+    pose = models.CharField(max_length=8, choices=POSE, blank=True,
+                            default="", db_default="")
     # 묶음에 대한 메모. 개체를 두고 하는 말이라 판마다 적는 `ObjectReview.note`
     # 와 다르다 — 그쪽은 "이 판에서는 초점이 안 맞는다" 를 적는 자리다.
     note = models.CharField(max_length=200, blank=True)
