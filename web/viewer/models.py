@@ -1036,6 +1036,17 @@ class ObjectReview(models.Model):
     # "사람이 지웠다가 이긴다" 는 규칙이 두 값의 조합으로 표현된다.
     removed = models.BooleanField(default=False)
     accepted = models.BooleanField(default=False)
+    # **검토 완료로 확인한 통과분** (2026-08-11). "이 마스크는 규조각이 맞다" 를
+    # 사람이 서명한 것이고, `data.materialize_passed` 가 적는다.
+    #
+    # **`accepted` 와 축이 다르다.** 저쪽은 *엔진이 떨어뜨린 것을 사람이 되살린*
+    # 사건이고 이쪽은 *엔진이 통과시킨 것을 사람이 확인한* 사건이다. 하나로
+    # 뭉치면 화면의 "복구 N" 이 통과분 수백 개로 부풀고, 무엇보다 **"엔진이
+    # 놓친 것 몇 건" 을 다시 못 센다** — 회차 성적을 읽는 근거가 그것이다.
+    #
+    # **화면은 이 칸을 모른다.** `/review` payload 에 없으므로 `save_review` 의
+    # 청소가 지우지 않도록 `keys` 에 얹는다 — 종명·`geom_edited` 와 같은 갈래다.
+    confirmed = models.BooleanField(default=False, db_default=False)
     # **판마다 따로 적는 말이다** — "이 판에서는 초점이 안 맞는다" 처럼. 그래서
     # 분류·종명과 달리 `DiatomObject` 로 안 올렸다(옮기면 프레임마다 다른 말이
     # 하나로 뭉개진다). 104·107 도 코멘트는 안 번지게 해 왔다.

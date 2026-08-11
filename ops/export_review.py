@@ -196,6 +196,8 @@ def fetch(conn, slide_slug=None) -> dict:
     #
     # 내보내는 모양은 안 바뀐다. 감사 기록의 형식 번호를 올리지 않는 이유이고,
     # 그래야 P12 전후의 `review/` 를 그대로 diff 할 수 있다.
+    # 검토 완료가 통과분에 남긴 서명 (0033). **옛 DB 에는 없다** — 위와 같은 갈래.
+    conf_col = col("confirmed", "0")
     new_home = "diatom_object_id" in cols
     if new_home:
         label_col, species_col = "o.label", "o.species"
@@ -230,7 +232,7 @@ def fetch(conn, slide_slug=None) -> dict:
         SELECT r.viewpoint_id, r.mask_key, r.removed, r.accepted,
                {label_col} AS label, r.note,
                r.geom, r.bind_method, r.bind_score,
-               {img_col}, {batch_col}, {src_col}, {edit_col},
+               {img_col}, {batch_col}, {src_col}, {edit_col}, {conf_col},
                {species_col} AS species
           FROM viewer_objectreview r{obj_join}
     """):
@@ -256,6 +258,11 @@ def fetch(conn, slide_slug=None) -> dict:
             obj["source"] = r["source"]
         if r["geom_edited"]:
             obj["geom_edited"] = True
+        # **적힌 것에만 싣는다** (`species`·`geom_edited` 와 같은 규칙). 늘
+        # 실으면 서명 없는 행 수천 개가 뜻 없이 다시 쓰이고, 그 diff 에 그
+        # 사이의 진짜 변화가 묻힌다.
+        if r["confirmed"]:
+            obj["confirmed"] = True
         if r["bind_score"] is not None:
             obj["bind_score"] = round(r["bind_score"], 4)
         # 기하는 마지막이다 — 길고, 사람이 눈으로 읽는 것이 아니다.

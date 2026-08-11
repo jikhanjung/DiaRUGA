@@ -799,6 +799,62 @@ def judgement_for(vp, image, batch, key, cand=None) -> ObjectReview:
         bind_score=1.0 if cand else None)
 
 
+def materialize_passed(vp: Viewpoint, batch) -> dict:
+    """**"검토 완료" 는 남은 마스크에 서명하는 것이다** — 그것을 행으로 적는다.
+
+    돌려주는 것은 `{이미지 id: [mask_key, …]}` — 새로 세운 것만 담는다.
+
+    ## 왜
+
+    지금까지 "이건 규조각이 맞다" 는 판단은 **행의 부재로만** 기록됐다. 사람이
+    틀린 것을 지우고 완료를 누르면 남은 것이 곧 맞다고 본 것인데, DB 에는
+    아무것도 안 남는다. 그래서
+
+    - **학습 자료의 양성 표본이 암묵적이다.** 음성(지운 것)은 `geom` 까지 들고
+      있는데 양성은 "안 지웠다" 로만 있다
+    - **개체 수를 셀 때 통과분이 안 잡힌다.** `DiatomObject` 는 사람이 무언가
+      말한 마스크에만 서므로, 프레임에 겹쳐 잡힌 것을 하나로 세는 층이 통과분
+      위에는 얹히지 않는다
+
+    ## `confirmed=True` 로 적는다 — `accepted` 가 아니다
+
+    `accepted` 는 *엔진이 떨어뜨린 것을 사람이 되살린* 사건이고 이것은 *엔진이
+    통과시킨 것을 사람이 확인한* 사건이다. 하나로 뭉치면 화면의 "복구 N" 이
+    통과분 수백 개로 부풀고, **"엔진이 놓친 것 몇 건" 을 다시 못 센다** —
+    회차 성적을 읽는 근거가 그것이다 (사용자 판단 2026-08-11).
+
+    화면은 이 칸을 모르므로 `save_review` 의 청소가 지우지 않도록 `keys` 에
+    얹는다 — 종명·`geom_edited` 와 같은 갈래다.
+
+    ## 시야 전체를 훑는다
+
+    완료 표시는 `(시야, 묶음)` 단위라 그 주장도 시야 단위다. payload 는 이미지
+    하나를 대표하지만, 그 이미지만 적으면 **프레임 넷 중 하나만 서명된다.**
+
+    **이미 있는 행은 안 건드린다** — 사람이 지운 것도, 분류를 붙인 것도 그대로다.
+    **탈락분도 안 건드린다** — 되살리는 것은 사람이 눌러서 하는 일이다.
+    """
+    if batch is None:
+        return {}
+    out = {}
+    for det in current_detections(vp, batch_id=getattr(batch, "pk", batch)):
+        have = set(ObjectReview.objects
+                   .filter(image=det.image_id, batch=batch)
+                   .values_list("mask_key", flat=True))
+        made = []
+        for cand in det.candidates.all():
+            if not cand.passed or cand.mask_key in have:
+                continue
+            row = judgement_for(vp, det.image_id, batch, cand.mask_key, cand)
+            row.confirmed = True
+            row.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
+            row.save(update_fields=["confirmed", "geom"])
+            made.append(cand.mask_key)
+        if made:
+            out[str(det.image_id)] = made
+    return out
+
+
 def prune_objects(ids) -> int:
     """멤버가 하나도 안 남은 개체를 걷는다. 돌려주는 것은 지운 수.
 
@@ -1039,8 +1095,8 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     # 지우면 **묶음에서 한 판이 조용히 빠진다.** 묶음을 푸는 문은 `/link` 이고
     # 카탈로그 카드가 아니다 — `save_review` 의 청소가 얹는 것과 같은 갈래다.
     linked = obj.diatom_object.members.count() > 1
-    empty = not (obj.removed or obj.accepted or dobj.label or obj.note
-                 or dobj.species or obj.geom_edited or linked)
+    empty = not (obj.removed or obj.accepted or obj.confirmed or dobj.label
+                 or obj.note or dobj.species or obj.geom_edited or linked)
     n_spread = sum(len(v) for v in spread.values())
     if empty and obj.source != "manual":
         oid = obj.diatom_object_id
@@ -2758,6 +2814,15 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
                 .exclude(diatom_object__species="")
                 .values_list("mask_key", flat=True))
 
+    # **확인 표시가 든 행도 이 payload 가 대표하지 않는다** (2026-08-11).
+    #
+    # `confirmed` 는 "검토 완료" 가 통과분에 남기는 서명인데(`materialize_passed`),
+    # **검토 화면은 그 칸을 모른다** — 얹지 않으면 다음 저장이 "표시가 사라진
+    # 행" 으로 보고 지운다. 종명·`geom_edited` 와 같은 갈래다.
+    keys |= set(ObjectReview.objects
+                .filter(image=image, batch=batch, confirmed=True)
+                .values_list("mask_key", flat=True))
+
     # **묶음의 멤버인 행도 이 payload 가 대표하지 않는다** (P12).
     #
     # 소속이 곧 판정 행이 됐다 — 예전에는 `ObjectLinkMember` 로 따로 있어서
@@ -2889,6 +2954,10 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
 
     n_drawn = _save_drawn(vp, image, drawn, (cur.width, cur.height))
 
+    # **완료를 누르면 남은 통과분에 서명한다** (2026-08-11). 청소가 끝난 뒤에
+    # 한다 — 먼저 하면 방금 세운 행이 `keys` 에 없어 그 자리에서 지워진다.
+    signed = materialize_passed(vp, batch) if done else {}
+
     # 묶인 판들에 **화면 상태를 맞추라고 알린다** (P12 · 옛 104 의 전파 자리).
     # 값은 이미 개체 하나에 앉아 있어 고칠 것이 없다 — 다른 판의 화면이 그것을
     # 모르는 것만 남았다.
@@ -2903,6 +2972,10 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
         # 것이라 지금 번진 분류를 모르고, 그 판에서 다음 저장이 나가면 "표시가
         # 사라진 행" 으로 보고 지운다 — 뷰어는 늘 전체를 보낸다.
         out["linked"] = spread
+    if signed:
+        # **화면은 흡수할 것이 없다.** `confirmed` 는 payload 에 없는 칸이라
+        # 청소가 위에서 이미 지켜 준다 — 수만 알려 준다.
+        out["confirmed"] = sum(len(v) for v in signed.values())
     return out
 
 
