@@ -1369,20 +1369,24 @@
      **`.detview` 를 붙인다** — `.detview .box.gone::after` 와 특이도를 맞춘다.
      안 붙이면 지운 상자에서 저쪽 `✕` 가 이겨 사슬이 조용히 사라진다(051). */
   .detview .box.linked::after {
-    content: ''; position: absolute; pointer-events: none;
-    right: calc(-9px * var(--inv, 1)); top: calc(-14px * var(--inv, 1));
-    width: calc(28px * var(--inv, 1)); height: calc(28px * var(--inv, 1));
-    /* **고리 하나를 크게 그린다.** `⛓` 글리프는 고리가 둘이라 이 크기에서
-       잉크가 엉겨 무엇인지 안 읽혔다 (사용자 2026-08-11).
+    content: '⛓'; position: absolute; pointer-events: none;
+    right: calc(1px * var(--inv, 1)); top: calc(-8px * var(--inv, 1));
+    font-size: calc(26px * var(--inv, 1)); line-height: 1;
+    /* **11px → 26px.** 화면에서 여러 크기를 견주어 고른 값이다
+       (사용자 2026-08-11).
 
-       **원판을 깔지 않는다.** 처음엔 어두운 원판 위에 얹었는데, 원판이 자리를
-       먹어 고리가 15px 로 줄고 구멍이 사라져 `0` 처럼 보였다 — 화면에서 견주어
-       보고 뺐다. 대신 **검은 획을 먼저 굵게 깔고 흰 획을 그 위에 얹는다**:
-       배경이 테마가 아니라 현미경 사진이라 밝기를 예측할 수 없고, 이렇게 하면
-       밝은 규조각 위에서도 어두운 배경에서도 윤곽이 남는다. */
-    background:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='1.5' y='6.5' width='21' height='11' rx='5.5' fill='none' stroke='%23000' stroke-width='5.4' transform='rotate(-45 12 12)'/%3E%3Crect x='1.5' y='6.5' width='21' height='11' rx='5.5' fill='none' stroke='%23fff' stroke-width='2.6' transform='rotate(-45 12 12)'/%3E%3C/svg%3E")
-      center/contain no-repeat;
+       **이것은 컬러 이모지로 그려진다.** 그래서 `color` 가 안 먹는다 — 아래
+       흰색은 이모지 글꼴이 없는 클라이언트에서 흑백 글리프로 떨어질 때만
+       쓰인다. 그림자는 이모지에도 걸려 사진 위에서 윤곽을 만든다.
+
+       **모양이 클라이언트마다 다르다.** 이모지라 Windows(Segoe UI Emoji)와
+       리눅스(Noto)가 서로 다른 사슬을 그린다. 색·윤곽을 우리가 정하려면 SVG
+       로 따라 그려야 하는데, 그 값보다 "사슬로 바로 읽힌다" 는 쪽을 택했다 —
+       SVG 로 고리를 그려 본 시안들은 이 크기에서 사슬로 안 읽혔다
+       (`git stash` 에 남겨 뒀다). */
+    color: #fff;
+    text-shadow: 0 0 calc(3px * var(--inv, 1)) rgba(0,0,0,.95),
+                 0 0 calc(1px * var(--inv, 1)) rgba(0,0,0,1);
   }
   /* 판을 넘어온 묶음의 짝 — 잠깐 밝힌다 */
   .box.linkflash { outline: 2px solid var(--warn); outline-offset: 2px;
