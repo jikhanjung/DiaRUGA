@@ -497,3 +497,43 @@ git commit -F - -- <내가 고친 파일…>      # 파일을 지정해서
 
 `DiaRUGA.db`·`photos/`·`out/`·`stacked/`·`backup/`·`runs/`·`datasets/` 는
 gitignore 다.
+
+## 새 작업자 붙이기
+
+계정 하나가 곧 작업 트리 하나다(위 참조). 새 사람이 붙을 때 정할 것은 셋이고
+**서로 다른 층이다 — 하나가 되면 나머지도 된다고 믿지 말 것.**
+
+| | 무엇 | 누가 검증하나 |
+|---|---|---|
+| **identity** (`user.name`·`user.email`) | 커밋에 글자로 박히는 서명 | **아무도 안 한다** — 아무 문자열이나 들어간다 |
+| **인증** (SSH 키) | push 할 수 있는가 | GitHub |
+| **연결** (attribution) | 커밋이 그 사람 프로필에 붙는가 | GitHub — **이메일이 일치할 때만** |
+
+**같은 이메일을 쓰면 이름을 달리해도 GitHub 에서는 한 사람이다.** 실제로
+`Jikhan Jung` 과 `Jikhan Jung (paleo-server)` 가 그렇게 섞여 있다.
+
+웹에서 한 번: 그 사람의 GitHub 계정에 **이메일을 인증**하고, 저장소
+`Settings → Collaborators` 로 초대한다. **Deploy key 는 사람이 아니라 저장소에
+붙는 키라** 이 자리에 안 맞는다.
+
+그 계정의 셸에서:
+
+```bash
+git config --global user.name  "<이름>"
+git config --global user.email "<그 GitHub 계정에 인증된 주소>"   # 연결의 열쇠
+git config --list --show-origin | grep -E '^.*user\.'          # 어느 파일의 값인가
+
+ssh-keygen -t ed25519 -C "<계정>@paleo-server"                  # 공개키를 GitHub 에 등록
+ssh -T git@github.com                                          # "Hi <아이디>!" 가 나와야 한다
+
+git clone git@github.com:jikhanjung/DiaRUGA.git
+git switch -c work/<YYYYMMDD>-<계정>
+```
+
+**첫 커밋을 밀고 나서 `git log -1 --format='%an <%ae>'` 와 GitHub 화면을 함께
+본다** — 아바타가 안 붙으면 이메일이 그 계정에 인증되지 않은 것이다(인증하면
+**과거 커밋도 소급해서 붙는다**). 이미 다른 이메일로 올라간 커밋은 **그대로
+둔다** — 고치려면 히스토리를 다시 써야 한다.
+
+환경은 이 문서의 "환경" 절대로 따로 세운다 — **`.env` 도 데이터도 DB 도 저장소
+안에 없다**(`.env.template` 이 견본). `.guides` 심볼릭 링크도 각자 건다.
