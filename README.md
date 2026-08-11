@@ -132,6 +132,7 @@ git 에 넣으므로 `git diff` 로 "언제 무엇이 달라졌나" 가 보인�
 | [HANDOFF.md](HANDOFF.md) | **지금** 상태와 인수 사항. 이어서 작업할 때 여기부터 |
 | [CLAUDE.md](CLAUDE.md) | 자주 쓰는 명령과 **자주 빠지는 함정** |
 | [TODOs.md](TODOs.md) | 앞으로 할 일 |
+| [CHANGELOG.md](CHANGELOG.md) | **판 이력** — 판 하나에 한 줄, 근거 devlog 번호와 함께 |
 | [docs/…_pipeline-rationale.md](docs/20260811_pipeline-rationale.md) | **파이프라인이 왜 이렇게 되어 있는가** — 촬영 조건·그룹핑·합성·검출·판정 기준·실측·성능 |
 | [docs/…_schema-rationale.md](docs/20260811_schema-rationale.md) | **스키마의 근거** — 교정이 `mask_key` 에 붙는 이유 · `Image` 정규화 · 개체와 판정 |
 | [docs/…_viewer-guide.md](docs/20260811_viewer-guide.md) | **뷰어 안내** — 화면이 무엇을 하고 왜 그런가 |
