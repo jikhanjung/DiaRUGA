@@ -558,6 +558,34 @@ class LinkBindsToCandidateTest(DiaRUGATestCase):
                              f"짝이 있는데 {row.bind_method} 로 앉았다")
             self.assertIsNotNone(row.candidate_id, "후보를 안 물었다")
 
+    def test_이미_있는_고아_행도_다시_맺는다(self):
+        """`judgement_for` 는 있는 행을 그대로 돌려준다 — 옛 바인딩이 `orphan`
+        이면 다시 묶어도 남는다. 그런데 묶기가 여기까지 왔다는 것은 그 마스크의
+        후보를 **방금 찾았다**는 뜻이라, 짝이 없다는 기록은 거짓이다.
+
+        **테스트 인스턴스에서 풀었다 다시 묶어도 안 고쳐지는 것을 보고 찾았다.**
+        """
+        fx.add_frame_detections(self.w.vp)
+        key = sorted(c.mask_key for c in self.det.candidates.all())[0]
+        img = self.imgs[0]
+        # 짝이 있는데 고아로 앉아 있는 행 (고치기 전의 묶기가 남긴 모양)
+        stale = fx.new_review(viewpoint=self.w.vp, image=img,
+                              batch=self.det.batch, mask_key=key,
+                              bind_method="orphan")
+        self.assertIsNone(stale.candidate_id)
+
+        r = self.c.post(
+            reverse("save_link", args=[self.w.slug, self.w.vp.idx]),
+            data=json.dumps({"members": [
+                {"image": self.det.image_id, "mask_key": key, "rep": True},
+                {"image": img.pk, "mask_key": key, "rep": False}]}),
+            content_type="application/json")
+        self.assertEqual(r.status_code, 200, r.content[:300])
+
+        stale.refresh_from_db()
+        self.assertEqual(stale.bind_method, "exact", "고아 기록이 남았다")
+        self.assertIsNotNone(stale.candidate_id)
+
 
 class CleanupKeepsMembersTest(DiaRUGATestCase):
     """**청소가 묶음 멤버를 지우면 안 된다** (P12 에서 생긴 구멍).

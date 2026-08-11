@@ -1598,6 +1598,16 @@ def save_object_link(request, slug, gid):
             for img, b, key, rep, geom, rej, cand in resolved:
                 row = data.judgement_for(vp, img, b, key, cand)
                 fields = []
+                # **이미 있는 행도 다시 맺는다** (`save_review` 와 같은 줄).
+                # `judgement_for` 는 있는 행을 그대로 돌려주므로, 옛 바인딩이
+                # `orphan` 이면 다시 묶어도 그대로 남는다 — 그런데 여기까지 온
+                # 것은 그 (이미지, 묶음, 키) 의 후보를 **방금 찾았다**는 뜻이라
+                # 짝이 없다는 기록이 거짓이다. 고아 화면·`rebind` 가 그 값을 본다.
+                if cand and row.candidate_id != cand.pk:
+                    row.candidate = cand
+                    row.bind_method = "exact"
+                    row.bind_score = 1.0
+                    fields += ["candidate", "bind_method", "bind_score"]
                 if not row.geom:
                     row.geom = geom
                     fields.append("geom")
