@@ -191,6 +191,10 @@ deploy/host/dbrun.sh backup_db.py --note before-v0.4.0
 
 옛 이미지 태그는 **지우지 않는다.** 그것이 되돌릴 길이다.
 
+**마이그레이션이 걸린 판을 낼 때는 `manual/` 에도 한 장 뜬다** — `pre_deploy/` 는
+`--keep 20` 에 밀려 나가므로, 스키마를 되돌려야 할 때 짚을 자리가 사라진다
+(2026-08-11 에 `HANDOFF.md` 9.1 에서 옮겨 왔다).
+
 ### 2.8 사내망이 TLS 를 가로챈다
 
 파이프라인 이미지 빌드가 `download.pytorch.org` 에서 죽으면 `deploy/ca/` 를
