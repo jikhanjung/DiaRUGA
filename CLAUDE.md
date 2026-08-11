@@ -58,7 +58,9 @@
 | 이미지·검출·교정의 관계를 만진다 | `devlog/20260805_P06_*`(계획·결정), `055`(실행), `models.py` 의 `Image` |
 | 데스크탑 앱을 만든다 | `devlog/20260805_P05_desktop-app.md` (계획), `docs/20260805_desktop-app-review.md` (근거), `049`(CPU 실측), `.guides/desktop/` |
 | 배포·백업을 만진다 | `.guides/web/`, `devlog/20260803_019_*`, `20260804_034_smoke-and-sentinel.md` |
-| 파이프라인 알고리즘 | `README.md` (40 KB, 스크립트마다 "왜 이렇게 했는가"가 있다) |
+| 파이프라인 알고리즘 | `docs/20260811_pipeline-rationale.md` (스크립트마다 "왜 이렇게 했는가" · 판정 기준·실측·성능이 함께 있다) |
+| 뷰어 화면이 왜 그런가 | `docs/20260811_viewer-guide.md` (지금 어떤 화면이 있는지는 `HANDOFF.md` 2절) |
+| 스키마가 왜 그 모양인가 | `docs/20260811_schema-rationale.md` (지금 모습은 위 DB 명세) |
 
 **devlog 는 그때의 판단과 근거를 남기는 곳이다.** 계획은 `YYYYMMDD_PNN_주제.md`,
 실제로 한 작업은 `YYYYMMDD_NNN_주제.md` 로 번호를 올려 가며 단계마다 끊어 적는다.
@@ -76,7 +78,7 @@
 ## 환경
 
 ```bash
-# venv 는 ~/venv/DiaRUGA 이다 (README 의 .venv 가 아니다 — HANDOFF 8.3)
+# venv 는 ~/venv/DiaRUGA 이다 (저장소 안의 .venv 가 아니다 — HANDOFF 8.3)
 python --version        # 3.12.3
 ```
 

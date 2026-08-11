@@ -899,7 +899,8 @@ VRAM 이 8 GB 뿐이라 파이프라인을 상주시키지 않는다(9.4절). YO
 
 ### 8.3 venv 는 `~/venv/DiaRUGA` 이다
 
-README 의 `.venv` 가 아니다. Python 3.12.3 · `torch 2.13.0+cu126` · `SAM-2 1.0` ·
+저장소 안의 `.venv` 가 아니다(예전 문서가 그렇게 적고 있었다). Python 3.12.3 ·
+`torch 2.13.0+cu126` · `SAM-2 1.0` ·
 Django 5.2.16 · opencv-headless. requirements 는 넷으로 갈라져 있다.
 
 **호스트 venv 로 DB 를 만지지 않는다** — 9.2절.
