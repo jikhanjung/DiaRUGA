@@ -64,15 +64,21 @@ class CatalogPageTest(DiaRUGATestCase):
     # --- 거르개·검색 --------------------------------------------------------
 
     def test_동정_안_한_것만_거른다(self):
+        """**완료의 기준이 셋이다** (2026-08-11) — 종명만 적힌 것은 아직 "덜 된
+        것" 이다. 진행도와 같은 기준을 쓴다."""
         row = data.catalog_rows("rs23")[0]
-        fx.new_review(
+        o = fx.new_review(
             viewpoint_id=row["group_id"] and self.w.viewpoints[row["group_id"]].pk
             or self.w.vp.pk,
             image_id=row["image_id"], batch_id=row["batch_id"],
             mask_key=row["key"], bind_method="exact", species="Eucampia sp.")
-        named = self.get(cls="named")
+        o.grade = "A"
+        o.save()
+        o.diatom_object.pose = "valve"
+        o.diatom_object.save()
+        named = self.get(cls="named", frag="1")
         self.assertIn(row["catalog_no"], named)
-        self.assertNotIn(row["catalog_no"], self.get(cls="unnamed"))
+        self.assertNotIn(row["catalog_no"], self.get(cls="unnamed", frag="1"))
 
     def test_번호로_찾는다(self):
         rows = data.catalog_rows("rs23")
@@ -102,6 +108,122 @@ class CatalogPageTest(DiaRUGATestCase):
 
     def test_못_찾으면_그렇다고_말한다(self):
         self.assertIn("찾은 개체가 없다", self.get(q="없는종명xyz"))
+
+    # --- 파편은 기본으로 감춘다 (2026-08-11) --------------------------------
+
+    def _frag_row(self):
+        """첫 개체를 파편으로 지정한다 — 카드가 그렇게 그려진다."""
+        row = data.catalog_rows("rs23")[0]
+        fx.new_review(viewpoint_id=self.w.viewpoints[row["group_id"]].pk,
+                      image_id=row["image_id"], batch_id=row["batch_id"],
+                      mask_key=row["key"], bind_method="exact",
+                      label="round_frag")
+        return row
+
+    def test_파편은_기본으로_안_보인다(self):
+        row = self._frag_row()
+        self.assertNotIn(row["catalog_no"], self.get())
+
+    def test_켜면_보인다(self):
+        row = self._frag_row()
+        self.assertIn(row["catalog_no"], self.get(frag="1"))
+
+    def test_감춘_개수를_적는다(self):
+        """**"없다" 와 "감췄다" 는 다르다.** 개수를 안 적으면 사람은 그 개체들이
+        어디로 갔는지 알 수 없다.
+
+        **픽스처가 이미 파편을 섞어 만든다**(`CLASSES[i % ...]`) — 세어서 맞춘다.
+        "1개" 로 못 박으면 픽스처가 바뀔 때 조용히 다른 것을 보게 된다."""
+        self._frag_row()
+        n = sum(1 for r in data.catalog_rows("rs23")
+                if data.is_fragment(r.get("cls")))
+        self.assertGreater(n, 0)
+        html = self.get()
+        self.assertIn("파편 보기", html)
+        self.assertIn(f"({n})", html)
+
+    def test_켠_것이_검색과_거르개를_따라간다(self):
+        """켠 것이 조용히 꺼지면 사람은 개체가 사라졌다고 읽는다 — 검색 폼은
+        숨은 칸으로, 칩은 주소로 그것을 들고 간다."""
+        html = self.get(frag="1")
+        self.assertIn('name="frag" value="1"', html)      # 검색 폼이 들고 간다
+        self.assertIn("&frag=1", html)                    # 칩이 들고 간다
+
+    def test_파편_분류를_집으면_감추지_않는다(self):
+        """그 칩을 누르고 빈 화면을 보면 사람은 자료가 없다고 읽는다 — 눌러서
+        아무 일도 안 일어나는 화면을 만들지 않는다."""
+        row = self._frag_row()
+        self.assertIn(row["catalog_no"], self.get(cls="round_frag"))
+
+    def test_완형은_감추기와_무관하다(self):
+        row = data.catalog_rows("rs23")[1]
+        fx.new_review(viewpoint_id=self.w.viewpoints[row["group_id"]].pk,
+                      image_id=row["image_id"], batch_id=row["batch_id"],
+                      mask_key=row["key"], bind_method="exact", label="round")
+        self.assertIn(row["catalog_no"], self.get())
+
+    # --- 진행도 -------------------------------------------------------------
+
+    def _fill(self, i, **kw):
+        row = data.catalog_rows("rs23")[i]
+        o = fx.new_review(viewpoint_id=self.w.viewpoints[row["group_id"]].pk,
+                          image_id=row["image_id"], batch_id=row["batch_id"],
+                          mask_key=row["key"], bind_method="exact",
+                          species=kw.get("species", ""),
+                          label=kw.get("label", ""))
+        if kw.get("grade"):
+            o.grade = kw["grade"]
+            o.save()
+        if kw.get("pose"):
+            o.diatom_object.pose = kw["pose"]
+            o.diatom_object.save()
+        return row
+
+    def ctx(self, **q):
+        r = self.c.get(self.url, q)
+        return r.context["n_named"], r.context["n_all"]
+
+    def test_종명만으로는_완료가_아니다(self):
+        """등급·자세까지 다 차야 완료다 (사용자 2026-08-11) — 진행도가 재려는
+        것은 "할 말을 다 했는가" 이지 이름만 붙였는가가 아니다."""
+        self._fill(0, species="Eucampia antarctica")
+        self.assertEqual(self.ctx()[0], 0)
+
+    def test_셋이_다_차면_완료다(self):
+        self._fill(0, species="Eucampia antarctica", grade="A", pose="valve")
+        self.assertEqual(self.ctx()[0], 1)
+
+    def test_등급만_빠져도_완료가_아니다(self):
+        self._fill(0, species="Eucampia antarctica", pose="valve")
+        self.assertEqual(self.ctx()[0], 0)
+
+    def test_파편은_분모에서_빠진다(self):
+        """분모에 두면 진행률이 영영 100%에 못 닿는다 — 파편에는 등급·자세를
+        안 매기므로 완료가 될 수 없다."""
+        before = self.ctx()[1]
+        self._frag_row()
+        self.assertEqual(self.ctx()[1], before - 1)
+
+    def test_분류가_없는_것은_분모에_남는다(self):
+        """**모르는 것과 아닌 것은 다르다** — 아직 안 정했을 뿐이고, 정하면
+        완형일 수 있다. 미분류를 파편으로 묶으면 분모에서 통째로 빠진다."""
+        self.assertFalse(data.is_fragment(""))
+        rows = data.catalog_rows("rs23")
+        want = sum(1 for r in rows if not data.is_fragment(r.get("cls")))
+        self.assertEqual(self.ctx()[1], want)
+        self.assertLess(want, len(rows), "픽스처에 파편이 없어 시험이 무의미하다")
+
+    def test_감추기가_진행도를_안_바꾼다(self):
+        """감추는 것은 화면일 뿐이다. 켜고 끄는 것으로 숫자가 흔들리면 그 막대는
+        아무것도 못 말한다."""
+        self._frag_row()
+        self.assertEqual(self.ctx(), self.ctx(frag="1"))
+
+    def test_덜_된_것_거르개가_진행도와_같은_기준이다(self):
+        """둘이 다르면 진행도가 "다 했다" 인데 거르개에 개체가 남는다."""
+        row = self._fill(0, species="Eucampia antarctica")   # 등급·자세가 없다
+        self.assertIn(row["catalog_no"], self.get(cls="unnamed"))
+        self.assertNotIn(row["catalog_no"], self.get(cls="named"))
 
 
 class FramePageTest(DiaRUGATestCase):

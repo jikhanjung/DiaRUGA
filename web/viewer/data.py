@@ -101,6 +101,31 @@ def counted_classes() -> list[dict]:
             for r in _class_rows() if r["counted"]]
 
 
+def is_fragment(cls: str) -> bool:
+    """파편으로 지정된 것인가 (`ClassDef.counted=False`).
+
+    **분류가 없는 것은 파편이 아니다.** 아직 안 정했을 뿐이고, 정하면 완형일 수
+    있다 — 미분류를 파편으로 묶으면 카탈로그에서 통째로 사라지고 동정 진행도의
+    분모에서도 빠진다. **모르는 것과 아닌 것은 다르다.**
+    """
+    if not cls:
+        return False
+    row = next((r for r in _class_rows() if r["key"] == cls), None)
+    return row is not None and not row["counted"]
+
+
+def catalog_done(r: dict) -> bool:
+    """카드 하나가 **동정 완료**인가 (사용자 기준 2026-08-11).
+
+    종명만으로는 안 되고 **등급·자세까지 다 차야** 완료다. 종명은 무엇인지를
+    말하고 등급·자세는 그것을 학습에 쓸 수 있는지를 말한다 — 진행도가 재려는
+    것은 "이 개체에 대해 할 말을 다 했는가" 이지 이름만 붙였는가가 아니다.
+
+    **파편은 이 물음의 대상이 아니다** — 부르는 쪽이 `is_fragment` 로 먼저 뺀다.
+    """
+    return bool(r.get("species") and r.get("grade") and r.get("pose"))
+
+
 class _LabelMap(dict):
     """없는 키를 물어도 빈 문자열 — 템플릿에서 쓰기 편하게."""
 
@@ -396,6 +421,13 @@ def _apply_review(det: Detection, reviews: dict, state) -> dict:
         # 가 정한 목록에서 고른 것이고 이쪽은 사람이 적은 종명이다.
         if o.species:
             d["species"] = o.species
+        # 등급·자세 (개체 카탈로그). **둘의 축이 반대다** — 등급은 이 판에 대한
+        # 판정이고 자세는 개체의 성질이라 묶인 판들이 나눠 갖는다. 조인은
+        # `_reviews_prefetch` 가 이미 물어 왔다.
+        if o.grade:
+            d["grade"] = o.grade
+        if o.diatom_object.pose:
+            d["pose"] = o.diatom_object.pose
 
     kept.sort(key=lambda r: -(r.get("area_px") or 0))
     for i, d in enumerate(kept):
@@ -919,6 +951,8 @@ def catalog_rows(slug: str) -> list[dict]:
         r["catalog_no"], r["catalog_why"] = catalog_no_for(r, layer, codes)
         r.setdefault("species", "")
         r.setdefault("note", "")
+        r.setdefault("grade", "")
+        r.setdefault("pose", "")
         # **묶었으면 가장 큰 프레임을 그린다.** 원래 행은 안 건드리고 `view` 로만
         # 낸다 — 크롭·지표·번호가 전부 원래 이미지 기준이라, 섞으면 화면이 다른
         # 이미지의 숫자를 이 개체 옆에 적는다.

@@ -828,12 +828,16 @@ CATALOG_PER_PAGE = 120
 
 # 카드에 얹는 거르개. 크롭 화면(`crops`)과 같은 것을 쓰되 **동정 진행률**을
 # 보는 둘을 더한다 — 이 화면에서 사람이 알고 싶은 것은 "어디까지 했나" 다.
+#
+# **`named`·`unnamed` 는 진행도와 같은 기준이다** (2026-08-11) — 종명·등급·자세가
+# 다 차야 완료다. 둘이 다른 뜻이면 진행도가 "80%" 인데 "덜 된 것" 거르개가 빈
+# 화면을 내는 상태가 생기고, 사람은 무엇을 믿어야 할지 모른다.
 CATALOG_FILTERS = {
     "manual": ("수동 복구", lambda r: r.get("manual")),
     "labeled": ("사람 지정", lambda r: r.get("cls_user")),
     "noted": ("코멘트 있음", lambda r: r.get("note")),
-    "named": ("동정함", lambda r: r.get("species")),
-    "unnamed": ("동정 안 함", lambda r: not r.get("species")),
+    "named": ("동정 완료", data.catalog_done),
+    "unnamed": ("덜 된 것", lambda r: not data.catalog_done(r)),
 }
 
 
@@ -849,10 +853,30 @@ def catalog(request, slug):
         raise Http404(f"unknown dataset: {slug}")
 
     rows = data.catalog_rows(slug)
-    n_all = len(rows)
-    n_named = sum(1 for r in rows if r.get("species"))
+
+    # **진행도에서 파편을 뺀다** (사용자 2026-08-11). 파편에는 등급·자세를 안
+    # 매기므로 완료가 될 수 없고, 분모에 두면 진행률이 영영 100%에 못 닿는다 —
+    # 실측으로 살아 있는 교정의 65%가 파편이다. **모수가 틀린 막대는 안 보는
+    # 것만 못하다.** 분류가 없는 것은 남긴다(정하면 완형일 수 있다).
+    scope = [r for r in rows if not data.is_fragment(r.get("cls"))]
+    n_all = len(scope)
+    n_named = sum(1 for r in scope if data.catalog_done(r))
+    # 감춘 것이 몇 개인지 화면이 적는다 — **"없다" 와 "감췄다" 는 다르다.**
+    # `catalog_rows` 를 다시 부르지 않는다: 한 판을 통째로 다시 만드는 함수다.
+    n_frag = len(rows) - n_all
 
     cls = request.GET.get("cls") or ""
+    # **파편은 기본으로 감춘다** (사용자 2026-08-11). 처음부터 다 내면 카드가
+    # 파편으로 덮여 동정할 것이 안 보인다. 감추는 것은 화면일 뿐이라 진행도·
+    # 개수는 그대로다.
+    #
+    # **파편 분류를 콕 집었으면 감추지 않는다** — 그 칩을 누르고 빈 화면을 보면
+    # 사람은 자료가 없다고 읽는다. 눌러서 아무 일도 안 일어나는 화면을 만들지
+    # 않는다.
+    show_frag = request.GET.get("frag") == "1"
+    if not show_frag and not data.is_fragment(cls):
+        rows = [r for r in rows if not data.is_fragment(r.get("cls"))]
+
     if cls in data.CLASSES:
         rows = [r for r in rows if r.get("cls") == cls]
     elif cls in CATALOG_FILTERS:
@@ -894,6 +918,10 @@ def catalog(request, slug):
             qd["cls"] = cls
         if q:
             qd["q"] = q
+        # 다음 쪽으로 넘어가면서 파편이 도로 감춰지면 안 된다 — 사람은 켠 것이
+        # 꺼진 줄 모르고 개체가 사라졌다고 읽는다.
+        if show_frag:
+            qd["frag"] = "1"
         return f"?{urlencode(qd)}"
 
     # **왜 못 적는가를 화면이 말한다.** 잠가 놓고 이유를 안 적으면 사람이 같은
@@ -920,6 +948,15 @@ def catalog(request, slug):
         "cls": cls,
         "filters": [{"key": k, "label": v[0]} for k, v in CATALOG_FILTERS.items()],
         "q": q,
+        "show_frag": show_frag,
+        "n_frag": n_frag,
+        # **등급·자세는 완형에만 매긴다.** 어느 분류가 완형인지를 화면이 알아야
+        # 카드가 두 칸을 감추고, 유형을 파편으로 바꿀 때 물어볼 수 있다.
+        # 서버는 `data.check_grade_pose` 가 다시 검사한다 — 화면에서 막는 것은
+        # 막는 것이 아니다(063).
+        "counted_keys": [r["key"] for r in data.counted_classes()],
+        "grades": ObjectReview.GRADE,
+        "poses": DiatomObject.POSE,
         "species_seen": data.species_seen(),
         "n_all": n_all,
         "n_named": n_named,
@@ -973,7 +1010,11 @@ def save_catalog(request, slug):
     try:
         fields = {"species": text("species", data.SPECIES_MAX),
                   "cls": text("cls", 32),
-                  "note": text("note", NOTE_MAX)}
+                  "note": text("note", NOTE_MAX),
+                  # 값이 셋뿐이라 자르는 길이가 뜻이 없다 — 모르는 값은
+                  # `check_grade_pose` 가 `ValueError` 로 물린다(409).
+                  "grade": text("grade", 8),
+                  "pose": text("pose", 16)}
     except ValueError:
         return HttpResponseBadRequest("bad field")
 
