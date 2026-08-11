@@ -1,4 +1,4 @@
-"""검토 완료로 확인한 통과분에 표시를 단다 (`ObjectReview.confirmed`).
+"""검토 완료로 확인한 통과분에 표시를 단다 (`ObjectReview.auto_confirmed`).
 
 **칸을 더하기만 한다** — 자료를 옮기지 않고 걷는 것도 없다. 그래서 옛
 파이프라인 이미지가 서지 않고(0032 와 다른 자리다), 뷰어만 올려도 된다.
@@ -22,6 +22,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="objectreview",
-            name="confirmed",
+            name="auto_confirmed",
             field=models.BooleanField(db_default=False, default=False)),
     ]

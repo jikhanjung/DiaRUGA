@@ -799,7 +799,7 @@ def judgement_for(vp, image, batch, key, cand=None) -> ObjectReview:
         bind_score=1.0 if cand else None)
 
 
-def materialize_passed(vp: Viewpoint, batch) -> dict:
+def confirm_kept(vp: Viewpoint, batch) -> dict:
     """**"검토 완료" 는 남은 마스크에 서명하는 것이다** — 그것을 행으로 적는다.
 
     돌려주는 것은 `{이미지 id: [mask_key, …]}` — 새로 세운 것만 담는다.
@@ -816,7 +816,7 @@ def materialize_passed(vp: Viewpoint, batch) -> dict:
       말한 마스크에만 서므로, 프레임에 겹쳐 잡힌 것을 하나로 세는 층이 통과분
       위에는 얹히지 않는다
 
-    ## `confirmed=True` 로 적는다 — `accepted` 가 아니다
+    ## `auto_confirmed=True` 로 적는다 — `accepted` 가 아니다
 
     `accepted` 는 *엔진이 떨어뜨린 것을 사람이 되살린* 사건이고 이것은 *엔진이
     통과시킨 것을 사람이 확인한* 사건이다. 하나로 뭉치면 화면의 "복구 N" 이
@@ -831,24 +831,41 @@ def materialize_passed(vp: Viewpoint, batch) -> dict:
     완료 표시는 `(시야, 묶음)` 단위라 그 주장도 시야 단위다. payload 는 이미지
     하나를 대표하지만, 그 이미지만 적으면 **프레임 넷 중 하나만 서명된다.**
 
-    **이미 있는 행은 안 건드린다** — 사람이 지운 것도, 분류를 붙인 것도 그대로다.
-    **탈락분도 안 건드린다** — 되살리는 것은 사람이 눌러서 하는 일이다.
+    ## **남는 개체**가 대상이다 — 통과분만이 아니다
+
+    화면·집계가 "남는다" 를 세는 식과 **같은 식을 쓴다**:
+
+        (통과 AND NOT 지움) OR (탈락 AND 되살림)
+
+    처음엔 "통과분이고 교정 행이 아직 없는 것" 만 적었다. 그러면 **분류를 붙인
+    마스크와 되살린 탈락분에 서명이 안 선다** — 사람이 가장 확실하게 규조각이라고
+    본 것들이다. 실측으로 `sam2-전수` 의 완료 309시야에서 **211 / 921** 만
+    잡혔다(23%). 세는 식이 둘이면 이렇게 갈라진다.
+
+    **지운 것에는 안 선다.** 그것이 이 서명의 반대말이다.
+
+    **이미 있는 행의 다른 칸은 안 건드린다** — 분류·코멘트·기하는 그대로 두고
+    `auto_confirmed` 만 세운다. 그 칸은 덮어쓰는 것이 아니라 **더해지는 사실**이다.
     """
     if batch is None:
         return {}
     out = {}
     for det in current_detections(vp, batch_id=getattr(batch, "pk", batch)):
-        have = set(ObjectReview.objects
-                   .filter(image=det.image_id, batch=batch)
-                   .values_list("mask_key", flat=True))
+        rows = {r.mask_key: r for r in ObjectReview.objects
+                .filter(image=det.image_id, batch=batch)}
         made = []
         for cand in det.candidates.all():
-            if not cand.passed or cand.mask_key in have:
+            row = rows.get(cand.mask_key)
+            kept = ((cand.passed and not (row and row.removed))
+                    or (not cand.passed and row and row.accepted))
+            if not kept or (row and row.auto_confirmed):
                 continue
-            row = judgement_for(vp, det.image_id, batch, cand.mask_key, cand)
-            row.confirmed = True
-            row.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
-            row.save(update_fields=["confirmed", "geom"])
+            if row is None:
+                row = judgement_for(vp, det.image_id, batch, cand.mask_key,
+                                    cand)
+                row.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
+            row.auto_confirmed = True
+            row.save(update_fields=["auto_confirmed", "geom"])
             made.append(cand.mask_key)
         if made:
             out[str(det.image_id)] = made
@@ -1095,7 +1112,7 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     # 지우면 **묶음에서 한 판이 조용히 빠진다.** 묶음을 푸는 문은 `/link` 이고
     # 카탈로그 카드가 아니다 — `save_review` 의 청소가 얹는 것과 같은 갈래다.
     linked = obj.diatom_object.members.count() > 1
-    empty = not (obj.removed or obj.accepted or obj.confirmed or dobj.label
+    empty = not (obj.removed or obj.accepted or obj.auto_confirmed or dobj.label
                  or obj.note or dobj.species or obj.geom_edited or linked)
     n_spread = sum(len(v) for v in spread.values())
     if empty and obj.source != "manual":
@@ -2816,11 +2833,11 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
 
     # **확인 표시가 든 행도 이 payload 가 대표하지 않는다** (2026-08-11).
     #
-    # `confirmed` 는 "검토 완료" 가 통과분에 남기는 서명인데(`materialize_passed`),
+    # `auto_confirmed` 는 "검토 완료" 가 남는 개체에 붙이는 서명인데(`confirm_kept`),
     # **검토 화면은 그 칸을 모른다** — 얹지 않으면 다음 저장이 "표시가 사라진
     # 행" 으로 보고 지운다. 종명·`geom_edited` 와 같은 갈래다.
     keys |= set(ObjectReview.objects
-                .filter(image=image, batch=batch, confirmed=True)
+                .filter(image=image, batch=batch, auto_confirmed=True)
                 .values_list("mask_key", flat=True))
 
     # **묶음의 멤버인 행도 이 payload 가 대표하지 않는다** (P12).
@@ -2956,7 +2973,7 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
 
     # **완료를 누르면 남은 통과분에 서명한다** (2026-08-11). 청소가 끝난 뒤에
     # 한다 — 먼저 하면 방금 세운 행이 `keys` 에 없어 그 자리에서 지워진다.
-    signed = materialize_passed(vp, batch) if done else {}
+    signed = confirm_kept(vp, batch) if done else {}
 
     # 묶인 판들에 **화면 상태를 맞추라고 알린다** (P12 · 옛 104 의 전파 자리).
     # 값은 이미 개체 하나에 앉아 있어 고칠 것이 없다 — 다른 판의 화면이 그것을
@@ -2973,9 +2990,9 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
         # 사라진 행" 으로 보고 지운다 — 뷰어는 늘 전체를 보낸다.
         out["linked"] = spread
     if signed:
-        # **화면은 흡수할 것이 없다.** `confirmed` 는 payload 에 없는 칸이라
+        # **화면은 흡수할 것이 없다.** `auto_confirmed` 는 payload 에 없는 칸이라
         # 청소가 위에서 이미 지켜 준다 — 수만 알려 준다.
-        out["confirmed"] = sum(len(v) for v in signed.values())
+        out["auto_confirmed"] = sum(len(v) for v in signed.values())
     return out
 
 

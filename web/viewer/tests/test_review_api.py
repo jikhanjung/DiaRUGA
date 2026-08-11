@@ -65,7 +65,7 @@ class ReviewContractTest(DiaRUGATestCase):
         """고칠 것이 없어서 교정이 비어도 검토는 끝났을 수 있다.
 
         **109 에서 뜻이 하나 붙었다.** 완료를 누르면 남은 통과분에 서명이
-        선다(`confirmed`) — 그래서 행 수는 0 이 아니다. 지킬 것은 *사람이 안
+        선다(`auto_confirmed`) — 그래서 행 수는 0 이 아니다. 지킬 것은 *사람이 안
         한 판단이 안 선다*는 쪽이다: 지움·되살림·분류·코멘트가 전부 비어야 한다.
         """
         self.post(self.full(done=True))
@@ -73,7 +73,7 @@ class ReviewContractTest(DiaRUGATestCase):
         rows = list(ObjectReview.objects.all())
         self.assertTrue(rows, "완료를 눌렀는데 서명이 안 섰다")
         for o in rows:
-            self.assertTrue(o.confirmed)
+            self.assertTrue(o.auto_confirmed)
             self.assertEqual((o.removed, o.accepted, o.label, o.note),
                              (False, False, "", ""),
                              "완료만 눌렀는데 사람이 안 한 판단이 섰다")

@@ -1036,8 +1036,19 @@ class ObjectReview(models.Model):
     # "사람이 지웠다가 이긴다" 는 규칙이 두 값의 조합으로 표현된다.
     removed = models.BooleanField(default=False)
     accepted = models.BooleanField(default=False)
-    # **검토 완료로 확인한 통과분** (2026-08-11). "이 마스크는 규조각이 맞다" 를
-    # 사람이 서명한 것이고, `data.materialize_passed` 가 적는다.
+    # **검토 완료가 자동으로 붙이는 확인** (2026-08-11). "이 마스크는 규조각이
+    # 맞다" 를 사람이 서명한 것인데, **마스크마다 누른 것이 아니라 완료 한 번이
+    # 남은 것 전부에 퍼진 것**이다 — 이름이 그 사실을 말한다.
+    #
+    # 그래서 **`label`·`species` 와 무게가 다르다.** 저것들은 재생성 불가지만
+    # 이것은 `완료 표시 AND 남는다` 로 다시 계산할 수 있다. 그래도 저장하는
+    # 것은 **사람이 그때 본 것을 얼려 두기 위해서다** — `refilter` 로 문턱을
+    # 바꾸면 "남는다" 의 뜻이 달라진다.
+    #
+    # **학습에서 손그림과 같은 무게로 쓰면 안 된다.** 사람이 그린 마스크는
+    # "여기 규조각이 있다" 를 손으로 말한 것이고 이것은 "안 지웠다" 에 가깝다.
+    #
+    # `data.confirm_kept` 가 적는다.
     #
     # **`accepted` 와 축이 다르다.** 저쪽은 *엔진이 떨어뜨린 것을 사람이 되살린*
     # 사건이고 이쪽은 *엔진이 통과시킨 것을 사람이 확인한* 사건이다. 하나로
@@ -1046,7 +1057,7 @@ class ObjectReview(models.Model):
     #
     # **화면은 이 칸을 모른다.** `/review` payload 에 없으므로 `save_review` 의
     # 청소가 지우지 않도록 `keys` 에 얹는다 — 종명·`geom_edited` 와 같은 갈래다.
-    confirmed = models.BooleanField(default=False, db_default=False)
+    auto_confirmed = models.BooleanField(default=False, db_default=False)
     # **판마다 따로 적는 말이다** — "이 판에서는 초점이 안 맞는다" 처럼. 그래서
     # 분류·종명과 달리 `DiatomObject` 로 안 올렸다(옮기면 프레임마다 다른 말이
     # 하나로 뭉개진다). 104·107 도 코멘트는 안 번지게 해 왔다.
