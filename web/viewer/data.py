@@ -800,7 +800,7 @@ def judgement_for(vp, image, batch, key, cand=None) -> ObjectReview:
 
 
 def confirm_kept(vp: Viewpoint, batch) -> dict:
-    """**"검토 완료" 는 남은 마스크에 서명하는 것이다** — 그것을 행으로 적는다.
+    """**"검토 완료" 는 남는 마스크를 확인하는 것이다** — 그것을 행으로 적는다.
 
     돌려주는 것은 `{이미지 id: [mask_key, …]}` — 새로 세운 것만 담는다.
 
@@ -829,7 +829,7 @@ def confirm_kept(vp: Viewpoint, batch) -> dict:
     ## 시야 전체를 훑는다
 
     완료 표시는 `(시야, 묶음)` 단위라 그 주장도 시야 단위다. payload 는 이미지
-    하나를 대표하지만, 그 이미지만 적으면 **프레임 넷 중 하나만 서명된다.**
+    하나를 대표하지만, 그 이미지만 적으면 **프레임 넷 중 하나만 표시된다.**
 
     ## **남는 개체**가 대상이다 — 통과분만이 아니다
 
@@ -838,11 +838,11 @@ def confirm_kept(vp: Viewpoint, batch) -> dict:
         (통과 AND NOT 지움) OR (탈락 AND 되살림)
 
     처음엔 "통과분이고 교정 행이 아직 없는 것" 만 적었다. 그러면 **분류를 붙인
-    마스크와 되살린 탈락분에 서명이 안 선다** — 사람이 가장 확실하게 규조각이라고
+    마스크와 되살린 탈락분에 확인 표시가 안 선다** — 사람이 가장 확실하게 규조각이라고
     본 것들이다. 실측으로 `sam2-전수` 의 완료 309시야에서 **211 / 921** 만
     잡혔다(23%). 세는 식이 둘이면 이렇게 갈라진다.
 
-    **지운 것에는 안 선다.** 그것이 이 서명의 반대말이다.
+    **지운 것에는 안 선다.** 그것이 이 확인의 반대말이다.
 
     **이미 있는 행의 다른 칸은 안 건드린다** — 분류·코멘트·기하는 그대로 두고
     `auto_confirmed` 만 세운다. 그 칸은 덮어쓰는 것이 아니라 **더해지는 사실**이다.
@@ -2833,7 +2833,7 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
 
     # **확인 표시가 든 행도 이 payload 가 대표하지 않는다** (2026-08-11).
     #
-    # `auto_confirmed` 는 "검토 완료" 가 남는 개체에 붙이는 서명인데(`confirm_kept`),
+    # `auto_confirmed` 는 "검토 완료" 가 남는 개체에 다는 확인 표시인데(`confirm_kept`),
     # **검토 화면은 그 칸을 모른다** — 얹지 않으면 다음 저장이 "표시가 사라진
     # 행" 으로 보고 지운다. 종명·`geom_edited` 와 같은 갈래다.
     keys |= set(ObjectReview.objects
@@ -2971,7 +2971,7 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
 
     n_drawn = _save_drawn(vp, image, drawn, (cur.width, cur.height))
 
-    # **완료를 누르면 남은 통과분에 서명한다** (2026-08-11). 청소가 끝난 뒤에
+    # **완료를 누르면 남는 개체에 확인 표시를 단다** (2026-08-11). 청소가 끝난 뒤에
     # 한다 — 먼저 하면 방금 세운 행이 `keys` 에 없어 그 자리에서 지워진다.
     signed = confirm_kept(vp, batch) if done else {}
 
