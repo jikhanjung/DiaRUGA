@@ -135,18 +135,23 @@ class GradePoseSurvivesReviewTest(DiaRUGATestCase):
         self.assertFalse(ObjectReview.objects.filter(mask_key=self.key).exists())
 
     def test_등급을_비우면_그_행도_지워진다(self):
-        """카드에서 등급을 지운 뒤에는 청소해도 된다 — 더는 지킬 것이 없다."""
+        """카드에서 등급을 지운 뒤에는 청소해도 된다 — 더는 지킬 것이 없다.
+
+        **완료를 안 누르고 본다** (109). 완료는 남는 개체에 서명(`auto_confirmed`)
+        을 세우는데, 그러면 그 행은 등급이 아니라 서명 때문에 살아남아 **이 시험이
+        무엇을 보는지 흐려진다.**
+        """
         self.put(grade="A")
-        self.post(done=True)
+        self.post()
         ObjectReview.objects.filter(mask_key=self.key).update(grade="")
-        self.post(done=True)
+        self.post()
         self.assertFalse(ObjectReview.objects.filter(mask_key=self.key).exists())
 
     def test_자세를_비우면_그_행도_지워진다(self):
         self.put(pose="valve")
-        self.post(done=True)
+        self.post()
         DiatomObject.objects.filter(members__mask_key=self.key).update(pose="")
-        self.post(done=True)
+        self.post()
         self.assertFalse(ObjectReview.objects.filter(mask_key=self.key).exists())
 
     # --- 범위가 새지 않는가 -------------------------------------------------

@@ -5,8 +5,12 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    # **`0033` 이 둘이 될 뻔했다.** 109(`auto_confirmed`)가 같은 번호로 먼저
+    # 들어와서, 둘 다 `0032` 에 매달면 잎이 둘이 되어 Django 가 선다
+    # ("Conflicting migrations detected"). 병합 마이그레이션을 따로 두는 대신
+    # **뒤로 물러 줄로 세운다** — 둘 다 칼럼을 더하기만 해서 순서가 뜻을 안 바꾼다.
     dependencies = [
-        ('viewer', '0032_diatom_object'),
+        ('viewer', '0033_objectreview_auto_confirmed'),
     ]
 
     operations = [

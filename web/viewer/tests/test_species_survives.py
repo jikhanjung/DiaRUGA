@@ -138,12 +138,17 @@ class SpeciesSurvivesReviewTest(DiaRUGATestCase):
 
     def test_종명을_비우면_그_행도_지워진다(self):
         """카탈로그 화면에서 종명을 지운 뒤에는 검토 저장이 그 행을 청소해도
-        된다 — 더는 지킬 것이 없다."""
+        된다 — 더는 지킬 것이 없다.
+
+        **완료를 안 누르고 본다** (109). 완료는 남은 통과분에 서명을 세우는데,
+        그러면 그 행은 종명이 아니라 `confirmed` 때문에 살아남아 **이 시험이
+        무엇을 보는지 흐려진다.** 여기서 보는 것은 종명의 보호뿐이다.
+        """
         self.put_species()
-        self.post(done=True)
+        self.post()
         DiatomObject.objects.filter(
             members__mask_key=self.key).update(species="")
-        self.post(done=True)
+        self.post()
         self.assertFalse(ObjectReview.objects.filter(mask_key=self.key).exists())
 
     # --- 범위가 새지 않는가 -------------------------------------------------

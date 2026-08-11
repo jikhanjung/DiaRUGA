@@ -177,3 +177,71 @@ class CarouselPreviewTest(BrowserTestCase):
         self.assertEqual(keys_alive, alive_committed,
                          "hover 와 클릭이 다른 그림을 낸다 — 지운 마스크가 "
                          "미리보기에서 살아 보인다")
+
+
+class PreviewShowsLinksTest(BrowserTestCase):
+    """스치는 미리보기에서 **사슬도 그 판의 것**이어야 한다 (P12 · 사용자 2026-08-11).
+
+    미리보기는 마스크·지움·분류를 스친 판의 것으로 갈아 끼우면서 **저장 대상
+    (`curImage`)은 고른 판의 것으로 남긴다** — 그래야 스친 김에 엉뚱한 판으로
+    저장되지 않는다(074 가 만든 규칙이다).
+
+    그런데 사슬을 붙일 때도 `curImage` 로 묶음을 찾고 있었다. 그래서
+    **마스크는 스친 판의 것인데 사슬은 고른 판에서 찾아** 아무것도 안 붙었다:
+
+    > "carousel thumbnail 에 마우스오버 됐을 때 마스크는 잘 보이는데 chain 은
+    > 안 보여."
+    """
+
+    def make_data(self):
+        fx.make_classes()
+        self.w = fx.make_world(slug=f"rs23-{self.uniq}",
+                               site_code=f"RS{self.uniq}",
+                               n_frames=3, n_candidates=3)
+        self.extra = fx.add_frame_detections(self.w.vp)
+        self.frame = self.extra[0][0]
+        self.frame_img = self.extra[0][1]
+        self.stack_det = self.w.detection()
+        # **판마다 다른 키를 묶는다.** 픽스처는 판마다 같은 자리에 후보를
+        # 세우므로 같은 키로 묶으면 **엉뚱한 판으로 찾아도 걸린다** — 그러면
+        # 이 시험이 고장을 못 잡는다. 실제 자료는 판마다 키가 다르다
+        # (운영 실측: 합성본 1170_912_344_520 · 프레임 1170_878_369_554).
+        keys = sorted(c.mask_key for c in self.stack_det.candidates.all())
+        self.stack_key, self.frame_key = keys[0], keys[1]
+        rows = [
+            fx.new_review(viewpoint=self.w.vp, image=self.stack_det.image,
+                          batch=self.stack_det.batch, mask_key=self.stack_key),
+            fx.new_review(viewpoint=self.w.vp, image=self.frame_img,
+                          batch=self.stack_det.batch, mask_key=self.frame_key),
+        ]
+        fx.link_reviews(rows, rep=0)
+
+    def open_review(self):
+        page = self.open(reverse("group", args=[self.w.slug, self.w.vp.idx]))
+        page.wait_for_selector(".detview .box")
+        return page
+
+    def linked_at(self):
+        """사슬이 붙은 상자의 **자리**. 개수만 세면 못 잡는다 — 엉뚱한 판으로
+        찾아도 그 판에 같은 키가 있어 사슬이 *다른 상자에* 하나 붙는다."""
+        return self.page.evaluate(
+            """() => [...document.querySelectorAll('.detview .box.linked')]
+                 .map(e => e.style.left + '/' + e.style.top)""")
+
+    def test_스친_판에도_그_판의_사슬이_붙는다(self):
+        page = self.open_review()
+        on_stack = self.linked_at()
+        self.assertEqual(len(on_stack), 1, "고른 판(합성본)에 사슬이 없다")
+
+        page.query_selector(f'.shot[data-detkey="{self.frame.name}"]').hover()
+        page.wait_for_timeout(300)
+        on_frame = self.linked_at()
+        self.assertEqual(len(on_frame), 1, "스친 판에 사슬이 안 붙었다")
+        self.assertNotEqual(on_frame, on_stack,
+                            "고른 판의 사슬 자리 그대로다 — 스친 판이 아니라 "
+                            "curImage 로 묶음을 찾고 있다")
+
+        # 커서를 빼면 고른 판으로 돌아오고, 사슬 자리도 함께 돌아온다
+        page.query_selector(".detview").hover()
+        page.wait_for_timeout(300)
+        self.assertEqual(self.linked_at(), on_stack, "돌아온 뒤 자리가 다르다")
