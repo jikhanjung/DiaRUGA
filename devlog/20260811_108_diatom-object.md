@@ -195,12 +195,34 @@ def label(self) -> str:
 
 | 자리 | 무엇이 터지나 |
 |---|---|
-| `group_focus_series.py:287` `slide.viewpoints.all().delete()` | 시야 CASCADE → 없어진 `viewer_objectlink`·`viewer_objectlinkmember` |
-| `ops/prune_detections.py:134` | 후보 CASCADE → `ObjectReview.candidate` SET_NULL 수집이 없어진 `label`·`species` 를 SELECT |
+| `group_focus_series.py:287` `slide.viewpoints.all().delete()` | 시야 CASCADE |
+| `ops/prune_detections.py:134` | 후보 CASCADE → `ObjectReview.candidate` SET_NULL |
 | `ops/drop_batch.py` | `ObjectReview` 를 직접 문다 |
 
-055 에서 겪은 그대로다. 조인 사본에 파이프라인 컨테이너를 붙여 먼저 돌려 보고,
-`IMAGE_TAG`·`PIPELINE_TAG` 를 함께 올린다.
+**조인 사본에 붙여 실측했다** (055 가 시킨 그대로). 결과가 예상과 달랐다:
+
+```
+옛 이미지 v0.5.1 · 교정 9건인 시야를 지운다  →  IntegrityError: FOREIGN KEY constraint failed
+새 이미지 v0.5.2 · 같은 일                  →  ObjectReview 9 · DiatomObject 6 함께 지움
+```
+
+**"없어진 테이블을 SELECT 한다" 가 아니라 FK 위반이다.** 옛 판의 `models.py` 는
+`diatom_object` 를 모르므로 개체를 안 지우고, 남은 개체가 지워진 판정을 가리켜
+제약이 깨진다. 그리고 **교정이 없는 시야로 시험하면 그냥 통과한다** — 처음에
+그렇게 확인하고 "괜찮다" 고 읽을 뻔했다. `Collector.collect()` 만 불러 보는 것도
+안 된다(지연 삭제라 통과한다). **실제로 지워 봐야 드러난다.**
+
+## 배포 (2026-08-11)
+
+`v0.11.0` + 파이프라인 `v0.5.2`. **폴러를 `flock /tmp/DiaRUGA-poll.lock` 으로
+잡은 채** 뷰어 교체와 `PIPELINE_TAG` 올리기를 한 창에서 했다 — crontab 은 안
+고쳤다(`poll_nas.sh` 가 `flock -n` 으로 물러난다).
+
+- 배포 전 사본 `before-p12-deploy` (integrity=ok · 교정 7,913)
+- 이전기는 컨테이너가 뜨면서 돈다: `개체 7908개 (묶음 12 · 1:1 7904)`
+- `deploy.sh` 가 `/srv` 스크립트를 이미지에서 함께 맞춰 줬다 — `check_db.py`·
+  `export_review.py` 를 따로 `dbsync.sh` 할 필요가 없었다
+- 뒤에 `check_db` 9절 OK · smoke 통과 · 정찰(`scan_nas.py`)도 새 이미지로 정상
 
 ## 다음
 

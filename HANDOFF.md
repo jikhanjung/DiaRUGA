@@ -12,7 +12,7 @@
 아직 `diatom` 인 것은 **생물 이름**이다(`pipeline/segment_diatoms.py`·YOLO 클래스·
 NAS 의 `DiatomPhotos/`).
 
-**브랜치** main · 판 `v0.10.2` (파이프라인 `v0.5.1`)
+**브랜치** main · 판 `v0.11.0` (파이프라인 `v0.5.2`)
 
 ---
 
@@ -24,7 +24,8 @@ NAS 의 `DiatomPhotos/`).
 
 **08-10 하루에 판이 일곱 나갔다** — 오전에 `v0.9.0`(P11 · 096 · 098) ·
 `v0.9.1`(100, [101](devlog/20260810_101_deploy-v0.9.md)), 오후에 `v0.9.3`(103) ·
-`v0.9.4`(104) · `v0.10.0`(105) · `v0.10.1`(106) · `v0.10.2`(107).
+`v0.9.4`(104) · `v0.10.0`(105) · `v0.10.1`(106) · `v0.10.2`(107) ·
+`v0.11.0`(P12 · 108 — 개체와 판정을 가른다).
 
 ### 오후의 축 — 개체 카탈로그 (105 · `v0.10.0`)
 
@@ -664,6 +665,9 @@ YOLO 는 **라벨 없는 자리를 배경으로 배우므로** 별도 처리 없
 (105 · `v0.10.0`) — `ObjectReview.species` 와 `RunBatch.code` 를 더한다.
 그 앞이 `0030_objectlink_objectlinkmember_and_more`(P11 · `v0.9.0`)이고,
 둘 다 **기존 칼럼을 걷지 않아** 파이프라인은 `v0.5.1` 그대로 갔다.
+**P12(0032)는 걷었다** — 그래서 파이프라인을 `v0.5.2` 로 함께 올렸다. 옛
+이미지는 교정 있는 시야를 지울 때 `FOREIGN KEY constraint failed` 로 죽는다
+(조인 사본에서 실측 · 108).
 
 ---
 
@@ -849,8 +853,8 @@ Django 5.2.16 · opencv-headless. requirements 는 넷으로 갈라져 있다.
                 stacked/ out/ backup/ hf/ logs/ datasets/ docker/
 ```
 
-**지금 도는 판**: `IMAGE_TAG=v0.10.2` · `PIPELINE_TAG=v0.5.1`.
-**테스트 인스턴스도 `v0.10.2` 로 떠 있다.** 뷰어 판은 `.env` 와 `/healthz` 가
+**지금 도는 판**: `IMAGE_TAG=v0.11.0` · `PIPELINE_TAG=v0.5.2`.
+**테스트 인스턴스도 `v0.11.0` 으로 떠 있다.** 뷰어 판은 `.env` 와 `/healthz` 가
 알려 준다 — 이 문서보다 그쪽이 늘 옳다.
 
 > **`v0.9.1` 부터 운영은 `/srv/DiaRUGA` 하나로 완결된다** (100 · 사용자 방침
@@ -881,7 +885,7 @@ deploy/host/sync_to_srv.sh                                     # 저장소 → /
 
 ```bash
 deploy/host/sync_test_to_srv.sh            # 저장소 → /srv/DiaRUGA/test
-deploy/host/testdeploy.sh v0.10.2          # 안전 검사 → 이미지 → .env → DB 사본 → 게이트 → smoke
+deploy/host/testdeploy.sh v0.11.0          # 안전 검사 → 이미지 → .env → DB 사본 → 게이트 → smoke
 cd /srv/DiaRUGA/test && docker compose down
 ```
 
