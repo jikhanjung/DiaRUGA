@@ -215,13 +215,14 @@ export DIARUGA_SCRIPT_NAME=                # 서브경로 없이 뿌리(/)에 �
 export IMAGE_TAG="v0.11.2-dev $(git rev-parse --short HEAD)"   # 좌상단에 판이 뜬다
 
 python web/manage.py migrate viewer        # 사본을 지금 소스의 판으로 올린다
-PORT=$(for p in $(seq 8051 8060); do ss -ltn | grep -q ":$p " || { echo $p; break; }; done)
+PORT=$(for p in $(seq 8051 8059); do ss -ltn | grep -q ":$p " || { echo $p; break; }; done)
 setsid nohup python web/manage.py runserver 0.0.0.0:$PORT > /tmp/runserver.log 2>&1 < /dev/null &
 echo "http://172.16.116.98:$PORT/"
 ```
 
-- **포트는 `8051`~`8060` 중 비어 있는 것**을 쓴다(`ss -ltn` 으로 고른다).
-  **`9091` 은 쓰지 않는다 — 컨테이너 자리다**(지금 안 듣고 있어도 그렇다)
+- **포트는 `8051`~`8059` 중 비어 있는 것**을 쓴다(`ss -ltn` 으로 고른다).
+  **`8060` 은 빼 두었다 — `refserver` 가 쓰고 있다**(2026-08-12 정정).
+  **`9091` 도 쓰지 않는다 — 컨테이너 자리다**(지금 안 듣고 있어도 그렇다)
 - **`0.0.0.0` 에 붙여야 사내망에서 보인다.** `127.0.0.1` 이면 이 머신에서만 열린다
 - **`IMAGE_TAG` 가 없으면 판이 화면에 안 뜬다** — 자리는 원래 있다
   (`base.html` 의 `{{ image_tag }}` · `viewer/context.py`). 운영과 눈으로 갈리게
@@ -235,7 +236,7 @@ echo "http://172.16.116.98:$PORT/"
 하면 된다. **사내망으로 좁혀서 연다**(`9091` 규칙과 같은 모양).
 
 ```bash
-sudo ufw allow proto tcp from 172.16.0.0/16 to any port 8051:8060 \
+sudo ufw allow proto tcp from 172.16.0.0/16 to any port 8051:8059 \
      comment 'DiaRUGA dev server (임시)'
 sudo ufw status numbered          # 규칙 번호를 본다
 sudo ufw delete <번호>             # 다 쓰면 걷는다
