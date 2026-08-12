@@ -24,7 +24,7 @@ from django.utils import timezone
 from . import antarctica, catalog, korea, outcrop
 from . import shape
 from .models import (Candidate, ClassDef, Detection, DiatomObject, Frame,
-                     Locality, ObjectReview,
+                     Image, Locality, ObjectReview,
                      Run, RunBatch, Site, Slide, Stack, Viewpoint,
                      ViewpointReview)
 
@@ -3095,7 +3095,8 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # 판정까지 끌고 간다.
     prune_objects(orphaned)
 
-    n_drawn = _save_drawn(vp, image, drawn, (cur.width, cur.height))
+    n_drawn, drawn_spread = _save_drawn(vp, image, drawn,
+                                        (cur.width, cur.height), batch)
 
     # **완료를 누르면 남는 개체에 확인 표시를 단다** (2026-08-11). 청소가 끝난 뒤에
     # 한다 — 먼저 하면 방금 세운 행이 `keys` 에 없어 그 자리에서 지워진다.
@@ -3110,6 +3111,11 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
            "labels": len(labels), "notes": len(notes)}
     if n_drawn is not None:
         out["drawn"] = n_drawn
+    if drawn_spread:
+        # **화면이 이것을 받아야 한다** — `linked` 와 같은 이유이고, 이쪽은 더
+        # 급하다. 저쪽은 분류가 되돌아가는 것이고 이쪽은 **마스크가 통째로
+        # 사라지는 것**이다 (`_spread_drawn` 머리말).
+        out["drawn_spread"] = drawn_spread
     if spread:
         # **화면이 이것을 받아야 한다.** 다른 판의 상태는 화면이 열릴 때 받은
         # 것이라 지금 번진 분류를 모르고, 그 판에서 다음 저장이 나가면 "표시가
@@ -3188,8 +3194,9 @@ def check_polygon(poly, size, key=""):
     return box
 
 
-def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0)) -> int | None:
-    """사람이 그린 개체를 저장한다 (P09 3단계). 돌려주는 것은 남은 개수다.
+def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0),
+                batch=None) -> tuple[int | None, dict]:
+    """사람이 그린 개체를 저장한다 (P09 3단계). 돌려주는 것은 `(남은 개수, 번진 것)`.
 
     **`None` 이면 손대지 않는다.** payload 에 `drawn` 이 아예 없는 것과 빈
     목록인 것은 다르다 — 앞은 **그리기를 모르는 옛 화면**(배포 중에 열려 있던
@@ -3204,7 +3211,7 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0)) -> int | None:
     없다" 를 다음 회차에 가르치게 된다** (P09 5.10).
     """
     if drawn is None:
-        return None
+        return None, {}
 
     keep = []
     for item in drawn:
@@ -3233,12 +3240,122 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0)) -> int | None:
             dobj.label = cls
             dobj.save(update_fields=["label", "updated_at"])
 
+    # **번지는 것은 청소보다 먼저다.** 청소는 이 이미지의 행만 보므로 순서가
+    # 뜻을 안 바꾸지만, 번지기가 세운 행이 청소에 걸릴 자리를 아예 안 만든다.
+    spread = _spread_drawn(vp, image, batch, keep)
+
     stale = (ObjectReview.objects.filter(image=image, batch__isnull=True)
              .exclude(mask_key__in=[k for k, *_ in keep]))
     orphaned = list(stale.values_list("diatom_object_id", flat=True))
     stale.delete()
     prune_objects(orphaned)
-    return len(keep)
+    # **대표를 잃은 개체가 남는다** — 번지기가 만든 자리다 (아래 머리말).
+    _reelect_reps(orphaned)
+    return len(keep), spread
+
+
+def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
+    """그린 마스크를 **같은 시야의 다른 판에도 앉히고 한 개체로 묶는다** (106).
+
+    돌려주는 것은 `{이미지 id: [{key, cls, geom}]}` — **화면이 이것을 받아야
+    한다**(아래 "반쪽으로 넣으면 잃는다").
+
+    ## 되는 근거는 촬영 방식이다
+
+    **같은 시야는 스테이지가 안 움직인다.** 초점만 다르므로 좌표가 그대로 맞는다
+    — 기계가 "같은 개체인 것 같다" 고 판정하는 것이 아니라 찍는 방법이 보장한다.
+    106 이 접은 C 안(프레임 개체 수를 세어 보여주기)과 갈리는 자리가 정확히
+    여기다.
+
+    ## 복제할 판을 엔진 이름으로 고르지 않는다
+
+    *이 회차에 현재 검출이 있는 판*으로 잡는다. 그러면 SAM(시야당 판 하나)과
+    단독 프레임 시야는 복제할 곳이 없어 **자동으로 지나간다** — "YOLO 일 때만"
+    을 이름으로 판정할 이유가 없다.
+
+    검출이 없는 판에는 **넣으면 안 된다.** 그 판의 화면은 마스크를 안 그리고
+    저장도 못 받아(`save_review` 가 거절한다) **손댈 수 없는 유령**이 된다.
+
+    ## 한 개체를 나눠 갖는다
+
+    같은 규조각을 옮겨 그린 것이라 뜻이 그렇다. 그래서 자세(`DiatomObject.pose`)
+    ·분류·종명이 한 벌이고, **등급(`ObjectReview.grade`)만 판마다 따로 간다** —
+    등급은 판의 성질이라 초점면마다 다르다(110). 판마다 개체를 따로 두면 자세를
+    판 수만큼 매겨야 하고 `check_db` 10번이 그 어긋남을 못 잡는다.
+
+    묶는 일은 `merge_into_object` 가 한다 — 사람이 화면에서 묶을 때와 **같은
+    문**이다. `judgement_for` 는 행마다 개체를 새로 세우므로(P12) 그대로 두면
+    판 수만큼 개체가 서서 "안 묶인 여럿" 이 된다.
+
+    **대표는 그린 판이다.** 기준이 된 판이라 그렇고, 그 판을 지우면
+    `_reelect_reps` 가 다시 세운다.
+
+    ## 반쪽으로 넣으면 잃는다
+
+    복제한 마스크는 **다른 판의 화면이 모른다.** 그 화면은 열릴 때 받은 상태를
+    들고 있고 `/review` 는 payload 에 없는 그린 개체를 지우므로, 프레임 3에
+    그리고 프레임 5로 넘어가 저장하면 **복제가 그 자리에서 사라진다.** 그래서
+    번진 것을 응답에 실어 화면이 자기 상태에 얹는다 — 104 가 분류에서 지난
+    함정이고 `linked_siblings` 가 같은 이유로 있다.
+    """
+    src_id = getattr(image, "pk", image)
+    batch_id = getattr(batch, "pk", batch)
+    if not keep or batch_id is None:
+        return {}
+    targets = list(Image.objects.filter(
+        viewpoint=vp, detections__is_current=True,
+        detections__run__batch_id=batch_id).exclude(pk=src_id).distinct())
+    if not targets:
+        return {}
+
+    out = {}
+    for key, geom, cls, _note in keep:
+        src = ObjectReview.objects.select_related("diatom_object").get(
+            image_id=src_id, batch__isnull=True, mask_key=key)
+        rows = [(src, True)]
+        for tgt in targets:
+            row = judgement_for(vp, tgt, None, key)
+            row.source = "manual"
+            row.bind_method = "manual"
+            row.geom = geom
+            # **코멘트는 안 옮긴다.** 그 칸은 "이 판에서는 초점이 안 맞는다" 를
+            # 적는 자리라 판마다 다른 말이다 (`ObjectReview.note` 머리말).
+            row.save()
+            rows.append((row, False))
+            out.setdefault(str(tgt.pk), []).append(
+                {"key": key, "cls": cls, "geom": geom})
+        # **저장할 때마다 다시 번지지 않는다** — `judgement_for` 가 있는 행을
+        # 그대로 돌려주고, 이미 이 개체에 속한 행은 옮길 것이 없다.
+        merge_into_object(src.diatom_object, rows)
+    return out
+
+
+def _reelect_reps(ids) -> int:
+    """대표를 잃은 개체에 대표를 다시 세운다. 돌려주는 것은 세운 수.
+
+    **번지기가 만든 자리다.** 그린 마스크가 판마다 번지면 개체 하나에 멤버가
+    여럿이고 **대표는 그린 판**인데, 그 판에서 마스크를 지우면 대표만 빠지고
+    나머지 판의 복제는 남는다(방침 2 — 한 판에서 지워도 다른 판은 남긴다).
+    그러면 **멤버는 있는데 대표가 없는 개체**가 선다.
+
+    예외는 안 난다. `is_rep` 의 유일 제약은 "둘 이상" 만 막고 **0개는 못 막는다**
+    — `check_db` 8번이 세는 그 상태이고, 학습 자료를 뽑을 때 얼굴이 없는 개체가
+    된다. `prune_objects` 바로 뒤에서 부른다: 멤버가 하나도 안 남은 개체는 이미
+    걷혔으므로 여기 걸리는 것은 **살아남았는데 대표가 없는** 것뿐이다.
+    """
+    if not ids:
+        return 0
+    n = 0
+    for obj in DiatomObject.objects.filter(pk__in=set(ids)).exclude(
+            members__is_rep=True):
+        # 남은 멤버 중 하나를 세운다. 어느 판이 될지는 뜻이 없다 — 그린 판이
+        # 사라진 뒤라 "기준이 된 판" 이라는 것이 이미 없기 때문이다.
+        row = obj.members.order_by("pk").first()
+        if row is None:
+            continue
+        ObjectReview.objects.filter(pk=row.pk).update(is_rep=True)
+        n += 1
+    return n
 
 
 # --- 기하 (DB 와 무관, 예전 그대로) -----------------------------------------

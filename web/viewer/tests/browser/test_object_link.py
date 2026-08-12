@@ -176,11 +176,18 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         page.wait_for_selector(".linkpanel", state="detached", timeout=3000)
 
         # 묶음이 섰고 — 그린 마스크도 (재시도 덕에) DB 에 있다
-        self.assertEqual(fx.links().count(), 1)
+        #
+        # **그린 마스크는 그 자체로 묶음을 하나 더 세운다** (106 2단계).
+        # 같은 시야의 판마다 복제되면서 한 개체를 나눠 갖기 때문이다 — 이 시야는
+        # 프레임 둘에 검출이 있어 멤버가 셋이 된다. 여기서 세려는 것은 **사람이
+        # 팝업으로 만든 묶음**이라 엔진 쪽만 본다.
+        made = [l for l in fx.links()
+                if not l.members.filter(batch__isnull=True).exists()]
+        self.assertEqual(len(made), 1, "팝업으로 만든 묶음이 하나여야 한다")
         drawn = ObjectReview.objects.filter(batch__isnull=True,
                                             source="manual")
-        self.assertEqual(drawn.count(), 1,
-                         "실패했던 저장이 재시도되지 않았다 — 그린 마스크가 DB 에 없다")
+        self.assertTrue(drawn.filter(image=self.w.detection().image).exists(),
+                        "실패했던 저장이 재시도되지 않았다 — 그린 마스크가 DB 에 없다")
 
         # **일부러 떨어뜨린 요청의 콘솔 오류는 이 시험의 조건이지 고장이 아니다.**
         # 그 한 줄만 걸러 낸다 — 통째로 비우면 진짜 JS 오류까지 덮는다.
