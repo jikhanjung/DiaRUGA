@@ -67,15 +67,12 @@ class GradePoseSurvivesReviewTest(DiaRUGATestCase):
 
     def put(self, key=None, *, grade="", pose="", label=""):
         """카탈로그 카드가 만드는 것과 같은 행 — **판정을 세우는 문 하나를
-        지난다** (`data.judgement_for`). 등급은 판정에, 자세는 개체에 앉는다."""
+        지난다** (`data.judgement_for`). **등급도 자세도 개체에 앉는다** (0035)."""
         obj = data.judgement_for(self.w.vp, self.det.image, self.det.batch,
                                  key or self.key)
-        if grade:
-            obj.grade = grade
-            obj.save()
         dobj = obj.diatom_object
-        if pose or label:
-            dobj.pose, dobj.label = pose, label
+        if grade or pose or label:
+            dobj.grade, dobj.pose, dobj.label = grade, pose, label
             dobj.save()
         return obj
 
@@ -88,7 +85,7 @@ class GradePoseSurvivesReviewTest(DiaRUGATestCase):
         self.post(done=True)
         o = ObjectReview.objects.filter(mask_key=self.key).first()
         self.assertIsNotNone(o, "등급만 있는 행이 지워졌다")
-        self.assertEqual(o.grade, "A")
+        self.assertEqual(o.diatom_object.grade, "A")
 
     def test_자세만_매겨도_검토_완료에_안_사라진다(self):
         """자세는 개체에 사는데 **행이 지워지면 개체도 함께 걷힌다**
@@ -106,7 +103,7 @@ class GradePoseSurvivesReviewTest(DiaRUGATestCase):
             self.post(done=True)
         o = ObjectReview.objects.filter(mask_key=self.key).first()
         self.assertIsNotNone(o)
-        self.assertEqual((o.grade, o.diatom_object.pose), ("B", "girdle"))
+        self.assertEqual((o.diatom_object.grade, o.diatom_object.pose), ("B", "girdle"))
 
     def test_유형을_지워도_등급_자세는_남는다(self):
         """유형(`label`)은 검토 화면이 아는 칸이라 payload 가 비면 지워지는 것이
@@ -115,7 +112,7 @@ class GradePoseSurvivesReviewTest(DiaRUGATestCase):
         self.post()
         o = ObjectReview.objects.get(mask_key=self.key)
         self.assertEqual(o.label, "", "유형은 화면이 대표하는 칸이라 비워야 한다")
-        self.assertEqual((o.grade, o.diatom_object.pose), ("A", "valve"))
+        self.assertEqual((o.diatom_object.grade, o.diatom_object.pose), ("A", "valve"))
 
     def test_지운_개체도_등급을_들고_있는다(self):
         """지운 것도 학습의 음성 표본이다 (P02 §2.7)."""
@@ -123,7 +120,7 @@ class GradePoseSurvivesReviewTest(DiaRUGATestCase):
         self.post(removed=[self.key])
         o = ObjectReview.objects.get(mask_key=self.key)
         self.assertTrue(o.removed)
-        self.assertEqual(o.grade, "C")
+        self.assertEqual(o.diatom_object.grade, "C")
 
     # --- 청소는 계속 돼야 한다 ----------------------------------------------
 
@@ -143,7 +140,7 @@ class GradePoseSurvivesReviewTest(DiaRUGATestCase):
         """
         self.put(grade="A")
         self.post()
-        ObjectReview.objects.filter(mask_key=self.key).update(grade="")
+        DiatomObject.objects.filter(members__mask_key=self.key).update(grade="")
         self.post()
         self.assertFalse(ObjectReview.objects.filter(mask_key=self.key).exists())
 
@@ -159,11 +156,14 @@ class GradePoseSurvivesReviewTest(DiaRUGATestCase):
     def test_다른_시야의_등급에는_안_닿는다(self):
         w2 = fx.make_world(slug="rs23-b", n_candidates=2)
         det2 = w2.detection()
-        fx.new_review(viewpoint=w2.vp, image=det2.image, batch=det2.batch,
-                      mask_key=w2.keys()[0], bind_method="exact", grade="A")
+        other = fx.new_review(viewpoint=w2.vp, image=det2.image,
+                              batch=det2.batch, mask_key=w2.keys()[0],
+                              bind_method="exact")
+        DiatomObject.objects.filter(pk=other.diatom_object_id).update(grade="A")
         self.put(grade="B")
         self.post(done=True)
-        self.assertEqual(ObjectReview.objects.filter(grade="A").count(), 1)
+        self.assertEqual(DiatomObject.objects.filter(grade="A").count(), 1,
+                         "다른 시야의 등급이 이 저장에 휩쓸렸다")
 
 
 class GradePoseAxisTest(DiaRUGATestCase):
@@ -201,14 +201,27 @@ class GradePoseAxisTest(DiaRUGATestCase):
             ObjectReview.objects.get(pk=b.pk).diatom_object.pose, "girdle",
             "자세가 묶인 다른 판에 안 보인다 — 개체의 성질이어야 한다")
 
-    def test_등급은_판마다_따로다(self):
-        """같은 규조각이라도 초점면마다 다르게 보인다. 한쪽 등급이 다른 쪽에
-        번지면 그 값은 더 이상 그 판에 대한 판단이 아니다."""
+    def test_등급도_묶인_판들이_나눠_갖는다(self):
+        """**0035 로 뒤집힌 자리다.** 처음에는 판마다 따로 두었다 — 초점면마다
+        다르게 보이니 그 판에 대한 판단이라고 봤다. 그런데 *어느 판이 잘
+        보이는가* 는 `is_rep`(대표)이 이미 말하고 있었고, 등급이 답해야 하는 것은
+        *이 규조각이 얼마나 좋은 표본인가* 였다.
+        """
         a, b = self._linked_pair()
-        a.grade = "A"
-        a.save()
-        self.assertEqual(ObjectReview.objects.get(pk=b.pk).grade, "",
-                         "등급이 묶인 다른 판에 번졌다 — 판의 성질이어야 한다")
+        dobj = a.diatom_object
+        dobj.grade = "A"
+        dobj.save()
+        self.assertEqual(
+            ObjectReview.objects.get(pk=b.pk).diatom_object.grade, "A",
+            "등급이 묶인 다른 판에 안 보인다 — 개체의 성질이어야 한다")
+
+    def test_대표가_어느_판인지는_따로_남는다(self):
+        """등급을 개체로 올려도 **판을 고르는 축이 사라지면 안 된다** — 학습
+        자료를 뽑을 때 "이 규조각은 이 판으로 본다" 가 그 값이다."""
+        a, b = self._linked_pair()
+        reps = [r for r in (a, b)
+                if ObjectReview.objects.get(pk=r.pk).is_rep]
+        self.assertEqual(len(reps), 1, "대표가 하나여야 한다")
 
 
 class GradePoseFragmentTest(DiaRUGATestCase):
@@ -266,7 +279,7 @@ class GradePoseFragmentTest(DiaRUGATestCase):
         data.save_catalog_entry(self.w.vp, det.image, key,
                                 cls="round", grade="A", pose="valve")
         o = ObjectReview.objects.get(mask_key=key)
-        self.assertEqual((o.grade, o.diatom_object.pose), ("A", "valve"))
+        self.assertEqual((o.diatom_object.grade, o.diatom_object.pose), ("A", "valve"))
 
     def test_카탈로그_저장이_등급만_남은_행을_안_지운다(self):
         """`save_catalog_entry` 의 "아무것도 안 남으면 지운다" 는 줄이 두 칸을

@@ -72,10 +72,9 @@ class CatalogPageTest(DiaRUGATestCase):
             or self.w.vp.pk,
             image_id=row["image_id"], batch_id=row["batch_id"],
             mask_key=row["key"], bind_method="exact", species="Eucampia sp.")
-        o.grade = "A"
-        o.save()
-        o.diatom_object.pose = "valve"
-        o.diatom_object.save()
+        dobj = o.diatom_object          # 둘 다 개체에 앉는다 (0035)
+        dobj.grade, dobj.pose = "A", "valve"
+        dobj.save()
         named = self.get(cls="named", frag="1")
         self.assertIn(row["catalog_no"], named)
         self.assertNotIn(row["catalog_no"], self.get(cls="unnamed", frag="1"))
@@ -171,12 +170,12 @@ class CatalogPageTest(DiaRUGATestCase):
                           mask_key=row["key"], bind_method="exact",
                           species=kw.get("species", ""),
                           label=kw.get("label", ""))
-        if kw.get("grade"):
-            o.grade = kw["grade"]
-            o.save()
-        if kw.get("pose"):
-            o.diatom_object.pose = kw["pose"]
-            o.diatom_object.save()
+        # **둘 다 개체에 앉는다** (0035 로 등급이 판정에서 옮겨 왔다).
+        if kw.get("grade") or kw.get("pose"):
+            dobj = o.diatom_object
+            dobj.grade = kw.get("grade", "")
+            dobj.pose = kw.get("pose", "")
+            dobj.save()
         return row
 
     def ctx(self, **q):

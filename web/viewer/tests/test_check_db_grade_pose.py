@@ -60,10 +60,10 @@ class CheckGradePoseTest(DiaRUGATestCase):
             mask_key=self.w.keys()[0], bind_method="exact",
             removed=removed, label=label)
         # **옆문으로 심는다** — `data` 를 지나면 서버가 막아 세운다(머리말).
-        if grade:
-            ObjectReview.objects.filter(pk=row.pk).update(grade=grade)
-        if pose:
-            DiatomObject.objects.filter(pk=row.diatom_object_id).update(pose=pose)
+        # 0035 뒤로 등급도 개체에 산다.
+        if grade or pose:
+            DiatomObject.objects.filter(pk=row.diatom_object_id).update(
+                grade=grade, pose=pose)
         return row
 
     # --- 잡는가 -----------------------------------------------------------
@@ -76,16 +76,20 @@ class CheckGradePoseTest(DiaRUGATestCase):
         self.put(label="rod_frag", pose="valve")
         self.assertIn("파편에 자세가 안 붙어 있다", self.run_check())
 
-    def test_지운_판에_등급이_붙으면_잡는다(self):
-        """"이 판은 오검출이면서 A 다" 가 되면 **학습 자료가 모순이 된다** —
-        등급으로 무엇을 먼저 학습시킬지 고르기 때문이다."""
+    def test_판이_모두_지워진_개체에_등급이_남으면_잡는다(self):
+        """"이 규조각은 오검출이면서 A 다" 가 되면 **학습 자료가 모순이 된다** —
+        등급으로 무엇을 먼저 학습시킬지 고르기 때문이다.
+
+        0035 뒤로 등급이 개체에 살아 **판 하나가 아니라 개체 전체**를 본다.
+        """
         self.put(grade="A", removed=True)
-        self.assertIn("지운 판에 등급이 안 붙어 있다", self.run_check())
+        self.assertIn("등급·자세가 살아 있는 개체에만 붙어 있다",
+                      self.run_check())
 
     def test_판이_모두_지워진_개체에_자세가_남으면_잡는다(self):
-        """자세는 개체에 살아 판 하나로는 못 본다 — 개체 전체를 본다."""
         self.put(pose="girdle", removed=True)
-        self.assertIn("자세가 살아 있는 개체에만 붙어 있다", self.run_check())
+        self.assertIn("등급·자세가 살아 있는 개체에만 붙어 있다",
+                      self.run_check())
 
     # --- 멀쩡한 것을 잡지 않는가 -------------------------------------------
 
@@ -102,8 +106,8 @@ class CheckGradePoseTest(DiaRUGATestCase):
     def test_치우면_풀린다(self):
         row = self.put(label="round_frag", grade="A", pose="valve")
         self.assertNotEqual(self.run_check(), [])
-        ObjectReview.objects.filter(pk=row.pk).update(grade="")
-        DiatomObject.objects.filter(pk=row.diatom_object_id).update(pose="")
+        DiatomObject.objects.filter(pk=row.diatom_object_id).update(
+            grade="", pose="")
         self.assertEqual(self.run_check(), [])
 
     def test_아무도_안_매겼으면_아무_말도_안_한다(self):

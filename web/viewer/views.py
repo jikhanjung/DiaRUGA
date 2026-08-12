@@ -955,7 +955,7 @@ def catalog(request, slug):
         # 서버는 `data.check_grade_pose` 가 다시 검사한다 — 화면에서 막는 것은
         # 막는 것이 아니다(063).
         "counted_keys": [r["key"] for r in data.counted_classes()],
-        "grades": ObjectReview.GRADE,
+        "grades": DiatomObject.GRADE,
         "poses": DiatomObject.POSE,
         "species_seen": data.species_seen(),
         "n_all": n_all,

@@ -421,11 +421,11 @@ def _apply_review(det: Detection, reviews: dict, state) -> dict:
         # 가 정한 목록에서 고른 것이고 이쪽은 사람이 적은 종명이다.
         if o.species:
             d["species"] = o.species
-        # 등급·자세 (개체 카탈로그). **둘의 축이 반대다** — 등급은 이 판에 대한
-        # 판정이고 자세는 개체의 성질이라 묶인 판들이 나눠 갖는다. 조인은
-        # `_reviews_prefetch` 가 이미 물어 왔다.
-        if o.grade:
-            d["grade"] = o.grade
+        # 등급·자세 (개체 카탈로그). **둘 다 개체의 성질이라 묶인 판들이 한 값을
+        # 함께 본다** (0035 로 등급이 판정에서 옮겨 왔다). 어느 판이 잘 보이는가는
+        # `is_rep` 가 말한다. 조인은 `_reviews_prefetch` 가 이미 물어 왔다.
+        if o.diatom_object.grade:
+            d["grade"] = o.diatom_object.grade
         if o.diatom_object.pose:
             d["pose"] = o.diatom_object.pose
 
@@ -1104,7 +1104,7 @@ def check_grade_pose(label: str, grade="", pose="") -> None:
     걷어내야 하는데, 그 길까지 막으면 고칠 방법이 없어진다.
     """
     grade, pose, label = str(grade or ""), str(pose or ""), str(label or "")
-    if grade and grade not in dict(ObjectReview.GRADE):
+    if grade and grade not in dict(DiatomObject.GRADE):
         raise ValueError(f"모르는 등급이다: {grade}")
     if pose and pose not in dict(DiatomObject.POSE):
         raise ValueError(f"모르는 자세다: {pose}")
@@ -1200,18 +1200,18 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
         dobj.label = cls
     if note is not None:
         obj.note = str(note).replace("\r\n", "\n").strip()
-    # **등급은 판정에, 자세는 개체에** (2026-08-11). 축이 반대라 자리가 갈린다 —
-    # 등급은 초점면마다 다르고(`removed` 와 같은 자리), 자세는 스테이지가 안
-    # 움직이니 묶인 판들이 나눠 갖는다(`label`·`species` 와 같은 자리).
+    # **등급도 자세도 개체에 앉는다** (0035). 둘 다 *이 규조각이 어떤가* 이고,
+    # 어느 판으로 보여줄지는 `is_rep` 가 따로 말한다.
     if grade is not None:
-        obj.grade = str(grade).strip()
+        dobj.grade = str(grade).strip()
     if pose is not None:
         dobj.pose = str(pose).strip()
     # **고친 뒤의 모습으로 검사한다.** 이 한 번의 저장이 분류를 파편으로 바꾸면서
     # 등급은 그대로 두는 길이 있는데, 보낸 값만 보면 그것이 통과한다 — 남는 것은
     # "파편인데 A" 인 행이다.
-    check_grade_pose(dobj.label, obj.grade, dobj.pose)
-    dobj.save(update_fields=["label", "species", "pose", "updated_at"])
+    check_grade_pose(dobj.label, dobj.grade, dobj.pose)
+    dobj.save(update_fields=["label", "species", "pose", "grade",
+                             "updated_at"])
     obj.save()
 
     # 화면이 고쳐야 할 다른 판들 — **쓰지 않는다, 알리기만 한다** (P12).
@@ -1232,7 +1232,7 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
                  or obj.note or dobj.species or obj.geom_edited or linked
                  # **등급·자세도 표시다** — 안 세면 종명을 비우는 한 번에 등급까지
                  # 함께 사라진다. 105 가 이 자리에서 실패 둘을 봤다.
-                 or obj.grade or dobj.pose)
+                 or dobj.grade or dobj.pose)
     n_spread = sum(len(v) for v in spread.values())
     if empty and obj.source != "manual":
         oid = obj.diatom_object_id
@@ -1241,7 +1241,7 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
         return {"species": "", "cls": "", "note": "", "grade": "", "pose": "",
                 "kept": False, "spread": n_spread}
     return {"species": dobj.species, "cls": dobj.label, "note": obj.note,
-            "grade": obj.grade, "pose": dobj.pose,
+            "grade": dobj.grade, "pose": dobj.pose,
             "kept": True, "spread": n_spread}
 
 
@@ -2953,7 +2953,8 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # 아무 표시도 안 남은 행을 예전처럼 지운다.
     keys |= set(ObjectReview.objects
                 .filter(image=image, batch=batch)
-                .exclude(diatom_object__species="", grade="",
+                .exclude(diatom_object__species="",
+                         diatom_object__grade="",
                          diatom_object__pose="")
                 .values_list("mask_key", flat=True))
 
@@ -3292,9 +3293,9 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
     ## 한 개체를 나눠 갖는다
 
     같은 규조각을 옮겨 그린 것이라 뜻이 그렇다. 그래서 자세(`DiatomObject.pose`)
-    ·분류·종명이 한 벌이고, **등급(`ObjectReview.grade`)만 판마다 따로 간다** —
-    등급은 판의 성질이라 초점면마다 다르다(110). 판마다 개체를 따로 두면 자세를
-    판 수만큼 매겨야 하고 `check_db` 10번이 그 어긋남을 못 잡는다.
+    ·분류·종명·등급이 **한 벌이다**(0035 뒤로 등급도 개체에 산다). 어느 판으로
+    보여줄지는 `is_rep` 가 말한다. 판마다 개체를 따로 두면 이 값들을 판 수만큼
+    매겨야 하고 `check_db` 10번이 그 어긋남을 못 잡는다.
 
     묶는 일은 `merge_into_object` 가 한다 — 사람이 화면에서 묶을 때와 **같은
     문**이다. `judgement_for` 는 행마다 개체를 새로 세우므로(P12) 그대로 두면

@@ -212,21 +212,27 @@ def fetch(conn, slide_slug=None) -> dict:
         species_col = "r.species" if "species" in cols else "'' AS species"
         obj_join = ""
 
-    # **등급·자세는 축이 반대라 사는 곳이 다르다** (0034, 2026-08-11 사용자 결정).
-    # 등급은 판(초점면)의 성질이라 `ObjectReview` 에, 자세는 개체의 성질이라
-    # `DiatomObject` 에 산다 — 그래서 **옛 판을 견디는 갈래도 둘이다.**
+    # **등급이 판마다 다른 테이블에 산다** — `0034` 는 `ObjectReview` 에 넣었고
+    # `0035` 가 `DiatomObject` 로 옮겼다(하루 만에 뒤집었다 · 111). 이 스크립트는
+    # **두 시점을 비교하는 도구**라 양쪽을 다 읽어야 한다. 자세는 처음부터 개체다.
     #
-    # **내보낼 때는 둘 다 판정 한 줄에 싣는다.** 개체에 사는 `label`·`species`
-    # 가 이미 그 자리에 실리는 것과 같고, 무엇보다 **묶음이 아닌 개체는 `links`
-    # 에 안 나온다**(멤버가 하나면 묶음으로 안 센다). 자세를 묶음 머리에만
-    # 실으면 대부분의 개체에서 조용히 사라진다.
-    grade_col = col("grade", "''")
-    pose_col = "'' AS pose"
+    # 그래서 갈래가 셋이다: 개체에 있다(지금) · 판정에 있다(`0034` 대) · 없다
+    # (그 앞). **어느 쪽에서 읽든 내보내는 모양은 같다** — 그래야 판을 오간
+    # `review/` 를 그대로 diff 할 수 있고, 형식 번호를 안 올린 이유도 그것이다.
+    #
+    # **둘 다 판정 한 줄에 싣는다.** 개체에 사는 `label`·`species` 가 이미 그
+    # 자리에 실리는 것과 같고, 무엇보다 **묶음이 아닌 개체는 `links` 에 안
+    # 나온다**(멤버가 하나면 묶음으로 안 센다) — 묶음 머리에만 실으면 대부분의
+    # 개체에서 조용히 사라진다.
+    obj_cols = set()
     if new_home:
         obj_cols = {r[1] for r in
                     conn.execute("PRAGMA table_info(viewer_diatomobject)")}
-        if "pose" in obj_cols:
-            pose_col = "o.pose"
+    pose_col = "o.pose" if "pose" in obj_cols else "'' AS pose"
+    if "grade" in obj_cols:
+        grade_col = "o.grade"
+    else:
+        grade_col = col("grade", "''")
 
     # **묶음은 id 가 아니라 이름으로 적는다.** 감사 기록은 사람이 읽고 두 DB 를
     # 비교하는 물건이라, 저장소마다 달라지는 id 를 적으면 diff 가 거짓말을 한다.

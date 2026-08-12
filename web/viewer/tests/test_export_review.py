@@ -372,13 +372,14 @@ class ExportGradePoseTest(DiaRUGATestCase):
         return json.loads(text), text
 
     def put(self, grade="", pose="", **kw):
-        """판정 하나를 세운다 — **등급은 판정에, 자세는 개체에** 넣는다."""
+        """판정 하나를 세운다 — **둘 다 개체에** 앉는다 (0035)."""
         det = self.w.detection()
         row = fx.new_review(
             viewpoint=self.w.vp, image=det.image, batch=det.batch,
-            mask_key=self.w.keys()[0], bind_method="exact", grade=grade, **kw)
-        if pose:
-            DiatomObject.objects.filter(pk=row.diatom_object_id).update(pose=pose)
+            mask_key=self.w.keys()[0], bind_method="exact", **kw)
+        if grade or pose:
+            DiatomObject.objects.filter(pk=row.diatom_object_id).update(
+                grade=grade, pose=pose)
         return row
 
     def objects(self, doc):
@@ -413,48 +414,72 @@ class ExportGradePoseTest(DiaRUGATestCase):
                      '"species": "Eucampia antarctica"'):
             self.assertIn(want, lines[0])
 
-    def test_묶인_판들은_같은_자세를_나눠_갖는다(self):
-        """자세는 개체의 성질이라 **묶음을 따라 번진다** — 등급은 안 번진다.
-        내보내기가 그 차이를 그대로 보여야 나중에 *"C 인 것들이 자세 때문인가"*
-        를 감사 기록만으로 물을 수 있다.
+    def test_묶인_판들이_등급_자세를_나눠_갖는다(self):
+        """0035 뒤로 **둘 다 개체에 산다** — 묶인 판들이 한 값을 함께 본다.
+        어느 판으로 보여줄지는 `is_rep` 가 따로 말한다. 감사 기록이 그 모양을
+        그대로 보여야 나중에 *"C 인 것들이 자세 때문인가"* 를 물을 수 있다.
         """
         extra = fx.add_frame_detections(self.w.vp)
         batch = self.w.detection().batch
         _, frame_img, _ = extra[0]
         rows = [
             fx.new_review(viewpoint=self.w.vp, image=self.w.detection().image,
-                          batch=batch, mask_key=self.w.keys()[0], grade="A",
+                          batch=batch, mask_key=self.w.keys()[0],
                           geom={"bbox_xywh": [40, 50, 60, 40]}),
             fx.new_review(viewpoint=self.w.vp, image=frame_img, batch=batch,
-                          mask_key=self.w.keys()[0], grade="C",
+                          mask_key=self.w.keys()[0],
                           geom={"bbox_xywh": [41, 51, 60, 40]}),
         ]
         obj = fx.link_reviews(rows, rep=0)
-        DiatomObject.objects.filter(pk=obj.pk).update(pose="valve")
+        DiatomObject.objects.filter(pk=obj.pk).update(grade="B", pose="valve")
 
         doc, _ = self.export()
         got = sorted((o["grade"], o["pose"]) for o in self.objects(doc))
-        self.assertEqual(got, [("A", "valve"), ("C", "valve")])
+        self.assertEqual(got, [("B", "valve"), ("B", "valve")],
+                         "묶인 판이 한 값을 함께 봐야 한다")
 
     def test_렌더가_결정적이다(self):
         """`--check` 는 문자열 대조다 — 두 번 렌더해 다르면 대조가 성립하지 않는다."""
         self.put(grade="A", pose="valve", label="round")
         self.assertEqual(self.export()[1], self.export()[1])
 
+    def test_등급이_판정에_있던_백업도_읽는다(self):
+        """**`0034` 대 백업이다** — `v0.11.2` 로 그 판이 실제로 배포되므로,
+        그 사이에 뜬 백업에는 등급이 `viewer_objectreview` 에 앉아 있다.
+        이 도구는 두 시점을 비교하는 물건이라 **그때 것도 읽어야 한다.**
+
+        읽는 자리만 다르고 **내보내는 모양은 같아야 한다** — 그래야 판을 오간
+        `review/` 를 그대로 diff 할 수 있다(형식 번호를 안 올린 이유다).
+        """
+        self.put(label="round")
+        raw = connection.cursor().connection
+        was = raw.row_factory
+        raw.row_factory = sqlite3.Row
+        try:
+            raw.execute("ALTER TABLE viewer_diatomobject DROP COLUMN grade")
+            raw.execute("ALTER TABLE viewer_objectreview "
+                        "ADD COLUMN grade varchar(1) NOT NULL DEFAULT ''")
+            raw.execute("UPDATE viewer_objectreview SET grade = 'B'")
+            views = export_review.fetch(raw)
+        finally:
+            raw.row_factory = was
+        v = views[(self.w.slug, self.w.vp.idx)]
+        o = self.objects(json.loads(export_review.render(v)))[0]
+        self.assertEqual(o["grade"], "B", "옛 자리의 등급을 못 읽었다")
+
     def test_칼럼이_없는_옛_DB_도_읽는다(self):
         """0034 이전 백업이다. 이 스크립트는 **두 시점을 비교하는 도구**라
         옛 판을 만나면 멈추지 말고 빈 값을 끼워야 한다.
 
-        **두 칸이 다른 테이블에 있어 갈래도 둘이다** — 등급은
-        `viewer_objectreview`, 자세는 `viewer_diatomobject` 다. 한쪽만 막아
-        두면 나머지 한쪽에서 `no such column` 으로 죽는다.
+        **등급이 사는 곳이 판마다 다르다** — `0034` 는 `viewer_objectreview`,
+        `0035` 는 `viewer_diatomobject` 다. 어느 쪽도 없는 그 앞 판을 흉내 낸다.
         """
         self.put(grade="A", pose="valve", label="round")
         raw = connection.cursor().connection
         was = raw.row_factory
         raw.row_factory = sqlite3.Row
         try:
-            raw.execute("ALTER TABLE viewer_objectreview DROP COLUMN grade")
+            raw.execute("ALTER TABLE viewer_diatomobject DROP COLUMN grade")
             raw.execute("ALTER TABLE viewer_diatomobject DROP COLUMN pose")
             views = export_review.fetch(raw)
         finally:

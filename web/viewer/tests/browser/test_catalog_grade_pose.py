@@ -43,12 +43,11 @@ class CatalogGradePoseTest(BrowserTestCase):
 
     def seed(self, *, label="round", grade="", pose=""):
         o = fx.add_review(self.w.vp, self.key, label=label)
-        if grade:
-            o.grade = grade
-            o.save()
-        if pose:
-            o.diatom_object.pose = pose
-            o.diatom_object.save()
+        # **둘 다 개체에 앉는다** (0035 로 등급이 판정에서 옮겨 왔다).
+        if grade or pose:
+            dobj = o.diatom_object
+            dobj.grade, dobj.pose = grade, pose
+            dobj.save()
         return o
 
     # --- 적히는가 -----------------------------------------------------------
@@ -61,7 +60,8 @@ class CatalogGradePoseTest(BrowserTestCase):
         page.wait_for_timeout(1500)
 
         o = ObjectReview.objects.get(mask_key=self.key)
-        self.assertEqual((o.grade, o.diatom_object.pose), ("A", "valve"))
+        self.assertEqual((o.diatom_object.grade, o.diatom_object.pose),
+                         ("A", "valve"))
 
     def test_다섯_칸을_잇달아_채워도_다_남는다(self):
         """**칸이 셋일 때 이미 당한 자리다** (105). 늘어난 둘이 남의 칸을 덮지
@@ -150,7 +150,8 @@ class CatalogGradePoseTest(BrowserTestCase):
         self.assertEqual(card.locator(".cls").input_value(), "round",
                          "취소했는데 유형이 파편으로 바뀌어 있다")
         o = ObjectReview.objects.get(mask_key=self.key)
-        self.assertEqual((o.grade, o.diatom_object.label), ("A", "round"))
+        self.assertEqual((o.diatom_object.grade, o.diatom_object.label),
+                         ("A", "round"))
 
     def test_파편으로_바꿀_때_받아들이면_등급이_지워진다(self):
         self.seed(label="round", grade="A", pose="valve")
@@ -162,7 +163,7 @@ class CatalogGradePoseTest(BrowserTestCase):
         page.wait_for_timeout(1500)
 
         o = ObjectReview.objects.get(mask_key=self.key)
-        self.assertEqual((o.grade, o.diatom_object.pose), ("", ""))
+        self.assertEqual((o.diatom_object.grade, o.diatom_object.pose), ("", ""))
         self.assertEqual(o.diatom_object.label, "round_frag")
 
     def test_등급이_없으면_안_묻는다(self):
@@ -239,4 +240,4 @@ class CatalogGradePoseReadOnlyTest(BrowserTestCase):
             e.dispatchEvent(new Event('blur', {bubbles: true}));
         }""")
         page.wait_for_timeout(1500)
-        self.assertFalse(ObjectReview.objects.filter(grade="A").exists())
+        self.assertFalse(DiatomObject.objects.filter(grade="A").exists())
