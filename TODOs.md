@@ -154,7 +154,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       P14 4.4). `/srv/DiaRUGA/docker-compose.yml` 에 마운트 한 줄을 더하고 `web`
       만 다시 띄우면 되고 이미지는 안 구워도 되는데, **`/srv` 는 `paleoadmin`
       의 자리다.** 그때까지 갈래 (a)~(c)가 전부 성립하지 않는다.
-      **도구 자체는 이 자리에서 이미 쓸 수 있다**([111](devlog/20260812_111_diadiction-tooling.md))
+      **도구 자체는 이 자리에서 이미 쓸 수 있다**([113](devlog/20260812_113_diadiction-tooling.md))
       — 종 하나를 4단계로 끝까지 돌려 확인했다. 다만 **AlgaeBase 는 브라우저가
       있어야 한다**(`curl` 은 302·0바이트) · `WebFetch` 는 사내망이 막는다.
       함정은 **도감이 1968년 이름을 쓴다는 것** — 안 맞는 속이 나오면 "도감에
