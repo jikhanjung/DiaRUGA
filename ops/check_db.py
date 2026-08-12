@@ -49,7 +49,7 @@ sys.path.insert(0, str(APP / "pipeline"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
-from django.db.models import Count                                  # noqa: E402
+from django.db.models import Count, Q                               # noqa: E402
 
 import judge                                                        # noqa: E402
 from viewer.models import (Candidate, ClassDef, Detection, DiatomObject,
@@ -588,6 +588,95 @@ def check_catalog(slug=None):
         print("   (아직 동정한 개체가 없다)")
 
 
+def check_grade_pose(slug=None):
+    """등급·자세가 **매길 수 있는 자리에만** 붙어 있는가 (2026-08-11 · 0034).
+
+    두 칸은 **완형에만 매긴다.** 파편(`ClassDef.counted=0`)은 완형을 유추할 수
+    있어도 확실하지 않고, 무엇보다 *한 개체로 인정하는 규칙을 만족하지 못한 것*
+    이라 우수성을 물을 자리가 아니다.
+
+    **이것이 세 번째 자리다.** 화면이 파편에 칸을 안 보여주고(카탈로그 카드),
+    서버가 다시 받지 않는다(`data.check_grade_pose`). 여기는 **그 둘을 안 지나는
+    길**을 보는 곳이다 — 마이그레이션·일회성 스크립트·손으로 고친 SQL 은 예외를
+    안 내고, 옆문으로 들어온 값은 **예외가 안 나고 그냥 틀린 상태**로 앉는다.
+
+    잘못 붙은 값을 여기서 지우지 않는다. 사람이 눈으로 매긴 것이라 재생성
+    불가이고, 어느 쪽이 틀렸는지(등급인가 분류인가)는 사람이 안다.
+
+    ## 자세가 묶음 안에서 어긋나는 것은 안 센다
+
+    계획에는 있었지만 **P12 뒤로 그 상태가 성립하지 않는다** — 자세는
+    `DiatomObject` 한 행에 살아서, 묶인 판들이 값을 나눠 갖는 것이 아니라
+    **한 값을 함께 본다.** 셀 수 있는 어긋남이 없다. 대신 묶을 때 값이 엇갈리면
+    거절하는 쪽이 그 자리를 맡는다(108). 여기에 그 검사를 두면 **늘 0 이라
+    덮은 줄 알게 된다** — 실패할 수 없는 검사는 없는 것보다 나쁘다.
+
+    ## `0034` 이전 DB 에는 못 돌린다 — 그리고 그것을 여기서 막지 않는다
+
+    막아 봐야 소용이 없다. Django 는 모델의 **모든 칼럼을 SELECT 하므로**
+    두 칸이 없는 DB 에서는 3번(교정)이 먼저 죽는다 — 이 스크립트 전체가 그렇다.
+    여기에만 갈래를 두면 *"등급·자세만 건너뛰고 나머지는 돈다"* 고 믿게 된다.
+    `check_db.py` 는 뷰어 코드를 그대로 쓰는 도구라 **판을 함께 올리는 축**에
+    있다(057) — 카탈로그 검사가 `viewer/catalog.py` 를 기다리는 것과 같다.
+    """
+    # 파편은 `counted=0` 이다. `ClassDef` 를 읽어 온다 — 목록을 여기 박아 두면
+    # 분류를 더할 때 이 검사만 조용히 낡는다.
+    frag = set(ClassDef.objects.filter(counted=False)
+               .values_list("key", flat=True))
+
+    rows = ObjectReview.objects.exclude(grade="").select_related("diatom_object")
+    objs = DiatomObject.objects.exclude(pose="")
+    if slug:
+        rows = rows.filter(viewpoint__slide__slug=slug)
+        objs = objs.filter(viewpoint__slide__slug=slug)
+
+    n_grade, n_pose = rows.count(), objs.count()
+    if not (n_grade or n_pose):
+        if VERBOSE:
+            print("   (아직 등급·자세를 매긴 개체가 없다)")
+        return
+
+    if frag:
+        bad_g = [f"{r.mask_key} ({r.diatom_object.label} {r.grade})"
+                 for r in rows.filter(diatom_object__label__in=frag)[:20]]
+        report("파편에 등급이 안 붙어 있다",
+               rows.filter(diatom_object__label__in=frag).count(), n_grade,
+               "파편은 우수성을 물을 자리가 아니다 — 화면·서버를 안 지난 값이다",
+               bad_g)
+
+        bad_p = [f"obj#{o.pk} ({o.label} {o.pose})"
+                 for o in objs.filter(label__in=frag)[:20]]
+        report("파편에 자세가 안 붙어 있다",
+               objs.filter(label__in=frag).count(), n_pose,
+               "위와 같다 — 두 칸은 완형에만 매긴다", bad_p)
+
+    # **지운 판에 등급이 붙어 있는 것.** "이 판은 오검출이면서 A 다" 가 되어
+    # 학습 자료가 모순이 된다 — 등급으로 무엇을 먼저 학습시킬지 고르기 때문에
+    # 그 모순이 그대로 자료 선택으로 간다.
+    rm = rows.filter(removed=True)
+    report("지운 판에 등급이 안 붙어 있다", rm.count(), n_grade,
+           "오검출로 지운 판이 등급을 들고 있다 — 학습 자료가 모순이 된다",
+           [f"{r.mask_key} ({r.grade})" for r in rm[:20]])
+
+    # 자세는 개체에 사니 **판 하나가 아니라 개체 전체가 지워졌는가**를 본다.
+    # 모든 판이 오검출인데 자세가 남아 있으면 위와 같은 모순이다.
+    dead = objs.annotate(
+        n_live=Count("members", filter=Q(members__removed=False))
+    ).filter(n_live=0)
+    report("자세가 살아 있는 개체에만 붙어 있다", dead.count(), n_pose,
+           "판이 모두 오검출인 개체가 자세를 들고 있다",
+           [f"obj#{o.pk} ({o.pose})" for o in dead[:20]])
+
+    # **`A` 인데 종명이 빈 것은 문제가 아니다.** 등급을 먼저 매기고 종명은
+    # 문헌을 찾아 나중에 적는 것이 실제 순서라, 저장을 막으면 그 순서를 막는다
+    # (2026-08-11 사용자). 그래서 **세되 문제로 올리지 않는다** — 매기는 사람이
+    # 지키는 기준이지 제약이 아니다.
+    n_a = rows.filter(grade="A", diatom_object__species="").count()
+    if n_a:
+        print(f"   A 인데 종명이 빈 것 {n_a}건 "
+              f"(문제가 아니다 — 나중에 적는 순서를 막지 않는다)")
+
+
 def check_thresholds(slug=None):
     """문턱은 **슬라이드 안에서** 하나여야 한다.
 
@@ -651,6 +740,8 @@ def main():
     check_links(args.slide)
     print("\n=== 9. 개체 카탈로그 (번호·동정) ===")
     check_catalog(args.slide)
+    print("\n=== 10. 등급·자세 ===")
+    check_grade_pose(args.slide)
 
     print()
     if problems:
