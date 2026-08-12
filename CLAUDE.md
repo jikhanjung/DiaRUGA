@@ -192,6 +192,55 @@ python ops/db_sentinel.py show                      # 백업이 세운 무결성
 docker compose -f deploy/docker-compose.yml build web   # 이미지 굽기는 저장소에서
 ```
 
+### 저장소 소스를 그대로 사내망에 띄운다 (Django 개발 서버)
+
+**이미지를 굽지 않고 지금 작업 트리를 눌러 볼 때** 쓴다.
+
+> **테스트를 띄울 때 DB 는 언제나 `/data3/DiaRUGA/backup/` 의 최근 사본을
+> 복사해서 쓴다.** 개발 서버(아래)도, 테스트 컨테이너(`testdeploy.sh`)도 같다 —
+> 그쪽은 5단계가 **사본을 자동으로 갈아 끼우고**(`--keep-db` 로만 유지),
+> 사본이 낡았으면 `backup_db.py` 를 먼저 돌리라고 멈춘다. **운영 DB 를 그대로
+> 붙이지 않는다** — 눌러 보다가 `/review` 한 번이 그 시야의 교정을 갈아치운다.
+> **`cp` 로 운영 DB 를 직접 뜨지도 않는다**(WAL 이라 불완전한 사본이 된다).
+> 백업 사본은 이미 완결된 파일이라 그대로 복사해도 된다.
+
+```bash
+cd ~/projects/DiaRUGA
+cp "$(ls -t /data3/DiaRUGA/backup/DiaRUGA_*.db | head -1)" ./DiaRUGA.db   # 사본 (gitignore)
+
+export DIARUGA_DB=$PWD/DiaRUGA.db          # 운영 /srv/DiaRUGA/db 를 가리키지 않는다
+export DIARUGA_DATA_ROOT=/data3/DiaRUGA    # 사진은 읽기만 한다
+export DIARUGA_THUMB_CACHE=$PWD/web/.thumbcache   # /data3 쪽은 남의 소유라 못 쓴다
+export DIARUGA_SCRIPT_NAME=                # 서브경로 없이 뿌리(/)에 붙인다
+export IMAGE_TAG="v0.11.2-dev $(git rev-parse --short HEAD)"   # 좌상단에 판이 뜬다
+
+python web/manage.py migrate viewer        # 사본을 지금 소스의 판으로 올린다
+PORT=$(for p in $(seq 8051 8060); do ss -ltn | grep -q ":$p " || { echo $p; break; }; done)
+setsid nohup python web/manage.py runserver 0.0.0.0:$PORT > /tmp/runserver.log 2>&1 < /dev/null &
+echo "http://172.16.116.98:$PORT/"
+```
+
+- **포트는 `8051`~`8060` 중 비어 있는 것**을 쓴다(`ss -ltn` 으로 고른다).
+  **`9091` 은 쓰지 않는다 — 컨테이너 자리다**(지금 안 듣고 있어도 그렇다)
+- **`0.0.0.0` 에 붙여야 사내망에서 보인다.** `127.0.0.1` 이면 이 머신에서만 열린다
+- **`IMAGE_TAG` 가 없으면 판이 화면에 안 뜬다** — 자리는 원래 있다
+  (`base.html` 의 `{{ image_tag }}` · `viewer/context.py`). 운영과 눈으로 갈리게
+  `-dev` 와 커밋을 붙인다
+- **`DEBUG=1` 인 서버가 사내망에 열린다.** 볼 일이 끝나면 내린다
+- **`pkill -f "runserver …"` 는 자기 명령줄까지 잡아 셸을 죽인다** — 실제로 두 번
+  당했다. `pkill -f "runserver 0.0.0.0:805[1]"` 처럼 **패턴을 비껴 쓴다**
+- 템플릿을 고치면 **서버를 다시 띄운다**(자동 리로드가 템플릿 캐시를 안 비운다)
+
+**포트 대역을 ufw 에서 여는 것은 `sudo` 가 필요하다** — `paleoadmin` 에서 한 번만
+하면 된다. **사내망으로 좁혀서 연다**(`9091` 규칙과 같은 모양).
+
+```bash
+sudo ufw allow proto tcp from 172.16.0.0/16 to any port 8051:8060 \
+     comment 'DiaRUGA dev server (임시)'
+sudo ufw status numbered          # 규칙 번호를 본다
+sudo ufw delete <번호>             # 다 쓰면 걷는다
+```
+
 ### 파이프라인 (GPU)
 
 일회성으로만 돌린다. 상주시키면 VRAM 을 물고 놓지 않는다 (P03).
@@ -246,9 +295,10 @@ python web/manage.py test viewer                         # 387개 (브라우저 
 
 **브라우저가 있다** — `playwright` + 헤드리스 크로미움(045). 키 입력·클릭·
 페이지 이동·**콘솔 오류**·화면 캡처가 된다. 이벤트 배선 고장은 이것으로만 잡힌다.
-**반드시 사본 DB 에 붙인다** (`DIARUGA_DB=…/사본.db DIARUGA_SCRIPT_NAME=`
-`manage.py runserver 127.0.0.1:8099`). 설치는 HANDOFF 3.3 — `NODE_EXTRA_CA_CERTS`
-를 빠뜨리면 사내망 TLS 때문에 죽는다.
+**반드시 사본 DB 에 붙인다** — 띄우는 법은 위 "저장소 소스를 그대로 사내망에
+띄운다" 에 있다(백업 사본을 복사해 쓰는 것까지 거기 한 곳에 적었다). 브라우저만
+쓸 때는 밖에 낼 일이 없으니 `127.0.0.1` 로 충분하다. 설치는 HANDOFF 3.3 —
+`NODE_EXTRA_CA_CERTS` 를 빠뜨리면 사내망 TLS 때문에 죽는다.
 
 **템플릿을 고치면 시험 서버를 다시 띄운다** — `--noreload` 는 템플릿 캐시를
 안 비운다. 고쳤는데 안 바뀌면 그것부터 의심할 것 (063).
