@@ -75,6 +75,39 @@ class DrawnSpreadOnScreenTest(BrowserTestCase):
         self.assertTrue(page.query_selector(".box.orphan"),
                         "프레임 판에 번진 마스크가 안 그려졌다")
 
+    def test_그린_그_자리에서_사슬이_뜬다(self):
+        """**새로고침을 기다리면 안 된다** (사용자, 2026-08-12).
+
+        사람이 "이게 다른 판에도 들어갔다" 를 알아채는 근거가 사슬 배지다.
+        화면의 `links` 는 페이지가 열릴 때 한 번 받는 값이라, 저장 응답이 그것을
+        갈아 주지 않으면 **복제는 놓였는데 묶였다는 표시만 없는** 상태가 된다 —
+        그러면 사람이 판마다 다시 그리려 든다.
+        """
+        page = self.open_review()
+        self.draw_one()
+        # 사슬은 `.box.linked` 의 `::after` 가 그린다 (`base.html`).
+        self.assertIsNotNone(page.query_selector(".box.orphan.linked"),
+                             "그린 자리에 사슬 표시가 안 떴다 (새로고침 전)")
+
+    def test_묶인_그_순간에_잠깐_밝힌다(self):
+        """**"방금 내가 그린 것이 묶였는가" 하나만 답하면 된다** (사용자,
+        2026-08-12). 영구 표시로 출처를 가르지 않는 이유가 둘이다: 사슬은 컬러
+        이모지라 색이 안 먹고, 사람이 그린 것과 엔진 것을 손으로 섞어 묶는 길이
+        있어 **그 묶음이 무슨 색인지**를 답해야 한다.
+
+        판을 넘어온 묶음의 짝을 밝히는 `flashFollowed` 와 같은 `linkflash` 를
+        쓴다 — 뜻이 같은 것을 두 가지로 그리면 사람이 둘을 다른 일로 읽는다.
+        """
+        page = self.open_review()
+        page.click('#tools-stack button[data-act="draw"]')
+        page.wait_for_timeout(150)
+        for x, y in PTS:
+            self.click_image(x, y)
+        self.click_image(*PTS[0])
+        # **기다리지 않고 나타나기를 본다** — 1.4초 뒤 스스로 걷히므로 고정된
+        # 시간을 재면 시험이 흔들린다.
+        page.wait_for_selector(".box.linkflash", timeout=4000)
+
     # --- 핵 — 거기서 저장해도 살아 있는가 ----------------------------------
 
     def test_다른_판에서_저장해도_복제가_안_지워진다(self):

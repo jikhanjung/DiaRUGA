@@ -3095,8 +3095,8 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # 판정까지 끌고 간다.
     prune_objects(orphaned)
 
-    n_drawn, drawn_spread = _save_drawn(vp, image, drawn,
-                                        (cur.width, cur.height), batch)
+    n_drawn, drawn_spread, links_moved = _save_drawn(
+        vp, image, drawn, (cur.width, cur.height), batch)
 
     # **완료를 누르면 남는 개체에 확인 표시를 단다** (2026-08-11). 청소가 끝난 뒤에
     # 한다 — 먼저 하면 방금 세운 행이 `keys` 에 없어 그 자리에서 지워진다.
@@ -3116,6 +3116,15 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
         # 급하다. 저쪽은 분류가 되돌아가는 것이고 이쪽은 **마스크가 통째로
         # 사라지는 것**이다 (`_spread_drawn` 머리말).
         out["drawn_spread"] = drawn_spread
+    if links_moved:
+        # **묶은 그 순간에 사슬이 뜨게 한다** (사용자, 2026-08-12). 화면의
+        # `links` 는 페이지가 열릴 때 한 번 받고 `/link` 응답으로만 갈렸다 —
+        # 그래서 마스크를 그리면 복제는 놓이는데 **묶였다는 표시는 새로고침
+        # 전까지 안 떴다.** 사람이 "번졌다" 를 알아채는 근거가 그 배지다.
+        #
+        # **묶음이 움직였을 때만 싣는다.** 저장마다 실으면 시야의 개체를 매번
+        # 다시 물질화하는데, 사슬이 안 바뀐 저장이 대부분이다.
+        out["links"] = object_links_of(vp)
     if spread:
         # **화면이 이것을 받아야 한다.** 다른 판의 상태는 화면이 열릴 때 받은
         # 것이라 지금 번진 분류를 모르고, 그 판에서 다음 저장이 나가면 "표시가
@@ -3195,8 +3204,10 @@ def check_polygon(poly, size, key=""):
 
 
 def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0),
-                batch=None) -> tuple[int | None, dict]:
-    """사람이 그린 개체를 저장한다 (P09 3단계). 돌려주는 것은 `(남은 개수, 번진 것)`.
+                batch=None) -> tuple[int | None, dict, bool]:
+    """사람이 그린 개체를 저장한다 (P09 3단계).
+
+    돌려주는 것은 `(남은 개수, 번진 것, 묶음이 움직였는가)`.
 
     **`None` 이면 손대지 않는다.** payload 에 `drawn` 이 아예 없는 것과 빈
     목록인 것은 다르다 — 앞은 **그리기를 모르는 옛 화면**(배포 중에 열려 있던
@@ -3211,7 +3222,7 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0),
     없다" 를 다음 회차에 가르치게 된다** (P09 5.10).
     """
     if drawn is None:
-        return None, {}
+        return None, {}, False
 
     keep = []
     for item in drawn:
@@ -3251,7 +3262,9 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0),
     prune_objects(orphaned)
     # **대표를 잃은 개체가 남는다** — 번지기가 만든 자리다 (아래 머리말).
     _reelect_reps(orphaned)
-    return len(keep), spread
+    # 번지면 묶음이 생기고, 지우면 멤버가 빠져 묶음이 아니게 될 수 있다.
+    # **둘 다 화면의 사슬을 갈아야 하는 순간이다** (부르는 쪽 주석).
+    return len(keep), spread, bool(spread or orphaned)
 
 
 def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:

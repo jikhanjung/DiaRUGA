@@ -1440,6 +1440,12 @@
         return r.json().then(function (j) {
           spreadLabels(j && j.linked);
           spreadDrawn(j && j.drawn_spread);
+          // **묶인 그 순간에 사슬이 뜬다.** `links` 는 페이지가 열릴 때 한 번
+          // 받는 값이라, 안 갈면 그린 마스크가 판마다 묶였는데도 배지가 새로고침
+          // 전까지 안 뜬다 — 사람이 "번졌다" 를 알아채는 근거가 그것이다.
+          // `/link` 응답 쪽(아래 `links = r.j.links`)과 같은 모양이다.
+          if (j && j.links) { links = j.links; build(); }
+          flashDrawnLinked(j && j.drawn_spread);
         }, function () {});
       }
       // **실패는 다시 저장할 것으로 남는다.** 첫 줄이 savePending 을 끄므로
@@ -1557,6 +1563,33 @@
       });
     });
     if (touchedCur) { build(); redraw(); }  // 지금 보는 판이면 그 자리에서 놓인다
+  }
+
+  // 방금 그려서 묶인 마스크를 잠깐 밝힌다 (사용자, 2026-08-12).
+  //
+  // **구분을 배지 색으로 하지 않는다.** 사슬은 컬러 이모지라 `color` 가 안 먹고
+  // (`base.html` 의 그 주석), 색을 정하려면 SVG 로 따라 그려야 하는데 그 크기에서
+  // 사슬로 안 읽혔다. 무엇보다 **영구 표시는 뜻을 정하기 어렵다** — 사람이 그린
+  // 마스크와 엔진 마스크를 손으로 섞어 묶는 길이 열려 있어, 그 묶음이 무슨
+  // 색인지를 답해야 한다.
+  //
+  // 물어야 하는 것은 하나다: **"방금 내가 그린 것이 묶였는가."** 그것은 지금
+  // 일어난 일이라 **잠깐 보이면 된다.** 판을 넘어온 묶음의 짝을 밝히는
+  // `flashFollowed` 와 같은 자리이고 같은 `linkflash` 를 쓴다 — 뜻이 같은 것을
+  // 두 가지로 그리면 사람이 둘을 다른 일로 읽는다.
+  function flashDrawnLinked(map) {
+    if (!map) return;
+    var keys = {};
+    Object.keys(map).forEach(function (imgId) {
+      (map[imgId] || []).forEach(function (d) { keys[d.key] = 1; });
+    });
+    cands.forEach(function (c, i) {
+      if (!keys[keyOf(c)]) return;
+      var el = elByIdx[i];
+      if (!el) return;
+      el.classList.add('linkflash');
+      setTimeout(function () { el.classList.remove('linkflash'); }, 1400);
+    });
   }
 
   // 복제 하나를 그 판의 개체 목록에 넣는다. **이미 있으면 아무것도 안 한다** —
