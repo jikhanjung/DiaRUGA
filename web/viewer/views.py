@@ -1731,23 +1731,10 @@ def save_object_link(request, slug, gid):
 
             # ── 4. 그릇으로 옮긴다 ──────────────────────────────────────
             #
-            # **대표를 먼저 내린다.** `is_rep` 은 개체당 하나라는 유일 제약이
-            # 있어, 새 대표를 세우기 전에 옛 대표가 남아 있으면 부딪힌다.
-            ObjectReview.objects.filter(diatom_object=link, is_rep=True).update(
-                is_rep=False)
-            orphaned, rep_pk = [], None
-            for row, rep in rows:
-                if row.diatom_object_id != link.pk:
-                    orphaned.append(row.diatom_object_id)
-                    row.diatom_object = link
-                row.is_rep = False
-                row.save(update_fields=["diatom_object", "is_rep"])
-                if rep:
-                    rep_pk = row.pk
-            if rep_pk is None:
-                rep_pk = rows[0][0].pk
-            ObjectReview.objects.filter(pk=rep_pk).update(is_rep=True)
-            data.prune_objects(orphaned)
+            # **규칙은 `data.merge_into_object` 하나다** — 그린 마스크가 판마다
+            # 번질 때도 같은 문을 지난다. 대표를 내렸다 세우는 순서와 빈 개체를
+            # 걷는 순서가 거기 적혀 있다.
+            data.merge_into_object(link, rows)
 
             # **고른 값을 개체에 적는다.** 묶음이 선 뒤라야 한다 — 그 전에
             # 하면 아직 합쳐지지 않은 개체에 쓰게 되고, 같은 트랜잭션 안이라

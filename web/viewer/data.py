@@ -921,6 +921,46 @@ def prune_objects(ids) -> int:
     return n
 
 
+def merge_into_object(obj: DiatomObject, rows) -> int:
+    """판정 여럿을 **한 개체로 모은다.** 돌려주는 것은 대표가 된 행의 pk.
+
+    `rows` 는 `[(ObjectReview, 대표인가)]` 다. 아무도 대표로 표시되지 않으면
+    첫 행이 대표가 된다 — **대표 없는 개체는 학습 자료를 뽑을 때 얼굴이 없다.**
+
+    **부르는 자리가 둘이다** — 사람이 화면에서 묶을 때(`save_object_link`)와
+    그린 마스크가 판마다 번질 때다. 둘이 같은 일을 따로 짜면 **규칙이 둘이
+    된다**: 104 가 분류 번지기에서, 105 가 카탈로그에서 그렇게 당했다(번지게
+    하는 코드가 한 곳에만 있어 다른 길로 들어온 저장이 안 번졌다).
+
+    순서가 있다.
+
+    1. **옛 대표를 먼저 내린다** — `is_rep` 은 개체당 하나라는 유일 제약이 있어,
+       새 대표를 세우기 전에 옛 대표가 남아 있으면 부딪힌다
+    2. 행을 옮기면서 **떠나온 개체를 적어 둔다**
+    3. 대표를 세우고, **그다음에** 빈 개체를 걷는다 — `prune_objects` 머리말대로
+       판정을 옮긴 뒤라야 `CASCADE` 가 살아 있는 판정을 안 끌고 간다
+    """
+    rows = list(rows)
+    if not rows:
+        raise ValueError("모을 판정이 없다")
+    ObjectReview.objects.filter(diatom_object=obj, is_rep=True).update(
+        is_rep=False)
+    orphaned, rep_pk = [], None
+    for row, rep in rows:
+        if row.diatom_object_id != obj.pk:
+            orphaned.append(row.diatom_object_id)
+            row.diatom_object = obj
+        row.is_rep = False
+        row.save(update_fields=["diatom_object", "is_rep"])
+        if rep:
+            rep_pk = row.pk
+    if rep_pk is None:
+        rep_pk = rows[0][0].pk
+    ObjectReview.objects.filter(pk=rep_pk).update(is_rep=True)
+    prune_objects(orphaned)
+    return rep_pk
+
+
 def geom_box(geom) -> list | None:
     """기하 스냅샷의 bbox. **키가 두 가지다** — 어느 쪽이든 받는다.
 
