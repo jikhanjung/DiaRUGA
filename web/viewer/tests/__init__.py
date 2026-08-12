@@ -26,7 +26,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[3]
 # **스크립트가 갈려 있다** (100) — 판정 규칙은 `pipeline/judge.py`, 무결성
 # 깃발은 `ops/db_sentinel.py`, 재바인딩은 `migrate/rebind.py` 다. 뿌리만
-# 넣으면 `import judge` 가 안 선다.
+# 넣으면 `import judge` 가 안 돈다.
 for _d in (_ROOT, _ROOT / "pipeline", _ROOT / "ops", _ROOT / "migrate"):
     if str(_d) not in sys.path:
         sys.path.insert(0, str(_d))

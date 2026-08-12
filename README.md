@@ -60,7 +60,7 @@ pipeline/  group_focus_series.py → focus_stack.py → segment_diatoms.py → r
 
 **운영 서버에 저장소가 없어도 돈다** — 필요한 것은 `deploy/host/sync_to_srv.sh` 가
 `/srv/DiaRUGA` 로 민다. **`/srv/DiaRUGA/scripts` 는 평평하다**(컨테이너가 그
-디렉토리 하나만 물어서, 스크립트끼리의 임포트도 평평해야 선다).
+디렉토리 하나만 물어서, 스크립트끼리의 임포트도 평평해야 돈다).
 
 ## 돌리는 법
 

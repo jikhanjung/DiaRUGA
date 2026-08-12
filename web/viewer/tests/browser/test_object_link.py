@@ -82,7 +82,7 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         rep = link.members.get(is_rep=True)
         self.assertEqual(rep.image.kind, "stack", "기본 대표는 닻(합성본)이다")
 
-        # **사슬 배지가 새로고침 없이 선다** (3단계) — 저장 성공 갈래가
+        # **사슬 배지가 새로고침 없이 생긴다** (3단계) — 저장 성공 갈래가
         # build() 를 다시 부른다.
         self.assertIsNotNone(self.page.query_selector(".box.linked"),
                              "묶었는데 사슬 배지가 없다")
@@ -315,7 +315,7 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         shot.click()
         page.wait_for_timeout(500)
 
-        # 되살린 것은 개체 상자로 선다. **자리는 백분율이다** — 화소로 견주면
+        # 되살린 것은 개체 상자로 생긴다. **자리는 백분율이다** — 화소로 견주면
         # 늘 어긋난다(그렇게 짰다가 고쳤다).
         boxes = page.evaluate(
             """() => [...document.querySelectorAll('.detview .box')]

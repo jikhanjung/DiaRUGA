@@ -19,7 +19,7 @@
 <p class="dim" style="font-size:12.5px">
   {% if p.scan.exists %}
     마지막 정찰 <b style="color:var(--fg)">{{ p.scan.age_min }}분 전</b>
-    (cron 이 1분마다 돈다 — 5분을 넘으면 위에 경고가 선다)
+    (cron 이 1분마다 돈다 — 5분을 넘으면 위에 경고가 뜬다)
     {% if p.scan.error %}<br><span style="color:var(--danger)">정찰 파일을 읽지 못했다: {{ p.scan.error }}</span>{% endif %}
   {% else %}
     정찰 기록이 없다 — 폴러가 이 자리(<code class="mono">logs/last_scan.json</code>)에

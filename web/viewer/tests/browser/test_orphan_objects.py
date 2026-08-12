@@ -131,7 +131,7 @@ class OrphanOnScreenTest(BrowserTestCase):
         o = ObjectReview.objects.get(pk=self.orphan.pk)
         self.assertEqual(o.label, "rod")
         self.assertEqual(o.mask_key, ORPHAN_KEY,
-                         "키가 바뀌었다 — 옛 행이 지워지고 새 행이 섰다")
+                         "키가 바뀌었다 — 옛 행이 지워지고 새 행이 생겼다")
         # 픽스처의 고아 둘. **행이 늘면** 키가 기하에서 다시 만들어져 같은 개체가
         # 둘이 된 것이고, **줄면** 다른 고아가 쓸려 간 것이다.
         self.assertEqual(ObjectReview.objects.count(), 2)

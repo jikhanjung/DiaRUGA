@@ -60,6 +60,6 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(condition=models.Q(('code__in', ['M', 'm']), _negated=True), name='batch_code_not_manual'),
         ),
         # **제약을 세운 뒤에 채운다.** 반대 순서면 유일 제약이 걸릴 때 이미 겹친
-        # 값이 앉아 있을 수 있고, 그때는 마이그레이션이 배포 한가운데서 선다.
+        # 값이 앉아 있을 수 있고, 그때는 마이그레이션이 배포 한가운데서 멈춘다.
         migrations.RunPython(seed_codes, clear_codes),
     ]

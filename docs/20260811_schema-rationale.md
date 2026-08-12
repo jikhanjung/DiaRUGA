@@ -79,5 +79,5 @@ ObjectReview   이 판에서 무엇을 보았는가   removed · accepted · aut
 
 판정 행은 **개체 없이 설 수 없다**(NOT NULL). 그래서 행을 만드는 자리 셋(검토 저장 ·
 그리기 · 카탈로그)이 **문 하나(`data.judgement_for`)를 지난다** — 규칙이 셋이면
-하나만 빠뜨려도 `IntegrityError` 이거나, 더 나쁘게는 **대표 없는 개체**가 선다.
+하나만 빠뜨려도 `IntegrityError` 이거나, 더 나쁘게는 **대표 없는 개체**가 생긴다.
 

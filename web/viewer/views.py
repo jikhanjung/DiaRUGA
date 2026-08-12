@@ -1634,7 +1634,7 @@ def save_object_link(request, slug, gid):
             # ── 1. 멤버마다 판정 행을 확보한다 ─────────────────────────────
             #
             # **없으면 세운다.** P12 이후 판정 행이 곧 멤버이고, 개체는 그
-            # 행이 설 때 함께 선다 (`data.judgement_for` 가 그 문이다).
+            # 행이 생길 때 함께 생긴다 (`data.judgement_for` 가 그 문이다).
             rows, revived = [], 0
             for img, b, key, rep, geom, rej, cand in resolved:
                 row = data.judgement_for(vp, img, b, key, cand)

@@ -48,7 +48,7 @@ class ExportFormat3Test(DiaRUGATestCase):
         도구다(`connect()`).
 
         사본을 떠서 넘기는 쪽이 실제 쓰임(`--db <백업>`)에 가깝지만 **그렇게
-        하면 선다** — 시험 하나가 열어 둔 트랜잭션 위에서 backup API 가 잠금을
+        하면 멈춘다** — 시험 하나가 열어 둔 트랜잭션 위에서 backup API 가 잠금을
         기다린다(2분 넘게 안 끝났다). 여기서 시험하려는 것은 `fetch`·`render`
         이지 파일을 여는 일이 아니므로, 그 둘만 부른다.
 
@@ -214,7 +214,7 @@ class ExportFormat4LinksTest(DiaRUGATestCase):
         self.assertNotIn('"image_id"', text)
 
     def test_렌더가_결정적이다(self):
-        """`--check` 는 문자열 대조다 — 두 번 렌더해 다르면 대조가 못 선다."""
+        """`--check` 는 문자열 대조다 — 두 번 렌더해 다르면 대조가 성립하지 않는다."""
         self.link()
         _, a = self.export()
         _, b = self.export()
@@ -312,7 +312,7 @@ class ExportSpeciesTest(DiaRUGATestCase):
         self.assertIn("Eucampia antarctica", lines[0])
 
     def test_렌더가_결정적이다(self):
-        """`--check` 는 문자열 대조다 — 두 번 렌더해 다르면 대조가 못 선다."""
+        """`--check` 는 문자열 대조다 — 두 번 렌더해 다르면 대조가 성립하지 않는다."""
         self.put(species="Eucampia antarctica")
         self.assertEqual(self.export()[1], self.export()[1])
 

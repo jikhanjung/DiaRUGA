@@ -67,7 +67,7 @@ class ReviewDoneBelongsToBatchTest(DiaRUGATestCase):
         self.switch(self.sam())
         self.assertTrue(data.review_state(self.vp)[0], "완료 표시가 사라졌다")
 
-    def test_묶음마다_줄이_따로_선다(self):
+    def test_묶음마다_줄이_따로_생긴다(self):
         self.mark_done()
         self.switch(self.yolo.batch)
         self.mark_done()

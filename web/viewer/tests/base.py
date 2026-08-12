@@ -44,7 +44,7 @@ def assert_test_db():
 
     Django 의 sqlite 테스트 DB 는 `:memory:` 이거나 `file:memorydb_...` 꼴이다.
     파일이면 이름에 `test` 가 들어간다(`--keepdb` 를 쓸 때). 그 셋 중 하나가
-    아니면 **무엇이든 돌리기 전에 선다.**
+    아니면 **무엇이든 돌리기 전에 멈춘다.**
     """
     name = str(connection.settings_dict.get("NAME") or "")
     ok = (name == ":memory:"

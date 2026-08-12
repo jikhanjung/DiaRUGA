@@ -540,7 +540,7 @@ def map_points(area: str | None = None,
 
         # 지점 아래에 관찰을 매단다. 시료의 위치순이다 — 한 지점에서 위치에 따른
         # 변화를 보는 것이 이 시료의 목적이라 그 순서로 읽혀야 한다.
-        # 시추코어는 깊이로, 노두는 단면상의 위치로 선다(`Sample.position`).
+        # 시추코어는 깊이로, 노두는 단면상의 위치로 잡힌다(`Sample.position`).
         cores = []
         for loc in sorted(site.localities.all(), key=lambda c: c.code):
             rows = sorted(slides_of(loc), key=_slide_order)
@@ -870,11 +870,11 @@ def confirm_kept(vp: Viewpoint, batch) -> dict:
         (통과 AND NOT 지움) OR (탈락 AND 되살림)
 
     처음엔 "통과분이고 교정 행이 아직 없는 것" 만 적었다. 그러면 **분류를 붙인
-    마스크와 되살린 탈락분에 확인 표시가 안 선다** — 사람이 가장 확실하게 규조각이라고
+    마스크와 되살린 탈락분에 확인 표시가 안 붙는다** — 사람이 가장 확실하게 규조각이라고
     본 것들이다. 실측으로 `sam2-전수` 의 완료 309시야에서 **211 / 921** 만
     잡혔다(23%). 세는 식이 둘이면 이렇게 갈라진다.
 
-    **지운 것에는 안 선다.** 그것이 이 확인의 반대말이다.
+    **지운 것에는 안 붙는다.** 그것이 이 확인의 반대말이다.
 
     **이미 있는 행의 다른 칸은 안 건드린다** — 분류·코멘트·기하는 그대로 두고
     `auto_confirmed` 만 세운다. 그 칸은 덮어쓰는 것이 아니라 **더해지는 사실**이다.
@@ -2048,7 +2048,7 @@ def _slide_summary(slide: Slide) -> dict:
 def _slide_order(sl):
     """관찰을 세우는 순서 — **시료의 위치, 그 다음 관찰 번호.**
 
-    시추코어는 깊이(cm)로, 노두는 단면상의 위치로 선다 — 어느 칸을 볼지는
+    시추코어는 깊이(cm)로, 노두는 단면상의 위치로 잡힌다 — 어느 칸을 볼지는
     `Sample.position` 이 정한다. 위치가 없는 것(소속을 잃었거나 아직 안 채운
     것)은 뒤로 보낸다: 축에 놓을 자리가 없다.
 
@@ -2090,7 +2090,7 @@ def datasets(area: str | None = None) -> list[dict]:
     # 앞에 온다(문자열 정렬). `Slide.Meta.ordering` 과 같은 규칙이어야 한다.
     #
     # **`sample_no` 를 함께 태운다.** 노두는 깊이가 없어 그것만으로는 한 지점의
-    # 시료들이 순서 없이 선다.
+    # 시료들이 순서 없이 놓인다.
     slides = (Slide.objects.select_related("sample__locality__site")
               .order_by("sample__locality__site__code",
                         "sample__locality__code", "sample__depth_cm",
@@ -2325,7 +2325,7 @@ def locality_detail(site_code: str, loc_code: str,
     박으면 나중에 이미 붙은 자료를 옮겨야 한다 — **축과 자리만 잡고 띠는 비워
     둔다.** 깊이는 DB 에 이미 있으니 축 자체는 진짜다.
 
-    **축은 시추코어에만 선다.** 노두 지점의 시료는 단면상의 위치로 정렬되지만
+    **축은 시추코어에만 잡힌다.** 노두 지점의 시료는 단면상의 위치로 정렬되지만
     그 값은 "몇 번째로 딴 것" 이지 거리가 아니다 — cm 축에 얹으면 없는 간격을
     지어내게 된다. 그쪽은 순서대로 나열만 한다.
 

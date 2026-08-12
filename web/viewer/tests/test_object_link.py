@@ -56,7 +56,7 @@ class ObjectLinkSchemaTest(DiaRUGATestCase):
                              geom={"bbox": [1, 2, 3, 4],
                                    "polygon": [1, 2, 4, 2, 4, 6, 1, 6]})
 
-    def test_묶고_대표가_선다(self):
+    def test_묶고_대표가_생긴다(self):
         link = self.make_link()
         self.assertEqual(link.members.count(), 2)
         self.assertEqual(link.members.filter(is_rep=True).count(), 1)
@@ -159,7 +159,7 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
              "rep": False},
         ]
 
-    def test_묶고_기하가_스스로_선다(self):
+    def test_묶고_기하가_스스로_생긴다(self):
         r = self.post({"members": self.good_members()})
         self.assertEqual(r.status_code, 200, r.content[:200])
         link = fx.links().get()
@@ -318,7 +318,7 @@ class LinkRejectedCandidateTest(DiaRUGATestCase):
                                        mask_key="40_50_60_40")
         self.assertTrue(row.accepted, "되살아나지 않았다")
         self.assertFalse(row.removed)
-        # 묶음에도 멤버로 섰다
+        # 묶음에도 멤버로 들어갔다
         self.assertEqual(fx.links().get().members.count(), 2)
 
     def test_통과분만_묶으면_되살릴_것이_없다(self):
@@ -599,7 +599,7 @@ class CleanupKeepsMembersTest(DiaRUGATestCase):
     묶음을 푸는 문은 `/link` 이고 검토 화면이 아니다 — payload 에 없다는 것이
     "묶음에서 뺐다" 는 뜻일 수가 없다.
 
-    **되살려서 잡히는 것을 봤다**: 이 시험은 고치기 전 `1 != 2` 로 선다.
+    **되살려서 잡히는 것을 봤다**: 이 시험은 고치기 전 `1 != 2` 로 실패한다.
     """
 
     @classmethod

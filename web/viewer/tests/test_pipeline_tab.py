@@ -5,8 +5,8 @@
 
 1. **끝나지 않은 슬라이드가 상태·진행과 함께 나온다** — pending 이 "사진만 온
    상태" 로 읽히게 (097 의 증상 그대로)
-2. **정찰이 오래됐으면 경고가 선다** — 사람이 숫자를 조합해 알아내게 두지 않는다
-3. **밀린 것이 있는데 도는 실행이 없으면 경고가 선다** — 097 의 그 모양
+2. **정찰이 오래됐으면 경고가 뜬다** — 사람이 숫자를 조합해 알아내게 두지 않는다
+3. **밀린 것이 있는데 도는 실행이 없으면 경고가 뜬다** — 097 의 그 모양
 4. 정찰 파일이 없으면(개발 서버) 그렇게 말하고 죽지 않는다
 """
 import json
@@ -65,7 +65,7 @@ class PipelineTabTest(DiaRUGATestCase):
         self.assertIn("pending", html)
         self.assertIn("그룹핑 대기", html)
 
-    def test_정찰이_오래되면_경고가_선다(self):
+    def test_정찰이_오래되면_경고가_뜬다(self):
         write_scan(age_min=30)
         html = self.get()
         self.assertIn("폴러가 멈춰", html)
@@ -75,7 +75,7 @@ class PipelineTabTest(DiaRUGATestCase):
         html = self.get()
         self.assertNotIn("폴러가 멈춰", html)
 
-    def test_밀린_것이_있는데_실행이_없으면_경고가_선다(self):
+    def test_밀린_것이_있는데_실행이_없으면_경고가_뜬다(self):
         """097 의 모양 — pending 이 있는데 아무도 데리러 오지 않는다."""
         Slide.objects.create(name="x", slug="s1", image_dir="p/x",
                              state="pending", state_note="그룹핑 대기")

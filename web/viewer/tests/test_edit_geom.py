@@ -75,7 +75,7 @@ class EditGeomTest(DiaRUGATestCase):
                           after.area_px), was)
 
     def test_키가_안_바뀐다(self):
-        """bbox 가 바뀌는데 키가 따라가면 **옛 행이 지워지고 새 행이 선다** —
+        """bbox 가 바뀌는데 키가 따라가면 **옛 행이 지워지고 새 행이 생긴다** —
         분류·코멘트·이력이 끊긴다."""
         self.post(labels={self.key: "rod"}, notes={self.key: "가장자리가 넘쳤다"})
         self.post(edits={self.key: TIGHT},
