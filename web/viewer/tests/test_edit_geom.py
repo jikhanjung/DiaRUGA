@@ -22,7 +22,7 @@ from django.urls import reverse
 from .base import DiaRUGATestCase
 from . import factories as fx
 from .. import data
-from ..models import ObjectReview
+from ..models import DiatomObject, ObjectReview
 
 # 픽스처 첫 개체는 (40,50,60,40). 그것을 절반으로 줄인 모양.
 TIGHT = [50, 60, 80, 60, 80, 80, 50, 80]
@@ -76,10 +76,16 @@ class EditGeomTest(DiaRUGATestCase):
 
     def test_키가_안_바뀐다(self):
         """bbox 가 바뀌는데 키가 따라가면 **옛 행이 지워지고 새 행이 생긴다** —
-        분류·코멘트·이력이 끊긴다."""
-        self.post(labels={self.key: "rod"}, notes={self.key: "가장자리가 넘쳤다"})
-        self.post(edits={self.key: TIGHT},
-                  labels={self.key: "rod"}, notes={self.key: "가장자리가 넘쳤다"})
+        분류·코멘트·이력이 끊긴다.
+
+        코멘트는 개체에 산다(0036) — 검토 화면이 안 보내는 칸이라 **기하를
+        고치는 저장이 그것을 데리고 가면 안 된다.**
+        """
+        self.post(labels={self.key: "rod"})
+        o = ObjectReview.objects.get()
+        DiatomObject.objects.filter(pk=o.diatom_object_id).update(
+            note="가장자리가 넘쳤다")
+        self.post(edits={self.key: TIGHT}, labels={self.key: "rod"})
 
         self.assertEqual(ObjectReview.objects.count(), 1)
         o = ObjectReview.objects.get()

@@ -408,6 +408,10 @@ def import_reviews():
                     bind_score=1.0 if cand else None, geom=geom,
                     removed=key in set(d.get("removed") or []),
                     accepted=key in set(d.get("accepted") or []),
+                    # **이 줄은 P12 이전의 모양이다.** 분류는 그때
+                    # `DiatomObject` 로, 코멘트는 0036 으로 함께 갔고 판정 행은
+                    # 개체 없이 설 수 없다 — 이 스크립트는 이미 그 전에 멈춘다
+                    # (CLAUDE.md: "지금 JSON 은 DB 보다 한참 낡았다").
                     label=(d.get("labels") or {}).get(key, ""),
                     note=(d.get("notes") or {}).get(key, "")))
             n_obj += 1

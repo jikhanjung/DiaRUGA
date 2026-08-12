@@ -407,8 +407,8 @@ def add_review(vp, mask_key, *, image=None, removed=False, accepted=False,
     `World.detection()` 과 같은 규칙을 본다(둘로 갈라지면 어긋난다).
 
     **개체(`DiatomObject`)를 함께 세운다** (P12). 판정은 개체 없이 설 수 없고,
-    분류·종명은 그쪽에 산다 — 여기서 갈래를 만들면 시험 자료가 운영과 다른
-    모양이 되고, 그런 시험은 덮은 줄 알게 한다.
+    분류·종명·코멘트는 그쪽에 산다(0036) — 여기서 갈래를 만들면 시험 자료가
+    운영과 다른 모양이 되고, 그런 시험은 덮은 줄 알게 한다.
     """
     if image is None:
         det = data.representative_detection(vp)
@@ -420,12 +420,12 @@ def add_review(vp, mask_key, *, image=None, removed=False, accepted=False,
     if cand is not None:
         geom = {"bbox": cand.bbox_xywh, "polygon": list(cand.polygon)}
     obj = DiatomObject.objects.create(viewpoint=vp, batch=det.batch,
-                                      label=label, species=species)
+                                      label=label, species=species, note=note)
     return ObjectReview.objects.create(
         viewpoint=vp, image=det.image, batch=det.batch, mask_key=mask_key,
         candidate=cand, bind_method="exact" if cand else "orphan", geom=geom,
         diatom_object=obj, is_rep=True,
-        removed=removed, accepted=accepted, note=note)
+        removed=removed, accepted=accepted)
 
 
 def new_review(**kw) -> ObjectReview:
@@ -435,12 +435,13 @@ def new_review(**kw) -> ObjectReview:
     `NOT NULL` 로 죽는다. 그리고 죽지 않게 고치더라도, 시험만 옆문으로 만드는
     자료는 **운영에 없는 모양**이 된다(이 파일 머리말의 그 규칙이다).
 
-    `label`·`species` 는 개체로 넘긴다. `add_review` 는 후보를 찾아 `geom` 까지
-    채우는 정식 문이고, 이쪽은 **고아·다른 묶음처럼 후보가 없는 자료**를 세울
-    때 쓴다.
+    `label`·`species`·`note` 는 개체로 넘긴다(0036). `add_review` 는 후보를 찾아
+    `geom` 까지 채우는 정식 문이고, 이쪽은 **고아·다른 묶음처럼 후보가 없는
+    자료**를 세울 때 쓴다.
     """
     label = kw.pop("label", "")
     species = kw.pop("species", "")
+    note = kw.pop("note", "")
     obj = kw.pop("diatom_object", None)
     if obj is None:
         vp = kw.get("viewpoint") or kw.get("viewpoint_id")
@@ -456,7 +457,7 @@ def new_review(**kw) -> ObjectReview:
         # 넘기면 뒤엣것이 이겨 묶음이 조용히 비워진다.
         b = kw.get("batch")
         obj = DiatomObject.objects.create(
-            viewpoint_id=vp_id, label=label, species=species,
+            viewpoint_id=vp_id, label=label, species=species, note=note,
             **({"batch": b} if b is not None else
                {"batch_id": kw.get("batch_id")}))
     kw.setdefault("is_rep", True)

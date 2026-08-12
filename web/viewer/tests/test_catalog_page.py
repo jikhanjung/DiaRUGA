@@ -432,10 +432,18 @@ class SpreadLabelTest(DiaRUGATestCase):
         self.assertEqual(out["spread"], 1, out)
         self.assertEqual(self.sib().species, "Eucampia antarctica")
 
-    def test_코멘트는_안_번진다(self):
-        """판마다 하는 말이다 — "이 판에서는 초점이 안 맞는다" 같은 것."""
-        self.post(note="가장자리가 넘쳤다")
-        self.assertEqual(self.sib().note, "")
+    def test_코멘트도_함께_앉는다(self):
+        """**0036 에서 뒤집혔다.** 예전에는 "코멘트는 안 번진다" 가 규칙이었다 —
+        판마다 하는 말("이 판에서는 초점이 안 맞는다")로 봤기 때문이다. 사람이
+        실제로 적은 것은 그 규조각에 대한 말이었고, 지금은 개체의 성질이라
+        **번질 것이 없다** (종명이 P12 에서 지난 자리와 같다).
+
+        `spread` 가 세어져야 한다 — 화면이 그 수로 "묶음 N장에 함께" 를 적고,
+        서버가 안 세면 **다른 판의 화면이 옛 값을 들고 있다가 도로 써 넣는다.**
+        """
+        out = self.post(note="가장자리가 넘쳤다")
+        self.assertEqual(out["spread"], 1, out)
+        self.assertEqual(self.sib().note, "가장자리가 넘쳤다")
 
     def test_안_묶인_개체는_번질_곳이_없다(self):
         other = data.catalog_rows("rs23")[1]

@@ -1067,10 +1067,17 @@ class ObjectReview(models.Model):
     # **화면은 이 칸을 모른다.** `/review` payload 에 없으므로 `save_review` 의
     # 청소가 지우지 않도록 `keys` 에 얹는다 — 종명·`geom_edited` 와 같은 갈래다.
     auto_confirmed = models.BooleanField(default=False, db_default=False)
-    # **판마다 따로 적는 말이다** — "이 판에서는 초점이 안 맞는다" 처럼. 그래서
-    # 분류·종명과 달리 `DiatomObject` 로 안 올렸다(옮기면 프레임마다 다른 말이
-    # 하나로 뭉개진다). 104·107 도 코멘트는 안 번지게 해 왔다.
-    note = models.TextField(blank=True)
+    # **코멘트도 `DiatomObject` 로 갔다** (0036, 2026-08-12 사용자). 등급과 같은
+    # 이야기의 나머지 반쪽이다. 여기 있던 근거는 *"이 판에서는 초점이 안
+    # 맞는다" 는 판마다 다른 말이다* 였는데, **사람이 실제로 적은 것은 그
+    # 규조각에 대한 말이었다** — "가장자리가 깨졌다" · "다시 봤다".
+    #
+    # 그리고 번지기(106)가 그 전제를 깼다: 한 번 그린 규조각이 판 넷에 퍼지는데
+    # 같은 말을 네 번 적게 할 이유가 없고, 판에만 두면 **어느 판에서 적었는지를
+    # 사람이 기억해야** 코멘트를 다시 찾는다.
+    #
+    # 판마다 다른 말이 정말 필요해지면 그때는 *판의 상태*를 적는 칸을 따로
+    # 세운다 — 코멘트를 겸하게 하지 않는다(한 낱말이 두 뜻을 겸하지 않게 한다).
 
     # **등급은 `DiatomObject` 로 갔다** (0035, 2026-08-12 사용자). 하루 만에
     # 뒤집은 자리라 근거를 남긴다 — 처음에는 *같은 규조각도 초점면마다 areolae 가
@@ -1134,6 +1141,10 @@ class ObjectReview(models.Model):
     @property
     def species(self) -> str:
         return self.diatom_object.species
+
+    @property
+    def note(self) -> str:
+        return self.diatom_object.note
 
     def __str__(self):
         marks = [n for n, v in (("삭제", self.removed), ("복구", self.accepted),
@@ -1233,9 +1244,20 @@ class DiatomObject(models.Model):
              ("C", "C — 완형도 동정키도 잘 안 드러난다")]
     grade = models.CharField(max_length=1, choices=GRADE, blank=True,
                              default="", db_default="")
-    # 묶음에 대한 메모. 개체를 두고 하는 말이라 판마다 적는 `ObjectReview.note`
-    # 와 다르다 — 그쪽은 "이 판에서는 초점이 안 맞는다" 를 적는 자리다.
-    note = models.CharField(max_length=200, blank=True)
+    # **코멘트 — 이 규조각을 두고 사람이 적는 말** (0036 으로 판정에서 옮겨 왔다).
+    # "가장자리가 깨졌다" · "다시 봐야 한다" 처럼 **개체에 대한 말**이라 분류·
+    # 종명·등급·자세와 같은 자리다 — 묶인 판들이 한 값을 함께 본다.
+    #
+    # **재생성 불가다.** 현미경을 보며 적는 것이고 `export_review.py` 가 감사
+    # 기록으로 내보낸다. 그래서 **묶을 때 엇갈려도 거절하지 않고 잇는다**
+    # (`data.merge_into_object`) — 분류·종명은 값을 하나 골라야 뜻이 서지만
+    # (`Eucampia` 와 `Chaetoceros` 를 이어 붙일 수는 없다) 글은 이어도 글이다.
+    #
+    # 예전에는 `ObjectLink.note`("묶음에 대한 메모")였고 **아무도 읽지도 쓰지도
+    # 않았다** — 0032 가 자리만 옮겨 놓은 칸이다. 0036 이 그 자리를 채운다.
+    # `TextField` 인 것은 화면 상한이 500자(`views.NOTE_MAX`)라 옛 200자로는
+    # 잘리고, 이어 붙이면 그보다 길어질 수 있어서다.
+    note = models.TextField(blank=True, default="", db_default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

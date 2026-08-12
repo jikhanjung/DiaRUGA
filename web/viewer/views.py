@@ -1767,13 +1767,18 @@ class _Reject(Exception):
 def _split_off(row, src) -> DiatomObject:
     """판정 하나를 묶음에서 떼어 **자기 개체**로 보낸다 (P12 의 "풀기").
 
-    분류·종명은 **물려준다.** 묶여 있는 동안 그 값은 이 판의 것이기도 했고,
-    가른다고 해서 사람이 적은 동정이 사라질 이유가 없다 — 재생성 불가 자료를
-    구조 변경의 부수 효과로 잃지 않는다.
+    사람이 적은 것은 **전부 물려준다.** 묶여 있는 동안 그 값은 이 판의 것이기도
+    했고, 가른다고 해서 사람이 적은 동정이 사라질 이유가 없다 — 재생성 불가
+    자료를 구조 변경의 부수 효과로 잃지 않는다.
+
+    **칸이 늘면 여기도 는다.** 0034·0035 가 등급·자세를 개체에 앉히고 이 줄을
+    안 고쳐, 풀기 한 번에 사람이 매긴 등급이 사라지고 있었다 — 예외도 경고도
+    없는 종류다. 코멘트를 얹으면서(0036) 함께 채운다.
     """
     obj = DiatomObject.objects.create(
         viewpoint_id=src.viewpoint_id, batch_id=src.batch_id,
-        label=src.label, species=src.species)
+        label=src.label, species=src.species, note=src.note,
+        grade=src.grade, pose=src.pose)
     ObjectReview.objects.filter(pk=row.pk).update(diatom_object=obj,
                                                   is_rep=True)
     return obj
@@ -1824,7 +1829,10 @@ def save_review(request):
         {"stem": ..., "slug": ..., "gid": int,
          "done": bool, "removed": [key], "accepted": [key],
          "labels": {key: "round"|"round_frag"|"rod"|"rod_frag"},
-         "notes":  {key: "사람이 적은 메모"}}
+         "note":   "이 시야에 대한 메모"}
+
+    **개체 코멘트(`notes`)는 여기로 안 온다** (0036) — 카탈로그에서만 적는다.
+    옛 탭이 보내면 조용히 흘린다.
 
     키는 bbox 에서 만든 것이라 검출을 다시 돌려도 같은 마스크면 그대로 붙는다.
     문턱만 바꾸는 refilter.py 실행에는 영향받지 않는다. 저장 위치는 DB 이고
@@ -1914,11 +1922,14 @@ def save_review(request):
         text = v.replace("\r\n", "\n").strip()[:NOTE_MAX]
         return text or None
 
+    # **개체 코멘트는 안 받는다** (0036). 적는 자리를 개체 카탈로그 하나로
+    # 모았다 — 이 화면은 읽기만 한다. 옛 탭이 `notes` 를 실어 보내면 **조용히
+    # 흘린다**: 오류로 물리면 그 저장에 함께 실린 삭제·되살림까지 잃는다
+    # (`save_review` 머리말).
     try:
         labels = mapping("labels", as_label)
-        notes = mapping("notes", as_note)
     except ValueError:
-        return HttpResponseBadRequest("bad labels/notes")
+        return HttpResponseBadRequest("bad labels")
 
     # 시야 전체에 대한 메모. 개체에 붙지 않는 이야기(촬영 상태, 판정이 애매한
     # 이유 등)를 적을 곳이 있어야 한다.
@@ -1939,7 +1950,7 @@ def save_review(request):
         except (TypeError, ValueError):
             return HttpResponseBadRequest("bad image")
 
-    # **사람이 그린 개체** (P09 3단계). `[{key, polygon, cls, note}]` 이고
+    # **사람이 그린 개체** (P09 3단계). `[{key, polygon, cls}]` 이고
     # 기하는 서버가 다시 잰다 — 클라이언트가 보낸 면적을 믿으면 브라우저마다
     # 다른 숫자가 DB 에 앉는다(P09 5.8).
     #
@@ -1955,8 +1966,9 @@ def save_review(request):
             if not isinstance(it, dict):
                 return HttpResponseBadRequest("bad drawn item")
             cls = as_label(it.get("cls")) or ""
+            # 코멘트는 여기서도 안 받는다 — 위 `notes` 와 같은 갈래다(0036).
             clean.append({"key": it.get("key"), "polygon": it.get("polygon"),
-                          "cls": cls, "note": as_note(it.get("note")) or ""})
+                          "cls": cls})
         drawn = clean
 
     # **사람이 고친 기하** (P09 4단계). `{키: 폴리곤}` 이고 **빈 폴리곤은
@@ -1973,7 +1985,7 @@ def save_review(request):
 
     try:
         saved = data.save_review(vp, done=done, note=note, removed=removed,
-                                 accepted=accepted, labels=labels, notes=notes,
+                                 accepted=accepted, labels=labels,
                                  image=image_id, drawn=drawn, edits=edits)
     except ValueError as e:
         # 현재 검출에 없는 키가 섞여 왔다. 아무것도 바꾸지 않고 돌려보낸다 —

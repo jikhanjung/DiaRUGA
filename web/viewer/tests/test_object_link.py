@@ -474,17 +474,22 @@ class LinkLabelSpreadTest(DiaRUGATestCase):
             "묶음 멤버가 분류를 물렸다는 이유로 사라졌다")
 
     def test_다른_표시가_있으면_행은_남는다(self):
-        """분류만 지운다 — 그 판에서 따로 한 판단은 그대로여야 한다."""
+        """분류만 지운다 — 카탈로그가 적은 칸은 그대로여야 한다.
+
+        코멘트는 0036 으로 개체에 갔고 **검토 화면이 안 보내는 칸**이 됐다 —
+        종명·등급·자세와 같은 자리다. 이 화면이 대표하지 않는 값을 이 화면의
+        저장이 지우면 안 된다.
+        """
         self.save({self.key: "rod"})
         row = ObjectReview.objects.get(image=self.f1_img, mask_key=self.key)
-        row.note = "이 판이 제일 선명하다"
-        row.save()
+        DiatomObject.objects.filter(pk=row.diatom_object_id).update(
+            note="가장자리가 깨졌다")
 
         self.save({})
         row.refresh_from_db()
         self.assertEqual(row.label, "")
-        self.assertEqual(row.note, "이 판이 제일 선명하다",
-                         "분류를 물리면서 남의 코멘트를 지웠다")
+        self.assertEqual(row.note, "가장자리가 깨졌다",
+                         "분류를 물리면서 개체의 코멘트를 지웠다")
 
     # --- 3·4. 넘지 않는 선 --------------------------------------------------
 

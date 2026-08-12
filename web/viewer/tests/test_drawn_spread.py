@@ -100,13 +100,22 @@ class DrawnSpreadTest(DiaRUGATestCase):
         objs = {r.diatom_object.label for r in self.rows()}
         self.assertEqual(objs, {"eucampia"})
 
-    def test_코멘트는_안_옮긴다(self):
-        """그 칸은 "이 판에서는 초점이 안 맞는다" 를 적는 자리라 판마다 다르다."""
-        self.post(drawn=[self.draw(note="엔진이 놓쳤다")])
-        by_img = {r.image_id: r.note for r in self.rows()}
-        self.assertEqual(by_img[self.stack.pk], "엔진이 놓쳤다")
-        for f in self.frames:
-            self.assertEqual(by_img[f.pk], "")
+    def test_카탈로그가_적은_코멘트는_다시_그려도_안_지워진다(self):
+        """**0036 에서 갈렸다** — 개체 코멘트는 카탈로그에서만 적는다.
+
+        여기서 지킬 것은 하나다: 판 넷이 한 개체를 나눠 갖는데 **검토 화면의
+        저장이 그 개체의 코멘트에 닿으면 안 된다.** 닿으면 이 화면은 코멘트를
+        모르므로(payload 에 없다) 빈 값이 가고, 카탈로그에서 적은 글이 저장
+        한 번에 사라진다 — 사람이 쓴 글이라 재생성 불가다.
+        """
+        self.post(drawn=[self.draw()])
+        obj = self.rows()[0].diatom_object
+        DiatomObject.objects.filter(pk=obj.pk).update(note="가장자리가 깨졌다")
+
+        self.post(drawn=[self.draw()])       # 화면이 다시 전체를 보낸다
+        notes = {r.diatom_object.note for r in self.rows()}
+        self.assertEqual(notes, {"가장자리가 깨졌다"},
+                         "검토 화면 저장이 카탈로그의 코멘트를 지웠다")
 
     # --- 다시 저장해도 그대로인가 -----------------------------------------
 

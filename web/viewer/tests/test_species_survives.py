@@ -119,10 +119,15 @@ class SpeciesSurvivesReviewTest(DiaRUGATestCase):
         self.assertTrue(o.removed)
         self.assertEqual(o.species, "Eucampia antarctica")
 
-    def test_유형과_코멘트를_함께_보내도_종명이_안_밀린다(self):
+    def test_유형을_보내도_종명·코멘트가_안_밀린다(self):
+        """코멘트도 개체에 산다(0036) — 종명과 같은 자리이고, 검토 화면이
+        대표하지 않는 칸이라 이 저장이 데리고 가면 안 된다."""
         self.put_species()
-        self.post(labels={self.key: "rod"}, notes={self.key: "가장자리가 넘쳤다"})
         o = ObjectReview.objects.get(mask_key=self.key)
+        DiatomObject.objects.filter(pk=o.diatom_object_id).update(
+            note="가장자리가 넘쳤다")
+        self.post(labels={self.key: "rod"})
+        o.refresh_from_db()
         self.assertEqual((o.label, o.note, o.species),
                          ("rod", "가장자리가 넘쳤다", "Eucampia antarctica"))
 

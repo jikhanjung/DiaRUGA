@@ -48,8 +48,8 @@ django.setup()
 from django.conf import settings                                    # noqa: E402
 from django.db.models import Count, Q, Sum                          # noqa: E402
 
-from viewer.models import (Candidate, Detection, Frame,              # noqa: E402
-                          ObjectReview, Slide, Stack, Viewpoint,
+from viewer.models import (Candidate, Detection, DiatomObject,       # noqa: E402
+                          Frame, ObjectReview, Slide, Stack, Viewpoint,
                           ViewpointReview)
 
 ROOT = Path(settings.DATA_ROOT)
@@ -167,7 +167,10 @@ check("삭제", j_removed, ObjectReview.objects.filter(removed=True).count())
 check("되살림", j_accepted, ObjectReview.objects.filter(accepted=True).count())
 check("분류 지정", j_labels,
       ObjectReview.objects.exclude(diatom_object__label="").count())
-check("개체 코멘트", j_notes, ObjectReview.objects.exclude(note="").count())
+# 코멘트는 개체에 산다 (0036) — 분류가 P12 에서 간 것과 같은 자리다.
+# **판정으로 세면 묶인 개체가 판 수만큼 세어져** JSON 쪽 수와 안 맞는다.
+check("개체 코멘트", j_notes,
+      DiatomObject.objects.exclude(note="").count())
 
 jl = Counter()
 for r in reviews.values():

@@ -134,8 +134,11 @@
 </div>
 
 {% comment %}
-  코멘트 목록. 커서를 올리면 그 개체가 선택된다 — 메모를 읽으면서 어느 것에
-  대한 말인지 바로 짚을 수 있어야 한다.
+  사진 오른쪽 칸. 화면 조정과 **시야 코멘트**가 있다.
+
+  **개체 코멘트 목록은 0036 에서 걷었다** (사용자, 2026-08-12). 개체를 두고
+  하는 말은 개체 카탈로그에서 적기로 했고, 적지 않는 목록을 여기 두면 *어디서
+  적는 것인지*가 두 자리로 갈린다. 비는 자리는 Diadiction(P14)이 쓴다.
 {% endcomment %}
 <aside class="notes" id="notes-{{ uid }}">
   {% comment %}
@@ -157,12 +160,6 @@
       <input type="range" id="con-{{ uid }}" min="20" max="250" step="5" value="100"></label>
   </div>
 
-  <div class="nhead">개체 코멘트 <span class="dim" id="ncount-{{ uid }}"></span></div>
-  <div class="nlist" id="nlist-{{ uid }}"></div>
-  {% comment %}
-    시야 전체 코멘트는 아래쪽 고정 칸에 둔다. 개체 목록이 길어져도 밀려나지
-    않아야 하고, 두 칸이 각각 스크롤된다.
-  {% endcomment %}
   <div class="ghead">이 시야</div>
   <textarea class="gnote" id="gnote-{{ uid }}" maxlength="500"
             placeholder="이 시야 전체에 대한 메모 (초점 상태, 판정을 보류한 이유…)"></textarea>
@@ -247,7 +244,6 @@
 <script type="application/json" id="gone-{{ uid }}">{{ det.removed_candidates|json_dumps }}</script>
 <script type="application/json" id="acc-{{ uid }}">{{ det.accepted_keys|json_dumps }}</script>
 <script type="application/json" id="lab-{{ uid }}">{{ det.labels|json_dumps }}</script>
-<script type="application/json" id="note-{{ uid }}">{{ det.notes|json_dumps }}</script>
 <script type="application/json" id="gn-{{ uid }}">{{ det.review_note|json_dumps }}</script>
 <script type="application/json" id="cls-{{ uid }}">{% class_json %}</script>
 <script type="application/json" id="umpp-{{ uid }}">{{ det.um_per_pixel|json_dumps }}</script>
@@ -348,8 +344,8 @@
     return b.map(function (v) { return Math.round(v); }).join('_');
   }
 
-  // **사람이 그린 개체인가** (P09 3단계). 분류·코멘트가 가는 길이 다르다 —
-  // `labels`·`notes` 지도는 엔진 개체의 것이고, 그린 개체는 `drawn` 이 통째로
+  // **사람이 그린 개체인가** (P09 3단계). 분류가 가는 길이 다르다 —
+  // `labels` 지도는 엔진 개체의 것이고, 그린 개체는 `drawn` 이 통째로
   // 나른다. 지도에 실으면 그 키가 되돌아오는데 `batch=NULL` 이라 서버의 엔진
   // 쪽 `known` 에 없다 → **한 번 그리면 그 시야를 더 저장할 수 없게 된다.**
   function isManual(c) { return !!(c && c.source === 'manual'); }
@@ -360,9 +356,12 @@
   // 복구 목록은 서버가 준 것을 그대로 쓴다. manual 플래그로 되짚으면 지워 둔
   // 탈락분까지 복구된 것으로 세어, 다음 저장에서 지운 것이 되살아난다.
   var accepted = new Set(JSON.parse(document.getElementById('acc-' + uid).textContent || '[]'));
-  // 사람이 지정한 분류와 코멘트. 자동 판정을 덮어쓴다.
+  // 사람이 지정한 분류. 자동 판정을 덮어쓴다.
+  //
+  // **개체 코멘트 지도는 없다** (0036). 이 화면은 코멘트를 안 적는다 — 개체를
+  // 두고 하는 말은 개체 카탈로그에서 적고, 여기서는 말풍선·표가 읽기만 한다
+  // (`c.note`). 아래 `gnote`(이 시야에 대한 메모)와는 다른 것이다.
   var labels = JSON.parse(document.getElementById('lab-' + uid).textContent || '{}');
-  var notes = JSON.parse(document.getElementById('note-' + uid).textContent || '{}');
   var groupNote = JSON.parse(document.getElementById('gn-' + uid).textContent || '""') || '';
   // 검토 완료 표시 — 서버가 렌더해 둔 버튼 상태에서 그대로 이어받는다.
   var doneBtn = document.getElementById('done-' + uid);
@@ -667,7 +666,6 @@
       removed: new Set(gone.map(keyOf)),
       accepted: new Set(d.accepted || []),
       labels: JSON.parse(JSON.stringify(d.labels || {})),
-      notes: JSON.parse(JSON.stringify(d.notes || {})),
       image: d.image == null ? '' : String(d.image),
       // 고친 기하도 판마다 따로다 — 안 가르면 프레임에서 고친 것이 합성본의
       // 저장에 실려 나간다 (P09 1단계와 같은 이야기)
@@ -682,7 +680,7 @@
     var st = shotState[curKey];
     st.cands = cands; st.rejects = rejects;
     st.removed = removed; st.accepted = accepted;
-    st.labels = labels; st.notes = notes; st.edits = edits;
+    st.labels = labels; st.edits = edits;
   }
 
   // **합성본에만 검출을 낸 묶음인가** (072). SAM2 가 그렇다 — 시야마다 검출이
@@ -723,7 +721,7 @@
     if (!back) return;
     cands = back.cands; rejects = back.rejects;
     removed = back.removed; accepted = back.accepted;
-    labels = back.labels; notes = back.notes;
+    labels = back.labels;
     edits = back.edits || (back.edits = {});
   }
 
@@ -749,7 +747,6 @@
       removed = st0 ? st0.removed : new Set();
       accepted = st0 ? st0.accepted : new Set();
       labels = st0 ? st0.labels : {};
-      notes = st0 ? st0.notes : {};
       edits = st0 ? (st0.edits || (st0.edits = {})) : {};
       // 마스크와 같은 판의 사슬을 그린다 (위 `linkImage` 머리말)
       linkImage = st0 ? st0.image : '';
@@ -797,7 +794,7 @@
       curKey = null;
       cands = []; rejects = [];
       removed = new Set(); accepted = new Set();
-      labels = {}; notes = {}; edits = {};
+      labels = {}; edits = {};
       curImage = '';
       var meta0 = document.querySelector('#tabs-' + uid + ' .tabmeta');
       if (meta0) meta0.textContent = '이 판에는 검출이 없습니다';
@@ -813,7 +810,7 @@
     var st = stateOf(key);
     cands = st.cands; rejects = st.rejects;
     removed = st.removed; accepted = st.accepted;
-    labels = st.labels; notes = st.notes;
+    labels = st.labels;
     edits = st.edits || (st.edits = {});
     curImage = st.image;
     var meta = document.querySelector('#tabs-' + uid + ' .tabmeta');
@@ -912,7 +909,7 @@
       if (curKey && shotDets[curKey]) {
         shotState[curKey] = {
           cands: cands, rejects: rejects, removed: removed, accepted: accepted,
-          labels: labels, notes: notes, edits: edits, image: curImage,
+          labels: labels, edits: edits, image: curImage,
           summary: (shotDets[curKey].summary || '')
         };
       }
@@ -1266,19 +1263,7 @@
       });
     } else if (last.type === 'gnote') {
       groupNote = last.text || '';
-      renderNotes();
-    } else if (last.type === 'note') {
-      var cn = cands[last.i];
-      if (cn) {
-        if (last.text) {
-          if (!isManual(cn)) notes[last.key] = last.text;
-          cn.note = last.text;
-        } else {
-          if (!isManual(cn)) delete notes[last.key];
-          delete cn.note;
-        }
-      }
-      renderNotes();
+      syncGroupNote();
     } else if (last.type === 'accept') {
       accepted.delete(last.key);
       var idx = cands.findIndex(function (x) { return keyOf(x) === last.key; });
@@ -1318,12 +1303,6 @@
       info.innerHTML = '<b>' + picked.length + '개 선택</b> · 장축 중앙 ' +
         sizes[Math.floor(sizes.length / 2)].toFixed(1) + ' µm (' +
         sizes[0].toFixed(1) + '~' + sizes[sizes.length - 1].toFixed(1) + ')';
-    }
-    // 선택은 코멘트 목록에도 비친다 — 어느 메모가 지금 고른 개체인지 보여야 한다.
-    if (nlist) {
-      nlist.querySelectorAll('.nitem').forEach(function (el) {
-        el.classList.toggle('on', sel.has(+el.dataset.i));
-      });
     }
     // 겹친 자리에서 순환 중이면 몇 개 중 몇 번째인지 알린다 — 아래에 더 있다는
     // 것을 모르면 다시 누를 이유가 없다.
@@ -1373,7 +1352,7 @@
     var S = (previewing && curKey && shotState[curKey])
       ? shotState[curKey]
       : { cands: cands, removed: removed, accepted: accepted,
-          labels: labels, notes: notes, edits: edits };
+          labels: labels, edits: edits };
     // keepalive: 페이지를 떠나는 중에도 요청이 끊기지 않게 한다.
     return fetch(ROOT + '/review', {
       method: 'POST',
@@ -1400,8 +1379,8 @@
         // *이번에 연 화면에서* 고친 것만 담는다. 화면을 나갔다 들어오면 비어
         // 있고, 그 상태에서 다른 마스크를 고치면 payload 에 그것 하나만 실린다 —
         // `save_review` 는 `keys` 에 없는 행을 지우므로 **앞서 고친 것이
-        // 사라진다.** 분류·코멘트가 함께 붙어 있으면 `labels`·`notes` 를 타고
-        // 살아남아서, "되는 경우도 있고 아닌 경우도" 가 된다.
+        // 사라진다.** 분류가 함께 붙어 있으면 `labels` 를 타고 살아남아서,
+        // "되는 경우도 있고 아닌 경우도" 가 된다.
         //
         // `drawn` 이 `cands` 에서 뽑히는 것과 같은 규칙으로 맞춘다 —
         // **뷰어는 늘 전체를 보낸다.**
@@ -1419,14 +1398,14 @@
           return out;
         })(),
         drawn: S.cands.filter(isManual).map(function (c) {
-          return { key: keyOf(c), polygon: c.polygon,
-                   cls: c.cls || '', note: c.note || '' };
+          return { key: keyOf(c), polygon: c.polygon, cls: c.cls || '' };
         }),
         done: reviewDone,
         removed: Array.from(S.removed),
         accepted: Array.from(S.accepted),
         labels: S.labels,
-        notes: S.notes,
+        // **개체 코멘트는 안 보낸다** (0036) — 카탈로그에서만 적는다.
+        // 아래 `note` 는 시야 코멘트이고 다른 것이다.
         note: groupNote
       })
     }).then(function (r) {
@@ -1435,8 +1414,8 @@
           '저장됨 — 삭제 ' + S.removed.size + ' · 복구 ' + S.accepted.size +
           (reviewDone ? ' · 검토 완료' : '');
         saveFailed(false);
-        // 묶음을 따라 번진 분류를, 그리고 판마다 복제된 그린 마스크를 다른
-        // 판의 상태에도 옮긴다 (아래 주석). **둘 다 안 하면 자료를 잃는다.**
+        // 묶음을 따라 번진 분류·코멘트를, 그리고 판마다 복제된 그린 마스크를
+        // 다른 판의 상태에도 옮긴다 (아래 주석). **둘 다 안 하면 자료를 잃는다.**
         return r.json().then(function (j) {
           spreadLabels(j && j.linked);
           spreadDrawn(j && j.drawn_spread);
@@ -1514,6 +1493,10 @@
   //
   // **`shotDets`(서버가 준 처음 상태)와 `shotState`(사람이 만진 것) 둘 다**
   // 고친다 — 아직 안 열어 본 판은 앞엣것에서 상태가 만들어진다.
+  //
+  // **분류만 온다.** 개체에 사는 값은 넷 더 있지만(종명·등급·자세·코멘트) 이
+  // 화면이 되돌려 보내는 것은 분류뿐이라, 나머지는 이 화면이 지울 수가 없다
+  // (0036 에서 코멘트가 그쪽으로 갔다 — `linked_siblings` 머리말).
   function spreadLabels(map) {
     if (!map || !shotDets) return;
     var byImage = {};
@@ -1592,19 +1575,26 @@
     });
   }
 
-  // 복제 하나를 그 판의 개체 목록에 넣는다. **이미 있으면 아무것도 안 한다** —
+  // 복제 하나를 그 판의 개체 목록에 넣는다. **이미 있으면 두 번 넣지 않는다** —
   // 저장할 때마다 서버가 같은 것을 다시 실어 보내므로, 안 막으면 같은 마스크가
   // 저장 횟수만큼 쌓이고 그 판에서 저장이 나가면 그대로 DB 로 간다.
+  //
+  // **그래도 분류는 갈아 끼운다.** 개체 하나에 사는 값이라 그린 판에서 고치면
+  // 이 판의 것도 바뀐 것인데, 있다고 그냥 물러나면 이 판의 화면은 옛 값을 들고
+  // 있다가 **다음 저장에서 그것을 도로 써 넣는다.** 기하는 안 건드린다:
+  // 경계 고치기는 판마다 하는 일이다.
   function addDrawn(list, d) {
     if (!list || !d || !d.key) return;
     for (var i = 0; i < list.length; i++) {
-      if (keyOf(list[i]) === d.key) return;
+      if (keyOf(list[i]) !== d.key) continue;
+      list[i].cls = d.cls || null;
+      return;
     }
     var g = d.geom || {};
     var b = g.bbox || [0, 0, 1, 1];
     // **그리기가 만드는 것과 같은 모양이어야 한다** — `source: 'manual'` 이라야
     // `isManual` 갈래를 타서 `drawn` 으로 실려 나가고, 엔진 개체의 `labels`·
-    // `notes` 지도에 섞이지 않는다.
+    // `labels` 지도에 섞이지 않는다.
     list.push({
       key: d.key, source: 'manual', orphan: true,
       polygon: g.polygon || [],
@@ -1617,10 +1607,17 @@
   // 분류 하나를 얹는다 — `setLabel` 과 **같은 규칙**이어야 한다(자동 판정은
   // `cls_auto` 에 남기고 사람의 지정을 위에 얹는다). 규칙이 둘이면 번진 분류만
   // 되돌리기·색이 다르게 군다.
+  //
+  // **손그림 키는 지도에 안 싣는다.** 그 개체의 분류는 `drawn` 이 통째로
+  // 나르는데, 지도에도 실으면 서버가 같은 키로 **엔진 쪽 행을 하나 더 만든다**
+  // (`batch` 가 달라 유일 제약에 안 걸린다 — `detection_for` 의 그 주석).
+  // 그 대신 개체에는 적는다: 안 적으면 이 판의 다음 저장이 빈 값을 보낸다.
   function applyCls(labelMap, list, mk, cls) {
-    if (cls) labelMap[mk] = cls; else delete labelMap[mk];
+    var manual = isManualKey(list, mk);
+    if (!manual) { if (cls) labelMap[mk] = cls; else delete labelMap[mk]; }
     list.forEach(function (c) {
-      if (keyOf(c) !== mk || isManual(c)) return;
+      if (keyOf(c) !== mk) return;
+      if (isManual(c)) { c.cls = cls || null; return; }
       if (cls) {
         if (c.cls_auto === undefined) c.cls_auto = c.cls || null;
         c.cls = cls;
@@ -1630,6 +1627,13 @@
         c.cls_user = false;
       }
     });
+  }
+
+  function isManualKey(list, mk) {
+    for (var i = 0; i < list.length; i++) {
+      if (keyOf(list[i]) === mk) return isManual(list[i]);
+    }
+    return false;
   }
 
   function save() {
@@ -1820,10 +1824,16 @@
     saveState.textContent = '되살림 — ' + keys.length + '개';
   });
 
-  // --- 코멘트 ---------------------------------------------------------------
-  var notesBox = document.getElementById('notes-' + uid);
-  var nlist = document.getElementById('nlist-' + uid);
-  var ncount = document.getElementById('ncount-' + uid);
+  // --- 이 시야에 대한 코멘트 -------------------------------------------------
+  //
+  // **개체 코멘트는 여기 없다** (0036, 사용자 2026-08-12). 개체를 두고 하는
+  // 말은 개체 카탈로그에서 적는다 — 적는 자리가 둘이면 사람이 *어디에 적었는지*
+  // 를 기억해야 하고, 번지기(106) 뒤로는 한 규조각이 판 넷에 있어 더 그렇다.
+  // 이 화면은 **읽기만 한다**: 말풍선과 개체 표가 `c.note` 를 보여준다.
+  //
+  // 걷어낸 것 — 오른쪽 목록(`.nlist`) · 팝업 편집기(`.noteedit`) ·
+  // 우클릭의 "📝 코멘트" · payload 의 `notes`. **화면이 되는 것처럼 보이면
+  // 안 되므로 반응하는 자리를 전부 셌다**(051 의 그 규칙).
   var gnote = document.getElementById('gnote-' + uid);
   if (gnote) {
     // 시야 코멘트는 팝업을 열지 않고 이 자리에서 고친다. 입력하는 동안 저장이
@@ -1857,122 +1867,10 @@
       gnote.addEventListener(ev, function (x) { x.stopPropagation(); });
     });
   }
-  var noteEdit = null;
-
-  function closeNoteEdit() { if (noteEdit) { noteEdit.remove(); noteEdit = null; } }
-
-  function setNote(i, text) {
-    var c = cands[i];
-    if (!c) return;
-    var key = keyOf(c);
-    history.push({ type: 'note', i: i, key: key,
-                   text: isManual(c) ? c.note : notes[key] });
-    text = (text || '').trim();
-    // 그린 개체의 코멘트는 개체가 들고 `drawn` 이 나른다 (isManual 주석)
-    if (text) { if (!isManual(c)) notes[key] = text; c.note = text; }
-    else { if (!isManual(c)) delete notes[key]; delete c.note; }
-    renderNotes();
-    redraw();
-    save();
-  }
-
-  // 개체 코멘트는 그 자리(사진 위)에서 팝업으로 고친다. 시야 코멘트는 오른쪽
-  // 칸에서 직접 적는다 — 두 가지를 같은 창에 묶으면 어느 것에 쓰는지 헷갈린다.
-  function openNoteEdit(e, i) {
-    closeNoteEdit(); closeMenu(); closeSpread();
-    var c = cands[i];
-    if (!c) return;
-    noteEdit = document.createElement('div');
-    noteEdit.className = 'noteedit';
-
-    var lab = document.createElement('div');
-    lab.className = 'nlabel';
-    lab.textContent = (c.id === undefined ? '삭제된 개체' : '#' + c.id) +
-      ' · ' + clsName(c) + ' · 장축 ' + num(c.major_um, 1) + ' µm';
-    noteEdit.appendChild(lab);
-
-    var ta = document.createElement('textarea');
-    ta.value = c.note || '';
-    ta.maxLength = 500;
-    ta.placeholder = '이 개체에 대한 메모';
-    noteEdit.appendChild(ta);
-
-    var row = document.createElement('div');
-    row.className = 'nrow';
-    var ok = document.createElement('button');
-    ok.type = 'button'; ok.textContent = '저장';
-    var del = document.createElement('button');
-    del.type = 'button'; del.className = 'danger'; del.textContent = '지우기';
-    var no = document.createElement('button');
-    no.type = 'button'; no.textContent = '취소';
-    var hint = document.createElement('span');
-    hint.className = 'nhint'; hint.textContent = 'Ctrl+Enter';
-    row.appendChild(ok);
-    if (c.note) row.appendChild(del);
-    row.appendChild(no);
-    row.appendChild(hint);
-    noteEdit.appendChild(row);
-
-    function commitNote(text) {
-      setNote(i, text);
-      closeNoteEdit();
-    }
-    ok.addEventListener('click', function () { commitNote(ta.value); });
-    del.addEventListener('click', function () { commitNote(''); });
-    no.addEventListener('click', closeNoteEdit);
-    ta.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-        ev.preventDefault(); commitNote(ta.value);
-      } else if (ev.key === 'Escape') { ev.preventDefault(); closeNoteEdit(); }
-    });
-    // 캔버스가 이 안의 클릭을 확대·선택으로 받으면 안 된다.
-    ['wheel', 'mousedown', 'contextmenu'].forEach(function (ev) {
-      noteEdit.addEventListener(ev, function (x) { x.stopPropagation(); });
-    });
-
-    document.body.appendChild(noteEdit);
-    var w = noteEdit.offsetWidth, h = noteEdit.offsetHeight;
-    var x = Math.min(window.innerWidth - w - 8, Math.max(8, (e ? e.clientX : 40) + 8));
-    var y = (e ? e.clientY : 40) + 8;
-    if (y + h > window.innerHeight - 8) y = Math.max(8, (e ? e.clientY : 40) - h - 8);
-    noteEdit.style.left = x + 'px';
-    noteEdit.style.top = y + 'px';
-    ta.focus();
-    ta.setSelectionRange(ta.value.length, ta.value.length);
-  }
-
-  // 사진 오른쪽 목록. 커서를 올리면 그 개체가 선택된다.
-  function renderNotes() {
-    if (!notesBox || !nlist) return;
-    var items = [];
-    cands.forEach(function (c, i) { if (c.note) items.push({ c: c, i: i }); });
-    ncount.textContent = items.length ? items.length + '개' : '없음';
-    // 입력 중에는 건드리지 않는다 — 타이핑을 덮어쓰면 안 된다.
+  // 시야 코멘트 칸을 지금 값으로 맞춘다 — 되돌리기(Ctrl+Z)와 첫 그리기가 쓴다.
+  // **입력 중에는 건드리지 않는다**: 타이핑을 덮어쓰면 방금 친 글자가 사라진다.
+  function syncGroupNote() {
     if (gnote && document.activeElement !== gnote) gnote.value = groupNote;
-    nlist.innerHTML = '';
-    items.forEach(function (it) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'nitem';
-      b.dataset.i = it.i;
-      var top = document.createElement('div');
-      top.className = 'ntop';
-      top.textContent = (it.c.id === undefined ? '삭제됨' : '#' + it.c.id) +
-        ' · ' + clsName(it.c) + ' · ' + num(it.c.major_um, 1) + ' µm' +
-        (removed.has(keyOf(it.c)) ? ' · 삭제됨' : '');
-      var tx = document.createElement('div');
-      tx.className = 'ntext';
-      tx.textContent = it.c.note;
-      b.appendChild(top);
-      b.appendChild(tx);
-      b.addEventListener('mouseenter', function () {
-        sel.clear(); sel.add(it.i); redraw();
-      });
-      b.addEventListener('click', function (ev) { openNoteEdit(ev, it.i); });
-      nlist.appendChild(b);
-    });
-    // 목록이 생기거나 사라지면 사진 폭이 바뀐다 — 배율·스케일바를 다시 잰다.
-    applyTransform();
   }
 
   // --- 탈락 후보 펼쳐 보기 (누락 복구) --------------------------------------
@@ -2712,10 +2610,6 @@
                      run: function () { setLabel(live, null); } });
       }
       items.push({ sep: true });
-      if (live.length === 1) {
-        items.push({ label: cands[live[0]].note ? '📝 코멘트 고치기' : '📝 코멘트 달기',
-                     run: function () { openNoteEdit(e, live[0]); } });
-      }
     }
     // 아래는 전부 **고치는 항목**이다 — 읽기 전용에서는 위 갈래가 이미 낼 것을
     // 냈으므로 건너뛴다. 조건마다 `!readOnly` 를 붙여 두는 것은, 여기에 항목을
@@ -2877,10 +2771,9 @@
 
   document.addEventListener('mousedown', function (e) {
     if (menu && !menu.contains(e.target)) closeMenu();
-    if (noteEdit && !noteEdit.contains(e.target)) closeNoteEdit();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closeMenu(); closeSpread(); closeAsk(); closeNoteEdit(); }
+    if (e.key === 'Escape') { closeMenu(); closeSpread(); closeAsk(); }
   });
 
   // --- 마스크 그리기 (P09 3단계) --------------------------------------------
@@ -2987,7 +2880,7 @@
     drawing = { pts: [], at: null };
     view.classList.add('drawing');
     sel.clear();
-    closeMenu(); closeSpread(); closeNoteEdit();
+    closeMenu(); closeSpread();
     drawRender(); redraw(); drawStatus(); syncDrawBtn();
   }
 
@@ -3067,7 +2960,7 @@
     var c = cands[i];
     if (!c || !hasPoly(c)) return;
     drawCancel();
-    closeMenu(); closeSpread(); closeNoteEdit();
+    closeMenu(); closeSpread();
     var pts = [];
     for (var j = 0; j < c.polygon.length; j += 2) {
       pts.push([c.polygon[j], c.polygon[j + 1]]);
@@ -3465,7 +3358,7 @@
 
   applyTransform();
   build();
-  renderNotes();
+  syncGroupNote();
 
   // --- 이전 시야로 거슬러 왔으면 그 시야의 마지막 사진에서 시작한다 ----------
   // **반드시 여기여야 한다 — 초기화가 다 끝난 뒤다.**

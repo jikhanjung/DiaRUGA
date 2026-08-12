@@ -229,6 +229,13 @@ def fetch(conn, slide_slug=None) -> dict:
         obj_cols = {r[1] for r in
                     conn.execute("PRAGMA table_info(viewer_diatomobject)")}
     pose_col = "o.pose" if "pose" in obj_cols else "'' AS pose"
+    # **코멘트도 판마다 다른 테이블에 산다** — `0036` 이 개체로 옮겼다(등급과
+    # 같은 이야기의 반쪽이다 · 112). 옛 판은 판정에 있다. 등급과 달리 갈래가
+    # 둘뿐인 것은 **처음부터 있던 칸**이라 "없다" 가 없어서다.
+    #
+    # **내보내는 모양은 안 바뀐다** — 판정 한 줄에 그대로 싣는다. 묶인 개체는
+    # 판마다 같은 글이 실리는데, 그것이 지금의 사실이다(개체 하나가 든 값이다).
+    note_col = col("note", "o.note")
     if "grade" in obj_cols:
         grade_col = "o.grade"
     else:
@@ -257,7 +264,7 @@ def fetch(conn, slide_slug=None) -> dict:
 
     for r in conn.execute(f"""
         SELECT r.viewpoint_id, r.mask_key, r.removed, r.accepted,
-               {label_col} AS label, r.note,
+               {label_col} AS label, {note_col},
                r.geom, r.bind_method, r.bind_score,
                {img_col}, {batch_col}, {src_col}, {edit_col}, {conf_col},
                {species_col} AS species, {grade_col}, {pose_col}

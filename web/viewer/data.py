@@ -473,16 +473,18 @@ def _apply_review(det: Detection, reviews: dict, state) -> dict:
         "rejected": rejected,
         "n_removed": len(removed),
         "accepted_keys": sorted(accepted),
-        # **사람이 그린 개체는 여기 안 담는다** (P09 3단계). 이 둘은 화면이 저장
-        # payload 로 되돌려 보내는 지도인데, 그린 개체의 분류·코멘트는 `drawn`
-        # 이 통째로 나른다 — 양쪽에 실으면 `save_review` 가 같은 키로 **엔진
-        # 쪽 행을 하나 더 만든다**(`batch` 가 달라 유일 제약에 안 걸린다).
+        # **사람이 그린 개체는 여기 안 담는다** (P09 3단계). 이 지도는 화면이
+        # 저장 payload 로 되돌려 보내는 것인데, 그린 개체의 분류는 `drawn` 이
+        # 통째로 나른다 — 양쪽에 실으면 `save_review` 가 같은 키로 **엔진 쪽
+        # 행을 하나 더 만든다**(`batch` 가 달라 유일 제약에 안 걸린다).
         #
-        # 분류·코멘트 자체는 개체 dict 의 `cls`·`note` 로 이미 화면에 간다.
+        # 분류 자체는 개체 dict 의 `cls` 로 이미 화면에 간다.
+        #
+        # **코멘트 지도는 없다** (0036). 검토 화면이 코멘트를 안 적기 때문이다 —
+        # 되돌려 보낼 것이 없으면 지도도 없어야 한다. 읽는 것은 그대로다:
+        # 위에서 개체 dict 의 `note` 에 실어 말풍선·표가 보여준다.
         "labels": {k: o.label for k, o in reviews.items()
                    if o.label and o.source != "manual"},
-        "notes": {k: o.note for k, o in reviews.items()
-                  if o.note and o.source != "manual"},
         "review_done": bool(state and state[0]),
         "review_note": (state[1] if state else ""),
         "source_dir": "out",
@@ -934,15 +936,39 @@ def merge_into_object(obj: DiatomObject, rows) -> int:
 
     순서가 있다.
 
-    1. **옛 대표를 먼저 내린다** — `is_rep` 은 개체당 하나라는 유일 제약이 있어,
+    1. **떠나올 개체의 코멘트를 먼저 거둔다** — 아래 "코멘트는 잇는다"
+    2. **옛 대표를 먼저 내린다** — `is_rep` 은 개체당 하나라는 유일 제약이 있어,
        새 대표를 세우기 전에 옛 대표가 남아 있으면 부딪힌다
-    2. 행을 옮기면서 **떠나온 개체를 적어 둔다**
-    3. 대표를 세우고, **그다음에** 빈 개체를 걷는다 — `prune_objects` 머리말대로
+    3. 행을 옮기면서 **떠나온 개체를 적어 둔다**
+    4. 대표를 세우고, **그다음에** 빈 개체를 걷는다 — `prune_objects` 머리말대로
        판정을 옮긴 뒤라야 `CASCADE` 가 살아 있는 판정을 안 끌고 간다
+
+    ## 코멘트는 잇는다 (0036)
+
+    코멘트가 개체로 오면서 **모으는 순간 값이 부딪힌다.** 분류·종명은 부딪히면
+    거절하고 사람이 고르게 한다(`save_object_link` 의 그 자리) — 값을 하나 골라야
+    뜻이 서기 때문이다. **글은 다르다**: 판 셋에 다른 말이 적혀 있으면 그 셋이
+    전부 이 규조각에 대한 사실이고, 하나를 고르면 나머지는 **재생성 불가한
+    사람의 글**인 채로 사라진다.
+
+    그래서 이어 붙인다 — 그릇의 것을 앞에, 같은 말은 한 번만, 줄바꿈으로.
+    **떠나오는 개체는 곧 `prune_objects` 가 걷으므로 여기서 안 거두면 그
+    자리에서 없어진다.**
     """
     rows = list(rows)
     if not rows:
         raise ValueError("모을 판정이 없다")
+    notes, joined = [obj.note], []
+    notes += [row.diatom_object.note for row, _ in
+              sorted(rows, key=lambda t: (not t[1], t[0].pk))]
+    for n in notes:
+        n = (n or "").strip()
+        if n and n not in joined:
+            joined.append(n)
+    joined = "\n".join(joined)
+    if joined != obj.note:
+        obj.note = joined
+        obj.save(update_fields=["note", "updated_at"])
     ObjectReview.objects.filter(diatom_object=obj, is_rep=True).update(
         is_rep=False)
     orphaned, rep_pk = [], None
@@ -1199,7 +1225,9 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
             raise ValueError(f"모르는 유형이다: {cls}")
         dobj.label = cls
     if note is not None:
-        obj.note = str(note).replace("\r\n", "\n").strip()
+        # **코멘트도 개체에 앉는다** (0036). 분류·종명과 같은 자리가 됐다 —
+        # 판마다 다른 말을 적는 칸이 아니라 *이 규조각을 두고 하는 말*이다.
+        dobj.note = str(note).replace("\r\n", "\n").strip()
     # **등급도 자세도 개체에 앉는다** (0035). 둘 다 *이 규조각이 어떤가* 이고,
     # 어느 판으로 보여줄지는 `is_rep` 가 따로 말한다.
     if grade is not None:
@@ -1210,7 +1238,7 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     # 등급은 그대로 두는 길이 있는데, 보낸 값만 보면 그것이 통과한다 — 남는 것은
     # "파편인데 A" 인 행이다.
     check_grade_pose(dobj.label, dobj.grade, dobj.pose)
-    dobj.save(update_fields=["label", "species", "pose", "grade",
+    dobj.save(update_fields=["label", "species", "pose", "grade", "note",
                              "updated_at"])
     obj.save()
 
@@ -1218,7 +1246,9 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     # 개체가 값을 들고 있으므로 이미 다 반영돼 있지만, 다른 판의 화면 상태는
     # 열릴 때 받은 것이라 그것을 모른다. 그 판에서 다음 저장이 나가면 자기가
     # 아는 빈 값을 보내 **방금 적은 것을 지운다** (104 에서 겪은 자리다).
-    spread = ({} if (cls is None and species is None)
+    # **코멘트도 번진다** (0036). 안 세면 다른 판의 화면이 방금 적은 글을 모른
+    # 채로 다음 저장을 내보내 **그 자리에서 지운다** — 분류가 그랬던 자리다(104).
+    spread = ({} if (cls is None and species is None and note is None)
               else linked_siblings(dobj, image_id))
 
     # 표시가 하나도 안 남았으면 지운다. **사람이 그린 개체는 남긴다** — 그 줄이
@@ -1229,7 +1259,7 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     # 카탈로그 카드가 아니다 — `save_review` 의 청소가 얹는 것과 같은 갈래다.
     linked = obj.diatom_object.members.count() > 1
     empty = not (obj.removed or obj.accepted or obj.auto_confirmed or dobj.label
-                 or obj.note or dobj.species or obj.geom_edited or linked
+                 or dobj.note or dobj.species or obj.geom_edited or linked
                  # **등급·자세도 표시다** — 안 세면 종명을 비우는 한 번에 등급까지
                  # 함께 사라진다. 105 가 이 자리에서 실패 둘을 봤다.
                  or dobj.grade or dobj.pose)
@@ -1240,7 +1270,7 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
         prune_objects([oid])
         return {"species": "", "cls": "", "note": "", "grade": "", "pose": "",
                 "kept": False, "spread": n_spread}
-    return {"species": dobj.species, "cls": dobj.label, "note": obj.note,
+    return {"species": dobj.species, "cls": dobj.label, "note": dobj.note,
             "grade": dobj.grade, "pose": dobj.pose,
             "kept": True, "spread": n_spread}
 
@@ -2049,8 +2079,12 @@ def _slide_summary(slide: Slide) -> dict:
     agg = rv.aggregate(
         removed=Count("id", filter=Q(removed=True)),
         accepted=Count("id", filter=Q(accepted=True)),
-        noted=Count("id", filter=~Q(note="")),
     )
+    # **코멘트는 개체를 센다** (0036). 판정으로 세면 묶인 개체가 판 수만큼
+    # 세어져, 한 번 적은 글이 화면에서 넷으로 보인다 — 사람이 적은 횟수와
+    # 어긋나는 숫자다. 분류(`n_labeled`)가 개체 기준인 것과 같은 자리다.
+    n_noted = (DiatomObject.objects.filter(viewpoint__slide=slide)
+               .exclude(note="").count())
     # 코멘트는 시야의 것이라 묶음과 무관하고, 완료는 묶음마다다 (073)
     vrs = ViewpointReview.objects.filter(viewpoint__slide=slide)
 
@@ -2079,7 +2113,7 @@ def _slide_summary(slide: Slide) -> dict:
         "n_removed": agg["removed"],
         "n_accepted": agg["accepted"],
         "n_labeled": n_labeled,
-        "n_noted": agg["noted"],
+        "n_noted": n_noted,
         "n_group_notes": vrs.exclude(note="").count(),
         "reviewed_groups": len(done_viewpoints(slide=slide)),
     }
@@ -2606,7 +2640,6 @@ def _review_shot(d: dict, image_id: int, rel: str = "") -> dict:
         "rejected": d["rejected"],
         "accepted": d["accepted_keys"],
         "labels": d["labels"],
-        "notes": d["notes"],
         "summary": (f"후보 {d['n_candidates']}개"
                     + (f" ({', '.join(parts)})" if parts else "")
                     + f" · 원시 {d['n_raw_masks']}"
@@ -2857,9 +2890,15 @@ def mark_all_reviewed(slug: str, done: bool) -> dict | None:
 
 # --- 교정 저장 --------------------------------------------------------------
 def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
-                labels: dict, notes: dict, image=None,
+                labels: dict, notes: dict | None = None, image=None,
                 drawn=None, edits=None) -> dict | None:
     """뷰어가 보낸 교정을 DB 에 쓴다. 예전에는 review/<stem>_review.json 이었다.
+
+    **`notes` 는 안 쓴다** (0036). 개체 코멘트는 카탈로그에서만 적고, 이 화면은
+    읽기만 한다 — `note` 인자(시야 코멘트)와는 다른 것이다. 인자를 남겨 둔 것은
+    **배포 중에 열려 있던 옛 탭**이 그것을 실어 보내기 때문이고, 그때 오류를
+    내면 그 저장에 함께 실린 삭제·되살림까지 잃는다. **조용히 무시하는 쪽이
+    맞다** — 이 화면이 안 보내는 값은 이 화면이 지울 수도 없어야 한다.
 
     키(mask_key)마다 한 행이고, 아무 표시도 남지 않은 행은 지운다 — 그래야
     "교정 전체 초기화" 가 예전처럼 깨끗하게 동작한다.
@@ -2911,7 +2950,7 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
             "않았다. batch_runs.py 로 묶은 뒤 다시 시도할 것")
 
     removed, accepted = set(removed), set(accepted)
-    keys = removed | accepted | set(labels) | set(notes)
+    keys = removed | accepted | set(labels)
 
     # **없는 것과 빈 것이 다르다** (`_save_drawn` 과 같은 규칙). `edits` 가 아예
     # 없으면 **고치기를 모르는 옛 화면**이다 — 배포 중에 열려 있던 탭이 그렇고,
@@ -2934,16 +2973,20 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     keys |= set(edits)
 
     # **카탈로그 카드가 적는 칸이 든 행은 이 payload 가 대표하지 않는다**
-    # (종명 2026-08-10 · 등급·자세 2026-08-11).
+    # (종명 2026-08-10 · 등급·자세 2026-08-11 · **코멘트 2026-08-12** · 0036).
     #
-    # 셋 다 `/d/<슬라이드>/catalog/` 가 적고 **검토 화면은 그 칸들을 모른다.**
-    # 그런데 그것만 채운 행은 삭제·되살림·유형·코멘트가 전부 비어 있어, 얹지
-    # 않으면 아래 삭제 줄이 "표시가 사라진 행" 으로 보고 지운다 — 사람이
-    # 아무것도 안 하고 **"검토 완료" 만 눌러도 통째로 사라진다.** 017·027·053 이
-    # 전부 그 줄에서 났고, 셋 다 현미경을 보며 적는 것이라 재생성 불가다.
+    # 넷 다 `/d/<슬라이드>/catalog/` 가 적고 **검토 화면은 그 칸들을 안 보낸다.**
+    # 그런데 그것만 채운 행은 삭제·되살림·유형이 전부 비어 있어, 얹지 않으면
+    # 아래 삭제 줄이 "표시가 사라진 행" 으로 보고 지운다 — 사람이 아무것도 안
+    # 하고 **"검토 완료" 만 눌러도 통째로 사라진다.** 017·027·053 이 전부 그
+    # 줄에서 났고, 넷 다 현미경을 보며 적는 것이라 재생성 불가다.
     #
-    # **`exclude(a="", b="", c="")` 는 셋이 모두 빈 행만 뺀다** — 하나라도 값이
-    # 있으면 남긴다. 셋을 따로 물으면 질의가 셋이 되고, 칸이 늘 때마다 한 줄씩
+    # **코멘트가 여기로 온 것이 0036 이다.** 그 전에는 이 화면이 코멘트를
+    # 보내서 `keys` 가 알아서 지켰는데, 적는 자리를 카탈로그로 모으면서
+    # 종명·등급·자세와 같은 갈래가 됐다 — **한 줄에 함께 둔다.**
+    #
+    # **`exclude(a="", b="", c="", d="")` 는 넷이 모두 빈 행만 뺀다** — 하나라도
+    # 값이 있으면 남긴다. 따로 물으면 질의가 넷이 되고, 칸이 늘 때마다 한 줄씩
     # 더하다가 빠뜨린다. **규칙이 하나면 자리도 하나여야 한다.**
     #
     # **`edits` 와 달리 늘 얹는다.** 저쪽은 "고치기를 아는 화면이면 그것이 전부"
@@ -2955,7 +2998,8 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
                 .filter(image=image, batch=batch)
                 .exclude(diatom_object__species="",
                          diatom_object__grade="",
-                         diatom_object__pose="")
+                         diatom_object__pose="",
+                         diatom_object__note="")
                 .values_list("mask_key", flat=True))
 
     # **확인 표시가 든 행도 이 payload 가 대표하지 않는다** (2026-08-11).
@@ -3031,7 +3075,6 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
         obj = judgement_for(vp, image, batch, key, cand)
         obj.removed = key in removed
         obj.accepted = key in accepted
-        obj.note = notes.get(key, "")
         if cand and obj.candidate_id != cand.id:
             obj.candidate = cand
             obj.bind_method = "exact"
@@ -3077,6 +3120,9 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # `labels` 에서 사라지고 다른 표시도 없으면 `keys` 에도 안 들어온다 — `keys`
     # 만 보면 **물림이 개체에 안 닿아 다른 판에 옛 분류가 남는다.** 옛
     # `_spread_link_labels` 도 같은 이유로 `known` 을 봤다.
+    #
+    # **코멘트는 여기 없다** (0036). 개체에 살지만 적는 자리가 카탈로그 하나라,
+    # 이 화면이 보내지 않는 값을 이 화면이 쓸 일이 없다.
     touched = []
     for row in (ObjectReview.objects.filter(image=image, batch=batch,
                                             mask_key__in=known)
@@ -3109,7 +3155,7 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     spread = linked_siblings(touched, getattr(image, "pk", image))
 
     out = {"removed": len(removed), "accepted": len(accepted),
-           "labels": len(labels), "notes": len(notes)}
+           "labels": len(labels)}
     if n_drawn is not None:
         out["drawn"] = n_drawn
     if drawn_spread:
@@ -3140,6 +3186,11 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
 
 def linked_siblings(objs, except_image_id) -> dict:
     """이 개체를 나눠 가진 **다른 판의 마스크들**. `{이미지 id: {mask_key: 분류}}`.
+
+    **분류만 싣는다.** 개체에 사는 값은 분류 말고도 넷이지만(종명·등급·자세·
+    코멘트) **검토 화면이 되돌려 보내는 것은 분류뿐**이라, 나머지는 알려 줄
+    이유가 없다 — 화면이 안 보내는 값은 화면이 지울 수도 없다(0036 에서 코멘트가
+    그쪽으로 갔다).
 
     **아무것도 쓰지 않는다 — 알리기만 한다.** P12 이후 분류는 개체 하나에 살아
     이미 모든 판에 반영돼 있다. 예전(104)의 `_spread_link_labels` 는 판마다 행을
@@ -3236,15 +3287,18 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0),
         # 만드는 근거도 검출의 `size` 다.
         box = check_polygon(poly, size, key)
 
+        # **코멘트는 안 받는다** (0036). 그린 개체의 코멘트도 카탈로그에서
+        # 적는다 — 여기서 받으면 화면이 안 적는 값을 화면이 보내게 되고, 그
+        # 값은 빈 칸이라 **카탈로그에서 적어 둔 글을 저장 한 번이 지운다.**
+        # 옛 탭이 실어 보내는 `note` 는 그래서 그냥 흘린다.
         keep.append((key, {"bbox": box, "polygon": poly},
-                     item.get("cls") or "", item.get("note") or ""))
+                     item.get("cls") or ""))
 
-    for key, geom, cls, note in keep:
+    for key, geom, cls in keep:
         obj = judgement_for(vp, image, None, key)
         obj.source = "manual"
         obj.bind_method = "manual"
         obj.geom = geom
-        obj.note = note
         obj.save()
         # 분류는 개체에 앉는다 (P12)
         dobj = obj.diatom_object
@@ -3293,8 +3347,8 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
     ## 한 개체를 나눠 갖는다
 
     같은 규조각을 옮겨 그린 것이라 뜻이 그렇다. 그래서 자세(`DiatomObject.pose`)
-    ·분류·종명·등급이 **한 벌이다**(0035 뒤로 등급도 개체에 산다). 어느 판으로
-    보여줄지는 `is_rep` 가 말한다. 판마다 개체를 따로 두면 이 값들을 판 수만큼
+    ·분류·종명·등급·코멘트가 **한 벌이다**(0035·0036 뒤로 등급과 코멘트도 개체에
+    산다). 어느 판으로 보여줄지는 `is_rep` 가 말한다. 판마다 개체를 따로 두면 이 값들을 판 수만큼
     매겨야 하고 `check_db` 10번이 그 어긋남을 못 잡는다.
 
     묶는 일은 `merge_into_object` 가 한다 — 사람이 화면에서 묶을 때와 **같은
@@ -3323,7 +3377,7 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
         return {}
 
     out = {}
-    for key, geom, cls, _note in keep:
+    for key, geom, cls in keep:
         src = ObjectReview.objects.select_related("diatom_object").get(
             image_id=src_id, batch__isnull=True, mask_key=key)
         rows = [(src, True)]
@@ -3332,8 +3386,6 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
             row.source = "manual"
             row.bind_method = "manual"
             row.geom = geom
-            # **코멘트는 안 옮긴다.** 그 칸은 "이 판에서는 초점이 안 맞는다" 를
-            # 적는 자리라 판마다 다른 말이다 (`ObjectReview.note` 머리말).
             row.save()
             rows.append((row, False))
             out.setdefault(str(tgt.pk), []).append(

@@ -953,11 +953,12 @@
     border-left: 1px solid var(--line); padding-left: 6px;
   }
 
-  /* --- 사진 + 코멘트 목록 --- */
+  /* --- 사진 + 오른쪽 칸 --- */
   .detrow { display: flex; gap: 10px; align-items: flex-start; }
   .detrow .detview { flex: 1 1 auto; min-width: 0; }
-  /* 위(개체 코멘트)·아래(시야 코멘트) 두 칸이 각각 스크롤된다. 아래 칸은 높이를
-     고정해 두어 개체 코멘트가 길어져도 밀려나지 않는다. */
+  /* 화면 조정과 시야 코멘트가 든다. **개체 코멘트 목록은 0036 에서 걷었다** —
+     개체를 두고 하는 말은 개체 카탈로그에서 적는다. 아래로 비는 자리는
+     Diadiction(P14)이 쓸 곳이라 채우지 않고 둔다. */
   .notes {
     flex: 0 0 250px; width: 250px; align-self: stretch;
     background: var(--panel); border: 1px solid var(--line);
@@ -988,7 +989,6 @@
   .notes .adj input[type=range] {
     display: block; width: 100%; margin-top: 2px; accent-color: var(--accent);
   }
-  .notes .nlist { flex: 1 1 auto; min-height: 60px; overflow-y: auto; }
   /* 그 자리에서 바로 적는다 — 팝업을 열지 않는다. 높이는 고정. */
   .notes .gnote {
     flex: 0 0 132px; height: 132px; overflow-y: auto; resize: none;
@@ -998,43 +998,6 @@
   }
   .notes .gnote:hover { border-color: var(--accent); }
   .notes .gnote:focus { outline: none; border-color: var(--accent); }
-  .notes .nitem {
-    display: block; width: 100%; text-align: left; font: inherit;
-    background: transparent; color: inherit; cursor: pointer;
-    border: 1px solid transparent; border-radius: 7px;
-    padding: 6px 7px; margin-bottom: 4px; font-size: 12px;
-  }
-  .notes .nitem:hover, .notes .nitem.on {
-    border-color: var(--accent); background: rgba(90,200,250,.09);
-  }
-  .notes .nitem .ntop {
-    display: flex; gap: 6px; align-items: baseline;
-    font-size: 11px; color: var(--dim); margin-bottom: 2px;
-  }
-  .notes .nitem .ntext { white-space: pre-wrap; word-break: break-word; }
-  .notes .nempty { font-size: 12px; color: var(--dim); }
-
-  /* --- 코멘트 편집 --- */
-  .noteedit {
-    position: fixed; z-index: 75; width: 300px; padding: 10px 11px;
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 9px; box-shadow: 0 10px 30px rgba(0,0,0,.45);
-  }
-  .noteedit .nlabel { font-size: 11.5px; color: var(--dim); margin-bottom: 6px; }
-  .noteedit textarea {
-    width: 100%; min-height: 74px; resize: vertical; font: inherit;
-    font-size: 12.5px; padding: 6px 7px; border-radius: 6px;
-    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
-  }
-  .noteedit .nrow { display: flex; gap: 6px; margin-top: 8px; }
-  .noteedit button {
-    font: inherit; font-size: 12px; padding: 4px 11px; cursor: pointer;
-    background: var(--panel); color: inherit;
-    border: 1px solid var(--line); border-radius: 6px;
-  }
-  .noteedit button:hover { border-color: var(--accent); }
-  .noteedit button.danger { color: #ff6b6b; }
-  .noteedit .nhint { margin-left: auto; font-size: 11px; color: var(--dim); align-self: center; }
 
   /* --- 대화형 검출 레이어 --- */
   .detview {

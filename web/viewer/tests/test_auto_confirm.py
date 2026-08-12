@@ -76,9 +76,13 @@ class ConfirmPassedTest(DiaRUGATestCase):
 
         **다른 칸은 안 건드린다** — 확인 표시는 덮어쓰는 것이 아니라 더해지는 사실이다.
         """
-        self.post(done=True, labels={self.keys[0]: "rod"},
-                  notes={self.keys[0]: "가장자리가 깨졌다"})
+        self.post(done=True, labels={self.keys[0]: "rod"})
         row = ObjectReview.objects.get(mask_key=self.keys[0])
+        # 코멘트는 카탈로그가 적는 칸이다 (0036) — 완료가 그것을 덮으면 안 된다
+        DiatomObject.objects.filter(pk=row.diatom_object_id).update(
+            note="가장자리가 깨졌다")
+        self.post(done=True, labels={self.keys[0]: "rod"})
+        row.refresh_from_db()
         self.assertTrue(row.auto_confirmed, "분류를 붙인 행에 확인 표시가 안 붙었다")
         self.assertEqual(row.label, "rod", "분류를 덮었다")
         self.assertEqual(row.note, "가장자리가 깨졌다", "코멘트를 덮었다")

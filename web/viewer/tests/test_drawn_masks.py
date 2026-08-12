@@ -51,19 +51,28 @@ class DrawnMaskTest(DiaRUGATestCase):
         self.assertEqual(r.status_code, expect, r.content[:300])
         return r
 
-    def draw(self, key=KEY, poly=None, cls="rod", note=""):
-        return {"key": key, "polygon": poly or POLY, "cls": cls, "note": note}
+    def draw(self, key=KEY, poly=None, cls="rod"):
+        return {"key": key, "polygon": poly or POLY, "cls": cls}
 
     # --- 만들어지는가 ------------------------------------------------------
 
     def test_그린_개체가_저장된다(self):
-        self.post(drawn=[self.draw(note="엔진이 놓쳤다")])
+        self.post(drawn=[self.draw()])
         o = ObjectReview.objects.get(mask_key=KEY)
         self.assertEqual(o.source, "manual")
         self.assertIsNone(o.batch_id, "그린 개체가 회차에 묶였다")
         self.assertEqual(o.label, "rod")
-        self.assertEqual(o.note, "엔진이 놓쳤다")
         self.assertEqual(o.image_id, self.w.detection().image_id)
+
+    def test_그린_개체의_코멘트는_이_화면이_안_적는다(self):
+        """**0036 에서 갈렸다.** 개체 코멘트는 카탈로그에서만 적는다.
+
+        옛 탭이 `drawn` 에 `note` 를 실어 보내도 **흘린다** — 받으면 이 화면이
+        코멘트를 적는 자리가 되고, 그러면 **화면이 안 적는 값(빈 칸)을 화면이
+        보내** 카탈로그에서 적어 둔 글을 저장 한 번이 지운다.
+        """
+        self.post(drawn=[dict(self.draw(), note="엔진이 놓쳤다")])
+        self.assertEqual(ObjectReview.objects.get(mask_key=KEY).note, "")
 
     def test_상자는_서버가_폴리곤에서_만든다(self):
         """**클라이언트가 보낸 상자를 안 받는다.** 폴리곤이 원본이다."""
@@ -74,11 +83,10 @@ class DrawnMaskTest(DiaRUGATestCase):
     def test_다시_보내면_고쳐진다(self):
         """뷰어는 늘 전체를 보낸다 — 같은 키가 두 행이 되면 안 된다."""
         self.post(drawn=[self.draw(cls="rod")])
-        self.post(drawn=[self.draw(cls="round", note="다시 봤다")])
+        self.post(drawn=[self.draw(cls="round")])
         o = ObjectReview.objects.get(mask_key=KEY)
         self.assertEqual(ObjectReview.objects.filter(mask_key=KEY).count(), 1)
         self.assertEqual(o.label, "round")
-        self.assertEqual(o.note, "다시 봤다")
 
     # --- 없는 것과 빈 것 ---------------------------------------------------
 
@@ -232,15 +240,15 @@ class DrawnMaskTest(DiaRUGATestCase):
         `batch=NULL` 이라 엔진 쪽 `known` 집합에 없다 → **저장이 409 로 막힌다.**
         한 번 그리고 나면 그 시야를 더 이상 저장할 수 없게 된다.
 
-        분류·코멘트는 `drawn` 이 통째로 나른다.
+        분류는 `drawn` 이 통째로 나른다. (코멘트 지도는 0036 에서 없어졌다 —
+        이 화면은 개체 코멘트를 안 적는다.)
         """
-        self.post(drawn=[self.draw(cls="rod", note="놓친 것")])
+        self.post(drawn=[self.draw(cls="rod")])
         d = data.detection_for_viewpoint(self.w.vp)
 
         self.assertNotIn(KEY, d["labels"], "그린 개체가 labels 지도에 실렸다")
-        self.assertNotIn(KEY, d["notes"], "그린 개체가 notes 지도에 실렸다")
+        self.assertNotIn("notes", d, "없앤 코멘트 지도가 되살아났다")
 
         # 화면이 받은 그대로 되돌려 보낸다 — 막히면 안 된다
-        self.post(labels=d["labels"], notes=d["notes"],
-                  drawn=[self.draw(cls="rod", note="놓친 것")])
+        self.post(labels=d["labels"], drawn=[self.draw(cls="rod")])
         self.assertEqual(ObjectReview.objects.get(mask_key=KEY).label, "rod")

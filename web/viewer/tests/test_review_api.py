@@ -50,13 +50,11 @@ class ReviewContractTest(DiaRUGATestCase):
 
     def test_교정을_저장한다(self):
         k = self.w.keys()[0]
-        self.post(self.full(removed=[k], labels={k: "rod"},
-                            notes={k: "가장자리가 깨졌다"}, done=True))
+        self.post(self.full(removed=[k], labels={k: "rod"}, done=True))
 
         obj = ObjectReview.objects.get(mask_key=k)
         self.assertTrue(obj.removed)
         self.assertEqual(obj.label, "rod")
-        self.assertEqual(obj.note, "가장자리가 깨졌다")
         # **열쇠는 `(image, mask_key)` 다** — 현재 검출의 이미지에 붙어야 한다.
         self.assertEqual(obj.image_id, self.w.detection().image_id)
         self.assertTrue(ViewpointReview.objects.get(viewpoint=self.w.vp).done)
@@ -221,3 +219,52 @@ class PostOnlyTest(DiaRUGATestCase):
             with self.subTest(url=url):
                 r = Client().get(url)
                 self.assertEqual(r.status_code, 405, f"{url} 이 GET 을 받았다")
+
+
+class NoteIsCatalogOnlyTest(DiaRUGATestCase):
+    """**개체 코멘트는 개체 카탈로그에서만 적는다** (0036, 사용자 2026-08-12).
+
+    코멘트가 개체(`DiatomObject`)로 옮겨 오면서 *적는 자리*도 하나로 모았다.
+    적는 자리가 둘이면 사람이 **어디에 적었는지를 기억해야** 하고, 번지기(106)
+    뒤로는 한 규조각이 판 넷에 걸쳐 있어 더 그렇다.
+
+    지킬 것이 둘이고 **층이 다르다** — 051 이 가르친 그 규칙이다.
+
+    1. **서버가 안 받는다.** 옛 탭(배포 중에 열려 있던 화면)이 `notes` 를 실어
+       보내도 개체의 글은 안 바뀐다. 오류로 물리지 않는 것은, 그 저장에 함께
+       실린 삭제·되살림까지 잃기 때문이다
+    2. **화면이 되는 것처럼 보이지도 않는다.** 목록·팝업·우클릭 항목을 전부
+       걷었다 — 저장만 잠그면 사람이 적어 놓고 사라진 것을 나중에 안다
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=3)
+
+    def setUp(self):
+        self.c = Client()
+
+    def test_옛_탭이_보낸_코멘트를_흘린다(self):
+        k = self.w.keys()[0]
+        r = self.c.post(reverse("save_review"), data=json.dumps(
+            {"stem": self.w.stem(), "slug": self.w.slug, "gid": self.w.vp.idx,
+             "done": False, "removed": [], "accepted": [],
+             "labels": {k: "rod"}, "notes": {k: "옛 탭이 보냈다"}}),
+            content_type="application/json")
+        self.assertEqual(r.status_code, 200, r.content[:300])
+        obj = ObjectReview.objects.get(mask_key=k)
+        self.assertEqual(obj.label, "rod", "함께 온 분류까지 물렸다")
+        self.assertEqual(obj.note, "", "이 화면이 개체 코멘트를 적었다")
+
+    def test_화면에_개체_코멘트를_적는_자리가_없다(self):
+        html = self.c.get(reverse("group", args=[self.w.slug, self.w.vp.idx])
+                          ).content.decode()
+        # **실패할 수 있는 것만 고른다** (064). 넷 다 옛 판의 이 화면에 실제로
+        # 있던 글자다 — 되돌리면 잡힌다. 주석에 적힌 이름(`.noteedit` 를 걷었다는
+        # 기록)까지 걸면 시험이 문서를 막고, 그때는 실패할 수도 없다.
+        for mark in ('id="nlist-', "noteEdit.className", "openNoteEdit(",
+                     "📝 코멘트 달기"):
+            self.assertNotIn(mark, html, f"걷어낸 자리가 남아 있다: {mark}")
+        # 시야 코멘트는 그대로다 — 개체에 붙지 않는 이야기를 적는 칸이다
+        self.assertIn('id="gnote-', html, "시야 코멘트까지 걷었다")
