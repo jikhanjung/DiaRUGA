@@ -130,6 +130,11 @@ OUT = ROOT / "review"
 #
 # **6,700행을 뜻 없이 다시 쓰지 않는 것이 감사 기록에서는 값이다** — 그 diff 가
 # 한 번 지나가면 그 사이에 실제로 달라진 판단이 그 안에 묻힌다.
+#
+# **`grade`·`pose` 도 같은 규칙으로 더했다** (등급·자세, 2026-08-12 · 0034).
+# 사람이 현미경을 보며 매기는 것이라 `species` 와 같은 무게의 재생성 불가
+# 자료이고, **매긴 것에만 실어** 번호를 안 올렸다. 값이 쌓이기 전에 넣는 것이
+# 싸다 — 안 넣고 수백 건을 매기면 그동안의 판단이 감사 기록에 없다.
 FORMAT = 4
 
 # 묶음(그룹) 정렬 — 합성본이 먼저다. **차례가 정해져 있어야 diff 가 읽힌다.**
@@ -207,6 +212,22 @@ def fetch(conn, slide_slug=None) -> dict:
         species_col = "r.species" if "species" in cols else "'' AS species"
         obj_join = ""
 
+    # **등급·자세는 축이 반대라 사는 곳이 다르다** (0034, 2026-08-11 사용자 결정).
+    # 등급은 판(초점면)의 성질이라 `ObjectReview` 에, 자세는 개체의 성질이라
+    # `DiatomObject` 에 산다 — 그래서 **옛 판을 견디는 갈래도 둘이다.**
+    #
+    # **내보낼 때는 둘 다 판정 한 줄에 싣는다.** 개체에 사는 `label`·`species`
+    # 가 이미 그 자리에 실리는 것과 같고, 무엇보다 **묶음이 아닌 개체는 `links`
+    # 에 안 나온다**(멤버가 하나면 묶음으로 안 센다). 자세를 묶음 머리에만
+    # 실으면 대부분의 개체에서 조용히 사라진다.
+    grade_col = col("grade", "''")
+    pose_col = "'' AS pose"
+    if new_home:
+        obj_cols = {r[1] for r in
+                    conn.execute("PRAGMA table_info(viewer_diatomobject)")}
+        if "pose" in obj_cols:
+            pose_col = "o.pose"
+
     # **묶음은 id 가 아니라 이름으로 적는다.** 감사 기록은 사람이 읽고 두 DB 를
     # 비교하는 물건이라, 저장소마다 달라지는 id 를 적으면 diff 가 거짓말을 한다.
     batch_name = {}
@@ -233,7 +254,7 @@ def fetch(conn, slide_slug=None) -> dict:
                {label_col} AS label, r.note,
                r.geom, r.bind_method, r.bind_score,
                {img_col}, {batch_col}, {src_col}, {edit_col}, {conf_col},
-               {species_col} AS species
+               {species_col} AS species, {grade_col}, {pose_col}
           FROM viewer_objectreview r{obj_join}
     """):
         v = views.get(r["viewpoint_id"])
@@ -254,6 +275,14 @@ def fetch(conn, slide_slug=None) -> dict:
         # `label` 은 늘 실리는데 이쪽이 다른 것은 그 이유다(형식 머리말).
         if r["species"]:
             obj["species"] = r["species"]
+        # 등급·자세도 같은 규칙이다 — **매긴 것에만.** 빈 값을 실으면 두 칸이
+        # 없는 6,700행이 뜻 없이 다시 쓰이고 그 diff 에 진짜 변화가 묻힌다.
+        # 종명 옆에 둔다: 셋이 사람이 개체를 보고 적는 판단이라 한 줄 안에서
+        # 붙어 있어야 "이 개체를 어떻게 봤나" 가 한눈에 읽힌다.
+        if r["grade"]:
+            obj["grade"] = r["grade"]
+        if r["pose"]:
+            obj["pose"] = r["pose"]
         if (r["source"] or "engine") != "engine":
             obj["source"] = r["source"]
         if r["geom_edited"]:

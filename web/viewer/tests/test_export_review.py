@@ -23,7 +23,7 @@ from django.db import connection
 
 from .base import DiaRUGATestCase
 from . import factories as fx
-from ..models import ObjectReview, RunBatch
+from ..models import DiatomObject, ObjectReview, RunBatch
 
 _SPEC = importlib.util.spec_from_file_location(
     "export_review",
@@ -335,3 +335,131 @@ class ExportSpeciesTest(DiaRUGATestCase):
         doc = json.loads(export_review.render(v))
         self.assertNotIn("species",
                          [o for g in doc["images"] for o in g["objects"]][0])
+
+
+class ExportGradePoseTest(DiaRUGATestCase):
+    """등급·자세가 감사 기록에 실리는가 (2026-08-12).
+
+    **사람이 눈으로 매긴 것이라 재생성 불가다** — `species` 와 같은 무게이고,
+    지금은 **DB 한 곳에만 있다.** 값이 쌓이기 전에 넣는 것이 싸다: 안 넣고
+    수백 건을 매기면 그동안의 판단이 감사 기록에 없다.
+
+    **두 칸의 축이 반대라 사는 곳이 다르다** — 등급은 판정(`ObjectReview`),
+    자세는 개체(`DiatomObject`) 다. 내보내기에서는 둘 다 판정 한 줄에 실린다:
+    개체에 사는 `species`·`label` 이 이미 그 자리에 실리고, **묶음이 아닌 개체는
+    `links` 에 안 나오기 때문**이다(멤버가 하나면 묶음으로 안 센다). 자세를
+    `links` 에만 실으면 **대부분의 개체에서 조용히 사라진다.**
+
+    `species` 와 같은 규칙으로 **매긴 것에만 싣는다** — 그래서 형식 번호를 안
+    올린다(값이 없는 파일은 한 글자도 안 바뀐다).
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=3)
+
+    def export(self):
+        raw = connection.cursor().connection
+        was = raw.row_factory
+        raw.row_factory = sqlite3.Row
+        try:
+            views = export_review.fetch(raw)
+        finally:
+            raw.row_factory = was
+        v = views[(self.w.slug, self.w.vp.idx)]
+        text = export_review.render(v)
+        return json.loads(text), text
+
+    def put(self, grade="", pose="", **kw):
+        """판정 하나를 세운다 — **등급은 판정에, 자세는 개체에** 넣는다."""
+        det = self.w.detection()
+        row = fx.new_review(
+            viewpoint=self.w.vp, image=det.image, batch=det.batch,
+            mask_key=self.w.keys()[0], bind_method="exact", grade=grade, **kw)
+        if pose:
+            DiatomObject.objects.filter(pk=row.diatom_object_id).update(pose=pose)
+        return row
+
+    def objects(self, doc):
+        return [o for g in doc["images"] for o in g["objects"]]
+
+    def test_등급이_실린다(self):
+        self.put(grade="A", label="round")
+        self.assertEqual(self.objects(self.export()[0])[0]["grade"], "A")
+
+    def test_자세가_실린다(self):
+        """개체에 사는 값이 판정 줄로 내려와야 한다 — 묶이지 않은 개체는
+        `links` 에 안 나오므로 여기 없으면 아무 데도 없다."""
+        self.put(pose="girdle", label="round")
+        self.assertEqual(self.objects(self.export()[0])[0]["pose"], "girdle")
+
+    def test_안_매겼으면_키가_아예_없다(self):
+        """**빈 값을 실으면 두 칸이 없는 6,700행이 뜻 없이 다시 쓰인다** —
+        그 diff 에 그 사이의 진짜 변화가 묻힌다 (`species` 와 같은 규칙)."""
+        self.put(label="round")
+        o = self.objects(self.export()[0])[0]
+        self.assertNotIn("grade", o)
+        self.assertNotIn("pose", o)
+
+    def test_종명과_함께_한_줄에_실린다(self):
+        """카드의 편집 칸이 다섯이 됐다 — 셋이 한 줄에 같이 보여야 diff 가 읽힌다."""
+        self.put(grade="B", pose="valve", label="round",
+                 species="Eucampia antarctica")
+        _, text = self.export()
+        lines = [ln for ln in text.split("\n") if '"key":' in ln]
+        self.assertEqual(len(lines), 1, text)
+        for want in ('"grade": "B"', '"pose": "valve"',
+                     '"species": "Eucampia antarctica"'):
+            self.assertIn(want, lines[0])
+
+    def test_묶인_판들은_같은_자세를_나눠_갖는다(self):
+        """자세는 개체의 성질이라 **묶음을 따라 번진다** — 등급은 안 번진다.
+        내보내기가 그 차이를 그대로 보여야 나중에 *"C 인 것들이 자세 때문인가"*
+        를 감사 기록만으로 물을 수 있다.
+        """
+        extra = fx.add_frame_detections(self.w.vp)
+        batch = self.w.detection().batch
+        _, frame_img, _ = extra[0]
+        rows = [
+            fx.new_review(viewpoint=self.w.vp, image=self.w.detection().image,
+                          batch=batch, mask_key=self.w.keys()[0], grade="A",
+                          geom={"bbox_xywh": [40, 50, 60, 40]}),
+            fx.new_review(viewpoint=self.w.vp, image=frame_img, batch=batch,
+                          mask_key=self.w.keys()[0], grade="C",
+                          geom={"bbox_xywh": [41, 51, 60, 40]}),
+        ]
+        obj = fx.link_reviews(rows, rep=0)
+        DiatomObject.objects.filter(pk=obj.pk).update(pose="valve")
+
+        doc, _ = self.export()
+        got = sorted((o["grade"], o["pose"]) for o in self.objects(doc))
+        self.assertEqual(got, [("A", "valve"), ("C", "valve")])
+
+    def test_렌더가_결정적이다(self):
+        """`--check` 는 문자열 대조다 — 두 번 렌더해 다르면 대조가 성립하지 않는다."""
+        self.put(grade="A", pose="valve", label="round")
+        self.assertEqual(self.export()[1], self.export()[1])
+
+    def test_칼럼이_없는_옛_DB_도_읽는다(self):
+        """0034 이전 백업이다. 이 스크립트는 **두 시점을 비교하는 도구**라
+        옛 판을 만나면 멈추지 말고 빈 값을 끼워야 한다.
+
+        **두 칸이 다른 테이블에 있어 갈래도 둘이다** — 등급은
+        `viewer_objectreview`, 자세는 `viewer_diatomobject` 다. 한쪽만 막아
+        두면 나머지 한쪽에서 `no such column` 으로 죽는다.
+        """
+        self.put(grade="A", pose="valve", label="round")
+        raw = connection.cursor().connection
+        was = raw.row_factory
+        raw.row_factory = sqlite3.Row
+        try:
+            raw.execute("ALTER TABLE viewer_objectreview DROP COLUMN grade")
+            raw.execute("ALTER TABLE viewer_diatomobject DROP COLUMN pose")
+            views = export_review.fetch(raw)
+        finally:
+            raw.row_factory = was
+        v = views[(self.w.slug, self.w.vp.idx)]
+        o = self.objects(json.loads(export_review.render(v)))[0]
+        self.assertNotIn("grade", o)
+        self.assertNotIn("pose", o)
