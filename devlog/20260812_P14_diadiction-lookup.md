@@ -102,9 +102,44 @@ md 를 읽어 dict 로 낸다.
 **4.3 남극 도판집에 색인을 만들 것인가.** 우리 자료와 제일 가까운데 md 색인이
 없다. `notes/03` 을 색인 md 로 옮기는 일은 크지 않다(20쪽 · Plate 9장).
 
-**4.4 뷰어 컨테이너가 이 공유를 볼 수 있는가 — 아직 확인 안 했다.** 지금
-`/nfs/temp-share` 는 호스트에만 마운트돼 있다. 이것부터 본다. 못 보면 (a)~(c)가
-전부 성립하지 않는다.
+**4.4 뷰어 컨테이너가 이 공유를 볼 수 있는가 — 확인했다. 못 본다** (2026-08-12).
+
+`web` 컨테이너가 무는 것은 **`/srv/DiaRUGA/db` 와 `/data3/DiaRUGA` 둘뿐**이고
+`/nfs/temp-share` 는 아예 없다. 그러니 (a)~(c)가 지금은 **전부 성립하지 않는다.**
+
+**저장소를 보면 반대로 읽힌다.** `deploy/docker-compose.yml` 에는
+`/nfs/temp-share/DiaRUGA/outcrop` 마운트가 적혀 있다. 그런데 그 파일은 **이미지를
+굽는 구성**이고 머리말이 "운영은 이 파일로 하지 않는다" 고 말한다 — 운영은
+`/srv/DiaRUGA/docker-compose.yml` 이고 **거기에는 그 줄이 없다.**
+
+**그래서 compose 파일을 읽지 말고 도는 것을 읽었다.** `/proc/<pid>/mountinfo` 가
+컨테이너의 실제 마운트를 낸다. sclee 는 docker 를 못 부르지만 이건 볼 수 있다:
+
+```bash
+ps -eo pid,user,args | grep gunicorn          # web 컨테이너의 pid
+grep -E ' /srv| /data3| /nfs' /proc/<pid>/mountinfo | awk '{print $5}' | sort -u
+```
+
+**고치는 법은 한 줄이다.** `/srv/DiaRUGA/docker-compose.yml` 의 `x-common`
+volumes 에 더하고 `web` 만 다시 띄운다 — **이미지를 다시 구울 필요가 없다**
+(마운트는 이미지가 아니라 기동 때 정해진다).
+
+```yaml
+    - /nfs/temp-share/DiaRUGA/Diadiction:/nfs/temp-share/DiaRUGA/Diadiction:ro
+```
+
+`:ro` 인 것이 `outcrop` 과 다른 자리다. 노두 사진은 화면에서 올리고 지우지만
+**도감은 읽기만 한다.** 다만 도감 폴더의 4단계 절차가 `name_validity_log.md` 에
+**쓰는** 것이라, 그 기록까지 뷰어가 이어받을 생각이면 그때 다시 본다.
+
+**`/srv` 는 `paleoadmin` 소유라 `sclee` 가 못 고친다.**
+
+> **곁가지로 나온 것 — 이 계획과는 별개다.** `OUTCROP_DIR` 의 기본값이
+> `/nfs/temp-share/DiaRUGA/outcrop` 인데(`settings.py`) **운영 `web` 에 그
+> 마운트가 없다.** `.env` 가 `DIARUGA_OUTCROP_DIR` 로 딴 데를 가리키지 않는다면
+> 노두 현장 사진이 늘 빈 목록이다. 그리고 `outcrop.py` 가 설계대로 `OSError` 를
+> 삼켜 **오류가 안 뜬다 — 사진이 없는 것과 구분이 안 된다.** `.env` 는
+> `paleoadmin` 전용이라 확인은 그쪽에서 `grep OUTCROP /srv/DiaRUGA/.env`.
 
 ---
 
