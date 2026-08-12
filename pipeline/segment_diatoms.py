@@ -1153,7 +1153,7 @@ def main():
     # **--keep-current 면 이 관문이 필요 없다.** 관문이 있는 이유는 재검출이
     # is_current 를 옮기고 교정을 다시 맺기 때문인데, keep-current 는 둘 다 안
     # 한다 — 쌓아만 둔다. 여기서 걸러 버리면 검토를 마친 264 시야가 전부
-    # 빠져 나가 정작 견주고 싶은 자리가 하나도 안 남는다.
+    # 빠져 나가 정작 비교하고 싶은 자리가 하나도 안 남는다.
     if args.keep_current:
         print("--keep-current: 새 검출을 is_current 로 올리지 않는다. "
               "뷰어와 교정은 그대로다", file=sys.stderr)

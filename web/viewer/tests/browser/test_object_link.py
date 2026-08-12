@@ -315,7 +315,7 @@ class ObjectLinkBrowserTest(BrowserTestCase):
         shot.click()
         page.wait_for_timeout(500)
 
-        # 되살린 것은 개체 상자로 생긴다. **자리는 백분율이다** — 화소로 견주면
+        # 되살린 것은 개체 상자로 생긴다. **자리는 백분율이다** — 화소로 비교하면
         # 늘 어긋난다(그렇게 짰다가 고쳤다).
         boxes = page.evaluate(
             """() => [...document.querySelectorAll('.detview .box')]

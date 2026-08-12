@@ -34,7 +34,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-# 스키마 견주기에서 뺄 표. 장부용이라 두 쪽이 다른 것이 정상이다.
+# 스키마 비교에서 뺄 표. 장부용이라 두 쪽이 다른 것이 정상이다.
 SKIP_PREFIX = ("sqlite_", "django_", "auth_", "migratehistory")
 
 
@@ -116,7 +116,7 @@ def norm_check(expr: str) -> str:
     """CHECK 식을 견줄 수 있게 정규화한다.
 
     따옴표와 공백을 걷어 내고 소문자로. 양쪽에 같은 처리를 하므로 붙어 버리는
-    것은 문제가 되지 않는다 — 견주는 것이 목적이지 읽는 것이 목적이 아니다.
+    것은 문제가 되지 않는다 — 비교하는 것이 목적이지 읽는 것이 목적이 아니다.
     """
     e = re.sub(r'["`\[\]]', "", expr)
     e = re.sub(r"\s+", "", e)
@@ -229,7 +229,7 @@ def load(path: str) -> dict:
     return read_schema(path)
 
 
-# ── 견주기 ───────────────────────────────────────────────────────────
+# ── 비교 ───────────────────────────────────────────────────────────
 class Report:
     def __init__(self):
         self.fail: list[str] = []
@@ -324,7 +324,7 @@ def main() -> int:
     ap.add_argument("left", help="A: .db 또는 --dump 로 뜬 .json")
     ap.add_argument("right", nargs="?", help="B: .db 또는 .json")
     ap.add_argument("--dump", action="store_true",
-                    help="견주지 않고 A 의 스키마를 JSON 으로 뜬다")
+                    help="비교하지 않고 A 의 스키마를 JSON 으로 뜬다")
     ap.add_argument("-o", "--out", help="--dump 의 출력 파일 (기본: 표준출력)")
     ap.add_argument("--strict-types", action="store_true",
                     help="친화도가 아니라 선언 문자열까지 같아야 한다")
@@ -346,7 +346,7 @@ def main() -> int:
         return 0
 
     if not args.right:
-        ap.error("견주려면 B 도 줘야 한다 (또는 --dump)")
+        ap.error("비교하려면 B 도 줘야 한다 (또는 --dump)")
 
     r = compare(load(args.left), load(args.right), args.strict_types,
                 args.allow_extra)

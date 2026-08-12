@@ -198,7 +198,7 @@ class ExportFormat4LinksTest(DiaRUGATestCase):
         return fx.link_reviews(rows, rep=0)
 
     def test_묶음이_이름과_경로로_실린다(self):
-        """id 가 아니라 **이름·경로**다 — 감사 기록은 두 DB 를 견주는 물건이라
+        """id 가 아니라 **이름·경로**다 — 감사 기록은 두 DB 를 비교하는 물건이라
         저장소마다 달라지는 id 를 적으면 diff 가 거짓말을 한다."""
         self.link()
         j, text = self.export()
@@ -317,7 +317,7 @@ class ExportSpeciesTest(DiaRUGATestCase):
         self.assertEqual(self.export()[1], self.export()[1])
 
     def test_칼럼이_없는_옛_DB_도_읽는다(self):
-        """이 스크립트는 **두 시점을 견주는 도구**라 0031 이전 백업도 읽어야 한다.
+        """이 스크립트는 **두 시점을 비교하는 도구**라 0031 이전 백업도 읽어야 한다.
         `PRAGMA table_info` 로 칸을 세어 없으면 빈 값을 끼우는 그 갈래다."""
         self.put(species="Eucampia antarctica")
         raw = connection.cursor().connection

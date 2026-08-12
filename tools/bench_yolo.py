@@ -2,7 +2,7 @@
 
     python bench_yolo.py <cpu|cuda> <가중치> <이미지> [반복] [threads]
 
-운영과 같은 imgsz=1280 · conf 는 견주기에 쓴 0.033.
+운영과 같은 imgsz=1280 · conf 는 비교에 쓴 0.033.
 """
 import sys
 import time
