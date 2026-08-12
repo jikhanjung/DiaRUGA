@@ -27,7 +27,12 @@
 > 없다** — 태그를 밀어야 CI 가 굽는다. 순서가 이렇다.
 >
 > ```bash
-> # (1) 사람이 확인한 뒤 — 지금 fast-forward 로 붙는다 (origin/main 위에 rebase 해 뒀다)
+> # (1) 사람이 확인한 뒤. **`main` 위에 rebase 해 두었으니 fast-forward 로 붙는다** —
+> #     다만 옆 세션이 `main` 에 문서를 계속 올리고 있어 그새 어긋났을 수 있다.
+> #     `--ff-only` 가 거절하면 브랜치를 다시 얹고 시험을 한 번 더 돌린 뒤 붙인다:
+> #       git switch work/20260812-sclee && git rebase origin/main
+> #       python web/manage.py test viewer
+> git fetch origin
 > git switch main && git merge --ff-only work/20260812-sclee && git push origin main
 > # (2) CI 통과를 기다린다 (main push 가 시험을 돌린다. 브라우저 레이어까지)
 > # (3) 통과한 뒤에 태그 — 이때 이미지가 구워진다
