@@ -117,7 +117,9 @@ def keep(rec: dict) -> dict:
         "AphiaID", "scientificname", "authority", "status", "unacceptreason",
         "valid_AphiaID", "valid_name", "valid_authority", "rank",
         "kingdom", "phylum", "class", "order", "family", "genus",
-        "isMarine", "isFreshwater", "isBrackish", "isTerrestrial",
+        # isExtinct 를 빠뜨리면 `extant_only=false` 로 건져 온 화석을 나중에
+        # 구분할 수 없다 — 왜 기본 조회에서 빠졌는지가 이 칸에 있다
+        "isExtinct", "isMarine", "isFreshwater", "isBrackish", "isTerrestrial",
         "citation", "modified",
     )}
 
