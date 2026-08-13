@@ -977,7 +977,10 @@ python ops/db_sentinel.py clear backup_db        # 원인을 확인한 뒤 손�
 3. **뷰어에서 도감을 부른다 (Diadiction · [P14](devlog/20260812_P14_diadiction-lookup.md))** —
    막힌 자리가 하나뿐이다: **`web` 컨테이너가 NAS 의 `Diadiction` 공유를 못 본다.**
    `/srv/DiaRUGA/docker-compose.yml` 에 마운트 한 줄을 더하고 `web` 만 다시 띄우면
-   되고 **이미지는 안 구워도 된다** — `/srv` 는 `paleoadmin` 자리다
+   되고 **이미지는 안 구워도 된다** — `/srv` 는 `paleoadmin` 자리다.
+   **자료 쪽은 준비가 끝났다**([117](devlog/20260813_117_east-antarctic-plate-index.md),
+   2026-08-13): 마지막까지 색인이 없던 동남극 도판집에 색인을 만들어 **도감 셋이
+   다 md 색인을 갖는다.** 마운트가 열리면 바로 `atlas.py` 로 간다
 
 **코드는 누구나 고친다** (`paleoadmin`·`jikhanjung`·`sclee`, 2026-08-12).
 아래 표는 *"이 갈래는 지금 누가 들고 있나"* 이지 **권한이 아니다** — 계정마다

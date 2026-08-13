@@ -170,8 +170,12 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       짚으면 **그 자리에서 도감의 등록 정보와 도판을 본다.**
       자료는 저장소 밖 NAS 에 이미 있다 (`N:\DiaRUGA\Diadiction` =
       `/nfs/temp-share/DiaRUGA/Diadiction`, 2.7 GB) — 한국동식물도감 512종 ·
-      Schmidt Atlas 학명 1,504개 · 동남극 도판집. 붙는 자리는
+      Schmidt Atlas 학명 1,504개 · 동남극 도판집 43종. 붙는 자리는
       **`ClassDef.is_taxon` 이 참인 분류** 하나뿐이다.
+      **P14 4.3(동남극 도판집 색인)은 닫혔다**([117](devlog/20260813_117_east-antarctic-plate-index.md),
+      2026-08-13) — 이제 도감 셋이 다 md 색인을 갖는다. 우리 자료와 제일 가까운
+      그 도감에는 **그림마다 시료의 구간·깊이(cm)** 까지 붙어 있다.
+      **형식은 셋이 같지 않아 파서는 도감마다 하나여야 한다.**
       **막힌 자리가 하나 있다 — 뷰어(`web`)가 이 공유를 못 본다**(확인함,
       P14 4.4). `/srv/DiaRUGA/docker-compose.yml` 에 마운트 한 줄을 더하고 `web`
       만 다시 띄우면 되고 이미지는 안 구워도 되는데, **`/srv` 는 `paleoadmin`
