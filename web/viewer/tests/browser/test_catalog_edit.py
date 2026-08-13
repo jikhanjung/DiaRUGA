@@ -96,13 +96,18 @@ class CatalogEditTest(BrowserTestCase):
 
     def test_그림을_누르면_그_시야로_간다(self):
         """크롭 화면과 같은 자리로 간다. **그림과 g번호 둘 다** — 그림만 링크면
-        말풍선으로만 알 수 있어서, 있는 줄 모르고 안 쓴다."""
+        말풍선으로만 알 수 있어서, 있는 줄 모르고 안 쓴다.
+
+        **`endswith` 로 보지 않는다** (118). 링크가 개체까지 들고 가면서
+        (`?obj=…&img=…`) 주소 끝이 시야가 아니게 됐다 — 무엇을 짚어 가는지는
+        `tests/test_highlight_link.py` 가 본다. 여기서 보는 것은 **그 시야로
+        가는가** 뿐이다.
+        """
         page = self.open_catalog()
         card = self.first_card(page)
         want = f"/d/{self.w.slide.slug}/g/0/"
-        self.assertTrue(card.locator(".pic").get_attribute("href").endswith(want))
-        self.assertTrue(
-            card.locator(".meta .togroup").get_attribute("href").endswith(want))
+        self.assertIn(want, card.locator(".pic").get_attribute("href"))
+        self.assertIn(want, card.locator(".meta .togroup").get_attribute("href"))
         card.locator(".meta .togroup").click()
         page.wait_for_load_state("load")
         self.assertIn(want, page.url)

@@ -1134,6 +1134,78 @@
     color: #ffd9d9; margin-top: 2px;
   }
 
+  /* --- 링크가 짚어 온 개체 (118) ---
+     카탈로그·크롭·계측 표에서 사진을 눌러 온 자리를 짚어 준다. 시야 하나에
+     개체가 수십 개라 표시가 없으면 그중 어느 것이었는지 다시 찾아야 했다.
+
+     **색을 테마에서 빌리지 않는다.** 여기 배경은 테마가 아니라 현미경 사진이다
+     (`.box.linked::after` 와 같은 자리, 107 과는 반대 방향). 청록은 분류 색
+     어디와도 안 겹친다 — 봉상(파랑)·원형(초록)·Eucampia(분홍)·수동복구(주황)·
+     선택(노랑)이 이미 자리를 잡고 있다.
+
+     **`outline` 이다 — `border` 가 아니다.** 테두리는 분류를 나타내는 자리라
+     덮어쓰면 그 개체가 무엇으로 판정됐는지가 화면에서 사라진다. 바깥에 한 겹
+     더 두르면 둘 다 읽힌다. bbox 레이어를 꺼도(`.hide-box`) 남는 것도 그래서다
+     — 표시는 레이어가 아니라 "지금 이것을 보러 왔다" 는 말이다.
+
+     두께에 `--inv`(=1/배율)를 곱한다 — 확대하면 선까지 같이 굵어진다. */
+  .detview .box.hl {
+    outline: calc(2.5px * var(--inv, 1)) solid rgba(0,229,255,.95);
+    outline-offset: calc(3px * var(--inv, 1));
+    animation: hlpulse 1.2s ease-in-out infinite;
+  }
+  @keyframes hlpulse {
+    0%, 100% { box-shadow: 0 0 calc(9px * var(--inv, 1)) calc(2px * var(--inv, 1)) rgba(0,229,255,.55); }
+    50%      { box-shadow: 0 0 calc(20px * var(--inv, 1)) calc(6px * var(--inv, 1)) rgba(0,229,255,.12); }
+  }
+  /* 움직임을 줄여 달라고 한 사람에게는 깜빡이지 않고 굵게 두른다 — 표시가
+     사라지면 안 되므로 애니메이션만 걷는다. */
+  @media (prefers-reduced-motion: reduce) {
+    .detview .box.hl {
+      animation: none;
+      box-shadow: 0 0 calc(9px * var(--inv, 1)) calc(2px * var(--inv, 1)) rgba(0,229,255,.6);
+    }
+  }
+  /* 무슨 표시인지 말한다. **`display` 를 잡지 않는다** — 클래스 규칙이
+     `display` 를 잡으면 브라우저 기본 `[hidden] { display: none }`(특이도
+     (0,0,1))이 져서, JS 가 감춰도 그대로 보인다 (CLAUDE.md 의 함정). */
+  /* **사진 위에 얹는다 — 사진 밖의 블록이 아니다.** 밖에 두면 뜰 때와 걷힐 때
+     사진이 위아래로 밀리는데, 이 말은 **누르면 사라지는 말**이라 사람이 개체를
+     누르는 순간 화면이 통째로 움직인다.
+
+     교정 도구(`.tools`, 좌상단)를 비켜 한 줄 아래에 선다. 겹쳐도 클릭은
+     통과하지만(`pointer-events: none`) 버튼 글자를 가린다. */
+  .detview .hlflag {
+    position: absolute; left: 50%; top: 46px; z-index: 6;
+    transform: translateX(-50%); pointer-events: none; text-align: center;
+    max-width: calc(100% - 40px); padding: 5px 14px 6px; border-radius: 8px;
+    font-size: 12.5px; line-height: 1.35;
+    background: rgba(0,0,0,.72); color: #baf4ff;
+    border: 1px solid rgba(0,229,255,.6);
+  }
+  .detview .hlflag.bad {
+    color: #ffd9d9; border-color: rgba(255,95,95,.7);
+  }
+  /* **버튼만 눌림을 받는다.** 줄 전체가 `pointer-events: none` 이라 사진 위를
+     덮고 있어도 클릭이 그대로 통과하는데, 버튼은 눌려야 한다. */
+  .detview .hlflag button {
+    display: block; margin: 5px auto 0; pointer-events: auto;
+    font: inherit; font-size: 12px; line-height: 1; padding: 4px 12px;
+    border-radius: 999px; cursor: pointer;
+    background: rgba(0,229,255,.14); color: #d6faff;
+    border: 1px solid rgba(0,229,255,.75);
+  }
+  .detview .hlflag button:hover { background: rgba(0,229,255,.3); }
+  /* **`display` 를 잡았으니 `[hidden]` 을 명시한다.** 브라우저 기본
+     `[hidden] { display: none }` 은 특이도 (0,0,1) 이라 위 규칙에 진다 —
+     감추라고 해 놓고 그대로 보이는 그 자리다 (CLAUDE.md · `.catcard .row` 와
+     같은 처방). */
+  .detview .hlflag button[hidden] { display: none; }
+  /* 읽기 전용 표시가 떠 있으면 그 아래로 내려간다 — 겹치면 "저장이 안 되는
+     화면" 이라는 말을 가린다. `~` 로 잡는 것은 `.hlflag` 가 DOM 에서 뒤에
+     있어서다(`_detection.html`). 표시가 감춰져 있으면(`[hidden]`) 안 걸린다. */
+  .detview .roflag:not([hidden]) ~ .hlflag { top: 62px; }
+
   /* --- 교정 도구 (사진 좌상단) ---
      사진에서 눈을 떼지 않고 조작하려면 버튼이 사진 위에 있어야 한다.
      캔버스의 확대·선택 판정이 버튼 클릭을 삼키지 않게 JS 에서 전파를 끊는다. */

@@ -205,8 +205,17 @@
 {% for r in rows %}
   <div class="catcard{% if r.cls %} {{ r.cls }}{% endif %}"
        data-gid="{{ r.group_id }}" data-image="{{ r.image_id }}" data-key="{{ r.key }}">
-    <a class="pic" href="{% url 'group' slug r.group_id %}"
-       title="g{{ r.group_id }} · 장축 {{ r.major_um }} µm · 눌러서 그 시야로">
+    {% comment %}
+      **개체를 들고 간다** (118). 시야만 열면 거기 개체가 수십 개라 어느 것을
+      보고 눌렀는지 다시 찾아야 했다 — `obj`(개체 키)와 `img`(그 개체가 있는
+      판)를 함께 보내면 검토 화면이 그 자리를 표시하고, 다른 판의 개체면
+      캐러셀을 그 판으로 옮긴다.
+
+      **둘이 함께 가야 한다.** 시야 하나에 판이 여럿이라(합성본 + 프레임마다
+      하나) 키만 보내면 지금 열린 판에서만 찾는다.
+    {% endcomment %}
+    <a class="pic" href="{% url 'group' slug r.group_id %}?obj={{ r.key|urlencode }}&amp;img={{ r.image_id|default_if_none:'' }}"
+       title="g{{ r.group_id }} · 장축 {{ r.major_um }} µm · 눌러서 그 시야로 — 이 개체를 표시합니다">
       <span class="cimg">
         <img loading="lazy" src="{% cropurl r.src_rel r.src_bbox 300 r.rot r.out %}"
              alt="{{ r.catalog_no|default:r.key }}">
@@ -258,8 +267,8 @@
         <textarea class="note" rows="1" maxlength="500"
                   {% if readonly %}disabled{% endif %}>{{ r.note }}</textarea></div>
       <div class="meta">
-        <a class="togroup" href="{% url 'group' slug r.group_id %}"
-           title="이 개체가 있는 시야를 연다">g{{ r.group_id }} →</a>
+        <a class="togroup" href="{% url 'group' slug r.group_id %}?obj={{ r.key|urlencode }}&amp;img={{ r.image_id|default_if_none:'' }}"
+           title="이 개체가 있는 시야를 열고 그 개체를 표시한다">g{{ r.group_id }} →</a>
         <span>{{ r.major_um }} µm</span>
         {% if r.frame_seq is not None %}<span>프레임 {{ r.frame_seq }}</span>{% endif %}
         {% if r.linked_n %}<span title="같은 개체로 묶인 판 {{ r.linked_n }}장 중 가장 크게 보이는 것을 그린다">묶음 {{ r.linked_n }}</span>{% endif %}

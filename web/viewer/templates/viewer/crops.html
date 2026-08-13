@@ -55,9 +55,13 @@
 
 <div class="crops">
 {% for r in rows %}
+  {% comment %}
+    **개체를 들고 간다** (118). `obj`(개체 키)·`img`(그 개체가 있는 판)를 함께
+    보내면 검토 화면이 그 자리를 표시한다 — 근거는 `catalog.html` 의 같은 자리.
+  {% endcomment %}
   <a class="crop{% if r.cls %} {{ r.cls }}{% endif %}{% if r.manual %} manual{% endif %}"
-     href="{% url 'group' slug r.group_id %}"
-     title="g{{ r.group_id }} · {{ r.stem }} · 장축 {{ r.major_um }} µm · 단축 {{ r.minor_um }} µm · 신장비 {{ r.elongation }} · 텍스처 {{ r.texture }}">
+     href="{% url 'group' slug r.group_id %}?obj={{ r.key|urlencode }}&amp;img={{ r.image_id|default_if_none:'' }}"
+     title="g{{ r.group_id }} · {{ r.stem }} · 장축 {{ r.major_um }} µm · 단축 {{ r.minor_um }} µm · 신장비 {{ r.elongation }} · 텍스처 {{ r.texture }} · 눌러서 그 시야로 — 이 개체를 표시합니다">
     {% comment %}
       스케일바는 칸이 아니라 **이미지**에 붙는다. 칸에 붙이면 여백(letterbox)만큼
       길이가 어긋난다. 감싼 요소가 이미지를 꼭 감싸므로 % 가 곧 이미지 폭이다.

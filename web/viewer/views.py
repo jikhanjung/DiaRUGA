@@ -329,6 +329,32 @@ def core_page(request, site_code, core_code):
     })
 
 
+def _highlight_arg(request):
+    """링크가 짚어 온 개체 — `?obj=<mask_key>&img=<이미지>` (118).
+
+    카탈로그·크롭·계측 표에서 사진을 누르면 그 시야로 오는데, **거기 개체가
+    수십 개라 어느 것을 보고 눌렀는지 다시 찾아야 했다** (사용자 보고
+    2026-08-13). 링크가 개체와 그 개체가 있는 판을 함께 나르고 화면이 그 자리를
+    표시한다.
+
+    **`img` 가 함께 가야 한다.** 시야 하나에 판이 여럿이고(합성본 + 프레임마다
+    하나) 교정도 판마다 따로다 — 키만 보내면 화면은 지금 열린 판에서만 찾고,
+    프레임에서 잡힌 개체는 "못 찾았다" 가 된다.
+
+    **서버는 그 값이 실제로 있는지 안 본다.** 어느 판에 무엇이 있는지는 화면이
+    이미 들고 있고(`shot_dets`), 못 찾으면 화면이 그렇게 적는다. 여기서 404 를
+    내면 **적어 둔 링크 하나가 낡았다는 이유로 시야 전체를 못 열게 된다** —
+    표시는 곁들이는 것이지 이 화면이 서는 조건이 아니다.
+    """
+    key = (request.GET.get("obj") or "").strip()
+    # 64 는 `ReviewMark.mask_key` 의 폭이다. 그보다 긴 것은 이 DB 에 있을 수
+    # 없는 값이라 찾을 것도 없다.
+    if not key or len(key) > 64:
+        return None
+    img = (request.GET.get("img") or "").strip()
+    return {"key": key, "image": img if img.isdigit() else ""}
+
+
 def group(request, slug, gid):
     """검토 화면. `?batch=<실행 번호>` 로 **엔진을 갈아 끼운다** (051).
 
@@ -371,6 +397,9 @@ def group(request, slug, gid):
     # 아무 것도 안 켜져 있으면(=?batch= 가 없으면) 현재 검출을 보고 있는 것이다
     ctx["engine_now"] = (next((e for e in engines if e["on"]), None) if run_id
                          else next((e for e in engines if e["current"]), None))
+    # 링크가 짚어 온 개체 (118). 읽기 전용 갈래(`?batch=`)에도 그대로 얹는다 —
+    # 표시는 보는 일이지 고치는 일이 아니다.
+    ctx["hl"] = _highlight_arg(request)
     return render(request, "viewer/group.html", ctx)
 
 
