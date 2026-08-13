@@ -19,6 +19,11 @@ DiatomBase/WoRMS** 다. 여기서 모은 것은 **근거**이고, 엇갈리거�
   거르지 않으면 `Chaetoceras`(홍조류)에 규조 55종이 붙는다
 - **"accepted" 는 "그 이름을 쓰라" 가 아니다.** `status` 와 `valid_name` 을
   함께 본다 — `unaccepted` 인데 `valid_name` 이 변종으로 내려가는 경우가 있다
+- **`extant_only=false` 를 빠뜨리면 화석이 통째로 빠진다.** WoRMS 는 2025-02-28
+  부터 이 옵션을 받는데, **안 주면 기본이 현생종만**이다. 이걸 빠뜨리고 돌렸다가
+  *Actinocyclus ingens*·*Denticulopsis hustedtii* 같은 것이 "없음" 으로 나왔고,
+  **그것을 DB 의 빈자리로 잘못 읽었다**(119 §1 정정). Schmidt 는 화석 해양규조
+  비중이 큰 도감이라 이 한 글자가 결과를 크게 바꾼다
 - **없는 것도 자료다.** 조회해서 안 나온 이름은 `records: []` 로 남긴다.
   다시 물을 필요가 없고, 오기를 가르는 근거가 바로 이것이다
 
@@ -90,7 +95,8 @@ def read_names(root: Path) -> dict[str, set[str]]:
 
 def ask(batch: list[str], retries: int = 3) -> list[list[dict]]:
     q = "&".join("scientificnames%5B%5D=" + urllib.parse.quote(n) for n in batch)
-    url = f"{API}?{q}&marine_only=false"
+    # extant_only=false 가 없으면 화석이 빠진다 — 머리말의 함정을 볼 것
+    url = f"{API}?{q}&marine_only=false&extant_only=false"
     for attempt in range(retries):
         try:
             with urllib.request.urlopen(url, timeout=60) as r:
@@ -123,6 +129,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="이번에 물을 최대 개수 (0=전부)")
     ap.add_argument("--sleep", type=float, default=0.5, help="배치 사이 쉬는 시간(초)")
     ap.add_argument("--report", action="store_true", help="안 묻고 있는 것만 요약")
+    ap.add_argument("--retry-misses", action="store_true",
+                    help="못 찾았던 것만 다시 묻는다 (질의 조건을 고친 뒤)")
     args = ap.parse_args()
 
     if not args.root.exists():
@@ -139,6 +147,13 @@ def main() -> int:
     if args.out.exists():
         done = json.loads(args.out.read_text(encoding="utf-8"))
         print(f"이미 물어 둔 것 {len(done)}개 — 건너뛴다")
+
+    if args.retry_misses:
+        # 질의 조건이 바뀌면 "없음" 은 더 이상 근거가 아니다 — 다시 묻는다
+        stale = [n for n, v in done.items() if not v["records"]]
+        for n in stale:
+            del done[n]
+        print(f"못 찾았던 {len(stale)}개를 다시 묻는다")
 
     if not args.report:
         todo = [n for n in sorted(names) if n not in done]
