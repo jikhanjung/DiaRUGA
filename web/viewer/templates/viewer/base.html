@@ -29,6 +29,9 @@
        획과 밝은 바탕에 얹는 어두운 획은 같은 알파로 같게 안 보인다. 어두운
        쪽이 더 잘 드러나므로 값이 더 작다. */
     --wm-op: .045;
+    /* 자리 이름 워터마크(.envwm)의 진하기. `--wm-op` 와 같은 이유로 테마마다
+       따로 주고, **값이 훨씬 크다** — 저것은 바탕이고 이것은 경고다. */
+    --envwm-op: .17;
     /* 코어 묶음 머리줄의 옅은 면. 밟을 것 셋이 있어 값을 여기 둔다:
        - **테마가 둘이다.** 색을 박으면 한쪽에서 사라진다 — 아래 밝은 테마에도
          반드시 함께 준다(배너들이 이미 그렇게 되어 있다)
@@ -48,6 +51,7 @@
       --warn-bg: #fdf3e0; --warn-fg: #7c4a03; --warn-line: #e8c98a;
       --field-bg: #fff;
       --wm-op: .06;
+      --envwm-op: .14;
       --group-bg: #eaecf1; --group-bg-hi: #e0e3ea;
     }
   }
@@ -126,6 +130,30 @@
   .watermark .wordmark {
     font-size: min(11vmin, 96px); line-height: 1;
     letter-spacing: .06em; white-space: nowrap;
+  }
+
+  /* 자리 이름 워터마크 — **여기가 운영이 아니라는 것**을 화면 전체에 알린다.
+     `DIARUGA_ENV_LABEL` 이 있을 때만 나온다 (viewer/context.py 머리말).
+
+     위의 `.watermark`(로고)와 **자리가 반대다**:
+       - 로고는 `z-index: -1` 이라 바탕에 깔린다. 그래도 되는 것이 장식이라서다
+       - 이것은 **글 위에 얹는다.** 바탕에 깔면 패널·사진이 덮어 버려서, 정작
+         오래 머무는 검토 화면에서 안 보인다 — 그 화면이 가장 위험한 자리다
+     그래서 `pointer-events: none` 이 여기서는 선택이 아니다. 검토 화면은
+     캔버스 전체에 클릭·드래그를 걸고, 이것이 그 위를 덮고 있다. */
+  .envwm {
+    position: fixed; inset: 0; z-index: 9000;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none; overflow: hidden;
+  }
+  /* 색은 `--danger` 를 빌린다. 중립 면이라면 뜻 있는 색을 빌리지 말아야 하지만
+     (위 `--group-bg` 주석) 이것은 **경고가 곧 내용**이라 그 자리가 맞다.
+     기울기는 `vmin` 글자 크기와 짝이다 — 가로로 긴 화면에서 넘치지 않는다. */
+  .envwm span {
+    transform: rotate(-30deg);
+    font-size: min(15vmin, 180px); font-weight: 800; line-height: 1;
+    letter-spacing: .08em; white-space: nowrap;
+    color: var(--danger); opacity: var(--envwm-op);
   }
 
   header .sub { font-size: 13px; color: var(--dim); min-width: 0; }
@@ -1545,6 +1573,12 @@
   svg 도 제 안에서 한 번 더 감춘다. 규칙은 base.html 의 .watermark 에 있다.
 {% endcomment %}
 <div class="watermark" aria-hidden="true">{% include "viewer/_logo.html" %}<span class="wordmark">DiaRUGA</span></div>
+{% comment %}
+  자리 이름 워터마크. **위의 로고 워터마크와 달리 `aria-hidden` 이 아니다** —
+  저것은 장식이지만 이것은 *여기가 운영이 아니다* 라는 내용이고, 화면 어디에도
+  달리 적히지 않는다. 화면을 못 보는 사람에게도 같이 가야 한다.
+{% endcomment %}
+{% if env_label %}<div class="envwm"><span>{{ env_label }}</span></div>{% endif %}
 <header>
   <h1><a href="{% url 'index' %}">{% include "viewer/_logo.html" %}<span class="wordmark">DiaRUGA</span></a>{% if image_tag %}<span class="ver" title="지금 떠 있는 뷰어 이미지의 판">{{ image_tag }}</span>{% endif %}</h1>
   <span class="sub">{% block subtitle %}{% endblock %}</span>

@@ -227,6 +227,10 @@ echo "http://172.16.116.98:$PORT/"
 - **`IMAGE_TAG` 가 없으면 판이 화면에 안 뜬다** — 자리는 원래 있다
   (`base.html` 의 `{{ image_tag }}` · `viewer/context.py`). 운영과 눈으로 갈리게
   `-dev` 와 커밋을 붙인다
+- **`Test Server` 워터마크가 저절로 뜬다** — `DEBUG` 가 켜져 있으면 이름을 안 적어도
+  화면 전체에 빨간 글자가 대각선으로 얹힌다(`viewer/context.py` · `.envwm`).
+  **끄지 않는다** — 이 화면을 운영으로 알고 검토하면 그 교정이 아무 데도 안 남는다.
+  다른 이름을 쓰고 싶으면 `DIARUGA_ENV_LABEL` 을 준다
 - **`DEBUG=1` 인 서버가 사내망에 열린다.** 볼 일이 끝나면 내린다
 - **`pkill -f "runserver …"` 는 자기 명령줄까지 잡아 셸을 죽인다** — 실제로 두 번
   당했다. `pkill -f "runserver 0.0.0.0:805[1]"` 처럼 **패턴을 비껴 쓴다**
