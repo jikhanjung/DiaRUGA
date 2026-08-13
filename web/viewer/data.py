@@ -3355,8 +3355,22 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
     문**이다. `judgement_for` 는 행마다 개체를 새로 세우므로(P12) 그대로 두면
     판 수만큼 개체가 서서 "안 묶인 여럿" 이 된다.
 
-    **대표는 그린 판이다.** 기준이 된 판이라 그렇고, 그 판을 지우면
-    `_reelect_reps` 가 다시 세운다.
+    ## 대표는 합성본이다 — 그린 판이 아니라 (실사용 2026-08-13)
+
+    처음에는 **그린 판**을 대표로 삼았다("기준이 된 판이라 그렇다"). 그런데
+    `src` 는 *그린 판*이 아니라 **저장할 때 열려 있던 판**이다. 08-09 에
+    합성본에 그린 마스크를 오늘 프레임 판을 열어 둔 채 저장하니 그 프레임이
+    `src` 가 되고, 합성본이 target 으로 밀리면서 **대표가 조용히 옮겨갔다** —
+    실사용에서 개체 아홉이 그렇게 흐린 단일 프레임을 얼굴로 갖게 됐다.
+    새 대표는 가장 선명한 프레임도 아니었다. 그때 열려 있던 판일 뿐이다.
+
+    `is_rep` 은 **"학습 자료로 뽑을 때, 목록에 보일 때 이 판을 쓴다"** 이므로
+    (`ObjectReview.is_rep` 머리말) 고를 기준은 *어디서 눌렀나* 가 아니라
+    **어느 판이 이 규조각을 가장 잘 보여주나** 여야 한다. 합성본이 그것이다 —
+    all-in-focus 로 합친 그림이고, 판 넷 중 하나를 고르는 문제가 아니다.
+
+    합성본이 없는 시야(싱글턴·아직 안 합친 것)는 `src` 를 그대로 쓴다. 그 판을
+    지우면 `_reelect_reps` 가 다시 세운다.
 
     ## 반쪽으로 넣으면 잃는다
 
@@ -3376,18 +3390,25 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
     if not targets:
         return {}
 
+    # **얼굴이 될 판을 먼저 정한다** (머리말 "대표는 합성본이다"). `src` 는
+    # 저장할 때 열려 있던 판일 뿐이라 그것으로 정하면 판을 옮겨 다닐 때마다
+    # 대표가 따라다닌다. 합성본이 없으면 `src` 가 그대로 대표다.
+    rep_image_id = next((t.pk for t in targets if t.kind == "stack"), None)
+    if rep_image_id is None:
+        rep_image_id = src_id
+
     out = {}
     for key, geom, cls in keep:
         src = ObjectReview.objects.select_related("diatom_object").get(
             image_id=src_id, batch__isnull=True, mask_key=key)
-        rows = [(src, True)]
+        rows = [(src, src_id == rep_image_id)]
         for tgt in targets:
             row = judgement_for(vp, tgt, None, key)
             row.source = "manual"
             row.bind_method = "manual"
             row.geom = geom
             row.save()
-            rows.append((row, False))
+            rows.append((row, tgt.pk == rep_image_id))
             out.setdefault(str(tgt.pk), []).append(
                 {"key": key, "cls": cls, "geom": geom})
         # **저장할 때마다 다시 번지지 않는다** — `judgement_for` 가 있는 행을

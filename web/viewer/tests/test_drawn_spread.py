@@ -88,11 +88,40 @@ class DrawnSpreadTest(DiaRUGATestCase):
         objs = {r.diatom_object_id for r in self.rows()}
         self.assertEqual(len(objs), 1, f"개체가 갈렸다: {objs}")
 
-    def test_대표는_그린_판이다(self):
+    def test_대표는_합성본이다(self):
         self.post(drawn=[self.draw()])
         reps = [r for r in self.rows() if r.is_rep]
         self.assertEqual(len(reps), 1, "대표가 하나가 아니다")
         self.assertEqual(reps[0].image_id, self.stack.pk)
+
+    def test_프레임에서_저장해도_대표는_합성본이다(self):
+        """**실사용에서 난 자리다** (2026-08-13 · AM22-GC10B 25cm g028).
+
+        예전에는 `src`(= 저장할 때 열려 있던 판)를 대표로 삼았다. 08-09 에
+        합성본에 그린 마스크를 오늘 프레임 판을 열어 둔 채 저장하니 대표가
+        그 프레임으로 **조용히 옮겨갔다** — 개체 아홉이 흐린 단일 프레임을
+        얼굴로 갖게 됐고, 그것이 카탈로그 크롭이자 학습 자료로 뽑힐 판이다.
+
+        예외도 경고도 없다. 대표는 개체당 하나라는 제약을 계속 지키므로
+        `check_db` 8번에도 안 걸린다.
+        """
+        frame = self.frames[0]
+        self.post(image=frame, drawn=[self.draw()])
+        reps = [r for r in self.rows() if r.is_rep]
+        self.assertEqual(len(reps), 1, "대표가 하나가 아니다")
+        self.assertEqual(
+            reps[0].image_id, self.stack.pk,
+            "프레임에서 저장했더니 대표가 합성본에서 그 프레임으로 옮겨갔다")
+
+    def test_판을_옮겨_다시_저장해도_대표가_안_따라다닌다(self):
+        """**같은 고장의 두 번째 판**. 합성본에서 그린 뒤 프레임으로 넘어가
+        저장하는 것이 실사용의 순서였다 — 한 번은 맞고 다음 저장에 틀리면
+        "되는 경우도 있고 아닌 경우도" 가 된다."""
+        self.post(drawn=[self.draw()])                    # 합성본에서 그린다
+        self.post(image=self.frames[1], drawn=[self.draw()])   # 판을 옮겨 저장
+        reps = [r for r in self.rows() if r.is_rep]
+        self.assertEqual([r.image_id for r in reps], [self.stack.pk],
+                         "판을 옮겨 저장했더니 대표가 따라갔다")
 
     def test_분류는_개체에_한_벌만_앉는다(self):
         """P12 뒤로 분류는 개체에 산다 — 번져도 고칠 것이 없어야 한다."""
