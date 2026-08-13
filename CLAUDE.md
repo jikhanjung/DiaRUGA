@@ -87,6 +87,7 @@
 | 검출기를 학습시킨다 | `devlog/20260803_P04_yolo-training.md`, `023`(자료 꾸러미), `025`(첫 판 성적) |
 | 이미지·검출·교정의 관계를 만진다 | `devlog/20260805_P06_*`(계획·결정), `055`(실행), `models.py` 의 `Image` |
 | 데스크탑 앱을 만든다 | `devlog/20260805_P05_desktop-app.md` (계획), `docs/20260805_desktop-app-review.md` (근거), `049`(CPU 실측), `.guides/desktop/` |
+| 판을 내보낸다 | **`docs/20260813_release-flow.md`** (절차 · 태그가 이미지를 만든다) |
 | 배포·백업을 만진다 | `.guides/web/`, `devlog/20260803_019_*`, `20260804_034_smoke-and-sentinel.md` |
 | 파이프라인 알고리즘 | `docs/20260811_pipeline-rationale.md` (스크립트마다 "왜 이렇게 했는가" · 판정 기준·실측·성능이 함께 있다) |
 | 뷰어 화면이 왜 그런가 | `docs/20260811_viewer-guide.md` (지금 어떤 화면이 있는지는 `HANDOFF.md` 2절) |
@@ -189,8 +190,12 @@ deploy/host/sync_to_srv.sh                       # 저장소 → /srv (개발 �
 /srv/DiaRUGA/bin/sync_to_srv.sh --from-image <판>  # 이미지 → /srv (저장소가 없어도 된다)
 python ops/db_sentinel.py show                      # 백업이 세운 무결성 깃발이 있는가
 
-docker compose -f deploy/docker-compose.yml build web   # 이미지 굽기는 저장소에서
+docker compose -f deploy/docker-compose.yml build web   # 눌러 볼 때만. 릴리스는 이걸로 안 한다
 ```
+
+**판을 내보내는 것은 `docs/20260813_release-flow.md` 하나를 따른다.** 손으로
+굽지 않는다 — **`v*` 태그를 밀면** CI 가 시험을 돌리고 굽고 Docker Hub 로
+올리며(`main` push 는 굽기만 한다), `deploy.sh` 가 그것을 받아 갈아 끼운다.
 
 ### 저장소 소스를 그대로 사내망에 띄운다 (Django 개발 서버)
 
