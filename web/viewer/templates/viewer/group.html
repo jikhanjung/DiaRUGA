@@ -110,6 +110,18 @@
   교정은 mask_key(bbox 문자열)로 붙는데 엔진이 다르면 거의 전부 어긋나기
   때문이다 (`data.group_detail` 머리말).
 {% endcomment %}
+{% comment %}
+  링크가 짚어 온 개체 (118). 카탈로그·크롭·계측 표에서 사진을 눌러 온 길이다 —
+  `_detection.html` 이 이 키의 개체를 찾아 표시하고, 그 개체가 다른 판에 있으면
+  캐러셀을 그 판으로 옮긴다.
+
+  **읽기 전용 갈래 앞에 둔다.** 두 갈래가 같은 `uid`("stack")로 조각을 들이므로
+  여기 한 번만 적으면 양쪽에 다 걸린다 — 갈래마다 적으면 한쪽만 고치는 날이 온다.
+{% endcomment %}
+{% if hl %}
+<script type="application/json" id="hl-stack">{{ hl|json_dumps }}</script>
+{% endif %}
+
 {% if readonly %}
   <style>
     /* 도구를 통째로 잠근다. 사진과 마스크는 그대로 본다.

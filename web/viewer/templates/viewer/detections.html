@@ -35,7 +35,12 @@
     <tbody>
     {% for r in rows %}
       <tr>
-        <td><a href="{% url 'group' slug r.group_id %}">g{{ r.group_id }}</a></td>
+        {% comment %}
+          **개체를 들고 간다** (118). 이 표는 줄마다 개체 하나라 시야만 열면
+          어느 줄을 눌렀는지 화면에서 잃는다 — 근거는 `catalog.html` 의 같은 자리.
+        {% endcomment %}
+        <td><a href="{% url 'group' slug r.group_id %}?obj={{ r.key|urlencode }}&amp;img={{ r.image_id|default_if_none:'' }}"
+               title="이 개체가 있는 시야를 열고 그 개체를 표시한다">g{{ r.group_id }}</a></td>
         <td class="mono dim">{{ r.stem }}</td>
         <td>{{ r.long_side_um }}</td>
         <td>{{ r.short_side_um }}</td>
