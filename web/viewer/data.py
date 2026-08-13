@@ -2889,6 +2889,46 @@ def mark_all_reviewed(slug: str, done: bool) -> dict | None:
 
 
 # --- 교정 저장 --------------------------------------------------------------
+def save_done(vp: Viewpoint, done: bool) -> dict:
+    """**검토 완료 표시 하나만 쓴다** — 교정은 손대지 않는다 (116 덧).
+
+    ## 완료와 교정은 층이 다르다
+
+    완료는 `(시야, 묶음)` **한 줄**이고(073) 교정은 `(이미지, 묶음)` 마다다.
+    그런데 `/review` 가 둘을 한 payload 로 받고 있었다 — 표시 하나를 켜는
+    요청이 **그 판의 교정 전체를 갈아치우는** 요청이기도 했다(`save_review` 의
+    마지막 줄이 payload 에 없는 행을 지운다).
+
+    그래서 "어느 판을 고르고 있나" 가 완료에까지 걸렸고, 갈래 둘이 났다.
+
+    1. 지나가는 판을 거르는 자리(074)가 **완료까지 삼켰다** — 화면은 완료로
+       바뀌고 다음 시야로 넘어가는데 서버는 요청을 못 받는다 (116)
+    2. **검출이 없는 판**(깊이 맵)을 고르면 화면이 `image` 를 못 실어 저장이
+       **대표 이미지**로 가고, 그 판의 교정이 지워진다 — 116 을 검토하다
+       사본에서 재현했다(합성본 교정 2건 → 0건, 2026-08-13)
+
+    **켜는 데 지울 것이 딸려 갈 이유가 없다.** 판의 교정은 400 ms 지연 저장과
+    판을 옮길 때의 `flushSave` 가 이미 내보낸다.
+
+    ## 묶음은 화면이 안 짚는다
+
+    검토 대상 묶음이 곧 그것이다 — `current_detections` 가 이미 거기로 좁힌다.
+    화면이 짚게 하면 완료가 다시 "어느 판을 보고 있나" 에 매달린다. 대신
+    **현재 검출이 없으면 오류로 말한다**: 조용히 아무 묶음에나 찍으면 무엇을 다
+    봤다는 말인지가 없다 (`mark_all_reviewed` 와 같은 규칙).
+    """
+    cur = representative_detection(vp)
+    if cur is None:
+        raise ValueError("이 시야에는 현재 검출이 없다 — 저장하지 않았다")
+    if cur.batch is None:
+        raise ValueError(
+            "이 시야의 현재 검출이 묶음(batch)에 안 들어 있다 — 저장하지 "
+            "않았다. batch_runs.py 로 묶은 뒤 다시 시도할 것")
+    ViewpointReview.objects.update_or_create(
+        viewpoint=vp, batch=cur.batch, defaults={"done": done})
+    return {"done": done}
+
+
 def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
                 labels: dict, notes: dict | None = None, image=None,
                 drawn=None, edits=None) -> dict | None:

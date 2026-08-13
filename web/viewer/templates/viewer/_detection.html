@@ -955,8 +955,15 @@
     // 띠를 볼 사람이 없다 — 자국 없이 잃는 것이 이 저장소가 되풀이해 당한
     // 자리다(051·실사용 2026-08-10). `postReview` 는 실패를 예외가 아니라
     // `savePending` 으로 남기므로 그것을 본다.
-    function go() { if (!savePending) location.href = url; }
-    flushSave(true).then(go, go);
+    //
+    // **떠났는가를 돌려준다** (116 덧) — 안 떠났으면 부르는 쪽이 자기 화면을
+    // 되돌려야 한다(엔진 라디오가 그렇다).
+    function go() {
+      if (savePending) return false;
+      location.href = url;
+      return true;
+    }
+    return flushSave(true).then(go, go);
   }
 
   function flashNote(msg) {
@@ -1349,6 +1356,9 @@
     }
   }
 
+  // 규격의 keepalive 상한은 64 KiB 다. 헤더·인코딩 여유를 두고 잡는다.
+  var KEEPALIVE_MAX = 60000;
+
   function postReview(keepalive) {
     savePending = false;
     if (readOnly) {
@@ -1365,61 +1375,73 @@
       ? shotState[curKey]
       : { cands: cands, removed: removed, accepted: accepted,
           labels: labels, edits: edits };
-    // keepalive: 페이지를 떠나는 중에도 요청이 끊기지 않게 한다.
+    // **본문을 먼저 만든다** — `keepalive` 를 붙일지가 그 크기에 달렸다.
+    var body = JSON.stringify({
+      stem: stem,
+      slug: vpSlug,
+      gid: vpGid === '' ? null : Number(vpGid),
+      // **어느 이미지를 보고 한 교정인가** (P09 1단계). 캐러셀이 판을 바꾸면
+      // 여기도 따라 바뀐다. 비어 있으면 안 보내고 서버가 대표 이미지로 받는다 —
+      // 판이 하나뿐인 화면과 배포 중에 열려 있던 옛 탭이 그 갈래로 간다.
+      image: curImage === '' ? null : Number(curImage),
+      // **사람이 그린 개체는 통째로 보낸다** (P09 3단계). `cands` 안에 있는
+      // 것이 곧 화면의 전부이므로 거기서 뽑는다 — 따로 목록을 들면 둘이
+      // 어긋나고, 어긋난 쪽이 저장된다.
+      //
+      // **판마다 다르다.** 캐러셀이 판을 바꾸면 `cands` 가 그 판의 것으로
+      // 갈리므로 이 목록도 함께 간다.
+      // **엔진 개체의 고친 기하** (P09 4단계). `{키: 폴리곤}` 이고 빈 배열은
+      // "엔진 것으로 되돌린다" 는 말이다.
+      //
+      // **화면이 아는 전부를 보낸다 — `edits` 만 보내면 안 된다.** 그 지도는
+      // *이번에 연 화면에서* 고친 것만 담는다. 화면을 나갔다 들어오면 비어
+      // 있고, 그 상태에서 다른 마스크를 고치면 payload 에 그것 하나만 실린다 —
+      // `save_review` 는 `keys` 에 없는 행을 지우므로 **앞서 고친 것이
+      // 사라진다.** 분류가 함께 붙어 있으면 `labels` 를 타고 살아남아서,
+      // "되는 경우도 있고 아닌 경우도" 가 된다.
+      //
+      // `drawn` 이 `cands` 에서 뽑히는 것과 같은 규칙으로 맞춘다 —
+      // **뷰어는 늘 전체를 보낸다.**
+      edits: (function () {
+        var out = {};
+        S.cands.forEach(function (c) {
+          if (!isManual(c) && c.geom_edited && c.polygon && c.polygon.length) {
+            out[keyOf(c)] = c.polygon;
+          }
+        });
+        // 되돌리기(빈 배열)는 개체에 안 남으므로 지도 쪽이 이긴다.
+        Object.keys(S.edits).forEach(function (k) {
+          if (!S.edits[k] || !S.edits[k].length) out[k] = [];
+        });
+        return out;
+      })(),
+      drawn: S.cands.filter(isManual).map(function (c) {
+        return { key: keyOf(c), polygon: c.polygon, cls: c.cls || '' };
+      }),
+      done: reviewDone,
+      removed: Array.from(S.removed),
+      accepted: Array.from(S.accepted),
+      labels: S.labels,
+      // **개체 코멘트는 안 보낸다** (0036) — 카탈로그에서만 적는다.
+      // 아래 `note` 는 시야 코멘트이고 다른 것이다.
+      note: groupNote
+    });
+    // **keepalive 는 본문이 작을 때만 붙인다** (116 덧 · 2026-08-13).
+    //
+    // keepalive 는 페이지가 사라져도 브라우저가 대신 보내 주는 요청인데,
+    // 그래서 규격이 **본문 64 KiB** 로 상한을 뒀다 — 넘으면 보내 보지도 않고
+    // `TypeError` 로 **거절한다**(HTTP 오류가 아니라 약속의 거절이라 아래
+    // `.catch` 로 떨어진다). 교정과 그린 폴리곤이 많은 시야가 그 크기다.
+    //
+    // **이제 안 붙여도 된다** (116). `leave()` 가 이 약속을 기다렸다 떠나므로
+    // 페이지가 응답 때까지 살아 있다 — keepalive 가 값을 하는 것은 사람이 탭을
+    // 닫아 버리는 순간뿐이고, 그건 본문이 작을 때만 되는 일이다. 작으면 그
+    // 이득을 그대로 누리고, 크면 **거절당하는 대신 그냥 보낸다.**
     return fetch(ROOT + '/review', {
       method: 'POST',
-      keepalive: !!keepalive,
+      keepalive: !!keepalive && body.length < KEEPALIVE_MAX,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        stem: stem,
-        slug: vpSlug,
-        gid: vpGid === '' ? null : Number(vpGid),
-        // **어느 이미지를 보고 한 교정인가** (P09 1단계). 캐러셀이 판을 바꾸면
-        // 여기도 따라 바뀐다. 비어 있으면 안 보내고 서버가 대표 이미지로 받는다 —
-        // 판이 하나뿐인 화면과 배포 중에 열려 있던 옛 탭이 그 갈래로 간다.
-        image: curImage === '' ? null : Number(curImage),
-        // **사람이 그린 개체는 통째로 보낸다** (P09 3단계). `cands` 안에 있는
-        // 것이 곧 화면의 전부이므로 거기서 뽑는다 — 따로 목록을 들면 둘이
-        // 어긋나고, 어긋난 쪽이 저장된다.
-        //
-        // **판마다 다르다.** 캐러셀이 판을 바꾸면 `cands` 가 그 판의 것으로
-        // 갈리므로 이 목록도 함께 간다.
-        // **엔진 개체의 고친 기하** (P09 4단계). `{키: 폴리곤}` 이고 빈 배열은
-        // "엔진 것으로 되돌린다" 는 말이다.
-        //
-        // **화면이 아는 전부를 보낸다 — `edits` 만 보내면 안 된다.** 그 지도는
-        // *이번에 연 화면에서* 고친 것만 담는다. 화면을 나갔다 들어오면 비어
-        // 있고, 그 상태에서 다른 마스크를 고치면 payload 에 그것 하나만 실린다 —
-        // `save_review` 는 `keys` 에 없는 행을 지우므로 **앞서 고친 것이
-        // 사라진다.** 분류가 함께 붙어 있으면 `labels` 를 타고 살아남아서,
-        // "되는 경우도 있고 아닌 경우도" 가 된다.
-        //
-        // `drawn` 이 `cands` 에서 뽑히는 것과 같은 규칙으로 맞춘다 —
-        // **뷰어는 늘 전체를 보낸다.**
-        edits: (function () {
-          var out = {};
-          S.cands.forEach(function (c) {
-            if (!isManual(c) && c.geom_edited && c.polygon && c.polygon.length) {
-              out[keyOf(c)] = c.polygon;
-            }
-          });
-          // 되돌리기(빈 배열)는 개체에 안 남으므로 지도 쪽이 이긴다.
-          Object.keys(S.edits).forEach(function (k) {
-            if (!S.edits[k] || !S.edits[k].length) out[k] = [];
-          });
-          return out;
-        })(),
-        drawn: S.cands.filter(isManual).map(function (c) {
-          return { key: keyOf(c), polygon: c.polygon, cls: c.cls || '' };
-        }),
-        done: reviewDone,
-        removed: Array.from(S.removed),
-        accepted: Array.from(S.accepted),
-        labels: S.labels,
-        // **개체 코멘트는 안 보낸다** (0036) — 카탈로그에서만 적는다.
-        // 아래 `note` 는 시야 코멘트이고 다른 것이다.
-        note: groupNote
-      })
+      body: body
     }).then(function (r) {
       if (r.ok) {
         saveState.textContent =
@@ -1459,6 +1481,62 @@
       savePending = true;
       saveState.textContent = '저장하지 못했습니다 (연결 확인) — 다시 시도합니다';
       saveFailed(true, '서버에 닿지 못했습니다 — 연결을 확인할 것');
+    });
+  }
+
+  // **검토 완료는 교정을 안 싣고 혼자 간다** (116 덧 · 2026-08-13).
+  //
+  // 완료는 **시야에 붙는 표시**이고(`(시야, 묶음)` 한 줄) 교정은 판마다다
+  // (`(이미지, 묶음)`). 층이 다른 둘을 한 payload 에 실었더니 표시 하나를
+  // 켜는 일이 **그 판의 교정을 갈아치우는 일**이 됐고, 그래서 "어느 판을
+  // 고르고 있나" 가 완료에까지 걸렸다.
+  //
+  //   · 지나가는 판을 거르는 자리(074)가 완료까지 삼켰다 — 화면만 켜지고
+  //     서버는 못 받는다 (116 이 잡은 것)
+  //   · 검출이 없는 판(깊이 맵)을 고르면 `curImage` 가 비어 저장이 **대표
+  //     이미지**로 가고, 그 판의 교정이 지워진다 (사본에서 재현했다)
+  //
+  // 그래서 **완료만 보낸다.** 지울 것이 없으니 어느 판을 보고 있든 상관없고,
+  // 판의 교정은 지연 저장과 판 옮길 때의 `flushSave` 가 이미 내보낸다.
+  //
+  // **`savePending` 은 안 건드린다** — 그것은 판 payload 의 것이다. 완료는
+  // 실패하면 되돌린다(부르는 쪽), 다시 시도할 것으로 쌓아 두지 않는다.
+  function postDone(on) {
+    if (readOnly) {
+      saveState.textContent = '읽기 전용 화면 — 저장하지 않습니다';
+      return Promise.resolve(false);
+    }
+    return fetch(ROOT + '/review', {
+      method: 'POST',
+      // 본문이 작아 64 KB 문턱과 무관하다 — 탭을 닫아도 나간다.
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        only: 'done',
+        stem: stem,
+        slug: vpSlug,
+        gid: vpGid === '' ? null : Number(vpGid),
+        done: !!on
+      })
+    }).then(function (r) {
+      if (r.ok) {
+        saveState.textContent = on ? '검토 완료로 표시했습니다'
+                                   : '검토 완료를 해제했습니다';
+        saveFailed(false);
+        return true;
+      }
+      // 서버가 말한 이유를 그대로 옮긴다 (`postReview` 와 같은 규칙).
+      return r.json().then(function (j) { return j && j.error; },
+                          function () { return ''; })
+        .then(function (why) {
+          saveState.textContent = '검토 완료를 저장하지 못했습니다';
+          saveFailed(true, why || ('서버 오류 ' + r.status));
+          return false;
+        });
+    }, function () {
+      saveState.textContent = '검토 완료를 저장하지 못했습니다 (연결 확인)';
+      saveFailed(true, '서버에 닿지 못했습니다 — 연결을 확인할 것');
+      return false;
     });
   }
 
@@ -1672,9 +1750,9 @@
     // "이 화면의 마스크가 아니다" 로 거절한다 (실사용에서 났다).
     //
     // **keepalive 는 정말 떠날 때(leaving)만.** 페이지가 남는 자리(판 넘기기·
-    // 묶기 팝업)에서 쓰면 이득이 없고, keepalive 요청은 브라우저가 본문
-    // 64KB 를 넘으면 **보내 보지도 않고 거절한다** — 교정·그린 폴리곤이 많은
-    // 시야가 정확히 그 크기다.
+    // 묶기 팝업)에서 쓰면 이득이 없다. 떠날 때도 **본문이 작을 때만** 붙는다 —
+    // 64 KiB 를 넘으면 브라우저가 보내 보지도 않고 거절하기 때문이고, 그
+    // 판단은 `postReview` 가 크기를 재서 한다(`KEEPALIVE_MAX`).
     return postReview(!!leaving);
   }
 
@@ -3310,30 +3388,41 @@
       // 해제는 한 번 더 묻는다 — 잘못 눌러 풀리면 "다 본 시야"라는 표시가
       // 조용히 사라지고, 그것이 학습 데이터 선별의 근거이기 때문이다.
       if (reviewDone && !confirm('이 시야의 검토 완료 표시를 해제할까요?')) return;
-      // **미리보기를 먼저 걷는다** (실사용 2026-08-13 · g028).
+      // **완료는 판의 저장을 안 탄다** (116 덧 · 실사용 2026-08-13 · g028).
       //
-      // 커서가 캐러셀의 판 위에 남아 있으면 `previewing` 이 켜져 있고, 그러면
-      // `save()` 가 **`savePending` 을 안 세우고 돌아가는 갈래**로 빠진다
-      // (지나가는 판에 판단이 앉는 것을 막는 자리 · 074). 그 뒤 `leave()` 의
-      // `flushSave()` 는 보낼 것이 없다며 그냥 지나가고 — 아래에서 이미 켜고
-      // 칠한 버튼만 남는다. **화면은 완료로 바뀌고 다음 시야로 넘어가는데
-      // 서버는 요청을 한 번도 못 받는다.** 실패 띠도 안 뜬다(실패한 요청이
-      // 없으니까). 실사용에서 시야 하나의 완료 표시가 그렇게 사라졌다.
+      // 예전에는 `save()` 로 보냈다 — 판 payload 에 `done` 을 얹어서. 그런데
+      // 그 길에는 **아무것도 안 보내고 돌아가는 갈래**가 있다(`previewing` ·
+      // 074): 커서가 캐러셀의 판 위에 남은 채 눌리면 눌린 것을 버리는데,
+      // 아래에서 이미 켜고 칠한 버튼만 남아 **화면은 완료인데 서버는 요청을
+      // 못 받는** 상태가 됐다. 실패 띠도 안 뜬다(실패한 요청이 없으니까).
+      // 실사용에서 시야 하나의 완료 표시가 그렇게 사라졌다.
       //
-      // 완료는 **판이 아니라 시야에 붙는 표시**라 지나가는 판을 걱정할 일이
-      // 애초에 없다. 걷고 나서 정상 경로로 보낸다.
-      if (previewing) { unpreviewState(); build(); redraw(); }
-      reviewDone = !reviewDone;
+      // 미리보기를 걷고 그 길로 보내는 것으로는 못 막는다 — **검출이 없는
+      // 판**(깊이 맵)을 고르면 되돌릴 상태가 아예 없고, 그때 저장은 대표
+      // 이미지로 가서 **그 판의 교정을 지운다**(사본에서 재현했다).
+      //
+      // 완료는 **시야에 붙는 표시**다. 판의 교정과 함께 보낼 이유가 없고,
+      // 따로 보내면 어느 판을 고르고 있든 상관이 없어진다.
+      var on = !reviewDone;
+      reviewDone = on;
       paintDone();
-      save();
-      // 완료로 표시했으면 곧바로 다음 시야로 넘어간다 — 검토는 연달아 하는
-      // 일이고, 누른 사람의 뜻이 분명하므로 묻지 않는다. leave() 가 방금 켠
-      // 표시를 먼저 밀어낸다.
-      if (reviewDone) {
+      postDone(on).then(function (ok) {
+        if (!ok) {
+          // **못 갔으면 화면도 되돌린다.** 켜진 채로 두면 116 이 잡은 그
+          // 상태가 그대로 남는다 — 화면은 완료인데 DB 는 모른다. 실패 띠는
+          // `postDone` 이 세워 두었고, 사람은 다시 누르면 된다.
+          reviewDone = !on;
+          paintDone();
+          return;
+        }
+        if (!on) return;
+        // 완료로 표시했으면 곧바로 다음 시야로 넘어간다 — 검토는 연달아 하는
+        // 일이고, 누른 사람의 뜻이 분명하므로 묻지 않는다. **판에 안 보낸
+        // 교정이 남아 있으면 `leave()` 가 그것을 먼저 밀어낸다.**
         var url = strip && strip.dataset.next;
         if (url) leave(url);
         else flashNote('마지막 시야입니다 — 검토 완료로 표시했습니다');
-      }
+      });
     });
     paintDone();
   }
@@ -3371,13 +3460,24 @@
   // 얹을지 말지가 검출마다 다르다** — 서버가 그리게 두는 편이 안전하다.
   var engPick = document.getElementById('engpick-' + uid);
   if (engPick) {
+    // 떠나지 못했을 때 되돌릴 자리 (아래 `leave` 주석).
+    var engPrev = engPick.querySelector('input[type=radio]:checked');
     // 라디오 하나하나가 아니라 감싼 칸에서 받는다 — 엔진이 늘어도 배선을
     // 손대지 않는다.
     engPick.addEventListener('change', function (e) {
       var t = e.target;
       if (!t || t.type !== 'radio' || !t.value) return;
-      flushSave(true);             // 지연 저장이 걸려 있으면 밀어내고 떠난다
-      location.href = t.value;
+      // **`leave()` 로 간다** (116 덧). 여기도 지연 저장을 밀어내고 떠나는
+      // 자리인데 약속을 안 기다리고 있었다 — 116 이 `leave()` 에서 고친 것과
+      // 같은 갈래다. 규칙이 둘이 되지 않게 같은 문으로 보낸다.
+      //
+      // **안 떠났으면 고른 표시도 되돌린다.** 저장이 실패해 화면은 남았는데
+      // 라디오만 옮겨 가 있으면, 지금 보고 있는 것이 어느 엔진인지가 화면에서
+      // 갈린다 — 그 상태로 검토하면 남의 엔진 것을 이 엔진으로 읽는다.
+      leave(t.value).then(function (gone) {
+        if (!gone && engPrev) engPrev.checked = true;
+        else engPrev = t;
+      });
     });
   }
 

@@ -1831,6 +1831,10 @@ def save_review(request):
          "labels": {key: "round"|"round_frag"|"rod"|"rod_frag"},
          "note":   "이 시야에 대한 메모"}
 
+    **`{"only": "done"}` 이면 완료 표시 하나만 쓴다** (116 덧) — 교정은 안
+    싣고 안 지운다. 완료는 `(시야, 묶음)` 이고 교정은 `(이미지, 묶음)` 이라
+    층이 다르다 (`data.save_done` 머리말).
+
     **개체 코멘트(`notes`)는 여기로 안 온다** (0036) — 카탈로그에서만 적는다.
     옛 탭이 보내면 조용히 흘린다.
 
@@ -1897,6 +1901,19 @@ def save_review(request):
     # 검토 완료 표시. 교정이 하나도 없어도(고칠 것이 없어서) 켜질 수 있으므로
     # 삭제·복구 목록과 독립적으로 저장한다.
     done = bool(payload.get("done"))
+
+    # **완료만 보내는 요청** (116 덧). `{"only": "done"}` 이면 교정을 안 싣고
+    # `(시야, 묶음)` 한 줄만 쓴다 — 표시 하나를 켜자고 그 판의 교정을
+    # 갈아치우는 갈래를 남기지 않는다 (`data.save_done` 머리말).
+    #
+    # **위의 검사는 다 지난 뒤다** — `stem` 과 `(slug, gid)` 로 시야를 짚었고
+    # (053), 자동 처리가 끝났는지도 봤다. 여기서 줄이는 것은 payload 뿐이다.
+    if payload.get("only") == "done":
+        try:
+            saved = data.save_done(vp, done)
+        except ValueError as e:
+            return JsonResponse({"ok": False, "error": str(e)}, status=409)
+        return JsonResponse({"ok": True, **saved})
 
     def mapping(name, clean):
         v = payload.get(name) or {}

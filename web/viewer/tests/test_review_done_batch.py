@@ -14,13 +14,15 @@
 코멘트를 함께 묶음에 매달지 않은 이유는 하나다: **사람이 쓴 글은 재생성
 불가다.** 묶음을 갈 때마다 사라지면 안 된다.
 """
+import json
+
 from django.test import Client
 from django.urls import reverse
 
 from .base import DiaRUGATestCase
 from . import factories as fx
 from .. import data, manage_data
-from ..models import Detection, RunBatch, ViewpointReview
+from ..models import Detection, ObjectReview, RunBatch, ViewpointReview
 
 
 class ReviewDoneBelongsToBatchTest(DiaRUGATestCase):
@@ -167,3 +169,113 @@ class ReviewDoneScreenTest(DiaRUGATestCase):
         self.assertTrue(ok, msg)
         body = c.get(reverse("dataset", args=["rs23"])).content.decode()
         self.assertNotIn(badge, body, "배지가 묶음을 넘어갔다")
+
+
+class ReviewDoneOnlyTest(DiaRUGATestCase):
+    """**완료만 보내는 요청** — 교정을 안 싣고 안 지운다 (116 덧).
+
+    완료는 `(시야, 묶음)` 한 줄인데 판 단위 payload 를 타고 갔다. 그래서 표시
+    하나를 켜는 일이 **그 판의 교정을 갈아치우는 일**이기도 했고, 화면이 어느
+    판을 고르고 있느냐가 완료에까지 걸렸다 — 검출이 없는 판(깊이 맵)을 고르면
+    `image` 가 비어 저장이 **대표 이미지**로 가서 그 판의 교정이 지워졌다.
+
+    여기서 보는 것은 서버 쪽이다. 화면 쪽은 `tests/browser/test_done_plate.py`.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_candidates=3)
+
+    def setUp(self):
+        self.c = Client()
+        self.image = self.w.detection().image
+        self.keys = self.w.keys()[:2]
+        # **묶음을 끄기 전에 잡아 둔다** — `w.stem()` 은 현재 검출을 물어서
+        # 만든다(검토 대상이 없으면 그 자리에서 죽는다).
+        self.stem = self.w.stem()
+        # 사람의 교정을 심는다 — 이것이 지워지면 안 되는 것이다.
+        data.save_review(self.w.vp, done=False, note="", removed=set(self.keys),
+                         accepted=set(), labels={}, image=self.image.pk)
+        self.assertEqual(self.marks(), 2, "심은 교정이 없다")
+
+    def marks(self):
+        return ObjectReview.objects.filter(image=self.image,
+                                           removed=True).count()
+
+    def post_done(self, on=True, expect=200, **over):
+        p = {"stem": self.stem, "slug": self.w.slug, "gid": self.w.vp.idx,
+             "only": "done", "done": on}
+        p.update(over)
+        r = self.c.post(reverse("save_review"), data=json.dumps(p),
+                        content_type="application/json")
+        self.assertEqual(r.status_code, expect, r.content[:300])
+        return json.loads(r.content)
+
+    def row(self):
+        return ViewpointReview.objects.filter(
+            viewpoint=self.w.vp, batch__isnull=False).first()
+
+    # --- 켜고 끈다 ----------------------------------------------------------
+
+    def test_완료가_켜진다(self):
+        self.post_done(True)
+        self.assertTrue(self.row() and self.row().done)
+
+    def test_완료가_꺼진다(self):
+        self.post_done(True)
+        self.post_done(False)
+        self.assertFalse(self.row().done)
+
+    def test_묶음에_찍힌다(self):
+        """시야 줄(`batch=None`)이 아니라 묶음 줄이어야 한다 (073)."""
+        self.post_done(True)
+        self.assertIsNotNone(self.row())
+        self.assertFalse(ViewpointReview.objects.filter(
+            viewpoint=self.w.vp, batch__isnull=True, done=True).exists())
+
+    # --- 교정을 안 건드린다 (여기가 고장 났던 자리다) ------------------------
+
+    def test_교정이_안_지워진다(self):
+        self.post_done(True)
+        self.assertEqual(self.marks(), 2,
+                         "완료만 보냈는데 그 판의 교정이 지워졌다")
+
+    def test_해제해도_교정이_안_지워진다(self):
+        self.post_done(True)
+        self.post_done(False)
+        self.assertEqual(self.marks(), 2)
+
+    def test_시야_코멘트는_안_건드린다(self):
+        """코멘트는 사람이 쓴 글이라 재생성 불가다 — 완료가 지울 것이 아니다."""
+        data.save_review(self.w.vp, done=False, note="가장자리가 깨졌다",
+                         removed=set(self.keys), accepted=set(), labels={},
+                         image=self.image.pk)
+        self.post_done(True)
+        note = ViewpointReview.objects.get(viewpoint=self.w.vp,
+                                           batch__isnull=True).note
+        self.assertEqual(note, "가장자리가 깨졌다")
+
+    # --- 대조군 · 거절 -------------------------------------------------------
+
+    def test_옛_화면의_전체_payload_는_그대로_돈다(self):
+        """`only` 를 모르는 탭이 보내면 예전 길로 간다 — 그쪽은 갈아치운다."""
+        r = self.c.post(reverse("save_review"), data=json.dumps(
+            {"stem": self.stem, "slug": self.w.slug, "gid": self.w.vp.idx,
+             "done": True, "removed": [], "accepted": [], "labels": {},
+             "image": self.image.pk}), content_type="application/json")
+        self.assertEqual(r.status_code, 200, r.content[:300])
+        self.assertTrue(self.row().done)
+        self.assertEqual(self.marks(), 0, "전체 payload 인데 안 갈아치웠다")
+
+    def test_검토_대상_묶음이_없으면_거절한다(self):
+        """조용히 아무 데나 찍지 않는다 — 무엇을 다 봤다는 말인지가 없다."""
+        RunBatch.objects.update(for_review=False)
+        out = self.post_done(True, expect=409)
+        self.assertIn("검출이 없다", out.get("error", ""))
+        self.assertFalse(self.row().done, "거절해 놓고 찍었다")
+
+    def test_남의_시야를_짚으면_거절한다(self):
+        """`stem` 검증은 이 길에서도 지난다 (053)."""
+        self.post_done(True, expect=409, stem="Snap-99999")
+        self.assertFalse(self.row().done, "거절해 놓고 찍었다")
