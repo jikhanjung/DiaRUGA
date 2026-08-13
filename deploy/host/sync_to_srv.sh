@@ -30,6 +30,25 @@
 # 자격증명을 잃고 3.5개월을 몰랐다 (data-safety.md §13).
 #
 # 없을 때만 견본에서 만들어 준다.
+#
+# ## 옮긴 파일은 그룹이 다시 쓸 수 있어야 한다
+#
+# 배포를 계정 둘이 나눠 하면(`docker` 그룹에 든 사람이면 `deploy.sh` 를 돌린다)
+# 여기서 옮긴 파일을 다음 사람이 덮어써야 한다. 그런데 **`cp -p` 는 원본
+# 모드를(644), `docker cp` 는 이미지 안의 모드를(755) 그대로 씌워 그룹 쓰기
+# 비트를 지운다** — `chmod -R g+w /srv/DiaRUGA` 로 한 번 걸어 놔도 배포 한 번에
+# 없어지고, 그 다음부터 다른 계정의 배포가 이 단계에서 막힌다. 게다가
+# `deploy.sh` 는 이 실패를 치명적으로 안 봐서 **컨테이너만 새 판이고
+# `/srv/scripts` 는 옛 판인 채로** 끝난다 — 조용히 어긋나는 쪽이다.
+#
+# 그래서 `put()` 하나로 모아 두 겹으로 막는다. **`-p` 를 안 붙인다** — plain
+# `cp` 는 대상이 이미 있으면 그 모드를 안 건드리므로 한 번 열어 둔 것이 계속
+# 열려 있다. 그리고 **새로 생긴 것만 `chmod g+w`** 로 연다(그 자리에서는 내가
+# 소유자라 반드시 된다). 한 사람만 쓰는 서버에서는 그룹이 자기 그룹이라 아무
+# 차이가 없다.
+#
+# `-p` 를 버려도 잃는 것이 없다 — 바뀌었는지는 `cmp -s` 로 보지 시각으로 보지
+# 않고, 실행 비트는 `bin/*` 에 `chmod +x` 로 따로 준다.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd || echo /nonexistent)"
@@ -42,6 +61,19 @@ if [ "${1:-}" = "--from-image" ]; then
 fi
 
 [ -d "$SRV" ] || { echo "배포 디렉토리가 없다: $SRV" >&2; exit 1; }
+
+# **`chmod` 은 모드가 이미 맞아도 남의 파일이면 EPERM 이다** — 건너뛰지 않는다
+# (`chmod +x /bin/ls` 로 확인). 계정 둘이 번갈아 배포하면 앞사람이 만든 파일이
+# 여기 걸려 `set -e` 가 **배포 한복판에서** 끊는다. 그래서 모드를 손보는 자리는
+# 전부 이 문으로 보낸다. 실패해도 좋은 이유가 있다 — 내가 만든 파일이면 내가
+# 소유자라 반드시 되고, 남의 것이면 그 사람이 이미 같은 모드로 만들어 뒀다.
+chmod_ok() { chmod "$@" 2>/dev/null || true; }
+
+# 옮기는 자리는 전부 여기를 지난다 (머리말 "옮긴 파일은 그룹이…" 참고).
+put() {
+    cp "$1" "$2"
+    chmod_ok g+w "$2"
+}
 
 # --- 이미지에서 (저장소를 안 본다) ---------------------------------------
 if [ -n "$IMAGE" ]; then
@@ -65,7 +97,7 @@ if [ -n "$IMAGE" ]; then
         if [ -f "$SRV/scripts/$b" ] && cmp -s "$f" "$SRV/scripts/$b"; then
             echo "  = scripts/$b"
         else
-            cp -p "$f" "$SRV/scripts/$b"; echo "  → scripts/$b"; n=$((n + 1))
+            put "$f" "$SRV/scripts/$b"; echo "  → scripts/$b"; n=$((n + 1))
         fi
     done
     # 배포 파일도 같은 이미지에서 — 저장소가 없어도 서는 것이 요점이다
@@ -77,9 +109,13 @@ if [ -n "$IMAGE" ]; then
                 "deploy/nginx/maintenance.html:www/DiaRUGA-maintenance.html" \
                 "deploy/nginx/unavailable.html:www/DiaRUGA-unavailable.html"; do
         src="${pair%%:*}"; dst="${pair##*:}"
-        docker cp "$cid:/app/$src" "$SRV/$dst" 2>/dev/null || {
+        # **`docker cp` 로 곧장 꽂지 않는다** — 이미지 안의 모드를 그대로 씌워
+        # 그룹 쓰기를 지운다. 받아 놓고 `put` 으로 옮긴다.
+        docker cp "$cid:/app/$src" "$tmp/.staged" 2>/dev/null || {
             echo "  ! 이미지에 $src 가 없다 — 건너뛴다" >&2; continue; }
-        case "$dst" in bin/*) chmod +x "$SRV/$dst";; esac
+        put "$tmp/.staged" "$SRV/$dst"
+        case "$dst" in bin/*) chmod_ok +x "$SRV/$dst"
+                             [ -x "$SRV/$dst" ] || echo "  ! $dst 에 실행 비트가 없다" >&2;; esac
         echo "  → $dst"
     done
     rm -rf "$tmp"
@@ -99,7 +135,7 @@ copy() {
         echo "  = $2"
         return
     fi
-    cp -p "$src" "$dst"
+    put "$src" "$dst"
     echo "  → $2"
 }
 
@@ -114,7 +150,8 @@ for f in deploy.sh smoke.sh poll_nas.sh sync_to_srv.sh; do
     src="deploy/host/$f"
     [ -f "$REPO/$src" ] || src="deploy/$f"      # poll_nas.sh 는 deploy/ 에 있다
     copy "$src" "bin/$f"
-    chmod +x "$SRV/bin/$f"
+    chmod_ok +x "$SRV/bin/$f"
+    [ -x "$SRV/bin/$f" ] || echo "  ! bin/$f 에 실행 비트가 없다" >&2
 done
 
 # **운영·파이프라인 스크립트** (100). 저장소에서는 `pipeline/`·`ops/` 로 갈려
@@ -134,12 +171,14 @@ done
 mkdir -p "$SRV/www"
 copy deploy/nginx/maintenance.html www/DiaRUGA-maintenance.html
 copy deploy/nginx/unavailable.html www/DiaRUGA-unavailable.html
-chmod 755 "$SRV/www"; chmod 644 "$SRV/www"/*.html
+chmod_ok 755 "$SRV/www"; chmod_ok 664 "$SRV/www"/*.html   # 그룹 쓰기는 put() 과 같은 이유다
 
 # .env 는 없을 때만 만든다. 있으면 손대지 않는다.
 if [ ! -f "$SRV/.env" ]; then
-    cp -p "$REPO/deploy/srv/env.template" "$SRV/.env"
-    chmod 600 "$SRV/.env"
+    cp "$REPO/deploy/srv/env.template" "$SRV/.env"
+    # 660 이다 — `deploy.sh` 가 `sed -i` 로 IMAGE_TAG 를 고치므로 배포하는 사람이
+    # 읽고 써야 한다. 배포가 한 계정뿐이면 그룹이 자기 그룹이라 600 과 같다.
+    chmod 660 "$SRV/.env"
     echo "  + .env (견본에서 만들었다 — DIARUGA_SECRET_KEY 를 채울 것)"
 else
     # 견본에 새 항목이 생겼는데 .env 에 없으면 알려만 준다. 채우는 것은 사람 몫이다.
