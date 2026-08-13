@@ -188,7 +188,33 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       **사람이 만든 학명 판정은 이 표에 안 담는다**(063 계열의 사고를 막는다).
       철자는 **흐린 검색으로 후보를 내고 AlgaeBase 가 가른다**(사용자 방침).
       속 층은 9쌍인데 **그중 둘은 실제로 다른 속이라** 자동으로 이으면 안 된다.
-      첫 실측은 **종 층의 흐린 짝을 세는 것**
+
+      **08-13 저녁까지 온 자리** — 반입 전에 자료를 믿을 수 있는지부터 물었고,
+      **못 믿을 자리가 나와서 아직 반입을 안 했다**:
+      - `tools/harvest_worms.py` 로 **이명법 1,845개 전량 조회**. 규조로 찾은 것
+        1,640 · 못 찾은 것 205 · 화석 63. 목록은 NAS `Diadiction/temp/`
+        (`species_1845.md`·`.tsv`·`worms_20260813.json`)
+      - **AlgaeBase 41건은 사람이 브라우저로 끝냈다**(Windows 앱). 결과는
+        `Diadiction/md/name_validity_log.md` 에 합쳐 뒀다 — **16쌍이 합치면 안 되는
+        별개 이름**이고, 속 셋(*Cosmiodiscus*·*Pyrgodiscus*·*Porodiscus*)은 전부
+        실재하는 규조속이었다
+      - **Schmidt 색인의 속명이 잘못 펴진 자리를 찾았다**
+        ([119](devlog/20260813_119_schmidt-genus-restoration-bug.md)). PDF 로 확인한
+        것 둘 — Tafel 26 의 `Amphiprora` 13건은 *Amphora*, Tafel 57 의
+        `Cosmiodiscus` 7건은 *Coscinodiscus*. **`(속명 추정)` 표시가 없는
+        것들이라** 폴더 문서의 "1,899건은 확정" 이 틀렸다. 색인은 아직 안 고치고
+        **경고만 달아 뒀다**(색인 머리말·README·notes/02·SKILL.md·`.skill` 재빌드)
+      - **속이 실재하는가와 그 항목이 그 속인가는 다른 물음이다.** *Cosmiodiscus*
+        는 유효한 화석속이지만 우리 색인의 8종 중 7종은 그 속이 아니다
+        (Tafel 229 의 *C. elegans* 하나만 진짜)
+
+      **다음** — ① 후보 33개 목록을 **다시 뽑는다**(`extant_only` 없이 만든 것이라
+      화석 55개가 빠졌다) ② 남은 Tafel 을 열어 속명을 확인한다 ③ 한국 도감 41개는
+      `outputs/png/` 에 렌더가 이미 있어 더 싸다 ④ *Craspedodiscus nitidus/nitidulus*
+      는 양쪽 DB 에 다 없어 **Schmidt 원문 재판독**이 필요하다 ⑤ 1차 퍼지 매칭에서
+      **저자명 조각 21건·독일어 낱말 43건**이 종소명 자리에 있는 것이 확인됐다 —
+      색인에서 지울 항목들이다.
+      **속명 오류를 안 고치고 반입하면 `ClassDef` 와 맞추는 자리에서 조용히 빠진다**
       **막힌 자리가 하나 있다 — 뷰어(`web`)가 이 공유를 못 본다**(확인함,
       P14 4.4). `/srv/DiaRUGA/docker-compose.yml` 에 마운트 한 줄을 더하고 `web`
       만 다시 띄우면 되고 이미지는 안 구워도 되는데, **`/srv` 는 `paleoadmin`
