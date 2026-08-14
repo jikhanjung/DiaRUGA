@@ -29,7 +29,11 @@ copy() {
         echo "  = $2"
         return
     fi
-    cp -p "$src" "$dst"
+    # `-p` 를 안 붙인다 — plain cp 는 대상이 있으면 그 모드를 안 건드리고,
+    # 새로 생긴 것만 열면 된다. 계정 둘이 번갈아 배포해도 그대로 열려 있다
+    # (까닭은 sync_to_srv.sh 머리말 "옮긴 파일은 그룹이…").
+    cp "$src" "$dst"
+    chmod g+w "$dst" 2>/dev/null || true
     echo "  → $2"
 }
 
@@ -38,8 +42,10 @@ copy deploy/test/docker-compose.yml docker-compose.yml
 
 # .env 는 없을 때만 만든다. 있으면 손대지 않는다.
 if [ ! -f "$TEST_SRV/.env" ]; then
-    cp -p "$REPO/deploy/test/env.template" "$TEST_SRV/.env"
-    chmod 600 "$TEST_SRV/.env"
+    cp "$REPO/deploy/test/env.template" "$TEST_SRV/.env"
+    # 660 이다 — testdeploy.sh 가 sed -i 로 IMAGE_TAG 를 고치므로 배포하는
+    # 사람이 읽고 써야 한다. 배포가 한 계정뿐이면 그룹이 자기 그룹이라 600 과 같다.
+    chmod 660 "$TEST_SRV/.env"
     echo "  + .env (견본에서 만들었다 — DIARUGA_SECRET_KEY 를 채울 것)"
 else
     missing=$(comm -23 \

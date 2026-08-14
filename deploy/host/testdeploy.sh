@@ -116,6 +116,11 @@ fresh|snapshot)
     # -wal·-shm 형제를 남겨 두면 새 본체와 짝이 안 맞는다
     rm -f "$TEST_SRV/db/DiaRUGA.db" "$TEST_SRV/db/DiaRUGA.db-wal" "$TEST_SRV/db/DiaRUGA.db-shm"
     cp "$src" "$TEST_SRV/db/DiaRUGA.db"
+    # **그룹 쓰기를 연다.** 사본은 백업(644)에서 오고 만든 사람이 소유자가 된다 —
+    # 컨테이너는 1000:1000 으로 도므로, 배포한 계정이 uid 1000 이 아니면
+    # 소유자가 아니라 그룹으로 붙는다. 644 면 거기서 읽기 전용이 되어
+    # "attempt to write a readonly database" 로 검토가 통째로 막힌다.
+    chmod g+w "$TEST_SRV/db/DiaRUGA.db"
     say "DB 사본: $(basename "$src") (${age_min}분 전)"
     ;;
 esac

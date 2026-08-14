@@ -68,7 +68,10 @@ while [ ${#queue[@]} -gt 0 ]; do
   case " $moved " in *" $n "*) continue;; esac
   src="$(find_src "$n" || true)"
   [ -n "$src" ] || { echo "저장소에 없다: $n" >&2; exit 1; }
-  cp -p "$src" "$DEST/$n"
+  # `-p` 를 안 붙이고 새로 생긴 것만 연다 — 계정 둘이 번갈아 옮겨도 다음
+  # 사람이 덮어쓸 수 있어야 한다 (까닭은 sync_to_srv.sh 머리말).
+  cp "$src" "$DEST/$n"
+  chmod g+w "$DEST/$n" 2>/dev/null || true
   moved="$moved $n"
   extra=""
   for m in $(deps_of "$src"); do
