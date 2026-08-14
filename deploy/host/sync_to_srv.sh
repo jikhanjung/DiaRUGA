@@ -171,7 +171,10 @@ done
 mkdir -p "$SRV/www"
 copy deploy/nginx/maintenance.html www/DiaRUGA-maintenance.html
 copy deploy/nginx/unavailable.html www/DiaRUGA-unavailable.html
-chmod_ok 755 "$SRV/www"; chmod_ok 664 "$SRV/www"/*.html   # 그룹 쓰기는 put() 과 같은 이유다
+# 775 다 — nginx(www-data)는 읽기만 하면 되므로 그룹 쓰기를 열어도 잃는 것이
+# 없고, 닫아 두면 **다음 판에서 페이지가 하나 늘 때** 만든 사람이 아닌 계정의
+# 배포가 여기서 끊긴다(디렉토리에 못 만든다). put() 과 같은 이유다.
+chmod_ok 775 "$SRV/www"; chmod_ok 664 "$SRV/www"/*.html
 
 # .env 는 없을 때만 만든다. 있으면 손대지 않는다.
 if [ ! -f "$SRV/.env" ]; then
