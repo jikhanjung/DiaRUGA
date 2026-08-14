@@ -7,7 +7,7 @@
 REST 로는 못 하던 것 셋이 여기서 된다.
 
 - **변종·품종이 보인다.** REST 는 종까지만 답했는데 덤프에는 변종 1,712 ·
-  품종 377 이 있다. 색인의 `var.` 18건이 여기서 갈린다
+  품종 377 이 있다. 대조표의 `var.` 104건이 여기서 갈린다 (13건이 걸렸다)
 - **철자를 접어 맞춘다.** `Terpsinoe` → `Terpsinoë`, `Raphoneis` →
   `Rhaphoneis` 를 조회 없이 짚는다
 - **속의 종을 통째로 훑는다.** "속은 있는데 종이 없다" 를 눈으로 확인할 수 있다
@@ -139,8 +139,9 @@ def scope(out: Path) -> None:
     for col in PROFILE:
         one = db.execute(f"SELECT COUNT(*) FROM taxon WHERE {col}='1'").fetchone()[0]
         print(f"  {col:16s} {one:,}")
-    print("\n**덤프가 좁으면 여기 담수가 적게 잡힌다** — 그때는 '덤프에 없다' 를 "
-          "'WoRMS 에 없다' 로 읽으면 안 된다")
+    print("\n**빠진 것은 AlgaeBase 출처다** (재배포 불가). 담수 전용이 175건 들어 "
+          "있으니 서식지로 거른 것이 아니다 — '덤프에 없다' 를 'WoRMS 에 없다' 로 "
+          "읽으면 안 된다")
 
 
 def against(out: Path, master: Path) -> None:
@@ -157,7 +158,7 @@ def against(out: Path, master: Path) -> None:
     db.row_factory = sqlite3.Row
     lines = master.read_text(encoding="utf-8").splitlines()
     head = lines[0].split("\t")
-    col = "덤프(해양판)"
+    col = "덤프(20260701)"
     if col in head:
         at = head.index(col)
     else:
