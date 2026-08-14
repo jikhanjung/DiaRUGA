@@ -54,6 +54,8 @@ from pathlib import Path
 
 TEMP = Path("/nfs/temp-share/DiaRUGA/Diadiction/temp")
 API = "https://www.marinespecies.org/rest/AphiaRecordsByNames"
+API_ONE = "https://www.marinespecies.org/rest/AphiaRecordsByName"
+API_FUZZY = "https://www.marinespecies.org/rest/AphiaRecordsByMatchNames"
 DIATOM_CLASS = "Bacillariophyceae"
 BATCH = 50
 
@@ -78,6 +80,12 @@ OUT_COLS = [
     "내조회", "AphiaID", "상태", "유효명", "저자", "과", "목",
     "화석", "담수", "해수", "갱신",
     "WoRMS표제", "매칭유형", "WoRMS가준것", "속", "원사유",
+    # 없는 이름을 가르는 자리 (아래 `왜 없나` 절)
+    "왜없나", "속상태", "속성격", "흐린매칭",
+    # **사람이 채우는 칸이다.** AlgaeBase 는 자동으로 못 열어(Turnstile) 다른
+    # 경로로 조금씩 모으고 있다 — 판정의 원본은 `md/name_validity_log.md` 이고
+    # 여기는 이름으로 이어 붙일 자리로 비워 둔다
+    "AlgaeBase",
 ]
 
 
@@ -132,6 +140,136 @@ def recheck(names: list[str], cache: Path, sleep: float) -> dict[str, list[dict]
         print(f"  {min(i + BATCH, len(todo))}/{len(todo)}")
         time.sleep(sleep)
     return done
+
+
+def ask_genus(genera: list[str], cache: Path, sleep: float) -> dict[str, dict]:
+    """속을 하나씩 묻는다. **없는 것도 남긴다.**
+
+    종이 안 나올 때 남는 근거가 이것뿐이다 — 속조차 없으면 속 철자가 어긋난
+    것이고, 속은 있는데 종이 없으면 WoRMS 가 그 종을 아직 안 담은 것이다.
+    """
+    done: dict[str, dict] = {}
+    if cache.exists():
+        done = json.loads(cache.read_text(encoding="utf-8"))
+    todo = [g for g in genera if g not in done]
+    print(f"속을 물을 것 {len(todo)}개")
+    for i, g in enumerate(todo, 1):
+        url = f"{API_ONE}/{urllib.parse.quote(g)}?like=false&marine_only=false&extant_only=false"
+        rec = None
+        try:
+            with urllib.request.urlopen(url, timeout=30) as r:
+                if r.status == 200:
+                    for x in json.loads(r.read().decode()):
+                        if x.get("rank") == "Genus":
+                            rec = {k: x.get(k) for k in ("scientificname", "status",
+                                                         "class", "family",
+                                                         "isExtinct", "AphiaID")}
+                            if x.get("class") == DIATOM_CLASS:
+                                break
+        except Exception as exc:
+            print(f"  ! {g} {type(exc).__name__}", file=sys.stderr)
+        if rec is None:
+            # 속조차 없으면 **속 표기를 의심한다.** TAXAMATCH 가 움라우트·철자를
+            # 되짚어 준다 — `Terpsinoe`→`Terpsinoë`[exact], `Raphoneis`→
+            # `Rhaphoneis`[phonetic]. `harvest_worms.GENUS_FIX` 가 손으로 적어
+            # 둔 것을 여기서는 물어서 얻는다
+            try:
+                url = (f"{API_FUZZY}?scientificnames%5B%5D={urllib.parse.quote(g)}"
+                       f"&marine_only=false")
+                with urllib.request.urlopen(url, timeout=30) as r:
+                    if r.status == 200:
+                        for grp in json.loads(r.read().decode()):
+                            for x in (grp or []):
+                                if x.get("class") == DIATOM_CLASS:
+                                    rec = {"scientificname": x.get("scientificname"),
+                                           "status": x.get("status"),
+                                           "class": x.get("class"),
+                                           "isExtinct": x.get("isExtinct"),
+                                           "AphiaID": x.get("AphiaID"),
+                                           "_흐림": x.get("match_type")}
+                                    break
+                            if rec:
+                                break
+            except Exception:
+                pass
+        done[g] = rec or {}
+        if i % 20 == 0 or i == len(todo):
+            cache.write_text(json.dumps(done, ensure_ascii=False, indent=1),
+                             encoding="utf-8")
+            print(f"  {i}/{len(todo)}")
+        time.sleep(sleep)
+    cache.write_text(json.dumps(done, ensure_ascii=False, indent=1), encoding="utf-8")
+    return done
+
+
+def ask_fuzzy(names: list[str], cache: Path, sleep: float) -> dict[str, list[dict]]:
+    """흐린 매칭을 다시 묻는다. **204(내용 없음)도 자료다** — 오타조차 아니라는 뜻이다."""
+    done: dict[str, list[dict]] = {}
+    if cache.exists():
+        done = json.loads(cache.read_text(encoding="utf-8"))
+    todo = [n for n in names if n not in done]
+    print(f"흐린 매칭을 물을 것 {len(todo)}개")
+    for i in range(0, len(todo), BATCH):
+        batch = todo[i:i + BATCH]
+        q = "&".join("scientificnames%5B%5D=" + urllib.parse.quote(n) for n in batch)
+        groups: list[list[dict]] = [[] for _ in batch]
+        try:
+            with urllib.request.urlopen(
+                    f"{API_FUZZY}?{q}&marine_only=false", timeout=60) as r:
+                if r.status == 200:
+                    got = json.loads(r.read().decode())
+                    groups = [(x or []) for x in got] + [[]] * (len(batch) - len(got))
+        except Exception as exc:
+            print(f"  ! {batch[0]}… {type(exc).__name__}", file=sys.stderr)
+        for name, recs in zip(batch, groups):
+            done[name] = [{k: r.get(k) for k in ("scientificname", "match_type",
+                                                 "status", "class", "AphiaID")}
+                          for r in recs if r.get("class") == DIATOM_CLASS]
+        cache.write_text(json.dumps(done, ensure_ascii=False, indent=1),
+                         encoding="utf-8")
+        print(f"  {min(i + BATCH, len(todo))}/{len(todo)}")
+        time.sleep(sleep)
+    return done
+
+
+def why_missing(name: str, genus_rec: dict, fuzzy: list[dict],
+                genus_habit: str, elsewhere: list[str]) -> tuple[str, str]:
+    """WoRMS 에 없는 이름이 **왜** 없는지를 근거로 가른다.
+
+    **"담수라 빠졌다" 는 성립하지 않는다** (08-14 실측). 도감별 적중률이
+    Schmidt 89.1% · 한국(담수조류 도감) 90.5% · 동남극 93.9% 로 거의 같고,
+    확정된 것 중 담수만 799건이다 — DiatomBase 가 담수를 덮는다. 화석도
+    `extant_only=false` 로 들어온다(119). 서식지로는 못 가른다.
+
+    **화석은 절반만 성립한다.** 종은 들어오지만 **화석속은 종까지 다 등재되어
+    있지 않다** — 그래서 속의 `isExtinct` 를 근거로만 쓰고, 그 이름이 진짜라는
+    뜻으로는 안 쓴다(`Trinacria halb` 같은 부스러기가 같은 칸에 들어온다).
+
+    실제로 가르는 것은 **속이다** — 있는가, 표기가 어긋났는가, 화석속인가.
+    """
+    if fuzzy:
+        f = fuzzy[0]
+        return "오기로 보인다", f"흐린 매칭이 걸린다 — {f['scientificname']} [{f['match_type']}]"
+    if not genus_rec:
+        return "속이 없다", "속조차 WoRMS 에 없다 — 속 철자부터 본다"
+    if genus_rec.get("class") != DIATOM_CLASS:
+        return "속이 규조가 아니다", f"{genus_rec['scientificname']} 는 {genus_rec.get('class')} 다"
+    if genus_rec.get("_흐림"):
+        return "속 표기가 어긋난다", (
+            f"속을 {genus_rec['scientificname']} 로 고쳐 다시 물어야 한다 "
+            f"[{genus_rec['_흐림']}]")
+    tail = f" · 그 속의 확정종은 {genus_habit}" if genus_habit else ""
+    # **딱 한 속에만 있을 때만 근거다.** `vulgaris`·`major`·`affinis` 처럼 흔한
+    # 라틴어는 여러 속에 널려 있어 속을 잘못 붙였다는 증거가 못 된다 —
+    # 넓게 잡으면 종소명 길이로 자르던 것과 같은 실수가 된다
+    if len({n.split()[0] for n in elsewhere}) == 1:
+        return "속 표기를 의심한다", (
+            f"이 종소명은 다른 속 하나에만 있다 — {', '.join(sorted(elsewhere)[:3])}{tail}")
+    if genus_rec.get("isExtinct"):
+        return "화석속이라 종이 덜 담겼다", f"{genus_rec['scientificname']} 는 화석속이다{tail}"
+    return "속은 있는데 종이 없다", (
+        f"{genus_rec['scientificname']} 는 있다 — 흐린 매칭도 안 걸리니 "
+        f"WoRMS 가 안 담은 종이거나 색인 쪽 오기다{tail}")
 
 
 def epithet(name: str) -> str:
@@ -321,6 +459,47 @@ def main() -> int:
             row["근거"] = "색인에 있는데 다섯 표 어디에도 없다"
         out.append(row)
 
+    # 4b) **없는 이름을 왜 없는지로 가른다.** 대상은 "WoRMS 에 없다" 로 남은 것들
+    missing = [r for r in out if r["재판정"] == "사람이 본다"
+               and r["근거"].startswith("WoRMS 에 없다")]
+    if not args.no_recheck and missing:
+        genera_todo = sorted({r["이름"].split()[0] for r in missing})
+        grecs = ask_genus(genera_todo, args.out_dir / f"worms_genus_{args.stamp}.json",
+                          args.sleep)
+        fz = ask_fuzzy([r["이름"] for r in missing],
+                       args.out_dir / f"worms_fuzzy_{args.stamp}.json", args.sleep)
+        # 속의 성격은 **이미 확정된 종들**에서 읽는다 (조회를 더 하지 않는다)
+        habit: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+        for nm, s in tables["confirmed"].items():
+            g = nm.split()[0]
+            habit[g]["담수" if s["담수"] else ""] += 1
+            habit[g]["해수" if s["해수"] else ""] += 1
+            habit[g]["화석" if s["화석"] else ""] += 1
+        # 같은 종소명이 **다른 속의 확정종**에 있으면 속 표기를 의심한다 —
+        # `Trinacria americanum` 옆에 `Triceratium americanum` 이 있다
+        by_ep: dict[str, list[str]] = collections.defaultdict(list)
+        for nm in tables["confirmed"]:
+            parts = nm.split()
+            if len(parts) >= 2:
+                by_ep[parts[1].lower()].append(nm)
+
+        for r in missing:
+            g = r["이름"].split()[0]
+            c = habit.get(g)
+            prof = (f"담수 {c['담수']} · 해수 {c['해수']} · 화석 {c['화석']}"
+                    if c else "")
+            rec = grecs.get(g) or {}
+            other = [n for n in by_ep.get(epithet(r["이름"]), [])
+                     if n.split()[0] != g]
+            r["왜없나"], r["근거"] = why_missing(r["이름"], rec, fz.get(r["이름"], []),
+                                             prof, other)
+            r["속상태"] = (f"{rec['scientificname']} ({rec.get('status')})"
+                        if rec else "WoRMS 에 없음")
+            r["속성격"] = ("화석속" if rec.get("isExtinct") else "") + (
+                f" {prof}" if prof else "")
+            r["흐린매칭"] = "; ".join(
+                f"{f['scientificname']}[{f['match_type']}]" for f in fz.get(r["이름"], []))
+
     master = args.out_dir / f"worms_master_{args.stamp}.tsv"
     with master.open("w", encoding="utf-8") as f:
         f.write("\t".join(OUT_COLS) + "\n")
@@ -344,6 +523,11 @@ def main() -> int:
     print("\n도감 출처")
     for k, n in collections.Counter(r["도감"] or "(색인에 없음)" for r in out).most_common():
         print(f"  {k:20s} {n}")
+    why = collections.Counter(r["왜없나"] for r in out if r["왜없나"])
+    if why:
+        print("\nWoRMS 에 없는 이름을 왜 없는지로 가른다")
+        for k, n in why.most_common():
+            print(f"  {k:24s} {n}")
     saved = [r for r in out if r["재판정"] == "되살린다"]
     if saved:
         print(f"\n지울 뻔한 것 중 진짜 학명 {len(saved)}건")
