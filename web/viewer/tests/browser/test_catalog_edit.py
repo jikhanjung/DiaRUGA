@@ -244,6 +244,29 @@ class CatalogRemoveBrowserTest(BrowserTestCase):
                                                      removed=True).exists())
         self.assertFalse(card.locator(".species").is_disabled())
 
+    def test_등급이_붙은_개체를_지울_때_묻는다(self):
+        """**되돌릴 수 있는 일에 되돌릴 수 없는 일을 얹지 않는다.**
+
+        등급·자세가 붙은 개체를 지우면 `check_db` 의 "등급·자세가 살아 있는
+        개체에만 붙어 있다" 에 걸린다 — 판이 전부 오검출인데 등급이 남기 때문이다.
+        그래도 여기서 등급을 지우지는 않는다(사람이 눈으로 매긴 재생성 불가한
+        값이다). **무엇이 남는지 말하고 사람이 고른다.**
+        """
+        page = self.open(reverse("catalog", args=[self.w.slide.slug]))
+        card = page.locator(".catcard").first
+        key = card.get_attribute("data-key")
+        card.locator(".grade").select_option("A")
+        page.wait_for_timeout(1200)
+
+        asked = []
+        page.on("dialog", lambda d: (asked.append(d.message), d.dismiss()))
+        card.locator(".remove").click()
+        page.wait_for_timeout(600)
+        self.assertTrue(asked, "안 물었다")
+        self.assertIn("등급·자세", asked[0])
+        # 취소했으니 아무것도 안 지워졌다
+        self.assertFalse(ObjectReview.objects.get(mask_key=key).removed)
+
     def test_지운_것은_지운_화면에서_난다(self):
         page = self.open(reverse("catalog", args=[self.w.slide.slug]))
         card = page.locator(".catcard").first

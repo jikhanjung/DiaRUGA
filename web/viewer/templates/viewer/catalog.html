@@ -705,7 +705,23 @@
     }
 
     btn.addEventListener("click", function () {
-      send(btn.classList.contains("restore") ? "restore" : "remove");
+      var act = btn.classList.contains("restore") ? "restore" : "remove";
+      // **등급·자세가 붙은 개체를 지우면 무결성 검사에 걸린다**
+      // (`check_db` "등급·자세가 살아 있는 개체에만 붙어 있다"). 판이 전부
+      // 오검출인데 등급이 남으면 *이 규조각은 오검출이면서 A 다* 가 되고,
+      // 등급으로 학습 대상을 고르므로 그 모순이 그대로 자료 선택으로 간다.
+      //
+      // **그렇다고 여기서 지우지는 않는다.** 삭제는 되돌릴 수 있고 등급·자세는
+      // 사람이 눈으로 매긴 재생성 불가한 값이다 — 되돌릴 수 있는 일에 되돌릴 수
+      // 없는 일을 얹지 않는다. 무엇이 남는지 말하고 사람이 고른다.
+      if (act === "remove"
+          && (c.fields.grade.value || c.fields.pose.value)) {
+        if (!window.confirm("등급·자세가 매겨진 개체입니다.\n"
+                            + "지워도 그 값은 남습니다 — 오검출로 두려면 "
+                            + "되살린 뒤 등급·자세를 비우세요.\n\n"
+                            + "그대로 지울까요?")) { return; }
+      }
+      send(act);
     });
   });
 
