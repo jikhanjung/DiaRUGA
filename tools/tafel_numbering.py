@@ -52,8 +52,14 @@ Band4 의 `420` 묶음은 셋째 갈래다 — 다음이 433 인데 쪽은 둘�
 - **거꾸로 세는 것이 늘 되는 것은 아니다.** 간행 안 된 Tafel 이 사이에 있으면
   건너뛴 만큼 어긋난다 — `Tafel 421–432` 가 미간행이다(README). 계산값이 OCR 이
   읽은 번호보다 **커지면** 앞뒤가 안 맞는 것이라 `되짚음` 칸에 적어 둔다
-- **눈으로 확인한 것은 세 장이다** — Band2 p.80(→183)·p.90(→188)·Band4
-  p.74(→371). 셋 다 계산과 맞았다. 나머지는 같은 셈으로 낸 것이다
+- **묶음 다음이 또 묶음이면 그 묶음의 **고쳐진** 값을 써야 한다.** Band1 의
+  `131` 묶음이 그랬다 — 다음 절이 `138`(실은 133)이라 날것으로 세면 7개를
+  2쪽에 담으라는 답이 나온다. 고친 값(133)을 쓰면 2개로 맞는다
+- **눈으로 확인한 것은 여섯 장이다** — Band2 p.80(→183)·p.90(→188)·Band4
+  p.74(→371) · Band1 p.280(→131)·p.282(→132) · Band2 p.200. 나머지는 같은
+  셈으로 냈다. **Band2 의 34쪽 묶음은 Tafel 이 아니라 권 뒤의 Verzeichnis
+  (색인)였고**(p.200 이 그 `Vorwort` 다), **Band4 의 p.176 은 빈 쪽이다**
+  (421–432 미간행 자리). 둘 다 고칠 것이 없다
 
 사용:
 
@@ -106,8 +112,20 @@ def runs() -> list[dict]:
                 prev_true = t
                 i = j
                 continue
-            need = (nxt - prev_true - 1) if (nxt is not None and prev_true is not None) \
-                else None
+            # **다음이 또 묶음이면 그 묶음의 고쳐진 값을 쓴다** — 날것으로 세면
+            # 앞 묶음이 잘못 읽은 번호가 그대로 기준이 된다
+            nxt_true = nxt
+            if j < len(secs):
+                k = j + 1
+                while k < len(secs) and secs[k][1]:
+                    k += 1
+                if k > j + 1 and k < len(secs) and prev_true is not None:
+                    # 다음 묶음도 '이어지는 면' 이 붙어 있다 — 그 끝의 다음에서 센다
+                    span = k - j
+                    if secs[k][0] - span - 1 >= prev_true:
+                        nxt_true = secs[k][0] - span
+            need = (nxt_true - prev_true - 1) \
+                if (nxt_true is not None and prev_true is not None) else None
             per_page = need == n              # 쪽마다 한 Tafel
             one_tafel = need == 1             # 한 Tafel 이 여러 쪽에
             first = (prev_true + 1) if (per_page or one_tafel) else None
@@ -210,7 +228,43 @@ def main() -> int:
 
     if args.apply:
         apply_fixes(bypage)
+        mark_register(rs)
     return 0
+
+
+# 권 뒤의 Verzeichnis(색인)는 Tafel 이 아니다. **번호를 고칠 것이 아니라
+# 항목이 아니라고 말해야 한다** — 거기 줄은 `이름 + Tafel·fig 참조` 다
+# (`Caloneis robusta v. subelliptica Cl. 50, 4.5` 의 `50, 4.5` 가 참조다).
+REGISTER = {(2, 240)}          # Band2 p.196~ (p.200 의 `Vorwort` 로 확인)
+
+
+def mark_register(rs: list[dict]) -> None:
+    """Verzeichnis 쪽에서 온 항목에 표시를 단다."""
+    pages = {(r["band"], p) for r in rs if (r["band"], r["ocr"]) in REGISTER
+             for p in r["쪽들"]}
+    if not pages:
+        return
+    text = INDEX.read_text(encoding="utf-8")
+    n = 0
+    out = []
+    for line in text.split("\n"):
+        if ENTRY.match(line) and "Verzeichnis" not in line:
+            hits = [(int(b), int(pp), mid)
+                    for _, mid, b, pp in
+                    [(a, b_, c, d) for a, b_, c, d in CITE.findall(line)]]
+            use = [h for h in hits if (h[0], h[1]) in pages]
+            if use:
+                # **Verzeichnis 줄의 숫자가 진짜 참조다** — `fig.50, 4.5` 는
+                # Tafel 50 의 fig 4·5 를 가리킨다 (형식이 `이름 저자 Tafel, fig`)
+                ref = re.search(r"fig\.\s*(\d+)\s*,\s*([\d.,\s]+)", use[0][2])
+                hint = (f" → 원래 참조는 **Tafel {ref.group(1)} fig {ref.group(2).strip()}**"
+                        if ref else "")
+                line += ("  〔Tafel 아님 · 권 뒤 Verzeichnis(색인) 쪽에서 왔다"
+                         + hint + "〕")
+                n += 1
+        out.append(line)
+    INDEX.write_text("\n".join(out), encoding="utf-8")
+    print(f"Verzeichnis 에서 온 항목 {n}건에 표시했다")
 
 
 def apply_fixes(bypage: dict) -> None:
