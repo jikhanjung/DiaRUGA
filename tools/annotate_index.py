@@ -48,8 +48,11 @@ MASTER = DIADICTION / "names/worms/worms_master_20260814.tsv"
 DUMP = DIADICTION / "names/db/worms_diatoms_20260701.db"
 STAMP = "20260814"
 # **내가 붙인 것만 정확히 걷는다.** `\s*` 로 잡으면 한국 색인이 줄바꿈으로
-# 쓰는 줄 끝 공백 두 칸까지 함께 사라져 원본으로 안 돌아간다
-MARK = re.compile(r"  〔WoRMS [^〕]*〕$")
+# 쓰는 줄 끝 공백 두 칸까지 함께 사라져 원본으로 안 돌아간다.
+# **`$` 로 고정하면 안 된다** — 다른 도구가 뒤에 표시를 하나 더 달면
+# (`tafel_numbering.py` 의 `〔Tafel 아님 …〕`) 내 것이 줄 끝이 아니게 되어
+# 안 걷히고, 다시 돌릴 때마다 표시가 하나씩 늘어난다. 실제로 21줄이 그랬다
+MARK = re.compile(r"  〔WoRMS [^〕]*〕")
 # 머리말 블록. **넣을 때와 뺄 때가 같은 모양이어야 왕복한다**
 BLOCK = re.compile(r"\n<!-- WoRMS-표시 -->.*?<!-- /WoRMS-표시 -->\n", re.S)
 
