@@ -148,6 +148,40 @@ Pinnularia major` 같은 것이었다. `major`·`vulgaris`·`affinis` 는 흔한
 AlgaeBase 가 `Actinoptychus senarius`, WoRMS 가 `Actinocyclus senarius` 로 **속이
 다르다.**
 
+## 7. Tafel 58 — 119 의 고장이 한 쪽이 아니었다
+
+다시 뽑은 후보의 **강함 20개가 세 쪽에 몰렸는데**, 둘은 119 가 이미 확인한
+Tafel 26·57 이고 **Tafel 58 이 새로 나왔다.** 해설면(Band1 p.132)을 열었다.
+
+**색인의 `Craspedodiscus` 5건이 전부 `Coscinodiscus` 다.**
+
+| 색인 | 쪽에 적힌 것 | 바른 이름 |
+|---|---|---|
+| *Craspedodiscus nitidus* | 17·19 `C. nitidus` Greg. | *Coscinodiscus nitidus* |
+| *Craspedodiscus nitidulus* | 20.21 `C. nitidulus` Grunow | *Coscinodiscus nitidulus* |
+| *Craspedodiscus cocconeiformis* | 25–28 `C. cocconeiformis` A. S. | *Coscinodiscus cocconeiformis* |
+| *Craspedodiscus minor* | 39 `C. minor` E. | *Coscinodiscus minor* |
+| *Craspedodiscus eairaronany* | 33 `C. extravagans` A. S. | *Coscinodiscus extravagans* |
+
+**규칙이 집은 자리가 이번엔 부정하는 문장이다.** fig 15 —
+`die Aehnlichkeit mit Craspedodiscus ist eine nur scheinbare`("Craspedodiscus 와
+닮은 것은 겉보기일 뿐이다"). **아니라고 적힌 문장에서 속을 폈다.** Tafel 26 이
+비교 문장, 57 이 괄호 안 이명이었으니 **세 쪽이 세 가지 방식으로 같은 고장을
+냈다** — 규칙이 "그 쪽에 글자로 있었는가" 만 보기 때문이고, 그 밖의 방식이
+더 있을 것이다.
+
+그 쪽은 fig 1 이 `Coscinodiscus griseus Grev.` 로 속을 펴 놓았고 fig 40 이
+`kein anderer Coscinodiscus dieses Materials` 로 못 박는다. 근거 크롭을
+`plate/schmidt_t58_notes_Craspedodiscus_evidence.png` 에 남겼다.
+
+**후보 도구가 5건 중 3건을 강함으로 잡았다.** `minor` 는 *Craspedodiscus minor*
+가 WoRMS 에 실재해서, `eairaronany` 는 OCR 손상이라 아예 이름이 아니어서
+등급이 내려갔다 — **쪽을 열면 도구보다 많이 나온다.** 도구는 열 순서를 정해
+줄 뿐이다.
+
+**Tafel 57 과 58 은 잇달아 있다.** 한 쪽만의 사고가 아니라 그 언저리를 훑을
+자리다.
+
 ## 남은 것
 
 `names/algaebase/algaebase_priority_20260814.md` — 남은 1,545개 중 **202건**이
