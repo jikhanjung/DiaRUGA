@@ -187,3 +187,118 @@ class CatalogReadOnlyTest(BrowserTestCase):
         self.assertTrue(page.is_visible(".note.warn"))
         self.assertIn("자동 처리가 아직 끝나지 않았습니다",
                       page.inner_text(".note.warn"))
+
+    def test_지우기도_일괄도_눌러_볼_자리가_없다(self):
+        """**반응하는 자리를 전부 센다** (051). 넓힌 문 셋도 같은 줄에 선다."""
+        page = self.open(reverse("catalog", args=[self.w.slide.slug]))
+        self.assertGreaterEqual(page.locator(".catcard").count(), 1,
+                                "카드가 없으면 이 시험은 아무것도 안 본다")
+        for sel in (".catcard .remove", ".catcard .restore", ".catcard .pick",
+                    ".catcard .unlink", ".bulkbar"):
+            self.assertEqual(page.locator(sel).count(), 0, sel)
+
+
+class CatalogRemoveBrowserTest(BrowserTestCase):
+    """지우기·되살리기가 **실제로 배선돼 있는가** (P16 5.1).
+
+    3겹은 서버가 `act=remove` 를 받으면 무엇을 하는지까지 본다. 여기서 보는 것은
+    그 밖이다 — **단추가 그것을 보내는가, 그리고 보낸 뒤 화면이 지운 카드를
+    잠그는가.** 안 잠그면 지워 놓은 개체에 종명을 적을 수 있고, 그 저장은
+    되살리지도 않는다(051 과 같은 갈래다).
+    """
+
+    def make_data(self):
+        fx.make_classes()
+        self.w = fx.make_world(slug=f"rs23-{self.uniq}",
+                               site_code=f"RS{self.uniq}", n_candidates=3)
+        RunBatch.objects.filter(for_review=True).update(code="S1")
+
+    def test_지우면_카드가_잠기고_되살리기로_바뀐다(self):
+        page = self.open(reverse("catalog", args=[self.w.slide.slug]))
+        card = page.locator(".catcard").first
+        key = card.get_attribute("data-key")
+        card.locator(".remove").click()
+        page.wait_for_selector(".catcard .restore", timeout=5000)
+
+        self.assertTrue(ObjectReview.objects.get(mask_key=key).removed)
+        for sel in (".species", ".cls", ".note"):
+            self.assertTrue(card.locator(sel).is_disabled(), sel)
+
+    def test_그_자리에서_되살린다(self):
+        """**되돌릴 자리가 같은 카드에 있어야 한다** — 잘못 누를 수 있다(P16 8절).
+
+        **기다리는 것을 그 카드로 좁힌다.** `.catcard .remove` 를 기다리면 옆
+        카드의 단추에 곧바로 걸려서, 되살리기가 끝나기도 전에 다음 줄이 돈다 —
+        시험이 경합으로 갈리고, 그런 시험은 고장을 못 잡는다.
+        """
+        page = self.open(reverse("catalog", args=[self.w.slide.slug]))
+        card = page.locator(".catcard").first
+        key = card.get_attribute("data-key")
+        here = f'.catcard[data-key="{key}"]'
+        card.locator(".remove").click()
+        page.wait_for_selector(f"{here} .restore", timeout=5000)
+        card.locator(".restore").click()
+        page.wait_for_selector(f"{here} .remove", timeout=5000)
+
+        self.assertFalse(ObjectReview.objects.filter(mask_key=key,
+                                                     removed=True).exists())
+        self.assertFalse(card.locator(".species").is_disabled())
+
+    def test_지운_것은_지운_화면에서_난다(self):
+        page = self.open(reverse("catalog", args=[self.w.slide.slug]))
+        card = page.locator(".catcard").first
+        key = card.get_attribute("data-key")
+        card.locator(".remove").click()
+        page.wait_for_selector(".catcard .restore", timeout=5000)
+
+        page.goto(page.url + "?gone=1", wait_until="load")
+        self.assertEqual(page.locator(f'.catcard[data-key="{key}"]').count(), 1)
+        # 지운 화면에는 고르는 칸도 일괄 띠도 없다
+        self.assertEqual(page.locator(".catcard .pick").count(), 0)
+        self.assertEqual(page.locator(".bulkbar").count(), 0)
+
+
+class CatalogBulkBrowserTest(BrowserTestCase):
+    """일괄이 **고른 것에만** 앉는가 (P16 5.2)."""
+
+    def make_data(self):
+        fx.make_classes()
+        self.w = fx.make_world(slug=f"rs23-{self.uniq}",
+                               site_code=f"RS{self.uniq}", n_candidates=3)
+        RunBatch.objects.filter(for_review=True).update(code="S1")
+
+    def test_고른_둘에만_앉는다(self):
+        # **파편도 함께 낸다** — 기본 화면은 파편을 감추므로 카드가 모자란다.
+        page = self.open(reverse("catalog", args=[self.w.slide.slug]) + "?frag=1")
+        cards = page.locator(".catcard")
+        self.assertGreaterEqual(cards.count(), 3, "카드가 셋은 있어야 한다")
+        picked = [cards.nth(i).get_attribute("data-key") for i in (0, 1)]
+        left = cards.nth(2).get_attribute("data-key")
+
+        # 띠는 고르기 전에는 안 뜬다 — 고른 것이 없는데 `적용` 이 보이면 안 된다
+        self.assertTrue(page.locator(".bulkbar").is_hidden())
+        cards.nth(0).locator(".pick").check()
+        cards.nth(1).locator(".pick").check()
+        page.wait_for_selector(".bulkbar:not([hidden])", timeout=5000)
+        self.assertIn("2", page.inner_text(".bulkbar .n"))
+
+        page.locator(".bulkbar .cls").select_option("rod")
+        page.locator(".bulkbar .go").click()
+        page.wait_for_timeout(1500)
+
+        got = {o.mask_key: o.diatom_object.label
+               for o in ObjectReview.objects.select_related("diatom_object")}
+        for k in picked:
+            self.assertEqual(got.get(k), "rod", k)
+        # **안 고른 카드는 안 건드린다**
+        self.assertIsNone(got.get(left))
+
+    def test_고칠_칸을_안_채우면_말한다(self):
+        """아무것도 안 하고 "저장됨" 이 뜨는 갈래를 안 만든다 (063)."""
+        page = self.open(reverse("catalog", args=[self.w.slide.slug]))
+        page.locator(".catcard").first.locator(".pick").check()
+        page.wait_for_selector(".bulkbar:not([hidden])", timeout=5000)
+        page.locator(".bulkbar .go").click()
+        page.wait_for_timeout(400)
+        self.assertIn("고칠 칸", page.inner_text(".bulkbar .say"))
+        self.assertFalse(DiatomObject.objects.exclude(label="").exists())

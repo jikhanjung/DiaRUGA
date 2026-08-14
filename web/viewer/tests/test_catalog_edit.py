@@ -199,6 +199,91 @@ class CatalogBulkTest(DiaRUGATestCase):
         self.post([one] * 121, expect=400, cls="round")
 
 
+class CatalogEditScreenTest(DiaRUGATestCase):
+    """화면에 무엇이 놓이는가.
+
+    **되는 것처럼 보이는 화면을 만들지 않는다** (051·063). 여기서 보는 것은
+    단추가 있느냐 없느냐이고, 눌렀을 때 배선이 도는지는 브라우저 시험이 본다.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        fx.make_classes()
+        cls.w = fx.make_world(slug="rs23", n_viewpoints=1, n_candidates=3)
+        RunBatch.objects.filter(for_review=True).update(code="S1")
+        det = cls.w.detection()
+        keys = cls.w.keys()
+        # 묶음 하나 (판이 둘이어야 한다) · 지운 것 하나
+        frame = cls.w.vp.images.filter(kind="frame").first()
+        fx.link_reviews([
+            fx.add_review(cls.w.vp, keys[0], image=det.image),
+            fx.new_review(viewpoint=cls.w.vp, image=frame, batch=det.batch,
+                          mask_key="500_500_20_20",
+                          geom={"bbox_xywh": [500, 500, 20, 20],
+                                "polygon": [500, 500, 520, 500,
+                                            520, 520, 500, 520]})])
+        fx.add_review(cls.w.vp, keys[1], image=det.image, removed=True)
+
+    def setUp(self):
+        self.c = Client()
+        self.url = reverse("catalog", args=["rs23"])
+
+    def get(self, **q):
+        r = self.c.get(self.url, q)
+        self.assertEqual(r.status_code, 200, r.content[:300])
+        return r.content.decode()
+
+    def test_카드에_지우기와_일괄_띠가_있다(self):
+        html = self.get()
+        self.assertIn("class=\"danger remove\"", html)
+        self.assertIn("class=\"bulkbar\"", html)
+        self.assertIn("class=\"pick\"", html)
+
+    def test_묶음은_푸는_단추만_있다(self):
+        """**묶는 단추는 없다** (P16 3.2) — 묶을 상대가 이 화면에 없다."""
+        html = self.get()
+        self.assertIn("class=\"badgelink unlink\"", html)
+        self.assertIn(reverse("save_link", args=["rs23", self.w.vp.idx]), html)
+
+    def test_지운_화면에는_되살리기만_있다(self):
+        html = self.get(gone="1")
+        self.assertIn("되살린다</button>", html)
+        # 지운 것을 또 지우는 단추도, 일괄도, 고르는 칸도 없다
+        self.assertNotIn("class=\"danger remove\"", html)
+        self.assertNotIn("class=\"bulkbar\"", html)
+        self.assertNotIn("class=\"pick\"", html)
+
+    def test_지운_화면은_파편을_안_감춘다(self):
+        """**지운 것의 절반을 또 감추면 "지웠는데 없다" 가 된다.**
+
+        기본 화면은 파편을 감춘다(2026-08-11) — 그 규칙이 그대로 걸리면
+        파편으로 지운 개체는 되살릴 자리가 없다. 실제로 그렇게 만들었다가
+        여기서 잡았다.
+        """
+        keys = self.w.keys()
+        gone_key = keys[1]
+        # 지운 그 개체가 파편이어야 이 시험이 뜻이 있다
+        row = next(r for r in data.catalog_rows("rs23", gone=True)
+                   if r["key"] == gone_key)
+        self.assertTrue(data.is_fragment(row["cls"]),
+                        "픽스처가 파편을 안 지웠다 — 이 시험은 아무것도 안 본다")
+        self.assertIn(gone_key, self.get(gone="1"))
+        # 파편 체크박스는 안 뜬다 — 눌러서 아무 일도 안 일어나는 자리를 안 만든다
+        self.assertNotIn("파편 보기", self.get(gone="1"))
+
+    def test_진행도_분모가_지운_화면에서_안_바뀐다(self):
+        """**모수가 틀린 막대는 안 보는 것만 못하다.**"""
+        r = self.c.get(self.url)
+        r_gone = self.c.get(self.url, {"gone": "1"})
+        for k in ("n_all", "n_named", "n_frag"):
+            self.assertEqual(r.context[k], r_gone.context[k], k)
+
+    def test_거르개가_지운_화면을_안_잃는다(self):
+        """칩을 눌러도 지운 것을 보던 자리로 돌아온다 — 파편 체크박스와 같은 규칙."""
+        html = self.get(gone="1")
+        self.assertIn("gone=1", html)
+
+
 class CatalogEditReadOnlyTest(DiaRUGATestCase):
     """**읽기 전용은 저장을 막는 것으로 끝나지 않는다** (051).
 
@@ -208,13 +293,13 @@ class CatalogEditReadOnlyTest(DiaRUGATestCase):
     @classmethod
     def setUpTestData(cls):
         fx.make_classes()
-        cls.w = fx.make_world(slug="rs23", n_viewpoints=1, n_candidates=2)
+        # **자동 처리가 안 끝난 슬라이드다** (`review_blocked`). 검토 대상을 다른
+        # 묶음으로 옮기는 쪽으로 세우면 **카드가 한 장도 안 나와서** 이 시험이
+        # 실패할 수 없게 된다 — 실제로 그렇게 짰다가 되살려 보고 잡았다(064).
+        cls.w = fx.make_world(slug="rs23", n_viewpoints=1, n_candidates=2,
+                              state="running")
         RunBatch.objects.filter(for_review=True).update(code="S1")
         cls.rows = data.catalog_rows("rs23")
-        # 검토 대상을 다른 묶음으로 옮긴다 — 이 판은 이제 읽기 전용이다
-        fx.add_other_engine(cls.w.vp, label="yolo-3차")
-        RunBatch.objects.update(for_review=False)
-        RunBatch.objects.filter(label="yolo-3차").update(for_review=True)
 
     def setUp(self):
         self.c = Client()
@@ -231,11 +316,23 @@ class CatalogEditReadOnlyTest(DiaRUGATestCase):
         self.assertEqual(r.status_code, 409)
         self.assertFalse(ObjectReview.objects.filter(removed=True).exists())
 
-    def test_일괄이_아무것도_못_쓴다(self):
-        """**항목마다 거절된다** — 일괄은 200 이어도 `n_ok` 가 0 이다.
+    def test_화면에_단추가_아예_안_놓인다(self):
+        """**저장을 막는 것으로 끝나지 않는다** (051). 눌러 볼 자리가 없어야 한다."""
+        html = self.c.get(reverse("catalog", args=["rs23"])).content.decode()
+        # **카드가 있어야 이 시험이 뜻이 있다** — 없으면 늘 통과한다
+        self.assertIn("class=\"catcard", html)
+        # **표시가 아니라 요소를 짚는다** — "풀기" 는 CSS 주석에도 있어서
+        # 그것으로 세면 늘 걸린다(실패할 수 없는 시험은 없는 것보다 나쁘다).
+        for mark in ("class=\"danger remove\"", "class=\"bulkbar\"",
+                     "class=\"pick\"", "class=\"badgelink unlink\""):
+            self.assertNotIn(mark, html, mark)
 
-        검토 대상이 아닌 묶음의 개체는 "현재 검출" 에 없어서 `save_catalog_entry`
-        가 짚지 못한다. 화면이 배선을 안 거는 것(051)과 **두 겹으로** 막는다.
+    def test_일괄이_막힌다(self):
+        """**슬라이드 층의 사정이라 요청 전체를 거절한다.**
+
+        항목마다 다른 결과가 나올 수 있는 것(키를 못 짚는 것 따위)과 다르다 —
+        검토가 안 열린 슬라이드는 어느 항목도 저장될 수 없으므로, 반쯤 저장한
+        것처럼 보이게 두지 않는다. 화면이 배선을 안 거는 것(051)과 두 겹이다.
         """
         r0 = self.rows[0]
         r = self.c.post(self.url, data=json.dumps(
@@ -244,8 +341,5 @@ class CatalogEditReadOnlyTest(DiaRUGATestCase):
                         "key": r0["key"]}],
              "fields": {"cls": "round"}}),
             content_type="application/json")
-        self.assertEqual(r.status_code, 200, r.content[:300])
-        got = json.loads(r.content)
-        self.assertEqual(got["n_ok"], 0)
-        self.assertFalse(got["results"][0]["ok"])
+        self.assertEqual(r.status_code, 409, r.content[:300])
         self.assertFalse(DiatomObject.objects.filter(label="round").exists())

@@ -27,6 +27,8 @@
     display: grid; grid-template-columns: 150px 1fr;
     background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
     overflow: hidden;
+    /* 고르는 칸이 그림 위에 앉는다 (P16) — 기준이 카드여야 한다. */
+    position: relative;
   }
   .catcard.dirty { border-color: var(--warn); }
   .catcard.saved { border-color: var(--good); }
@@ -120,6 +122,51 @@
                background: var(--line); overflow: hidden; vertical-align: middle;
                margin: 0 6px; }
   .catprog i s { display: block; height: 100%; background: var(--accent); }
+
+  /* --- P16: 고르기 · 지우기 · 묶음 풀기 ----------------------------------- */
+  /* 고르는 칸은 **그림 위에** 얹는다 — 오른쪽 칸에 두면 편집칸 다섯이 밀린다. */
+  .catcard .pick { position: absolute; left: 5px; top: 5px; z-index: 2;
+                   margin: 0; cursor: pointer; }
+  .catcard.picked { border-color: var(--accent); }
+  /* 지운 카드는 **표시로만** 다르다. 색을 박지 않는다 — 테마가 둘이라
+     `#fff…` 을 박으면 어두운 쪽에서 덩어리가 된다 (107). */
+  .catcard.gone .pic img { opacity: .5; }
+  .catcard .act { display: flex; gap: 6px; margin-left: auto; }
+  .catcard .act button {
+    font: inherit; font-size: 10.5px; padding: 1px 7px; border-radius: 5px;
+    background: transparent; border: 1px solid var(--line); color: var(--dim);
+    cursor: pointer;
+  }
+  .catcard .act button:hover { border-color: var(--accent); color: var(--accent); }
+  .catcard .act button.danger:hover { border-color: var(--warn); color: var(--warn); }
+  .catcard .act button[disabled] { opacity: .55; cursor: progress; }
+  /* 묶음 멤버 — 배지를 누르면 펼쳐진다. 평소에는 자리를 안 먹는다. */
+  .catcard .members { font-size: 11px; color: var(--dim); display: grid; gap: 2px; }
+  .catcard .members[hidden] { display: none; }
+  .catcard .badgelink { color: var(--accent); background: none; border: none;
+                        font: inherit; font-size: 11px; padding: 0; cursor: pointer; }
+
+  /* 일괄 띠 — 고른 것이 있을 때만 뜬다. 스크롤을 따라온다. */
+  .bulkbar {
+    position: sticky; top: 0; z-index: 6; margin: 0 0 10px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding: 8px 10px; border-radius: 9px;
+    background: var(--panel); border: 1px solid var(--accent);
+  }
+  .bulkbar[hidden] { display: none; }
+  .bulkbar label { font-size: 11.5px; color: var(--dim); }
+  .bulkbar input[type=text], .bulkbar select {
+    font: inherit; font-size: 12.5px; padding: 3px 6px; border-radius: 6px;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+  }
+  .bulkbar .go {
+    font: inherit; font-size: 12px; padding: 3px 12px; border-radius: 999px;
+    background: var(--accent); border: 1px solid var(--accent); color: var(--bg);
+    cursor: pointer;
+  }
+  .bulkbar .go[disabled] { opacity: .55; cursor: not-allowed; }
+  .bulkbar .say { margin-left: auto; font-size: 11.5px; }
+  .bulkbar .say.warn { color: var(--warn); }
 </style>
 
 <div class="catbar">
@@ -139,8 +186,9 @@
   <form class="catsearch" method="get">
     {% if cls %}<input type="hidden" name="cls" value="{{ cls }}">{% endif %}
     {% if show_frag %}<input type="hidden" name="frag" value="1">{% endif %}
+    {% if show_gone %}<input type="hidden" name="gone" value="1">{% endif %}
     <input type="search" name="q" value="{{ q }}" placeholder="번호 · 종명 · 코멘트">
-    {% if q %}<a class="chip" href="?{% if cls %}cls={{ cls }}{% endif %}">지우기</a>{% endif %}
+    {% if q %}<a class="chip" href="?{% if cls %}cls={{ cls }}{% endif %}{% if show_gone %}&amp;gone=1{% endif %}">지우기</a>{% endif %}
   </form>
 </div>
 
@@ -156,15 +204,15 @@
 <div class="croptools">
   <span class="dim">형태</span>
   <a class="chip{% if not cls %} on{% endif %}"
-     href="?{% if q %}q={{ q }}{% endif %}{% if show_frag %}&frag=1{% endif %}">전체</a>
+     href="?{% if q %}q={{ q }}{% endif %}{% if show_frag %}&frag=1{% endif %}{% if show_gone %}&gone=1{% endif %}">전체</a>
   {% class_list as classes %}
   {% for d in classes %}
     <a class="chip{% if cls == d.key %} on{% endif %}"
-       href="?cls={{ d.key }}{% if q %}&q={{ q }}{% endif %}{% if show_frag %}&frag=1{% endif %}">{{ d.label }}</a>
+       href="?cls={{ d.key }}{% if q %}&q={{ q }}{% endif %}{% if show_frag %}&frag=1{% endif %}{% if show_gone %}&gone=1{% endif %}">{{ d.label }}</a>
   {% endfor %}
   {% for f in filters %}
     <a class="chip{% if cls == f.key %} on{% endif %}"
-       href="?cls={{ f.key }}{% if q %}&q={{ q }}{% endif %}{% if show_frag %}&frag=1{% endif %}">{{ f.label }}</a>
+       href="?cls={{ f.key }}{% if q %}&q={{ q }}{% endif %}{% if show_frag %}&frag=1{% endif %}{% if show_gone %}&gone=1{% endif %}">{{ f.label }}</a>
   {% endfor %}
   {% comment %}
     **파편은 기본으로 감춘다** (사용자 2026-08-11). 처음부터 다 내면 카드가
@@ -174,6 +222,12 @@
     체크박스는 거르개(`cls`)·검색(`q`)을 숨은 칸으로 들고 가므로, 켜고 끄는
     사이에 보고 있던 자리를 안 잃는다.
   {% endcomment %}
+  {% comment %}
+    **지운 것을 보는 화면에는 이 체크박스를 안 둔다** (P16). 거기서는 파편도
+    전부 내므로, 켜고 끌 수 있는 것처럼 보이면 눌러서 아무 일도 안 일어나는
+    자리가 된다 — 이 화면이 파편 칩에서 이미 피한 그 자리다.
+  {% endcomment %}
+  {% if not show_gone %}
   <form method="get" class="fragtoggle">
     {% if cls %}<input type="hidden" name="cls" value="{{ cls }}">{% endif %}
     {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
@@ -183,8 +237,20 @@
       파편 보기{% if n_frag %} <span class="dim">({{ n_frag }})</span>{% endif %}
     </label>
   </form>
+  {% endif %}
+  {% comment %}
+    **지운 것은 따로 본다** (P16 5.1). 카탈로그에서 지울 수 있게 되었으니
+    되살릴 자리가 같은 화면에 있어야 한다 — 되돌릴 수 없는 단추를 두지 않는다.
+
+    섞어서 내지 않는 것은 2026-08-10 방침 그대로다: 지운 것까지 한 목록에 내면
+    카드가 몇 배가 되고 동정할 것이 안 보인다.
+  {% endcomment %}
+  <a class="chip{% if show_gone %} on{% endif %}"
+     title="사람이 오검출로 지운 개체입니다 — 여기서 되살립니다"
+     href="?{% if show_gone %}{% if cls %}cls={{ cls }}&amp;{% endif %}{% if q %}q={{ q }}&amp;{% endif %}{% else %}gone=1{% if cls %}&amp;cls={{ cls }}{% endif %}{% if q %}&amp;q={{ q }}{% endif %}{% endif %}{% if show_frag %}&amp;frag=1{% endif %}">지운 것</a>
   <span class="dim" style="margin-left:auto">
-    번호 차례 · 그림이나 g번호를 누르면 그 시야로 간다
+    {% if show_gone %}지운 개체다 — 되살리면 동정하는 쪽으로 돌아간다
+    {% else %}번호 차례 · 그림이나 g번호를 누르면 그 시야로 간다{% endif %}
   </span>
 </div>
 
@@ -192,8 +258,47 @@
   <div class="note">
     {% if q %}“{{ q }}” 로 찾은 개체가 없다.
     {% elif cls %}이 거르개에 걸리는 개체가 없다.
+    {% elif show_gone %}지운 개체가 없다.
     {% else %}보여줄 개체가 없다.{% endif %}
   </div>
+{% endif %}
+
+{% if not readonly and not show_gone %}
+{% comment %}
+  **여기만 `적용` 단추가 있다** (P16 5.2). 카드의 칸들은 누르는 즉시 가는데
+  일괄이 그러면 유형을 고르는 순간 40장이 바뀌고 되돌릴 자리가 없다. 규칙이
+  다른 이유를 띠에 적는다.
+
+  **지우기는 여기 없다.** 되돌릴 수 있다 해도 한 번에 여러 장이 사라지는 단추는
+  누른 뒤에야 범위를 알게 된다 — 지우기는 카드마다 한 번씩 누른다.
+
+  **코멘트도 없다.** 같은 글을 여러 개체에 붙이는 것은 *이 규조각을 두고 하는
+  말*(0036)이라는 그 칸의 뜻과 어긋난다.
+{% endcomment %}
+<div class="bulkbar" hidden>
+  <b class="n">고른 것 0개</b>
+  <label>종명</label>
+  <input type="text" class="species" list="species-seen" maxlength="120"
+         placeholder="비우면 안 고친다">
+  <label>유형</label>
+  <select class="cls">
+    <option value="">— 안 고친다</option>
+    {% for d in classes %}<option value="{{ d.key }}">{{ d.label }}</option>{% endfor %}
+  </select>
+  <label>등급</label>
+  <select class="grade">
+    <option value="">— 안 고친다</option>
+    {% for k, text in grades %}<option value="{{ k }}" title="{{ text }}">{{ k }}</option>{% endfor %}
+  </select>
+  <label>자세</label>
+  <select class="pose">
+    <option value="">— 안 고친다</option>
+    {% for k, text in poses %}<option value="{{ k }}">{{ text }}</option>{% endfor %}
+  </select>
+  <button type="button" class="go">고른 것에 적용</button>
+  <button type="button" class="clear badgelink">고르기 해제</button>
+  <span class="say"></span>
+</div>
 {% endif %}
 
 {{ counted_keys|json_script:"counted-keys" }}
@@ -203,8 +308,14 @@
 
 <div class="cat">
 {% for r in rows %}
-  <div class="catcard{% if r.cls %} {{ r.cls }}{% endif %}"
-       data-gid="{{ r.group_id }}" data-image="{{ r.image_id }}" data-key="{{ r.key }}">
+  <div class="catcard{% if r.cls %} {{ r.cls }}{% endif %}{% if show_gone %} gone{% endif %}"
+       data-gid="{{ r.group_id }}" data-image="{{ r.image_id }}" data-key="{{ r.key }}"
+       {% if r.link_id %}data-link="{{ r.link_id }}"{% endif %}>
+    {% if not readonly and not show_gone %}
+      {# 고르는 칸은 링크(`.pic`) **밖에** 둔다 — 안에 두면 누를 때 시야로 넘어간다. #}
+      <input type="checkbox" class="pick" title="일괄 편집에 고른다"
+             aria-label="일괄 편집에 고른다">
+    {% endif %}
     {% comment %}
       **개체를 들고 간다** (118). 시야만 열면 거기 개체가 수십 개라 어느 것을
       보고 눌렀는지 다시 찾아야 했다 — `obj`(개체 키)와 `img`(그 개체가 있는
@@ -271,9 +382,29 @@
            title="이 개체가 있는 시야를 열고 그 개체를 표시한다">g{{ r.group_id }} →</a>
         <span>{{ r.major_um }} µm</span>
         {% if r.frame_seq is not None %}<span>프레임 {{ r.frame_seq }}</span>{% endif %}
-        {% if r.linked_n %}<span title="같은 개체로 묶인 판 {{ r.linked_n }}장 중 가장 크게 보이는 것을 그린다">묶음 {{ r.linked_n }}</span>{% endif %}
+        {% if r.linked_n %}
+          {% if readonly or show_gone %}
+            <span title="같은 개체로 묶인 판 {{ r.linked_n }}장 중 가장 크게 보이는 것을 그린다">묶음 {{ r.linked_n }}</span>
+          {% else %}
+            {# **푸는 것만 한다** (P16 3.2) — 묶을 상대는 이 화면에 없다. #}
+            {# 절대경로를 박지 말 것 — 서브경로 아래에서 돈다. 주소는 서버가 만든다. #}
+            <button type="button" class="badgelink unlink"
+                    data-url="{% url 'save_link' slug r.group_id %}"
+                    title="같은 개체로 묶인 판 {{ r.linked_n }}장 중 가장 크게 보이는 것을 그린다 — 눌러서 푼다">묶음 {{ r.linked_n }} 풀기</button>
+          {% endif %}
+        {% endif %}
         {% if r.manual %}<span class="warn">수동 복구</span>{% endif %}
         <span class="say"></span>
+        {% if not readonly %}
+          <span class="act">
+            {% if show_gone %}
+              <button type="button" class="restore">되살린다</button>
+            {% else %}
+              <button type="button" class="danger remove"
+                      title="오검출로 지웁니다 — 「지운 것」 칩에서 되살릴 수 있습니다">지운다</button>
+            {% endif %}
+          </span>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -329,6 +460,17 @@
     return m ? m[2] : "";
   }
 
+  // **보내는 자리가 넷이다** (카드 저장 · 지우기 · 되살리기 · 일괄). 문이 하나라
+  // 보내는 함수도 하나여야 한다 — 갈래마다 따로 쓰면 CSRF·`credentials` 같은
+  // 것을 한 자리에서 빠뜨리고, 그 갈래만 조용히 안 간다.
+  function post(body, keepalive) {
+    return fetch(SAVE, {method: "POST", credentials: "same-origin",
+                        keepalive: !!keepalive,
+                        headers: {"Content-Type": "application/json",
+                                  "X-CSRFToken": csrf()},
+                        body: JSON.stringify(body)});
+  }
+
   // 페이지를 떠날 때 **아직 안 보낸 것을 마저 보낸다.**
   //
   // 카드의 그림과 g번호가 그 시야로 가는 링크라서, **적다 말고 누르는 일이 잦다.**
@@ -341,6 +483,11 @@
   window.addEventListener("pagehide", function () {
     flushers.forEach(function (f) { f(); });
   });
+
+  // 카드마다의 상태를 일괄 띠가 되찾을 수 있게 모아 둔다. **일괄이 저장한 값도
+  // 카드의 `known` 에 앉혀야 한다** — 안 앉히면 그 카드의 다음 저장이 화면에
+  // 남은 옛 값을 "안 바뀐 것" 으로 보고 안 보내거나, 반대로 매번 보낸다.
+  var cards = [];
 
   document.querySelectorAll(".catcard").forEach(function (card) {
     var say = card.querySelector(".say");
@@ -373,14 +520,6 @@
         }
       });
       return body;
-    }
-
-    function post(body, keepalive) {
-      return fetch(SAVE, {method: "POST", credentials: "same-origin",
-                          keepalive: !!keepalive,
-                          headers: {"Content-Type": "application/json",
-                                    "X-CSRFToken": csrf()},
-                          body: JSON.stringify(body)});
     }
 
     function stamp(body) {
@@ -494,7 +633,237 @@
       }
     });
     flushers.push(flush);
+
+    cards.push({
+      card: card, say: say, fields: fields,
+      id: function () { return stamp({}); },
+      picked: function () {
+        var p = card.querySelector(".pick");
+        return !!(p && p.checked);
+      },
+      // 서버가 돌려준 것을 카드에 앉힌다 — 카드 하나짜리 저장이 하는 것과 같다.
+      accept: function (j) {
+        known = {species: j.species, cls: j.cls, note: j.note,
+                 grade: j.grade, pose: j.pose};
+        Object.keys(fields).forEach(function (k) { fields[k].value = known[k]; });
+        gprow.hidden = isFrag(known.cls);
+        card.classList.remove("dirty");
+        card.classList.add("saved");
+      },
+      // 지운 카드는 **손댈 수 없어야 한다.** 잠그지 않으면 지워 놓은 개체에
+      // 종명을 적을 수 있고, 그 저장은 지운 것을 되살리지도 않는다 — 사람이
+      // 적은 것이 어디에도 안 보이는 상태가 된다 (051 과 같은 갈래다).
+      lock: function (on) {
+        Object.keys(fields).forEach(function (k) { fields[k].disabled = on; });
+        card.classList.toggle("gone", on);
+      },
+    });
   });
+
+  // --- 지우기·되살리기 -----------------------------------------------------
+  //
+  // **층이 다르므로 문을 가른다** (116 · P16 4.2). 지우기는
+  // `(이미지, 묶음, mask_key)` 에 붙고 동정 다섯은 개체에 붙는다 — 한 payload 에
+  // 실으면 하나를 고르는 일이 다른 쪽까지 갈아치운다.
+  //
+  // **지운 자리에서 바로 되살릴 수 있게 둔다.** 카드를 화면에서 치우면 잘못
+  // 누른 사람이 「지운 것」 칩까지 가야 하는데, 그 사이에 무엇을 지웠는지
+  // 잊는다 (P16 8절 — 카드에 단추가 붙으면 넘기다 잘못 누를 수 있다).
+  cards.forEach(function (c) {
+    var btn = c.card.querySelector(".remove, .restore");
+    if (!btn) return;
+
+    function send(act) {
+      var body = c.id();
+      body.act = act;
+      btn.disabled = true;
+      c.say.textContent = "";
+      // **`keepalive` 를 안 붙인다** — 사람이 누르고 결과를 기다리는 자리다.
+      post(body, false)
+        .then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
+        .then(function (p) {
+          btn.disabled = false;
+          if (!(p[0] && p[1].ok)) {
+            // **왜 못 했는지 그대로 옮긴다** — 묶여 있어서 거절된 것이 흔하고,
+            // 그때 서버는 몇 장이 걸렸는지까지 말한다 (063).
+            c.say.textContent = p[1].error || "다시 시도하세요";
+            c.say.className = "say warn";
+            return;
+          }
+          var gone = p[1].removed;
+          c.lock(gone);
+          btn.className = gone ? "restore" : "danger remove";
+          btn.textContent = gone ? "되살린다" : "지운다";
+          c.say.textContent = gone ? "지웠습니다" : "되살렸습니다";
+          c.say.className = "say";
+        })
+        .catch(function () {
+          btn.disabled = false;
+          c.say.textContent = "닿지 못했습니다 — 연결을 확인하세요";
+          c.say.className = "say warn";
+        });
+    }
+
+    btn.addEventListener("click", function () {
+      send(btn.classList.contains("restore") ? "restore" : "remove");
+    });
+  });
+
+  // --- 묶음 풀기 -----------------------------------------------------------
+  //
+  // **푸는 것만 한다** (P16 3.2). 묶음 멤버는 서로 다른 판이어야 하는데
+  // (`save_object_link`) 카탈로그는 시야마다 한 판만 카드로 내므로 **묶을 상대가
+  // 이 화면에 없다.** 푸는 데 필요한 것은 `link_id` 하나뿐이라 그것만 한다.
+  document.querySelectorAll(".catcard .unlink").forEach(function (btn) {
+    var card = btn.closest(".catcard");
+    var say = card.querySelector(".say");
+    btn.addEventListener("click", function () {
+      if (!window.confirm("이 묶음을 풉니다.\n"
+                          + "판들의 판단은 그대로 남고, 한 개체라는 묶음만 "
+                          + "없어집니다.")) { return; }
+      btn.disabled = true;
+      fetch(btn.dataset.url, {
+        method: "POST", credentials: "same-origin",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": csrf()},
+        body: JSON.stringify({act: "unlink", link_id: +card.dataset.link}),
+      })
+        .then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
+        .then(function (p) {
+          btn.disabled = false;
+          if (!(p[0] && p[1].ok)) {
+            say.textContent = "못 풀었습니다 — " + (p[1].error || "다시 시도하세요");
+            say.className = "say warn";
+            return;
+          }
+          btn.remove();
+          card.removeAttribute("data-link");
+          say.textContent = "풀었습니다";
+          say.className = "say";
+        })
+        .catch(function () {
+          btn.disabled = false;
+          say.textContent = "닿지 못했습니다 — 연결을 확인하세요";
+          say.className = "say warn";
+        });
+    });
+  });
+
+  // --- 일괄 ----------------------------------------------------------------
+  var bar = document.querySelector(".bulkbar");
+  if (bar) {
+    var bfields = {species: bar.querySelector(".species"),
+                   cls: bar.querySelector(".cls"),
+                   grade: bar.querySelector(".grade"),
+                   pose: bar.querySelector(".pose")};
+    var go = bar.querySelector(".go");
+    var bsay = bar.querySelector(".say");
+    var bn = bar.querySelector(".n");
+
+    function picked() { return cards.filter(function (c) { return c.picked(); }); }
+
+    function refresh() {
+      var n = picked().length;
+      bar.hidden = n === 0;
+      bn.textContent = "고른 것 " + n + "개";
+      cards.forEach(function (c) {
+        c.card.classList.toggle("picked", c.picked());
+      });
+    }
+
+    document.querySelectorAll(".catcard .pick").forEach(function (p) {
+      p.addEventListener("change", refresh);
+    });
+
+    bar.querySelector(".clear").addEventListener("click", function () {
+      document.querySelectorAll(".catcard .pick").forEach(function (p) {
+        p.checked = false;
+      });
+      bsay.textContent = "";
+      refresh();
+    });
+
+    go.addEventListener("click", function () {
+      var chosen = picked();
+      if (!chosen.length) { return; }
+
+      // **빈 칸은 안 고친다.** 서버도 없는 칸을 "안 고친다" 로 받는다 — 카드
+      // 하나짜리 저장과 같은 규칙이라, 여기서만 빈 것을 "비운다" 로 읽으면
+      // 사람이 한 칸만 채우고 누를 때 나머지 셋이 지워진다.
+      var f = {};
+      Object.keys(bfields).forEach(function (k) {
+        if (bfields[k].value) { f[k] = bfields[k].value; }
+      });
+      if (!Object.keys(f).length) {
+        bsay.textContent = "고칠 칸을 하나는 채우세요";
+        bsay.className = "say warn";
+        return;
+      }
+
+      // **파편으로 바꾸는 것은 미리 묻는다** (P16 5.2). 안 물으면 등급·자세가
+      // 매겨진 카드마다 409 가 돌아오고, 화면에는 "저장 실패" 만 줄줄이 뜬다.
+      if (isFrag(f.cls)) {
+        var hit = chosen.filter(function (c) {
+          return c.fields.grade.value || c.fields.pose.value;
+        });
+        if (hit.length) {
+          if (!window.confirm("파편에는 등급·자세를 매기지 않습니다.\n"
+                              + "고른 것 중 " + hit.length + "개에 매긴 등급·자세를 "
+                              + "지우고 파편으로 바꿀까요?")) { return; }
+          f.grade = "";
+          f.pose = "";
+        }
+      }
+
+      go.disabled = true;
+      bsay.textContent = "저장하는 중…";
+      bsay.className = "say";
+      chosen.forEach(function (c) {
+        c.card.classList.add("dirty");
+        c.say.textContent = "";
+      });
+
+      post({act: "bulk", fields: f,
+            items: chosen.map(function (c) { return c.id(); })}, false)
+        .then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
+        .then(function (p) {
+          go.disabled = false;
+          if (!(p[0] && p[1].ok)) {
+            chosen.forEach(function (c) { c.card.classList.remove("dirty"); });
+            bsay.textContent = "저장 실패 — " + (p[1].error || "다시 시도하세요");
+            bsay.className = "say warn";
+            return;
+          }
+          // **결과를 카드마다 앉힌다.** "N장 중 M장 저장됨" 한 줄로 끝내면
+          // 사람이 실패한 카드를 못 짚는다 (063 — 못 한 것은 오류로 말한다).
+          var byKey = {};
+          (p[1].results || []).forEach(function (x) {
+            byKey[x.gid + "/" + x.image + "/" + x.key] = x;
+          });
+          chosen.forEach(function (c) {
+            var id = c.id();
+            var got = byKey[id.gid + "/" + id.image + "/" + id.key];
+            c.card.classList.remove("dirty");
+            if (!got) { return; }
+            if (got.ok) { c.accept(got); return; }
+            c.say.textContent = "저장 실패 — " + (got.error || "");
+            c.say.className = "say warn";
+          });
+          var bad = p[1].n - p[1].n_ok;
+          bsay.textContent = bad
+            ? p[1].n_ok + "개 저장 · " + bad + "개는 못 했습니다 (카드에 적었습니다)"
+            : p[1].n_ok + "개 저장했습니다";
+          bsay.className = bad ? "say warn" : "say";
+        })
+        .catch(function () {
+          go.disabled = false;
+          chosen.forEach(function (c) { c.card.classList.remove("dirty"); });
+          bsay.textContent = "닿지 못했습니다 — 연결을 확인하세요";
+          bsay.className = "say warn";
+        });
+    });
+
+    refresh();
+  }
 })();
 </script>
 {% endblock %}

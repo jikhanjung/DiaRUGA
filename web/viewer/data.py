@@ -1113,6 +1113,9 @@ def catalog_rows(slug: str, gone: bool = False) -> list[dict]:
                              "bbox_xywh": list(box),
                              "polygon": list(geom["polygon"])}
             r["linked_n"] = n
+            # **푸는 데 필요한 것은 `link_id` 하나다** (P16 5.3). 카드가 이미
+            # 들고 있는 것에서 한 줄로 얻는다 — 카드마다 되묻지 않는다(105).
+            r["link_id"] = best.diatom_object_id
 
     rows.sort(key=lambda r: (r["group_id"],
                              (r.get("bbox_xywh") or [0, 0])[1],

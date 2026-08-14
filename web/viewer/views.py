@@ -894,6 +894,16 @@ def catalog(request, slug):
     # `catalog_rows` 를 다시 부르지 않는다: 한 판을 통째로 다시 만드는 함수다.
     n_frag = len(rows) - n_all
 
+    # **지운 것은 따로 본다** (P16 5.1). 카탈로그에서 지울 수 있게 됐으니
+    # 되살릴 자리도 같은 화면에 있어야 한다 — 섞어서 내지는 않는다.
+    #
+    # **진행도는 위에서 이미 냈다.** 여기서 갈아 끼우는 것은 화면에 놓을 카드
+    # 뿐이라 `n_all`·`n_named`·`n_frag` 는 통과분 기준으로 남는다 — 분모가 지운
+    # 것으로 바뀌면 "모수가 틀린 막대" 가 된다(파편에서 이미 겪은 자리다).
+    show_gone = request.GET.get("gone") == "1"
+    if show_gone:
+        rows = data.catalog_rows(slug, gone=True)
+
     cls = request.GET.get("cls") or ""
     # **파편은 기본으로 감춘다** (사용자 2026-08-11). 처음부터 다 내면 카드가
     # 파편으로 덮여 동정할 것이 안 보인다. 감추는 것은 화면일 뿐이라 진행도·
@@ -902,7 +912,11 @@ def catalog(request, slug):
     # **파편 분류를 콕 집었으면 감추지 않는다** — 그 칩을 누르고 빈 화면을 보면
     # 사람은 자료가 없다고 읽는다. 눌러서 아무 일도 안 일어나는 화면을 만들지
     # 않는다.
-    show_frag = request.GET.get("frag") == "1"
+    #
+    # **지운 것을 보는 화면에서는 감추지 않는다** (P16). 파편 분류를 콕 집었을
+    # 때와 같은 이유다 — 지운 것을 되살리러 온 사람에게 지운 것의 절반을 감추면
+    # "지웠는데 없다" 가 된다. 실측으로 살아 있는 교정의 65%가 파편이다.
+    show_frag = request.GET.get("frag") == "1" or show_gone
     if not show_frag and not data.is_fragment(cls):
         rows = [r for r in rows if not data.is_fragment(r.get("cls"))]
 
@@ -951,6 +965,10 @@ def catalog(request, slug):
         # 꺼진 줄 모르고 개체가 사라졌다고 읽는다.
         if show_frag:
             qd["frag"] = "1"
+        # 지운 것을 보다가 다음 쪽으로 넘어가면 통과분으로 돌아가면 안 된다 —
+        # 파편 체크박스와 같은 이유다.
+        if show_gone:
+            qd["gone"] = "1"
         return f"?{urlencode(qd)}"
 
     # **왜 못 적는가를 화면이 말한다.** 잠가 놓고 이유를 안 적으면 사람이 같은
@@ -979,6 +997,7 @@ def catalog(request, slug):
         "q": q,
         "show_frag": show_frag,
         "n_frag": n_frag,
+        "show_gone": show_gone,
         # **등급·자세는 완형에만 매긴다.** 어느 분류가 완형인지를 화면이 알아야
         # 카드가 두 칸을 감추고, 유형을 파편으로 바꿀 때 물어볼 수 있다.
         # 서버는 `data.check_grade_pose` 가 다시 검사한다 — 화면에서 막는 것은
