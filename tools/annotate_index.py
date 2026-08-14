@@ -124,8 +124,16 @@ def algaebase(r: dict) -> str | None:
     return f"AlgaeBase {ab}"
 
 
+# 원문에서 확인한 것 중 **이름이 아니라는** 판정들. 이것은 AlgaeBase 보다 앞선다 —
+# 학명이 아닌 것을 등록부에 물어 봐야 "없다" 만 나온다
+NOT_A_NAME_SRC = ("산문", "괄호 안", "줄바꿈", "원문에 없다")
+
+
 def verdict(r: dict) -> str:
     """한 줄로 줄인 판정. **길면 색인이 안 읽힌다.**"""
+    src = (r.get("원문확인") or "").split(" · ")[-1] if r.get("원문확인") else ""
+    if src and any(k in src for k in NOT_A_NAME_SRC):
+        return f"원문 확인: {src}"
     ab = algaebase(r)
     if ab:
         return ab
@@ -150,6 +158,8 @@ def verdict(r: dict) -> str:
         return "WoRMS 격리 레코드 — 대조할 표제가 없다"
     if v in ("속 다름", "비규조"):
         return why
+    if src:
+        return f"원문에 학명으로 있다 (WoRMS 에만 없다) · {v}"
     if v == "색인 쓰레기":
         return f"색인 부스러기로 봤다 — {why}"
     # 사람이 본다

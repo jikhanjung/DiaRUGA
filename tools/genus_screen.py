@@ -72,7 +72,12 @@ SECTION = re.compile(r"^## Tafel (\d+)\b")
 
 
 def read_notes() -> dict[int, str]:
-    """해설 OCR 을 Tafel 마다 자른다."""
+    """해설 OCR 을 Tafel 마다 자른다.
+
+    **같은 번호가 여러 번 나오면 이어 붙인다.** '이어지는 면(추정)' 은 같은
+    번호를 달고 오므로 덮어쓰면 마지막 한 쪽만 남는다 — Tafel 240 이 34쪽인데
+    그렇게 잘려서 색인 11건이 "원문에 없다" 로 나왔다.
+    """
     out: dict[int, str] = {}
     for path in NOTES:
         if not path.exists():
@@ -83,12 +88,12 @@ def read_notes() -> dict[int, str]:
             m = SECTION.match(line)
             if m:
                 if cur is not None:
-                    out[cur] = "\n".join(buf)
+                    out[cur] = out.get(cur, "") + "\n" + "\n".join(buf)
                 cur, buf = int(m.group(1)), []
             elif cur is not None:
                 buf.append(line)
         if cur is not None:
-            out[cur] = "\n".join(buf)
+            out[cur] = out.get(cur, "") + "\n" + "\n".join(buf)
     return out
 
 
@@ -148,7 +153,7 @@ def match_genus(token: str, vocab: set[str], loose: dict[str, str]) -> str | Non
 
 
 # 스쳐 간 언급을 이끄는 말들. 이 뒤에 오는 속명은 표제가 아니다
-ASIDE = re.compile(r"(?:mit|als|wie|vergl\.?|siehe|zum|von|=|\()\s*$", re.I)
+ASIDE = re.compile(r"(?:mit|als|wie|an|auf|bei|zu|zum|zur|von|vergl\.?|siehe|gleich|aehnlich|ähnlich|=|\()\s*$", re.I)
 
 
 def genera_in(text: str, vocab: set[str]) -> tuple[collections.Counter,
