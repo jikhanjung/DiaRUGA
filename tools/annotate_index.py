@@ -100,8 +100,35 @@ def unmatched(title: str, db: sqlite3.Connection | None) -> str:
     return "대조표에 없다 — 이름을 뽑는 규칙에 안 걸린 표제어다"
 
 
+def algaebase(r: dict) -> str | None:
+    """AlgaeBase 판정을 앞세운다. **쓸 이름은 AlgaeBase 를 따른다**(방침 08-12).
+
+    다만 **엇갈렸다는 사실은 지우지 않는다** — WoRMS 가 다른 이름을 주면 그것도
+    함께 적는다. 색인을 보는 사람이 "왜 저 이름인가" 를 여기서 알 수 있어야 한다.
+    """
+    ab = (r.get("AlgaeBase") or "").strip()
+    if not ab:
+        return None
+    worms = r.get("유효명") or ""
+    if re.fullmatch(r"[A-Z][a-zë\-]+ [a-zë\- .]+", ab):      # 이름이 왔다
+        note = f"AlgaeBase 이명 → {ab}"
+        if worms and worms not in (ab, r["이름"]):
+            note += f" · WoRMS 는 {worms} (엇갈림)"
+        return note
+    if ab == "그대로 유효":
+        note = "AlgaeBase 그대로 유효"
+        if worms and worms != r["이름"]:
+            note += f" · WoRMS 는 {worms} (엇갈림)"
+        return note
+    # `AlgaeBase 에 없다`·`확인 필요`·`미확인`·`아직 안 찾았다`
+    return f"AlgaeBase {ab}"
+
+
 def verdict(r: dict) -> str:
     """한 줄로 줄인 판정. **길면 색인이 안 읽힌다.**"""
+    ab = algaebase(r)
+    if ab:
+        return ab
     v, why = r["재판정"], r["근거"]
     if v == "확정":
         s = STATUS_KR.get(r["상태"], r["상태"] or "?")
