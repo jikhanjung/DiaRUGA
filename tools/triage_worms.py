@@ -29,15 +29,15 @@
 ## 함정
 
 - **`absent` 는 "WoRMS 에 없는 이름" 이 아니다.** 대부분 색인 파싱 부스러기이고
-  (잘린 낱말·지명·독일어), 진짜 종도 섞여 있다 — **WoRMS 는 해양 등록부라
-  담수·화석 종이 원래 빠진다**(`Rouxia leventerae` 가 그렇다). 둘을 갈라 놓지
-  않으면 "없음" 을 오기로 읽는다
+  (잘린 낱말·지명·독일어), 진짜 종도 섞여 있다(`Rouxia leventerae`). 갈라 놓지
+  않으면 "없음" 을 오기로 읽는다. **다만 "담수라 빠졌다" 는 성립하지 않는다** —
+  근거는 `why_missing` 머리말에 있다
 - **`species_1845.tsv` 를 입력으로 쓰지 않는다.** 그것도 JSON 에서 나온 사본이라
   한 겹 멀다. 도감 출처의 원본은 JSON 의 `atlases` 다
 
 사용:
 
-    python tools/triage_worms.py --out-dir /nfs/temp-share/DiaRUGA/Diadiction/temp
+    python tools/triage_worms.py            # 기본 자리가 names/worms 다
     python tools/triage_worms.py --out-dir /tmp/x --no-recheck   # 안 묻고 가르기만
 """
 from __future__ import annotations
@@ -52,7 +52,9 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-TEMP = Path("/nfs/temp-share/DiaRUGA/Diadiction/temp")
+# 2026-08-14 에 `temp/` 에서 옮겼다 — 그 자리는 "언제든 비워도 됨" 이라
+# 적혀 있는데 다시 못 만드는 것이 아흐레째 살고 있었다 (Diadiction/README.md)
+NAMES = Path("/nfs/temp-share/DiaRUGA/Diadiction/names/worms")
 API = "https://www.marinespecies.org/rest/AphiaRecordsByNames"
 API_ONE = "https://www.marinespecies.org/rest/AphiaRecordsByName"
 API_FUZZY = "https://www.marinespecies.org/rest/AphiaRecordsByMatchNames"
@@ -353,8 +355,8 @@ def judge_needs_review(row: dict) -> tuple[str, str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--temp", type=Path, default=TEMP, help="표 다섯이 있는 폴더")
-    ap.add_argument("--out-dir", type=Path, default=TEMP, help="결과를 쓸 폴더")
+    ap.add_argument("--temp", type=Path, default=NAMES, help="표 다섯이 있는 폴더")
+    ap.add_argument("--out-dir", type=Path, default=NAMES, help="결과를 쓸 폴더")
     ap.add_argument("--stamp", default="20260814", help="나오는 파일의 날짜")
     ap.add_argument("--no-recheck", action="store_true", help="WoRMS 를 안 묻는다")
     ap.add_argument("--sleep", type=float, default=0.5)
