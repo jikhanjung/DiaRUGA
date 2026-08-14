@@ -117,6 +117,7 @@ CLASSES = [
     ("rod_frag",    "봉상조각",     "봉조",  "rodf", "120,195,255",  "w",   False,  False),
     ("eucampia",    "Eucampia",   "Euc",  "euc",  "255,110,190",  "e",   True,   True),
     ("chaetoceros", "Chaetoceros", "Cha",  "cha",  "150,225,75",   "r",   True,   True),
+    ("rhizosolenia", "Rhizosolenia", "RHZ", "rhi", "185,130,255",  "t",   True,   True),
 ]
 
 

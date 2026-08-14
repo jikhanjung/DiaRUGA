@@ -145,6 +145,23 @@ def _badges():
     return _LabelMap((r["key"], r["badge"]) for r in _class_rows())
 
 
+def _count_parts(counts: dict) -> list[str]:
+    """개수 줄에 적을 토막들 — `["rod 12", "eucampia 3", …]`.
+
+    **분류 목록을 손으로 적지 않는다.** 예전에는 부르는 자리마다 다섯을 박아
+    두었는데(`rod`·`round`·`rod_frag`·`round_frag`·`eucampia`), **Chaetoceros 를
+    더하면서 그 자리를 안 고쳐 개수 줄에서만 빠져 있었다** — 예외도 경고도 없이
+    그 분류만 조용히 안 세어진다(`ClassDef` 머리말이 말하는 그 자리다).
+
+    표의 차례(`sort_order`)를 그대로 따르므로 새 분류를 넣으면 저절로 낀다.
+    """
+    return [f"{k} {counts[k]}" for k in _class_rows_keys() if counts.get(k)]
+
+
+def _class_rows_keys():
+    return [r["key"] for r in _class_rows()]
+
+
 def __getattr__(name):
     """CLASS_LABELS 같은 모듈 수준 이름을 유지한다(템플릿태그가 그렇게 쓴다)."""
     if name == "CLASS_LABELS":
@@ -2708,8 +2725,7 @@ def _review_shot(d: dict, image_id: int, rel: str = "") -> dict:
     **예외도 경고도 없이** 사람이 보고 있던 것과 다른 자리에 판단이 쌓인다.
     """
     c = d["counts"]
-    parts = [f"{k} {c[k]}" for k in ("rod", "round", "rod_frag",
-                                     "round_frag", "eucampia") if c.get(k)]
+    parts = _count_parts(c)
     return {
         "image": image_id,
         # **원본 경로** (P11). 묶기 팝업이 다른 판의 크롭을 청할 때 쓴다 —
@@ -3818,8 +3834,7 @@ def engine_viewpoint(slug: str, gid: int, run_id: int,
     # 갈아 끼울 자료로 넘긴다.
     def _shot(d):
         c = d["counts"]
-        parts = [f"{k} {c[k]}" for k in ("rod", "round", "rod_frag",
-                                         "round_frag", "eucampia") if c.get(k)]
+        parts = _count_parts(c)
         return {
             "candidates": d["candidates"],
             "rejected": d["rejected"],
