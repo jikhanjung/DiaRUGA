@@ -1,7 +1,15 @@
 {% load viewer_extras %}
 {% comment %}
-  그룹에 속한 모든 사진 — 합성본 · 깊이 맵 · 각 프레임.
-  base 와 같은 것이 처음 선택된 상태가 된다 (= 검출을 돌린 그 이미지).
+  그룹의 사진 — 합성본 · 각 프레임. base 와 같은 것이 처음 선택된 상태가 된다
+  (= 검출을 돌린 그 이미지).
+
+  **깊이 맵은 여기 안 낸다** (2026-08-14 사용자 요청 · 123). 검토에 쓸 일이
+  없다: Z 좌표가 없어 상대값이고, **검출이 붙지 않는 판**이라 골라도 볼 것이
+  없다. 116 에서 저장이 대표 이미지로 가던 그 판이 이것이다.
+
+  **자료를 지우는 것이 아니다** — `Stack.depth_path` 도 `Image` 행(`kind="depth"`)도
+  그대로 있고 `data._stack_dict` 가 `depth_rel` 을 계속 싣는다. 화면에서 안 내는
+  것뿐이라, 볼 일이 생기면 이 조각에 다시 붙이면 된다.
 {% endcomment %}
 {% if stack %}
   <button type="button" class="shot{% if stack.focused_rel == base %} on{% endif %}"
@@ -15,16 +23,6 @@
     <img loading="lazy" src="{% thumb stack.focused_rel 220 %}" alt="합성본">
     <span class="cap">합성본</span>
   </button>
-  {% if stack.depth_rel %}
-  <button type="button" class="shot"
-          data-view="{% thumb stack.depth_rel 1600 %}"
-          data-full="{% full stack.depth_rel %}"
-          data-title="깊이 맵"
-          data-note="Z 좌표가 없어 상대값이다 — 정량적 높이가 아니다">
-    <img loading="lazy" src="{% thumb stack.depth_rel 220 %}" alt="깊이 맵">
-    <span class="cap">깊이 맵</span>
-  </button>
-  {% endif %}
 {% endif %}
 
 {% for f in frames %}{% if f.exists %}

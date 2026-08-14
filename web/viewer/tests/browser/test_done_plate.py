@@ -10,14 +10,20 @@
       if (!back) return;              // ← 아무것도 안 되돌리고 나간다
     }
 
-`curKey` 가 null 이 되는 자리가 둘이다 — **깊이 맵**(`_shots.html` 이 그 단추에
-`data-detkey` 를 아예 안 단다)과 **그 묶음에 검출이 없는 프레임**. 둘 다 고른
+`curKey` 가 null 이 되는 자리가 **둘이었다** — 깊이 맵(`_shots.html` 이 그 단추에
+`data-detkey` 를 아예 안 달았다)과 **그 묶음에 검출이 없는 프레임**. 둘 다 고른
 순간 `curImage` 도 비므로, 그 상태로 나간 저장은 `image: null` 이 되어 서버가
 **대표 이미지**로 받고 payload 에 없는 행을 지운다.
 
 사본에서 재현했다: 깊이 맵을 고르고 완료를 누르면 **합성본의 교정 2건이
 0건**이 됐다. 그래서 116 덧은 길을 바꿨다 — **완료는 교정을 안 싣고 혼자
 간다**(`{"only": "done"}`). 서버 쪽은 `tests/test_review_done_batch.py`.
+
+**123 에서 깊이 맵을 캐러셀에서 뺐다** — 검토에 쓸 일이 없는 판이라서다. 그래서
+그 갈래를 밟던 시험도 함께 걷었다(고를 단추가 없으니 늘 실패한다). **가드는
+그대로 필요하다**: 남은 한 자리, *그 묶음에 검출이 없는 프레임*이 같은 판이고
+아래 시험이 그것을 밟는다. 깊이 맵이 화면에 안 나온다는 것 자체는
+`tests/test_depth_hidden.py` 가 본다.
 
 **대조군을 함께 둔다** — 완료가 저장되는 것까지 봐야 "안 지운다" 가 무의미한
 통과가 아니다.
@@ -38,8 +44,8 @@ class DoneOnPlateWithoutDetectionTest(BrowserTestCase):
     def make_data(self):
         fx.make_classes()
         # **프레임마다 현재 검출이 있는 시야** — 운영의 `yolo-3차` 가 그
-        # 모양이고, 거기서만 `stackOnly()` 가 거짓이라 깊이 맵이 `curKey=null`
-        # 로 간다(합성본만 있는 묶음에서는 깊이 맵도 합성본으로 겹쳐 본다 · 072).
+        # 모양이고, 거기서만 `stackOnly()` 가 거짓이라 검출 없는 판이
+        # `curKey=null` 로 간다(합성본만 있는 묶음에서는 합성본으로 겹쳐 본다 · 072).
         self.w = fx.make_world(slug=f"rs23-{self.uniq}",
                                site_code=f"RS{self.uniq}",
                                n_viewpoints=2, n_frames=3, n_candidates=3)
@@ -49,7 +55,9 @@ class DoneOnPlateWithoutDetectionTest(BrowserTestCase):
         bare_frame, _img, det = self.extra[-1]
         det.delete()
         self.bare = bare_frame
-        # 깊이 맵 — 운영 `stacked/` 에 널려 있다
+        # **깊이 맵도 있는 시야로 둔다** — 운영 `stacked/` 에 널려 있다. 자료는
+        # 그대로 두고 화면에서만 안 내는 것이 123 이라, 여기서도 그 모양이어야
+        # 한다(캐러셀에 안 뜨는 것은 `test_depth_hidden.py` 가 본다).
         st = Stack.objects.get(viewpoint=self.w.vp)
         st.depth_path = st.focused_path.replace("_focused.jpg", "_depth.jpg")
         st.save(update_fields=["depth_path"])
@@ -87,19 +95,6 @@ class DoneOnPlateWithoutDetectionTest(BrowserTestCase):
         el.click()
         self.page.wait_for_timeout(300)
         return el
-
-    # --- 깊이 맵 ------------------------------------------------------------
-
-    def test_깊이맵을_고른_채_완료해도_교정이_남는다(self):
-        self.open_review()
-        self.pick('.shot[data-title="깊이 맵"]')
-        self.page.click("#done-stack")
-        self.page.wait_for_timeout(900)
-
-        self.assertEqual(self.marks(), 2,
-                         "깊이 맵을 고른 채 누른 완료가 합성본의 교정을 "
-                         "갈아치웠다")
-        self.assertIsNotNone(self.done_row(), "완료가 저장되지 않았다")
 
     # --- 그 묶음에 검출이 없는 프레임 + 판을 스친 뒤 -------------------------
 
