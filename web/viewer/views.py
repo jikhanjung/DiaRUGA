@@ -1001,6 +1001,34 @@ def catalog(request, slug):
     })
 
 
+def _catalog_fields(src, *, with_note=True):
+    """카드가 보낸 칸들을 고른다. **`None` 은 안 고친다, `""` 는 비운다.**
+
+    둘을 같이 다루면 화면이 안 보내는 칸을 저장이 지운다 — `drawn` 과 같은 규칙.
+    문자열이 아닌 값은 `ValueError` 다(부르는 쪽이 400 으로 낸다).
+
+    **일괄에는 코멘트가 없다** (P16 3.3). 같은 글을 여러 개체에 붙이는 것은
+    *이 규조각을 두고 하는 말* (0036)이라는 그 칸의 뜻과 어긋난다.
+    """
+    def text(name, limit):
+        v = src.get(name)
+        if v is None:
+            return None                      # **안 고친다** (빈 것과 다르다)
+        if not isinstance(v, str):
+            raise ValueError(name)
+        return v[:limit]
+
+    fields = {"species": text("species", data.SPECIES_MAX),
+              "cls": text("cls", 32),
+              # 값이 셋뿐이라 자르는 길이가 뜻이 없다 — 모르는 값은
+              # `check_grade_pose` 가 `ValueError` 로 물린다(409).
+              "grade": text("grade", 8),
+              "pose": text("pose", 16)}
+    if with_note:
+        fields["note"] = text("note", NOTE_MAX)
+    return fields
+
+
 @require_POST
 def save_catalog(request, slug):
     """카드 한 장을 저장한다. **개체 하나만 고친다** (`data.save_catalog_entry`).
@@ -1008,11 +1036,29 @@ def save_catalog(request, slug):
     `/review` 처럼 범위를 갈아치우지 않으므로 017·027·053 계열의 사고가
     구조적으로 안 생긴다. 그래도 짚는 것은 그때와 같은 방식이다 —
     **`(slug, gid)` 로 시야를, id 로 이미지를** 짚고 서버가 다시 확인한다.
+
+    문이 넷이다 (`act` · P16 5절). **주소를 늘리지 않는다** — 짚는 방식과 막는
+    검사가 완전히 같아서, 주소로 가르면 같은 검사를 네 벌 적게 된다.
+
+    | `act` | 무엇을 | 어느 층에 |
+    |---|---|---|
+    | `save`(기본) | 종명·유형·등급·자세·코멘트 | 개체 (`DiatomObject`) |
+    | `remove`·`restore` | 오검출로 지우기·되돌리기 | `(이미지, 묶음, mask_key)` |
+    | `bulk` | 고른 카드들에 넷을 한 번에 | 개체 — 하나씩 저장한다 |
+
+    **`remove` 를 `save` 와 한 payload 에 안 싣는다** (116). 층이 다른 것을 한
+    요청으로 보내면 한쪽을 고르는 일이 다른 쪽까지 갈아치운다.
     """
     try:
         payload = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
         return HttpResponseBadRequest("bad json")
+
+    act = payload.get("act") or "save"
+    if act == "bulk":
+        return _save_catalog_bulk(slug, payload)
+    if act not in ("save", "remove", "restore"):
+        return HttpResponseBadRequest("bad act")
 
     try:
         gid = int(payload.get("gid"))
@@ -1028,22 +1074,16 @@ def save_catalog(request, slug):
     if blocked:
         return JsonResponse({"ok": False, "error": blocked}, status=409)
 
-    def text(name, limit):
-        v = payload.get(name)
-        if v is None:
-            return None                      # **안 고친다** (빈 것과 다르다)
-        if not isinstance(v, str):
-            raise ValueError(name)
-        return v[:limit]
+    if act in ("remove", "restore"):
+        try:
+            saved = data.set_catalog_removed(vp, image_id, payload.get("key"),
+                                             act == "remove")
+        except ValueError as e:
+            return JsonResponse({"ok": False, "error": str(e)}, status=409)
+        return JsonResponse({"ok": True, **saved})
 
     try:
-        fields = {"species": text("species", data.SPECIES_MAX),
-                  "cls": text("cls", 32),
-                  "note": text("note", NOTE_MAX),
-                  # 값이 셋뿐이라 자르는 길이가 뜻이 없다 — 모르는 값은
-                  # `check_grade_pose` 가 `ValueError` 로 물린다(409).
-                  "grade": text("grade", 8),
-                  "pose": text("pose", 16)}
+        fields = _catalog_fields(payload)
     except ValueError:
         return HttpResponseBadRequest("bad field")
 
@@ -1053,6 +1093,73 @@ def save_catalog(request, slug):
     except ValueError as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=409)
     return JsonResponse({"ok": True, **saved})
+
+
+def _save_catalog_bulk(slug, payload):
+    """고른 카드들에 같은 값을 넣는다 (P16 5.2).
+
+        {"act": "bulk",
+         "items": [{"gid": 3, "image": 12, "key": "10_10_50_50"}, …],
+         "fields": {"cls": "diatom", "grade": "A"}}
+
+    **한 트랜잭션으로 묶지 않는다.** 40장 중 하나가 409 면 나머지 39장의 저장까지
+    되돌아가고, 사람은 무엇이 걸렸는지 모른 채 전부 다시 한다. **개체마다
+    `save_catalog_entry` 를 부른다** — 저장하는 규칙이 둘이 되지 않는다.
+
+    **결과를 항목마다 돌려준다.** "N장 중 M장 저장됨" 한 줄로 끝내면 화면이
+    실패한 카드를 짚어 주지 못한다 (063 — 못 한 것은 오류로 말한다).
+    """
+    items = payload.get("items")
+    if not isinstance(items, list) or not items:
+        return HttpResponseBadRequest("no items")
+    # 한 판에 놓이는 카드 수가 상한이다 — 화면에 없는 것을 고를 수는 없다.
+    if len(items) > CATALOG_PER_PAGE:
+        return HttpResponseBadRequest("too many items")
+
+    try:
+        fields = _catalog_fields(payload.get("fields") or {}, with_note=False)
+    except ValueError:
+        return HttpResponseBadRequest("bad field")
+    if all(v is None for v in fields.values()):
+        return HttpResponseBadRequest("no fields")
+
+    results, n_ok = [], 0
+    # **막는 검사는 슬라이드마다 한 번이다** (105 — 같은 값을 되묻지 말 것).
+    blocked, seen = None, {}
+    for it in items:
+        if not isinstance(it, dict):
+            results.append({"ok": False, "error": "항목이 객체가 아니다"})
+            continue
+        try:
+            gid = int(it.get("gid"))
+            image_id = int(it.get("image"))
+        except (TypeError, ValueError):
+            results.append({"ok": False, "error": "gid·image 가 없다"})
+            continue
+        here = {"gid": gid, "image": image_id, "key": it.get("key")}
+
+        if gid not in seen:
+            seen[gid] = data.find_viewpoint(slug=slug, gid=gid)
+        vp, why = seen[gid]
+        if vp is None:
+            results.append({**here, "ok": False, "error": why})
+            continue
+        if blocked is None:
+            blocked = data.review_blocked(vp.slide) or ""
+        if blocked:
+            return JsonResponse({"ok": False, "error": blocked}, status=409)
+
+        try:
+            saved = data.save_catalog_entry(vp, image_id, it.get("key"),
+                                            **fields)
+        except ValueError as e:
+            results.append({**here, "ok": False, "error": str(e)})
+            continue
+        results.append({**here, "ok": True, **saved})
+        n_ok += 1
+
+    return JsonResponse({"ok": True, "n_ok": n_ok, "n": len(items),
+                         "results": results})
 
 
 def crop(request):

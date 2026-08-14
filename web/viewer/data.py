@@ -653,7 +653,7 @@ def slide_label(slug: str) -> str | None:
     return Slide.objects.filter(slug=slug).values_list("name", flat=True).first()
 
 
-def candidate_rows(slug: str, batch_id=None) -> list[dict]:
+def candidate_rows(slug: str, batch_id=None, gone: bool = False) -> list[dict]:
     """데이터셋 전체의 검출 개체를 한 목록으로. **시야를 한 번만 훑는다.**
 
     예전에는 뷰가 `dataset_detail()` 로 시야 74개를 훑은 뒤, 그룹마다 다시
@@ -667,6 +667,10 @@ def candidate_rows(slug: str, batch_id=None) -> list[dict]:
     `batch_id` 를 주면 그 묶음의 검출을 훑는다 (`current_detections` 와 같은
     규칙). 안 주면 검토 대상 묶음이고, 그것이 크롭 화면·계측 표·개체 카탈로그가
     보는 것이다.
+
+    `gone=True` 면 **사람이 오검출로 지운 것**을 대신 훑는다 (P16 5.1). 섞어서
+    내지 않는다 — 지운 것을 되살리는 화면과 동정하는 화면은 하는 일이 다르고,
+    한 목록에 섞으면 카드 수가 몇 배가 된다.
 
     **어느 묶음인지는 여기서 한 번만 묻는다.** 예전에는 `current_detections` 가
     시야마다 `review_batch_id()` 를 다시 물었다 — 실측으로 한 화면에 390~560번이고
@@ -712,7 +716,7 @@ def candidate_rows(slug: str, batch_id=None) -> list[dict]:
                         f["seq"])
                        for f in _frames(vp, by_path) if f["detection"]]
         for stem, d, image_rel, image_id, frame_seq in sources:
-            for c in d["candidates"]:
+            for c in d["removed_candidates" if gone else "candidates"]:
                 rows.append({
                     "group_id": vp.idx,
                     "stem": stem,
@@ -1056,7 +1060,7 @@ def review_batch_info() -> dict | None:
     return dict(b) if b else None
 
 
-def catalog_rows(slug: str) -> list[dict]:
+def catalog_rows(slug: str, gone: bool = False) -> list[dict]:
     """개체 카탈로그 화면 한 판. `candidate_rows` 에 번호·동정·묶음을 얹는다.
 
     **`candidate_rows` 를 다시 짜지 않는다.** 어느 이미지의 개체를 낼 것인가
@@ -1065,6 +1069,10 @@ def catalog_rows(slug: str) -> list[dict]:
 
     **여기 담기는 것은 통과분과 사람이 되살린 것이다** (사용자 방침 2026-08-10).
     동정할 대상이 그것이고, 지운 것까지 내면 카드가 몇 배가 된다.
+
+    **`gone=True` 는 그 반대쪽이다** (P16 5.1 · 사용자 방침 2026-08-14). 지운
+    것만 낸다 — 카탈로그에서 지울 수 있게 되었으니 **되살릴 자리도 같은 화면에
+    있어야 한다.** 섞지 않는 것은 위 방침 그대로다.
 
     **검토 대상 묶음 하나만 따라간다** (사용자 방침 2026-08-10). 엔진마다 카탈로그가
     완전히 별개인 것은 그대로인데(`ObjectReview` 의 열쇠에 `batch` 가 있다), 두
@@ -1085,7 +1093,7 @@ def catalog_rows(slug: str) -> list[dict]:
     codes = batch_codes()
     mains = link_mains(slide)
 
-    rows = candidate_rows(slug)
+    rows = candidate_rows(slug, gone=gone)
     for r in rows:
         r["catalog_no"], r["catalog_why"] = catalog_no_for(r, layer, codes)
         r.setdefault("species", "")
@@ -1146,33 +1154,16 @@ def check_grade_pose(label: str, grade="", pose="") -> None:
             f"있으면 먼저 비울 것")
 
 
-def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
-                       cls=None, note=None, grade=None, pose=None) -> dict:
-    """개체 **하나**의 동정을 고친다 (개체 카탈로그 6단계).
+def _catalog_target(vp: Viewpoint, image, key: str):
+    """카드가 짚은 판정 행을 가져오거나 세운다. `(행, 이미지 id)` 를 돌려준다.
 
-    ## 왜 `/review` 를 안 쓰는가
+    **짚는 규칙이 하나여야 한다** (P16 4.1). 카탈로그의 문이 셋으로 늘면서
+    (동정 · 지우기 · 일괄) 같은 검사를 세 벌 적게 됐는데, 그러면 한 자리만
+    고치는 날에 나머지가 조용히 옛 규칙으로 돈다 — `save_review` 와 이 함수가
+    같은 검사를 따로 들고 있다가 053 이 난 자리와 같은 모양이다.
 
-    그 POST 는 **그 (이미지, 묶음) 의 교정 전체를 갈아치운다** — "뷰어는 늘
-    전체를 보낸다" 가 전제다. 017·027·053 이 전부 그 줄에서 났고 두 번은 운영
-    자료를 잃었다(14건 · 37건). 카탈로그는 카드 하나를 고치는 화면이라 그 전제를
-    만들 수 없고, 만들 이유도 없다.
-
-    **여기는 짚은 개체 한 줄만 건드린다.** 지우는 범위가 없으므로 그 계열의
-    사고가 구조적으로 안 생긴다.
-
-    ## 무엇을 고치는가
-
-    `species`(종명) · `cls`(유형) · `note`(코멘트) 셋. `None` 은 **안 고친다** 는
-    말이고 `""` 는 **비운다** 는 말이다 — 둘을 같이 다루면 카드가 안 보내는 칸을
-    저장이 지운다(`drawn` 과 같은 규칙).
-
-    **삭제·되살림·기하는 안 건드린다.** 그것은 검토 화면이 하는 판단이다.
-
-    ## 아무것도 안 남으면 그 줄을 지운다
-
-    `save_review` 와 같은 규칙이다 — 표시가 사라진 행을 남겨 두면 "교정 전체
-    초기화" 가 안 되고 그 행을 세는 자리가 어긋난다. **사람이 그린 개체는
-    예외다**: 그 줄이 곧 개체라서 지우면 개체가 사라진다.
+    **`(slug, gid)` 로 시야를 · id 로 이미지를 · `mask_key` 로 개체를** 짚고,
+    못 짚으면 `ValueError` 다. 조용히 대표 이미지에 앉히지 않는다.
     """
     if vp is None:
         raise ValueError("모르는 시야다")
@@ -1209,6 +1200,106 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
         obj = judgement_for(vp, image_id, row_batch, key, cand)
         # 기하는 모든 교정 행이 들고 있는다 — 검출기가 바뀌어도 읽혀야 한다
         obj.geom = {"bbox": cand.bbox_xywh, "polygon": cand.polygon}
+    return obj, image_id
+
+
+def _catalog_prune(obj) -> bool:
+    """표시가 하나도 안 남았으면 그 줄을 지운다. 남겼으면 `True`.
+
+    **사람이 그린 개체는 남긴다** — 그 줄이 곧 개체다.
+
+    **묶음의 멤버도 남긴다** (P12). 소속이 곧 이 행이라, 값을 비웠다는 이유로
+    지우면 **묶음에서 한 판이 조용히 빠진다.** 묶음을 푸는 문은 `/link` 이고
+    카탈로그 카드가 아니다 — `save_review` 의 청소가 얹는 것과 같은 갈래다.
+    """
+    dobj = obj.diatom_object
+    linked = dobj.members.count() > 1
+    empty = not (obj.removed or obj.accepted or obj.auto_confirmed or dobj.label
+                 or dobj.note or dobj.species or obj.geom_edited or linked
+                 # **등급·자세도 표시다** — 안 세면 종명을 비우는 한 번에 등급까지
+                 # 함께 사라진다. 105 가 이 자리에서 실패 둘을 봤다.
+                 or dobj.grade or dobj.pose)
+    if empty and obj.source != "manual":
+        oid = obj.diatom_object_id
+        obj.delete()
+        prune_objects([oid])
+        return False
+    return True
+
+
+def set_catalog_removed(vp: Viewpoint, image, key: str, removed: bool) -> dict:
+    """개체 **하나**를 오검출로 지우거나, 지운 것을 되돌린다 (P16 5.1).
+
+    ## `/review` 를 안 쓰는 이유는 `save_catalog_entry` 와 같다
+
+    그 POST 는 **그 (이미지, 묶음) 의 교정 전체를 갈아치운다.** 카드는 그 시야의
+    교정 전체를 알지 못하므로 그 전제를 만들 수가 없다. 여기는 짚은 한 줄만
+    건드린다.
+
+    ## `accepted` 가 아니라 `removed` 다
+
+    **축이 둘이다.** `accepted` 는 *엔진이 떨어뜨린 것을 사람이 되살린* 것이고
+    (문턱 아래 후보), 여기는 *통과한 것을 사람이 지운* 것이다. 섞으면 탈락
+    펼침판이 세는 수가 어긋난다.
+
+    ## 묶인 개체는 못 지운다
+
+    `save_object_link` 가 **지운 마스크는 못 묶는다**로 막아 둔 것의 반대쪽이다 —
+    묶어 놓고 지우면 *이 개체는 오검출이면서 실재한다* 가 된다. 거절하면서
+    **몇 장이 걸렸는지 말한다**: 무엇을 먼저 치워야 하는지 모르면 사람은 같은
+    단추를 다시 누른다 (063).
+
+    되돌려서 표시가 하나도 안 남으면 그 줄을 지운다 (`_catalog_prune`).
+    """
+    obj, _image_id = _catalog_target(vp, image, key)
+
+    if removed:
+        n = obj.diatom_object.members.count()
+        if n > 1:
+            raise ValueError(
+                f"묶음 {n}장에 들어 있는 개체다 — 먼저 묶음을 푸세요")
+
+    obj.removed = bool(removed)
+    obj.save(update_fields=["removed"])
+    kept = _catalog_prune(obj)
+    return {"removed": bool(removed), "kept": kept}
+
+
+def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
+                       cls=None, note=None, grade=None, pose=None) -> dict:
+    """개체 **하나**의 동정을 고친다 (개체 카탈로그 6단계).
+
+    ## 왜 `/review` 를 안 쓰는가
+
+    그 POST 는 **그 (이미지, 묶음) 의 교정 전체를 갈아치운다** — "뷰어는 늘
+    전체를 보낸다" 가 전제다. 017·027·053 이 전부 그 줄에서 났고 두 번은 운영
+    자료를 잃었다(14건 · 37건). 카탈로그는 카드 하나를 고치는 화면이라 그 전제를
+    만들 수 없고, 만들 이유도 없다.
+
+    **여기는 짚은 개체 한 줄만 건드린다.** 지우는 범위가 없으므로 그 계열의
+    사고가 구조적으로 안 생긴다.
+
+    ## 무엇을 고치는가
+
+    `species`(종명) · `cls`(유형) · `note`(코멘트) 셋. `None` 은 **안 고친다** 는
+    말이고 `""` 는 **비운다** 는 말이다 — 둘을 같이 다루면 카드가 안 보내는 칸을
+    저장이 지운다(`drawn` 과 같은 규칙).
+
+    **삭제·되살림·기하는 안 건드린다.** 기하는 검토 화면이 하는 판단이고,
+    삭제·되살림은 **층이 달라 문을 갈랐다** (P16 4.2 · `set_catalog_removed`) —
+    이 다섯은 개체(`DiatomObject`)에 붙고 삭제는 `(이미지, 묶음, mask_key)` 에
+    붙는다. 층이 다른 것을 한 payload 에 실으면 116 이 난 자리가 된다.
+
+    ## 아무것도 안 남으면 그 줄을 지운다
+
+    `save_review` 와 같은 규칙이다 — 표시가 사라진 행을 남겨 두면 "교정 전체
+    초기화" 가 안 되고 그 행을 세는 자리가 어긋난다. **사람이 그린 개체는
+    예외다**: 그 줄이 곧 개체라서 지우면 개체가 사라진다.
+    """
+    if vp is None:
+        raise ValueError("모르는 시야다")
+
+    obj, image_id = _catalog_target(vp, image, key)
 
     # **분류·종명은 개체에 적는다** (P12). 묶여 있으면 그 개체를 나눠 가진 다른
     # 판들이 같은 값을 보게 된다 — 104 가 저장할 때마다 번지게 하던 일이
@@ -1251,23 +1342,9 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     spread = ({} if (cls is None and species is None and note is None)
               else linked_siblings(dobj, image_id))
 
-    # 표시가 하나도 안 남았으면 지운다. **사람이 그린 개체는 남긴다** — 그 줄이
-    # 곧 개체다.
-    #
-    # **묶음의 멤버도 남긴다** (P12). 소속이 곧 이 행이라, 값을 비웠다는 이유로
-    # 지우면 **묶음에서 한 판이 조용히 빠진다.** 묶음을 푸는 문은 `/link` 이고
-    # 카탈로그 카드가 아니다 — `save_review` 의 청소가 얹는 것과 같은 갈래다.
-    linked = obj.diatom_object.members.count() > 1
-    empty = not (obj.removed or obj.accepted or obj.auto_confirmed or dobj.label
-                 or dobj.note or dobj.species or obj.geom_edited or linked
-                 # **등급·자세도 표시다** — 안 세면 종명을 비우는 한 번에 등급까지
-                 # 함께 사라진다. 105 가 이 자리에서 실패 둘을 봤다.
-                 or dobj.grade or dobj.pose)
+    # 표시가 하나도 안 남았으면 지운다 (`_catalog_prune` — 지우기 쪽과 같은 규칙).
     n_spread = sum(len(v) for v in spread.values())
-    if empty and obj.source != "manual":
-        oid = obj.diatom_object_id
-        obj.delete()
-        prune_objects([oid])
+    if not _catalog_prune(obj):
         return {"species": "", "cls": "", "note": "", "grade": "", "pose": "",
                 "kept": False, "spread": n_spread}
     return {"species": dobj.species, "cls": dobj.label, "note": dobj.note,
