@@ -67,6 +67,20 @@ RANK = {"이명 → 갈아탄다": 5, "그대로 유효": 4, "확인 필요": 3,
         "AlgaeBase 에 없다": 2, "사람 메모": 1, "아직 안 찾았다": 0,
         "안 적혀 있다": 0}
 
+# **사람이 갈라야 하는 것.** 두 표가 다르게 말했는데 **어느 쪽도 근거가 약해서**
+# RANK 에 맡기면 안 되는 이름들이다. 규칙대로 두면 "이름을 찾은 쪽" 이 이기는데,
+# 진 쪽이 든 것은 이름이 없다는 말이 아니라 **그 이름이 여기 것이 아니라는 말**
+# 이라 층이 다르다. 판정을 안 적고 **원문 재판독으로 넘긴다** (⑦ · 127 · 사용자
+# 2026-08-18). 여기서 빼려면 원문이 무엇을 말하는지 보고 나서 뺀다
+HOLD = {
+    "Chaetoceros ikari":
+        "148건은 C. ikarii(Skvortzov) 를 찾았고, 9일차는 ikari 가 종소명이 아니라 "
+        "채집자 J.Ikari 의 저자명이라 0건이라고 했다",
+    "Chaetoceros paradoxum":
+        "148건은 C. paradoxus, 9일차는 동명이종 둘(Cleve 판·Peragallo 판)이라 "
+        "도감이 어느 저자를 가리키는지 봐야 한다",
+}
+
 
 def clean(s: str) -> str:
     return s.replace("**", "").replace("*", "").strip()
@@ -134,6 +148,14 @@ def read_batches() -> tuple[dict[str, dict], list[str], list[tuple]]:
                 clash.append((name, win, lose))
                 win["진 기록"] = f"{lose['출처']} 은 {lose['원문'] or '—'}"
             out[name] = win
+    for name, why in HOLD.items():
+        r = out.get(name)
+        if r is None:
+            warn.append(f"HOLD 에 적은 {name} 이 표에 없다 — 번호가 밀렸을 수 있다")
+            continue
+        r = dict(r)
+        r["상태"], r["이름"], r["보류"] = "원문 재판독", "", why
+        out[name] = r
     print(f"표 {len(files)}벌 · 항목 {len(out):,}개")
     return out, warn, clash
 
@@ -168,9 +190,10 @@ def main() -> int:
         print(f"\n**같은 이름을 두 표가 다르게 말한 것 {len(dupes)}건** "
               f"(알아낸 것이 많은 쪽을 쓰고, 진 쪽은 비고에 남긴다)")
         for name, win, lose in sorted(dupes, key=lambda x: x[1]["번호"]):
+            골 = "원문 재판독으로 넘겼다" if name in HOLD else (win["이름"] or win["상태"])
             print(f"  #{win['번호']:4d} {name:32s} "
                   f"{win['출처'].removeprefix('algaebase_').removesuffix('.md'):18s} "
-                  f"{(win['이름'] or win['상태'])[:34]:34s} "
+                  f"{골[:34]:34s} "
                   f"← {lose['원문'][:30] or '—'}")
     bad = check_numbers(recs)
     if bad:
@@ -207,7 +230,8 @@ def main() -> int:
             # 원문과 비고를 **둘 다** 남긴다
             표기 = f"도감 표기 {r['표기']}" if r.get("표기") else ""
             extra = " · ".join(x for x in (r["원문"] if r["원문"] != r["이름"] else "",
-                                           표기, r["비고"], r.get("진 기록", "")) if x)
+                                           표기, r["비고"], r.get("진 기록", ""),
+                                           r.get("보류", "")) if x)
             cells[b] = f"{r['상태']} · {r['출처']}" + (f" · {extra}" if extra else "")
             # **엇갈림을 내가 직접 센다** — 표의 `비고` 를 믿지 않고 두 칸을 비교한다
             worms = dict(zip(head, cells)).get("유효명", "")
