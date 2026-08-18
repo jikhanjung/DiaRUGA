@@ -127,17 +127,32 @@ def algaebase(r: dict) -> str | None:
     return f"AlgaeBase {ab}"
 
 
-# 원문에서 확인한 것 중 **이름이 아니라는** 판정들. 이것은 AlgaeBase 보다 앞선다 —
-# 학명이 아닌 것을 등록부에 물어 봐야 "없다" 만 나온다
-NOT_A_NAME_SRC = ("산문", "괄호 안", "줄바꿈", "원문에 없다")
+# 원문에서 확인한 것이 등록부 대조보다 앞서는 판정들.
+#
+# 처음에는 **이름이 아니라는** 것 넷뿐이었다 — 학명이 아닌 것을 등록부에 물어
+# 봐야 "없다" 만 나오기 때문이다. 08-18 에 `렌더 확인` 을 더했다
+# (`render_verify.py`). **근거의 무게가 달라서 낱말로 갈랐다** — 앞엣것들은
+# 해설 OCR 로 본 것이고, 뒤엣것은 **사람이 PDF 쪽을 열어 본 것**이다. 뒤엣것은
+# 판정이 무엇이든(철자·Verzeichnis·속명·오식) 등록부보다 앞선다. 실제로
+# `Cymbella amphi` 는 등록부만 보면 "철자 의심" 인데 원문은
+# `Cymbella amphi- / cephala` 로 줄바꿈에 잘려 있었다.
+#
+# **해설 OCR 쪽에 낱말을 더 붙이지 말 것** — 그쪽 `원문에 학명으로 있다` 91건은
+# Tafel 번호가 어긋난 본문에서 나온 것이라(126) 등록부를 밀어낼 무게가 아니다
+RENDER = "렌더 확인 — "
+SRC_WINS = ("산문", "괄호 안", "줄바꿈", "원문에 없다", RENDER)
 
 
 def verdict(r: dict) -> str:
     """한 줄로 줄인 판정. **길면 색인이 안 읽힌다.**"""
     src = (r.get("원문확인") or "").split(" · ")[-1] if r.get("원문확인") else ""
-    if src and any(k in src for k in NOT_A_NAME_SRC):
-        return f"원문 확인: {src}"
     ab = algaebase(r)
+    if src and any(k in src for k in SRC_WINS):
+        # **AlgaeBase 를 버리지 않고 뒤에 붙인다.** 원문은 그 쪽에 무엇이 찍혀
+        # 있는지를 말하고 AlgaeBase 는 지금 통용되는 이름을 말한다 — 다른 물음이다
+        head = ("원문 렌더 확인: " + src[len(RENDER):]) if src.startswith(RENDER) \
+            else f"원문 확인: {src}"
+        return head + (f" · {ab}" if ab else "")
     if ab:
         return ab
     v, why = r["재판정"], r["근거"]
