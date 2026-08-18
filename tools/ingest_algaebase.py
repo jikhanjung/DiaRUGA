@@ -73,12 +73,22 @@ RANK = {"이명 → 갈아탄다": 5, "그대로 유효": 4, "확인 필요": 3,
 # 이라 층이 다르다. 판정을 안 적고 **원문 재판독으로 넘긴다** (⑦ · 127 · 사용자
 # 2026-08-18). 여기서 빼려면 원문이 무엇을 말하는지 보고 나서 뺀다
 HOLD = {
-    "Chaetoceros ikari":
-        "148건은 C. ikarii(Skvortzov) 를 찾았고, 9일차는 ikari 가 종소명이 아니라 "
-        "채집자 J.Ikari 의 저자명이라 0건이라고 했다",
     "Chaetoceros paradoxum":
-        "148건은 C. paradoxus, 9일차는 동명이종 둘(Cleve 판·Peragallo 판)이라 "
-        "도감이 어느 저자를 가리키는지 봐야 한다",
+        "원문이 **Pavillard 판**이라고 한다(126 · 한국동식물도감 색인 306번 "
+        "`Chaetoceras paradoxum PAVILLARD`). 148건이 찾은 C. paradoxus 는 Cleve 판이고 "
+        "9일차가 든 동명이종도 Cleve·Peragallo 둘뿐이라 **셋 다 아니다** — "
+        "Pavillard 판 이름으로 AlgaeBase 에 다시 물어야 한다",
+}
+
+# **넘겼다가 원문으로 닫힌 것.** HOLD 에서 빼면 규칙이 도로 이름을 채우는데,
+# 여기 든 것은 **그 이름이 맞다고 원문이 말해 준** 자리다. 이름은 규칙이 채우게
+# 두고 근거만 비고에 남긴다 — 닫은 근거가 없으면 다음 사람이 또 넘긴다
+RESOLVED = {
+    "Chaetoceros ikari":
+        "원문으로 닫혔다(126) — 한국동식물도감 색인 299번이 "
+        "`Chaetoceras Ikari SKVORTZOW` 로 저자를 달고 있다. Ikari 가 종소명 자리이고 "
+        "저자는 SKVORTZOW 라 148건의 C. ikarii Skvortzov 가 맞다. "
+        "같은 도감에서 IKARI 가 저자로 나오는 줄은 278·311·318 로 따로 있다",
 }
 
 
@@ -156,6 +166,14 @@ def read_batches() -> tuple[dict[str, dict], list[str], list[tuple]]:
         r = dict(r)
         r["상태"], r["이름"], r["보류"] = "원문 재판독", "", why
         out[name] = r
+    for name, why in RESOLVED.items():
+        r = out.get(name)
+        if r is None:
+            warn.append(f"RESOLVED 에 적은 {name} 이 표에 없다 — 번호가 밀렸을 수 있다")
+            continue
+        r = dict(r)
+        r["닫힘"] = why
+        out[name] = r
     print(f"표 {len(files)}벌 · 항목 {len(out):,}개")
     return out, warn, clash
 
@@ -190,7 +208,9 @@ def main() -> int:
         print(f"\n**같은 이름을 두 표가 다르게 말한 것 {len(dupes)}건** "
               f"(알아낸 것이 많은 쪽을 쓰고, 진 쪽은 비고에 남긴다)")
         for name, win, lose in sorted(dupes, key=lambda x: x[1]["번호"]):
-            골 = "원문 재판독으로 넘겼다" if name in HOLD else (win["이름"] or win["상태"])
+            골 = ("원문 재판독으로 넘겼다" if name in HOLD else
+                 f"{win['이름']} (원문으로 닫혔다)" if name in RESOLVED else
+                 (win["이름"] or win["상태"]))
             print(f"  #{win['번호']:4d} {name:32s} "
                   f"{win['출처'].removeprefix('algaebase_').removesuffix('.md'):18s} "
                   f"{골[:34]:34s} "
@@ -231,7 +251,7 @@ def main() -> int:
             표기 = f"도감 표기 {r['표기']}" if r.get("표기") else ""
             extra = " · ".join(x for x in (r["원문"] if r["원문"] != r["이름"] else "",
                                            표기, r["비고"], r.get("진 기록", ""),
-                                           r.get("보류", "")) if x)
+                                           r.get("보류", ""), r.get("닫힘", "")) if x)
             cells[b] = f"{r['상태']} · {r['출처']}" + (f" · {extra}" if extra else "")
             # **엇갈림을 내가 직접 센다** — 표의 `비고` 를 믿지 않고 두 칸을 비교한다
             worms = dict(zip(head, cells)).get("유효명", "")

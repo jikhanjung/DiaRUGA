@@ -250,10 +250,16 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       41개가 겹치는데 **무엇이 이길지가 파일 이름 정렬에 달려 있어서**(`day10`
       이 `day7` 보다 앞이다) 알아낸 것이 많은 쪽이 이기게 바꿨다 — 진 기록은
       비고에 남긴다. **그 규칙에 맡기면 안 되는 것 둘은 원문 재판독으로 넘겼다**
-      (사용자) — #423 `Chaetoceros ikari`(`ikarii` 인가 저자명 J.Ikari 인가) ·
-      #431 `Chaetoceros paradoxum`(동명이종 둘 중 어느 저자인가). 판정 칸에
-      이름을 안 적고, 스크립트의 `HOLD` 가 **다시 돌려도 규칙이 도로 채우는 것을
-      막는다.** ⑦ 로 넘긴 것은 이 둘을 합쳐 **11건**이다
+      (사용자). ⑦ 로 넘긴 것은 이 둘을 합쳐 **11건**이고 같은 날
+      [126](devlog/20260818_126_schmidt-render-verify.md) 이 **여섯을 닫았다** —
+      #423 `Chaetoceros ikari` 는 한국 도감 색인이 `Chaetoceras Ikari SKVORTZOW`
+      로 저자를 달고 있어 `C. ikarii` 로 닫혔고, `Cocconeis` 셋은 원문에 `A. S.`
+      가 찍혀 있어 Schmidt 판으로 닫혔다. **#431 `Chaetoceros paradoxum` 만
+      남았는데 물음이 좁아졌다** — 색인이 `PAVILLARD` 라 148건의 `C. paradoxus`
+      (Cleve 판)도 9일차가 든 동명이종(Cleve·Peragallo)도 아니다. **Pavillard 판
+      이름으로 AlgaeBase 에 다시 물어야 한다 — 다음 꾸러미에 끼운다.**
+      닫은 것은 `RESOLVED`, 안 닫힌 것은 `HOLD` 에 근거와 함께 두어서
+      **다시 돌려도 규칙이 도로 채우지 않는다**
 
       **다음** — ⑥' AlgaeBase 나머지 **1,139종**(601번부터. 순번대로 오면 된다)
       ⑦ **Schmidt 원문 재판독
