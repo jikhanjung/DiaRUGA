@@ -46,3 +46,27 @@ python3 build_map_kr.py ne_10m_admin_0_countries.geojson 400
 **주의:** 나온 path 문자열을 파이썬 소스에 넣을 때 **줄바꿈이 좌표 한가운데
 떨어지면 안 된다.** 인접 리터럴이 이어지면서 공백이 남고, SVG 파서가 경로를
 통째로 버린다 — 오류 없이 백지가 된다. 서브패스(`M`)마다 한 줄씩 쓴다.
+
+## 도감 색인 → JSON (`parse_atlas.py` · `harvest_worms.py` · `annotate_index.py`)
+
+**P15 반입의 1단계다.** 색인은 NAS(`Diadiction/md/*.md`)에 있고 뷰어 컨테이너는
+그 공유를 못 보므로(P14 4.4), **호스트에서 JSON 으로 뽑아 저장소에 박아 둔다.**
+2단계(JSON → DB)는 `dbrun.sh` 로 컨테이너에서 돈다 — 자세한 것은 devlog 128.
+
+```bash
+python tools/parse_atlas.py              # atlas/*.json 으로 뽑는다
+python tools/parse_atlas.py --dry-run    # 안 쓰고 검산만
+python3 tools/test_parse_atlas.py        # NAS 없이 도는 시험 (합성 색인)
+```
+
+- **원본은 md 이고 `atlas/*.json` 은 사본이다** (P15 4.2). 언제든 지우고 다시
+  만든다. 색인이 바뀌면 다시 돌리고, **바뀐 것은 diff 로 보인다**
+- **이름을 뽑는 규칙은 `harvest_worms.binomial` 하나뿐이다.** 표시를 붙이는
+  `annotate_index.py` 도, 이 파서도 거기를 부른다. 실제로 세 벌의 이명법
+  집합이 **한 글자도 안 다르다**(128 에서 확인) — 두 벌이 되면 대조표와 붙는
+  자리가 어긋난다
+- **표시를 걷는 규칙도 하나뿐이다** (`annotate_index.MARK`). 색인에는 `〔…〕`
+  가 두 가지 있고 **하나는 색인의 자료다**(`〔Tafel 아님 …〕` · 21건).
+  아무 `〔…〕` 나 걷으면 그것이 조용히 사라진다
+- **검산이 어긋나면 아무것도 안 쓴다.** 파일에서 직접 센 것 · 색인 머리말이
+  적어 둔 수 · 속별 목록 셋을 본다

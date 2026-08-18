@@ -1,0 +1,2473 @@
+{
+ "atlas": {
+  "key": "east-antarctic",
+  "title": "플라이스토세 중기 이후 동남극 규조 (도판집)",
+  "short": "동남극 도판집",
+  "source": "md/east_antarctic_plates_index.md",
+  "source_sha256": "060d4441b3d60b4aa3a2333abb76c13c098c34c8d733a19e2852541b279be7ac",
+  "entry_count": 43,
+  "marked_entries": 43,
+  "note": "본문 없이 도판·학명·시료 위치만 실린 발췌본이다. PDF 에 텍스트 레이어가 없어 300 dpi 렌더를 사람이 판독해 만들었고, 원문 오류 11건은 색인이 원문 표기를 함께 든다."
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Actinocyclus actinochilus",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus actinochilus",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Ehrenberg) Simonsen",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "11–13",
+     "book_page": null,
+     "pdf_page": 7,
+     "pdf_plate_page": 8,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 11,
+      "section": "1-49",
+      "depth_cm": 54.9,
+      "magnification": null,
+      "raw": "sec.1-49, 54.9 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 12,
+      "section": "6-417",
+      "depth_cm": 473.5,
+      "magnification": null,
+      "raw": "sec.6-417, 473.5 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 13,
+      "section": "2-65",
+      "depth_cm": 73.0,
+      "magnification": null,
+      "raw": "sec.2-65, 73.0 cm"
+     }
+    ]
+   },
+   "line": 82
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "Actinocyclus fasciculatus",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus fasciculatus",
+   "rank": "species",
+   "infra": null,
+   "authority": "Harwood and Maruyama",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": null,
+     "pdf_page": 5,
+     "pdf_plate_page": 6,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 11,
+      "section": "8-625",
+      "depth_cm": 710.1,
+      "magnification": null,
+      "raw": "sec.8-625, 710.1 cm"
+     }
+    ]
+   },
+   "line": 86
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Actinocyclus ingens",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ingens",
+   "rank": "species",
+   "infra": null,
+   "authority": "Rattray",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "6, 8–9",
+     "book_page": null,
+     "pdf_page": 7,
+     "pdf_plate_page": 8,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 6,
+      "section": "6-417",
+      "depth_cm": 473.5,
+      "magnification": null,
+      "raw": "sec.6-417, 473.5 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 8,
+      "section": "7-513",
+      "depth_cm": 583.1,
+      "magnification": null,
+      "raw": "sec.7-513, 583.1 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 9,
+      "section": "6-497",
+      "depth_cm": 564.9,
+      "magnification": null,
+      "raw": "sec.6-497, 564.9 cm"
+     }
+    ],
+    "original_note": "`Rattry`"
+   },
+   "line": 90
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Asteromphalus hookeri",
+   "genus": "Asteromphalus",
+   "binomial": "Asteromphalus hookeri",
+   "rank": "species",
+   "infra": null,
+   "authority": "Ehrenberg(?)",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 6,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": null,
+     "pdf_page": 11,
+     "pdf_plate_page": 12,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 7,
+      "section": "3-169",
+      "depth_cm": 191.0,
+      "magnification": null,
+      "raw": "sec.3-169, 191.0 cm (원문 단위 `m`)"
+     }
+    ]
+   },
+   "line": 95
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "Asteromphalus kennettii",
+   "genus": "Asteromphalus",
+   "binomial": "Asteromphalus kennettii",
+   "rank": "species",
+   "infra": null,
+   "authority": "Gersonde",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": null,
+     "pdf_page": 9,
+     "pdf_plate_page": 10,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 4,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     }
+    ]
+   },
+   "line": 99
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Asteromphalus parvulus",
+   "genus": "Asteromphalus",
+   "binomial": "Asteromphalus parvulus",
+   "rank": "species",
+   "infra": null,
+   "authority": "Karsten",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "1–3",
+     "book_page": null,
+     "pdf_page": 9,
+     "pdf_plate_page": 10,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 6,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": null,
+     "pdf_page": 11,
+     "pdf_plate_page": 12,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "6",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 5,
+      "plate_label": null,
+      "figure": 1,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": 5,
+      "plate_label": null,
+      "figure": 2,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 5,
+      "plate_label": null,
+      "figure": 3,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 6,
+      "plate_label": null,
+      "figure": 8,
+      "section": "6-457",
+      "depth_cm": 519.2,
+      "magnification": null,
+      "raw": "sec.6-457, 519.2 cm (원문 단위 `m`)"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 6,
+      "section": "2-119",
+      "depth_cm": 134.3,
+      "magnification": "1800",
+      "raw": "sec.2-119, 134.3 cm, ×1800, bar 10 μm"
+     }
+    ],
+    "original_note": "pl.5 fig.2 는 `parvulu`, pl.6 fig.8 은 저자를 `Ehrenberg.` 로 적었다(나머지는 `Karsten`)"
+   },
+   "line": 103
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Azpeitia tabularis",
+   "genus": "Azpeitia",
+   "binomial": "Azpeitia tabularis",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Grunow) Fryxell and Sims",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "6–8",
+     "book_page": null,
+     "pdf_page": 5,
+     "pdf_plate_page": 6,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "7",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 3,
+      "plate_label": null,
+      "figure": 6,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 3,
+      "plate_label": null,
+      "figure": 7,
+      "section": "2-145",
+      "depth_cm": 163.8,
+      "magnification": null,
+      "raw": "sec.2-145, 163.8 cm"
+     },
+     {
+      "plate": 3,
+      "plate_label": null,
+      "figure": 8,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 7,
+      "section": "4-299",
+      "depth_cm": 338.8,
+      "magnification": "2200",
+      "raw": "sec.4-299, 338.8 cm, ×2200, bar 10 μm"
+     }
+    ]
+   },
+   "line": 110
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "Coscinodiscus rhombicus",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus rhombicus",
+   "rank": "species",
+   "infra": null,
+   "authority": "Castracane",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 7,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": null,
+     "pdf_page": 13,
+     "pdf_plate_page": 14,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 7,
+      "section": "3-161",
+      "depth_cm": 181.9,
+      "magnification": null,
+      "raw": "sec.3-161, 181.9 cm"
+     }
+    ]
+   },
+   "line": 115
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "Delphineis sp.",
+   "genus": "Delphineis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 12,
+      "section": "4-249",
+      "depth_cm": 281.9,
+      "magnification": null,
+      "raw": "sec.4-249, 281.9 cm"
+     }
+    ]
+   },
+   "line": 119
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Denticulopsis dimorpha",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis dimorpha",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Schrader) Simonsen",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 9,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": null,
+     "pdf_page": 17,
+     "pdf_plate_page": 18,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 4,
+      "section": "2-105",
+      "depth_cm": 118.4,
+      "magnification": null,
+      "raw": "sec.2-105, 118.4 cm"
+     }
+    ]
+   },
+   "line": 123
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Denticulopsis hustedtii",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis hustedtii",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Simonsen and Kanaya) Simonsen",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 9,
+     "plate_label": null,
+     "figures": "1–3",
+     "book_page": null,
+     "pdf_page": 17,
+     "pdf_plate_page": 18,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 1,
+      "section": "2-97",
+      "depth_cm": 109.3,
+      "magnification": null,
+      "raw": "sec.2-97, 109.3 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 2,
+      "section": "2-81",
+      "depth_cm": 91.1,
+      "magnification": null,
+      "raw": "sec.2-81, 91.1 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 3,
+      "section": "2-81",
+      "depth_cm": 91.1,
+      "magnification": null,
+      "raw": "sec.2-81, 91.1 cm"
+     }
+    ]
+   },
+   "line": 127
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Denticulopsis lauta",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis lauta",
+   "rank": "species",
+   "infra": null,
+   "authority": "Bailey(?)",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 9,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": null,
+     "pdf_page": 17,
+     "pdf_plate_page": 18,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 5,
+      "section": null,
+      "depth_cm": null,
+      "magnification": null,
+      "raw": "sec.2-145, **깊이 빠짐** (원문 `sec.2-145, cm`. 다른 항목에서 이 코드는 163.8 cm)"
+     }
+    ],
+    "original_note": "`Bailey.(?)`"
+   },
+   "line": 131
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Denticulopsis sp.",
+   "genus": "Denticulopsis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 9,
+     "plate_label": null,
+     "figures": "6–7",
+     "book_page": null,
+     "pdf_page": 17,
+     "pdf_plate_page": 18,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "9",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 9,
+      "plate_label": null,
+      "figure": 6,
+      "section": "3-153",
+      "depth_cm": 172.8,
+      "magnification": null,
+      "raw": "copula; sec.3-153, 172.8 cm"
+     },
+     {
+      "plate": 9,
+      "plate_label": null,
+      "figure": 7,
+      "section": null,
+      "depth_cm": null,
+      "magnification": null,
+      "raw": "girdle view; sec.3-177, **깊이 빠짐** (원문 `sec.3-177, cm`. 다른 항목에서 200.1 cm)"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 9,
+      "section": "2-140",
+      "depth_cm": 158.1,
+      "magnification": "4500",
+      "raw": "sec.2-140, 158.1 cm, ×4500, bar 10 μm"
+     }
+    ]
+   },
+   "line": 136
+  },
+  {
+   "seq": 14,
+   "item_no": null,
+   "name": "Diploneis sp.",
+   "genus": "Diploneis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 11,
+      "section": "1-9",
+      "depth_cm": 9.6,
+      "magnification": null,
+      "raw": "sec.1-9, 9.6 cm"
+     }
+    ],
+    "original_note": "`Diploneissp.` (띄어쓰기 없음)"
+   },
+   "line": 141
+  },
+  {
+   "seq": 15,
+   "item_no": null,
+   "name": "Eucampia antarctica",
+   "genus": "Eucampia",
+   "binomial": "Eucampia antarctica",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Castracane) Mangin",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 7,
+     "plate_label": null,
+     "figures": "1–5",
+     "book_page": null,
+     "pdf_page": 13,
+     "pdf_plate_page": 14,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "13",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 7,
+      "plate_label": null,
+      "figure": 1,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": 7,
+      "plate_label": null,
+      "figure": 2,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": 7,
+      "plate_label": null,
+      "figure": 3,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 7,
+      "plate_label": null,
+      "figure": 4,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": 7,
+      "plate_label": null,
+      "figure": 5,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 13,
+      "section": "5-379",
+      "depth_cm": 430.1,
+      "magnification": "2000",
+      "raw": "sec.5-379, 430.1 cm, ×2000, bar 10 μm"
+     }
+    ]
+   },
+   "line": 146
+  },
+  {
+   "seq": 16,
+   "item_no": null,
+   "name": "Fragilariopsis barronii",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis barronii",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Gersonde) Gersonde and Bárcena",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "21–22",
+     "book_page": null,
+     "pdf_page": 1,
+     "pdf_plate_page": 2,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 21,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 22,
+      "section": "3-177",
+      "depth_cm": 200.1,
+      "magnification": null,
+      "raw": "sec.3-177, 200.1 cm"
+     }
+    ]
+   },
+   "line": 151
+  },
+  {
+   "seq": 17,
+   "item_no": null,
+   "name": "Fragilariopsis curta",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis curta",
+   "rank": "species",
+   "infra": null,
+   "authority": "(van Heurck) Hustedt",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "7–9",
+     "book_page": null,
+     "pdf_page": 1,
+     "pdf_plate_page": 2,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "11",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 7,
+      "section": "2-73",
+      "depth_cm": 82.1,
+      "magnification": null,
+      "raw": "sec.2-73, 82.1 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 8,
+      "section": "2-89",
+      "depth_cm": 100.2,
+      "magnification": null,
+      "raw": "sec.2-89, 100.2 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 9,
+      "section": "2-89",
+      "depth_cm": 100.2,
+      "magnification": null,
+      "raw": "sec.2-89, 100.2 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 11,
+      "section": "4-299",
+      "depth_cm": 338.8,
+      "magnification": "3500",
+      "raw": "sec.4-299, 338.8 cm, ×3500, bar 10 μm"
+     }
+    ]
+   },
+   "line": 155
+  },
+  {
+   "seq": 18,
+   "item_no": null,
+   "name": "Fragilariopsis kerguelensis",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis kerguelensis",
+   "rank": "species",
+   "infra": null,
+   "authority": "(O'Meara) Hustedt",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "1–6",
+     "book_page": null,
+     "pdf_page": 1,
+     "pdf_plate_page": 2,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "12",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 1,
+      "section": "5-385",
+      "depth_cm": 437.0,
+      "magnification": null,
+      "raw": "sec.5-385, 437.0 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 2,
+      "section": "2-97",
+      "depth_cm": 109.3,
+      "magnification": null,
+      "raw": "sec.2-97, 109.3 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 3,
+      "section": "4-313",
+      "depth_cm": 354.8,
+      "magnification": null,
+      "raw": "sec.4-313, 354.8 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 4,
+      "section": "1-49",
+      "depth_cm": 54.9,
+      "magnification": null,
+      "raw": "sec.1-49, 54.9 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 5,
+      "section": "2-73",
+      "depth_cm": 82.1,
+      "magnification": null,
+      "raw": "sec.2-73, 82.1 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 6,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 12,
+      "section": "2-115",
+      "depth_cm": 129.7,
+      "magnification": "1500",
+      "raw": "sec.2-115, 129.7 cm, ×1500, bar 10 μm"
+     }
+    ],
+    "notes": [
+     "크롭 있음: `plate/plate_Fragilariopsis_kerguelensis_antarctic_pl1_fig1-6.png`"
+    ]
+   },
+   "line": 160
+  },
+  {
+   "seq": 19,
+   "item_no": null,
+   "name": "Fragilariopsis obliquecostata",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis obliquecostata",
+   "rank": "species",
+   "infra": null,
+   "authority": "(van Heurck) Heiden in Heiden et Kolbe",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "23–24",
+     "book_page": null,
+     "pdf_page": 1,
+     "pdf_plate_page": 2,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 23,
+      "section": "2-129",
+      "depth_cm": 145.6,
+      "magnification": null,
+      "raw": "sec.2-129, 145.6 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 24,
+      "section": "2-89",
+      "depth_cm": 100.2,
+      "magnification": null,
+      "raw": "sec.2-89, 100.2 cm"
+     }
+    ]
+   },
+   "line": 166
+  },
+  {
+   "seq": 20,
+   "item_no": null,
+   "name": "Fragilariopsis rhombica",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis rhombica",
+   "rank": "species",
+   "infra": null,
+   "authority": "(O'Meara) Hustedt",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "2",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 2,
+      "section": "2-140",
+      "depth_cm": 158.1,
+      "magnification": "2500",
+      "raw": "sec.2-140, 158.1 cm, ×2500, bar 10 μm"
+     }
+    ],
+    "notes": [
+     "**SEM 에만 나온다** — Plate 1–9 에는 없다"
+    ]
+   },
+   "line": 170
+  },
+  {
+   "seq": 21,
+   "item_no": null,
+   "name": "Fragilariopsis ritscheri",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis ritscheri",
+   "rank": "species",
+   "infra": null,
+   "authority": "Hustedt",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "16–20",
+     "book_page": null,
+     "pdf_page": 1,
+     "pdf_plate_page": 2,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "4",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 16,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 17,
+      "section": "6-417",
+      "depth_cm": 473.5,
+      "magnification": null,
+      "raw": "sec.6-417, 473.5 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 18,
+      "section": "2-129",
+      "depth_cm": 145.6,
+      "magnification": null,
+      "raw": "sec.2-129, 145.6 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 19,
+      "section": "6-417",
+      "depth_cm": 473.5,
+      "magnification": null,
+      "raw": "sec.6-417, 473.5 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 20,
+      "section": "6-417",
+      "depth_cm": 473.5,
+      "magnification": null,
+      "raw": "sec.6-417, 473.5 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 4,
+      "section": "4-299",
+      "depth_cm": 338.8,
+      "magnification": "1900",
+      "raw": "sec.4-299, 338.8 cm, ×1900, bar 10 μm"
+     }
+    ]
+   },
+   "line": 175
+  },
+  {
+   "seq": 22,
+   "item_no": null,
+   "name": "Fragilariopsis separanda",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis separanda",
+   "rank": "species",
+   "infra": null,
+   "authority": "Hustedt",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "10–15",
+     "book_page": null,
+     "pdf_page": 1,
+     "pdf_plate_page": 2,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "8",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 10,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 11,
+      "section": "4-249",
+      "depth_cm": 281.9,
+      "magnification": null,
+      "raw": "sec.4-249, 281.9 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 12,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 13,
+      "section": "2-65",
+      "depth_cm": 73.0,
+      "magnification": null,
+      "raw": "sec.2-65, 73.0 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 14,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 1,
+      "plate_label": null,
+      "figure": 15,
+      "section": "3-177",
+      "depth_cm": 200.1,
+      "magnification": null,
+      "raw": "sec.3-177, 200.1 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 8,
+      "section": "5-379",
+      "depth_cm": 430.1,
+      "magnification": "2200",
+      "raw": "sec.5-379, 430.1 cm, ×2200, bar 10 μm"
+     }
+    ]
+   },
+   "line": 180
+  },
+  {
+   "seq": 23,
+   "item_no": null,
+   "name": "Hemiaulus sp.",
+   "genus": "Hemiaulus",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 7,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": null,
+     "pdf_page": 13,
+     "pdf_plate_page": 14,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 8,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     }
+    ],
+    "original_note": "`Hemiaulus sp;`"
+   },
+   "line": 185
+  },
+  {
+   "seq": 24,
+   "item_no": null,
+   "name": "Hemidiscus karstenii",
+   "genus": "Hemidiscus",
+   "binomial": "Hemidiscus karstenii",
+   "rank": "species",
+   "infra": null,
+   "authority": "Jousé",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 7,
+     "plate_label": null,
+     "figures": "6, 9–10",
+     "book_page": null,
+     "pdf_page": 13,
+     "pdf_plate_page": 14,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 6,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 9,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 10,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     }
+    ]
+   },
+   "line": 190
+  },
+  {
+   "seq": 25,
+   "item_no": null,
+   "name": "Kisseleviella sp.",
+   "genus": "Kisseleviella",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": null,
+     "pdf_page": 9,
+     "pdf_plate_page": 10,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 5,
+      "section": "3-161",
+      "depth_cm": 181.9,
+      "magnification": null,
+      "raw": "sec.3-161, 181.9 cm"
+     }
+    ]
+   },
+   "line": 194
+  },
+  {
+   "seq": 26,
+   "item_no": null,
+   "name": "Navicula sp.",
+   "genus": "Navicula",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 3,
+      "section": "4-289",
+      "depth_cm": 327.5,
+      "magnification": null,
+      "raw": "sec.4-289, 327.5 cm"
+     }
+    ]
+   },
+   "line": 198
+  },
+  {
+   "seq": 27,
+   "item_no": null,
+   "name": "Nitzschia denticuloides",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia denticuloides",
+   "rank": "species",
+   "infra": null,
+   "authority": "Hustedt",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 2,
+      "section": "2-81",
+      "depth_cm": 91.1,
+      "magnification": null,
+      "raw": "sec.2-81, 91.1 cm"
+     }
+    ]
+   },
+   "line": 202
+  },
+  {
+   "seq": 28,
+   "item_no": null,
+   "name": "Nitzschia sp.",
+   "genus": "Nitzschia",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 1,
+      "section": "3-185",
+      "depth_cm": 209.2,
+      "magnification": null,
+      "raw": "sec.3-185, 209.2 cm"
+     }
+    ],
+    "notes": [
+     "원문 단서: \"similar to Fig.9-10, plate 1, Bohaty et al. 1998\""
+    ]
+   },
+   "line": 206
+  },
+  {
+   "seq": 29,
+   "item_no": null,
+   "name": "Paralia sulcata",
+   "genus": "Paralia",
+   "binomial": "Paralia sulcata",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Ehrenberg) Cleve",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": null,
+     "pdf_page": 9,
+     "pdf_plate_page": 10,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 6,
+      "section": "6-417",
+      "depth_cm": 473.5,
+      "magnification": null,
+      "raw": "sec.6-417, 473.5 cm"
+     }
+    ]
+   },
+   "line": 211
+  },
+  {
+   "seq": 30,
+   "item_no": null,
+   "name": "Pseudotriceratium (?) sp.",
+   "genus": "Pseudotriceratium",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": null,
+     "pdf_page": 9,
+     "pdf_plate_page": 10,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 7,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     }
+    ]
+   },
+   "line": 215
+  },
+  {
+   "seq": 31,
+   "item_no": null,
+   "name": "Rhizosolenia crassa",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia crassa",
+   "rank": "species",
+   "infra": null,
+   "authority": "A.F.W. Schimp., in Karsten",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 18,
+      "section": "1-57",
+      "depth_cm": 63.9,
+      "magnification": null,
+      "raw": "sec.1-57, 63.9 cm"
+     }
+    ],
+    "notes": [
+     "**`Rhizosolenia group` (fig.13–19) 안에 들어 있는 그림인데 설명이 묶음 뒤에 따로 적혀 있다**"
+    ]
+   },
+   "line": 219
+  },
+  {
+   "seq": 32,
+   "item_no": null,
+   "name": "Rhizosolenia group",
+   "genus": "Rhizosolenia",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "13–19",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 13,
+      "section": "3-169",
+      "depth_cm": 191.0,
+      "magnification": null,
+      "raw": "sec.3-169, 191.0 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 14,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 15,
+      "section": "7-513",
+      "depth_cm": 583.1,
+      "magnification": null,
+      "raw": "sec.7-513, 583.1 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 16,
+      "section": "7-537",
+      "depth_cm": 610.3,
+      "magnification": null,
+      "raw": "sec.7-537, 610.3 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 17,
+      "section": "3-153",
+      "depth_cm": 172.8,
+      "magnification": null,
+      "raw": "sec.3-153, 172.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 19,
+      "section": "4-289",
+      "depth_cm": 327.5,
+      "magnification": null,
+      "raw": "sec.4-289, 327.5 cm"
+     }
+    ],
+    "notes": [
+     "fig.18 은 위 *Rhizosolenia crassa* 로 따로 적혀 있다"
+    ]
+   },
+   "line": 224
+  },
+  {
+   "seq": 33,
+   "item_no": null,
+   "name": "Rouxia constricta",
+   "genus": "Rouxia",
+   "binomial": "Rouxia constricta",
+   "rank": "species",
+   "infra": null,
+   "authority": "Zielinski and Gersonde",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 5,
+      "section": "2-81",
+      "depth_cm": 91.1,
+      "magnification": null,
+      "raw": "sec.2-81, 91.1 cm"
+     }
+    ]
+   },
+   "line": 229
+  },
+  {
+   "seq": 34,
+   "item_no": null,
+   "name": "Rouxia leventerae",
+   "genus": "Rouxia",
+   "binomial": "Rouxia leventerae",
+   "rank": "species",
+   "infra": null,
+   "authority": "Bohaty",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "5",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 8,
+      "plate_label": null,
+      "figure": 6,
+      "section": "1-49",
+      "depth_cm": 54.9,
+      "magnification": null,
+      "raw": "sec.1-49, 54.9 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 5,
+      "section": "4-299",
+      "depth_cm": 338.8,
+      "magnification": "1600",
+      "raw": "sec.4-299, 338.8 cm, ×1600, bar 10 μm"
+     }
+    ]
+   },
+   "line": 233
+  },
+  {
+   "seq": 35,
+   "item_no": null,
+   "name": "Rouxia naviculoides",
+   "genus": "Rouxia",
+   "binomial": "Rouxia naviculoides",
+   "rank": "species",
+   "infra": null,
+   "authority": "Schrader",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 4,
+      "section": "4-249",
+      "depth_cm": 281.9,
+      "magnification": null,
+      "raw": "sec.4-249, 281.9 cm"
+     }
+    ],
+    "original_note": "`naviculoies`"
+   },
+   "line": 238
+  },
+  {
+   "seq": 36,
+   "item_no": null,
+   "name": "Stellarima microtrias",
+   "genus": "Stellarima",
+   "binomial": "Stellarima microtrias",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Ehrenberg) Hasle et Sims",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "1, 5",
+     "book_page": null,
+     "pdf_page": 7,
+     "pdf_plate_page": 8,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 1,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 5,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     }
+    ]
+   },
+   "line": 243
+  },
+  {
+   "seq": 37,
+   "item_no": null,
+   "name": "Stephanopyxis group",
+   "genus": "Stephanopyxis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 6,
+     "plate_label": null,
+     "figures": "1–6",
+     "book_page": null,
+     "pdf_page": 11,
+     "pdf_plate_page": 12,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 1,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 2,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 3,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 4,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 5,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 6,
+      "section": "3-161",
+      "depth_cm": 181.9,
+      "magnification": null,
+      "raw": "sec.3-161, 181.9 cm"
+     }
+    ]
+   },
+   "line": 247
+  },
+  {
+   "seq": 38,
+   "item_no": null,
+   "name": "Thalassionema nitzschioides",
+   "genus": "Thalassionema",
+   "binomial": "Thalassionema nitzschioides",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Grunow) Mereschkowsky",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "7–10",
+     "book_page": null,
+     "pdf_page": 15,
+     "pdf_plate_page": 16,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "3",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 8,
+      "plate_label": null,
+      "figure": 7,
+      "section": "2-145",
+      "depth_cm": 163.8,
+      "magnification": null,
+      "raw": "sec.2-145, 163.8 cm"
+     },
+     {
+      "plate": 8,
+      "plate_label": null,
+      "figure": 8,
+      "section": "5-361",
+      "depth_cm": 409.5,
+      "magnification": null,
+      "raw": "sec.5-361, 409.5 cm"
+     },
+     {
+      "plate": 8,
+      "plate_label": null,
+      "figure": 9,
+      "section": "2-73",
+      "depth_cm": 82.1,
+      "magnification": null,
+      "raw": "sec.2-73, 82.1 cm"
+     },
+     {
+      "plate": 8,
+      "plate_label": null,
+      "figure": 10,
+      "section": "5-361",
+      "depth_cm": 409.5,
+      "magnification": null,
+      "raw": "sec.5-361, 409.5 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 3,
+      "section": "4-299",
+      "depth_cm": 338.8,
+      "magnification": "3000",
+      "raw": "sec.4-299, 338.8 cm, ×3000, **bar 5 μm** (SEM 중 유일하게 10 μm 가 아니다)"
+     }
+    ],
+    "original_note": "`Mereschk.` / SEM 은 `Mereschk`"
+   },
+   "line": 251
+  },
+  {
+   "seq": 39,
+   "item_no": null,
+   "name": "Thalassiosira gracilis",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira gracilis",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Karsten) Hustedt",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "1–4",
+     "book_page": null,
+     "pdf_page": 5,
+     "pdf_plate_page": 6,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 1,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 2,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 3,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 4,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     }
+    ]
+   },
+   "line": 257
+  },
+  {
+   "seq": 40,
+   "item_no": null,
+   "name": "Thalassiosira inura",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira inura",
+   "rank": "species",
+   "infra": null,
+   "authority": "Gersonde",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": null,
+     "pdf_page": 7,
+     "pdf_plate_page": 8,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": null,
+      "plate_label": null,
+      "figure": 10,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     }
+    ]
+   },
+   "line": 261
+  },
+  {
+   "seq": 41,
+   "item_no": null,
+   "name": "Thalassiosira lentiginosa",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira lentiginosa",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Janisch) Fryxell",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "1–7",
+     "book_page": null,
+     "pdf_page": 3,
+     "pdf_plate_page": 4,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "1",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 2,
+      "plate_label": null,
+      "figure": 1,
+      "section": "6-417",
+      "depth_cm": 473.5,
+      "magnification": null,
+      "raw": "sec.6-417, 473.5 cm"
+     },
+     {
+      "plate": 2,
+      "plate_label": null,
+      "figure": 2,
+      "section": "5-385",
+      "depth_cm": 437.0,
+      "magnification": null,
+      "raw": "sec.5-385, 437.0 cm"
+     },
+     {
+      "plate": 2,
+      "plate_label": null,
+      "figure": 3,
+      "section": "1-49",
+      "depth_cm": 54.9,
+      "magnification": null,
+      "raw": "sec.1-49, 54.9 cm"
+     },
+     {
+      "plate": 2,
+      "plate_label": null,
+      "figure": 4,
+      "section": "7-513",
+      "depth_cm": 583.1,
+      "magnification": null,
+      "raw": "sec.7-513, 583.1 cm"
+     },
+     {
+      "plate": 2,
+      "plate_label": null,
+      "figure": 5,
+      "section": "3-161",
+      "depth_cm": 181.9,
+      "magnification": null,
+      "raw": "sec.3-161, 181.9 cm"
+     },
+     {
+      "plate": 2,
+      "plate_label": null,
+      "figure": 6,
+      "section": "5-337",
+      "depth_cm": 382.1,
+      "magnification": null,
+      "raw": "sec.5-337, 382.1 cm"
+     },
+     {
+      "plate": 2,
+      "plate_label": null,
+      "figure": 7,
+      "section": "2-89",
+      "depth_cm": 100.2,
+      "magnification": null,
+      "raw": "sec.2-89, 100.2 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 1,
+      "section": "5-379",
+      "depth_cm": 430.1,
+      "magnification": "1100",
+      "raw": "sec.5-379, 430.1 cm, ×1100, bar 10 μm"
+     }
+    ],
+    "notes": [
+     "**Plate 2 는 이 한 종만 싣는다**"
+    ]
+   },
+   "line": 265
+  },
+  {
+   "seq": 42,
+   "item_no": null,
+   "name": "Thalassiosira oestrupii",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira oestrupii",
+   "rank": "species",
+   "infra": null,
+   "authority": "(Ostenfeld) Hasle",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "2–4, 7",
+     "book_page": null,
+     "pdf_page": 7,
+     "pdf_plate_page": 8,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "10",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 4,
+      "plate_label": null,
+      "figure": 2,
+      "section": "1-1",
+      "depth_cm": 0.6,
+      "magnification": null,
+      "raw": "sec.1-1, 0.6 cm"
+     },
+     {
+      "plate": 4,
+      "plate_label": null,
+      "figure": 3,
+      "section": "2-81",
+      "depth_cm": 91.1,
+      "magnification": null,
+      "raw": "sec.2-81, 91.1 cm"
+     },
+     {
+      "plate": 4,
+      "plate_label": null,
+      "figure": 4,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": 4,
+      "plate_label": null,
+      "figure": 7,
+      "section": "4-305",
+      "depth_cm": 345.7,
+      "magnification": null,
+      "raw": "sec.4-305, 345.7 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 10,
+      "section": "2-140",
+      "depth_cm": 158.1,
+      "magnification": "2700",
+      "raw": "sec.2-140, 158.1 cm, ×2700, bar 10 μm"
+     }
+    ]
+   },
+   "line": 271
+  },
+  {
+   "seq": 43,
+   "item_no": null,
+   "name": "Thalassiosira oliverana",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira oliverana",
+   "rank": "species",
+   "infra": null,
+   "authority": "(O'Meara) Makarova et Nikolaev",
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "5, 9–10, 12",
+     "book_page": null,
+     "pdf_page": 5,
+     "pdf_plate_page": 6,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": null,
+     "plate_label": "SEM",
+     "figures": "14",
+     "book_page": null,
+     "pdf_page": 19,
+     "pdf_plate_page": 20,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {
+    "samples": [
+     {
+      "plate": 3,
+      "plate_label": null,
+      "figure": 5,
+      "section": "3-161",
+      "depth_cm": 181.9,
+      "magnification": null,
+      "raw": "sec.3-161, 181.9 cm"
+     },
+     {
+      "plate": 3,
+      "plate_label": null,
+      "figure": 9,
+      "section": "7-513",
+      "depth_cm": 583.1,
+      "magnification": null,
+      "raw": "sec.7-513, 583.1 cm"
+     },
+     {
+      "plate": 3,
+      "plate_label": null,
+      "figure": 10,
+      "section": "2-65",
+      "depth_cm": 73.0,
+      "magnification": null,
+      "raw": "sec.2-65, 73.0 cm"
+     },
+     {
+      "plate": 3,
+      "plate_label": null,
+      "figure": 12,
+      "section": "1-41",
+      "depth_cm": 45.8,
+      "magnification": null,
+      "raw": "sec.1-41, 45.8 cm"
+     },
+     {
+      "plate": null,
+      "plate_label": "SEM",
+      "figure": 14,
+      "section": "5-379",
+      "depth_cm": 430.1,
+      "magnification": "1500",
+      "raw": "sec.5-379, 430.1 cm, ×1500, bar 10 μm"
+     }
+    ],
+    "original_note": "pl.3 은 `Thalssiosira ... Makarovaet Nikolaev`. SEM fig.14 는 바로 적혀 있다"
+   },
+   "line": 276
+  }
+ ]
+}
