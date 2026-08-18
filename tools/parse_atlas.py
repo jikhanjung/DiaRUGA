@@ -470,7 +470,7 @@ def main() -> int:
         return 2
 
     failed = False
-    for spec in ATLASES:
+    for order, spec in enumerate(ATLASES):
         path = args.root / spec["source"]
         text = path.read_text(encoding="utf-8")
         entries, marked = spec["parse"](text)
@@ -493,6 +493,9 @@ def main() -> int:
                 "source": spec["source"],
                 "source_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
                 "entry_count": len(entries),
+                # 화면에 놓이는 차례. **파일 이름 정렬을 안 타게 값으로 든다** —
+                # 127 이 겪은 것이 그 모양이다(`day10` 이 `day7` 보다 앞이었다)
+                "sort_order": order,
                 # 걷어 버린 〔…〕 표시가 몇 개였나. **판정은 안 담는다** (머리말)
                 "marked_entries": marked,
                 "note": spec["note"],

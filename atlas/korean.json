@@ -6,6 +6,7 @@
   "source": "md/korean_flora_diatom_index.md",
   "source_sha256": "49f86caaf792abb1c5629f6fb065ed65820d67c8980fb387b8cacb065d26efc6",
   "entry_count": 512,
+  "sort_order": 0,
   "marked_entries": 512,
   "note": "종 169–480 은 PDF 텍스트 레이어에서, 481–679 는 쪽 이미지 판독으로 뽑았다. 169–480 구간은 한자가 깨져 있어 생태·분포를 그대로 인용하지 않는다."
  },

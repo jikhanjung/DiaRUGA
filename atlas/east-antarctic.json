@@ -6,6 +6,7 @@
   "source": "md/east_antarctic_plates_index.md",
   "source_sha256": "060d4441b3d60b4aa3a2333abb76c13c098c34c8d733a19e2852541b279be7ac",
   "entry_count": 43,
+  "sort_order": 2,
   "marked_entries": 43,
   "note": "본문 없이 도판·학명·시료 위치만 실린 발췌본이다. PDF 에 텍스트 레이어가 없어 300 dpi 렌더를 사람이 판독해 만들었고, 원문 오류 11건은 색인이 원문 표기를 함께 든다."
  },

@@ -6,6 +6,7 @@
   "source": "md/schmidt_atlas_name_index.md",
   "source_sha256": "f517e5a1de0dca8f0dc8f1d05867a480dd8ee6e4cfb8a922460776132ae385c4",
   "entry_count": 1504,
+  "sort_order": 1,
   "marked_entries": 1504,
   "note": "전량 OCR 이다. 속명은 원문의 머리글자 축약을 편 것이라 잘못 펴진 자리가 있고(119), 그중에는 `(속명 추정)` 표시가 없는 것도 있다. **Tafel 번호가 아니라 `pdf_page` 로 짚는다**(126)."
  },
