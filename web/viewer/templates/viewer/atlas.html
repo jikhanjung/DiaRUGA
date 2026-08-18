@@ -1,0 +1,69 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block title %}도감 — DiaRUGA{% endblock %}
+{% block subtitle %}<b>도감</b> · {{ atlases|length }}종{% endblock %}
+
+{% block content %}
+{% comment %}
+  도감 목록. **DB 를 안 본다** — 도판 PNG 가 곧 자료다(`viewer/atlas.py`).
+  글자 자료(`AtlasEntry`)가 아직 반입 전이어도 이 화면은 선다.
+{% endcomment %}
+<style>
+  /* **`.tile` 을 안 빌린다.** base 의 `.tile img` 가 `aspect-ratio: 2752/2208`
+     (가로 사진)로 못 박혀 있어 세로인 책 쪽이 잘린다. 빌려 쓰고 덮는 것보다
+     자기 클래스를 두는 편이 싸다 — 나중에 base 가 바뀌어도 안 흔들린다. */
+  .atlasrow { display: flex; gap: 16px; align-items: flex-start;
+              border: 1px solid var(--line); border-radius: 8px;
+              padding: 14px; margin-bottom: 14px; }
+  .atlasrow .cover { flex: 0 0 132px; }
+  .atlasrow .cover img { width: 132px; display: block; border-radius: 4px;
+                         background: var(--panel); }
+  .atlasrow .body { flex: 1 1 auto; min-width: 0; }
+  .atlasrow h2 { margin: 0 0 6px; font-size: 1.05rem; }
+  .vols { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .nocover { width: 132px; aspect-ratio: 700/990; border-radius: 4px;
+             background: var(--panel); border: 1px dashed var(--line);
+             display: grid; place-items: center; font-size: .78rem;
+             color: var(--dim-fg, #888); text-align: center; }
+</style>
+
+{% if partial %}
+  {% comment %}
+    **덜 구운 상태를 감추지 않는다.** 안 말하면 사람이 "원본이 그만큼" 으로
+    읽는다. 굽는 중일 수 있다 — `tools/render_atlas_pages.py`.
+  {% endcomment %}
+  <p class="warn">아직 다 뜨지 않은 도감이 있습니다 —
+    {% for a in partial %}{{ a.label }} {{ a.rendered }}/{{ a.pages }}쪽{% if not forloop.last %} · {% endif %}{% endfor %}.
+    굽는 중이면 잠시 뒤 새로고침하세요.</p>
+{% endif %}
+
+{% for a in atlases %}
+  <div class="atlasrow">
+    <div class="cover">
+      {% if a.cover_rel %}
+        <a href="{% url 'atlas_volume' a.code a.volumes.0.code %}">
+          <img loading="lazy" src="{% thumb a.cover_rel 300 %}" alt="{{ a.label }} 표지">
+        </a>
+      {% else %}<div class="nocover">아직 안 떴다</div>{% endif %}
+    </div>
+    <div class="body">
+      <h2>{{ a.label }}</h2>
+      <div class="dim">{{ a.rendered }}쪽{% if a.partial %} / 원본 {{ a.pages }}쪽{% endif %}</div>
+      <div class="vols">
+        {% for v in a.volumes %}
+          <a class="chip" href="{% url 'atlas_volume' a.code v.code %}">{{ v.label }}
+            <span class="dim">{{ v.rendered }}쪽</span></a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% empty %}
+  {% comment %}
+    **"없다" 와 "아직 안 구웠다" 는 다른 말이다** (P15 §8.4 와 같은 줄).
+    빈 화면을 내면 사람이 도감이 없다고 읽는다.
+  {% endcomment %}
+  <p class="warn">도판이 아직 하나도 안 떠 있습니다.
+    호스트에서 <code>python tools/render_atlas_pages.py</code> 를 돌리면 생깁니다
+    (원본 PDF 는 NAS 공유에 있고 컨테이너는 그것을 못 봅니다).</p>
+{% endfor %}
+{% endblock %}

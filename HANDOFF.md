@@ -85,7 +85,21 @@ nginx 가 80 에서 `/DiaRUGA/` 을 떼고 `127.0.0.1:8090` 의 컨테이너로 
                /system-settings/ops/      운영 — 검토할 묶음 · 조리법 · 새 묶음
                /system-settings/dataset/  학습 자료 — 검토에서 정답을 얼마나 뽑나
                /system-settings/pipeline/ 파이프라인 — 폴러가 살아 있는가 (098)
+도감 목록      /atlas/                    도감 셋 — 표지·권·쪽 수 (129)
+도감 쪽 격자   /atlas/<도감>/<권>/         ?n=<쪽> 으로 곧장 간다
+도감 쪽 한 장  /atlas/<도감>/<권>/<쪽>/    번호가 곧 `PDF p.N` 이다
 ```
+
+**도감 화면은 DB 를 안 본다** (129). 도판 PNG 1,336쪽이 `/data3/DiaRUGA/atlas/`
+에 파일로 있고 그것이 곧 자료다(`viewer/atlas.py` — `outcrop.py` 와 같은 자리).
+**글자 자료(`AtlasEntry`)가 아직 반입 전이어도 이 화면은 선다.**
+
+- 굽는 것은 **호스트에서** `python tools/render_atlas_pages.py` — 컨테이너는
+  원본 PDF 가 있는 `/nfs/temp-share` 를 못 본다 (P14 4.4). 멱등이라 다시 돌려도
+  된다. 도감을 더하려면 그 파일의 `SOURCES` 에 한 줄
+- **파일 이름이 `PDF p.N` 그대로다** — 색인 셋이 그 번호로 자리를 짚으므로
+  색인에서 화면으로 가는 길이 계산 없이 선다
+- 축소본은 기존 `/img?p=…&w=` 를 그대로 쓴다 (`IMAGE_DIRS` 에 `atlas`)
 
 **옛 `/manage/*` 는 301 로 온다** (089 에서 이름을 `system_settings` 로 끝까지
 맞췄다). 링크를 적을 때는 새 주소를 쓴다.

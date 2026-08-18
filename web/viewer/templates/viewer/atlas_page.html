@@ -1,0 +1,46 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block title %}{{ atlas.label }} {{ volume.label }} p.{{ n }} — DiaRUGA{% endblock %}
+{% block subtitle %}<a href="{% url 'atlas' %}">도감</a> /
+  {{ atlas.label }} /
+  <a href="{{ grid_url }}">{{ volume.label }}</a> /
+  <b>PDF p.{{ n }}</b> · {{ pos }}/{{ total }}{% endblock %}
+{% block nav %}
+  {% if prev_url %}<a href="{{ prev_url }}">← p.{{ prev }}</a>{% endif %}
+  <a href="{{ grid_url }}">격자</a>
+  {% if next_url %}<a href="{{ next_url }}">p.{{ next }} →</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% comment %}
+  쪽 하나. **색인이 짚어 오는 자리다** — 주소의 번호가 곧 `PDF p.N` 이다.
+
+  원본을 그대로 내려받는 길도 둔다(`?w=` 없는 `/img`). 화면에서 크게 봐도
+  모자란 때가 있고, 그때 PDF 를 다시 여는 것보다 이쪽이 빠르다.
+{% endcomment %}
+<style>
+  .sheet { text-align: center; }
+  .sheet img { max-width: 100%; height: auto; background: #fff;
+               border: 1px solid var(--line); border-radius: 4px; }
+  .sheetbar { display: flex; gap: 10px; align-items: center;
+              justify-content: center; margin: 10px 0; }
+</style>
+
+<div class="sheetbar">
+  {% if prev_url %}<a class="chip" href="{{ prev_url }}">← p.{{ prev }}</a>{% endif %}
+  <span class="dim">{{ atlas.label }} · {{ volume.label }} · PDF p.{{ n }}</span>
+  {% if next_url %}<a class="chip" href="{{ next_url }}">p.{{ next }} →</a>{% endif %}
+</div>
+
+<div class="sheet">
+  {% comment %} 1600 은 검토 화면의 본판과 같은 폭이다 — 축소본 캐시를 나눠 쓴다 {% endcomment %}
+  <a href="{% rawimg rel %}" title="원본 PNG 를 연다">
+    <img src="{% thumb rel 1600 %}" alt="{{ atlas.label }} {{ volume.label }} p.{{ n }}">
+  </a>
+</div>
+
+<div class="sheetbar">
+  <a class="chip" href="{% rawimg rel %}">원본 PNG</a>
+  <a class="chip" href="{{ grid_url }}">격자로</a>
+</div>
+{% endblock %}

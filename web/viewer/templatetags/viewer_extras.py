@@ -34,6 +34,21 @@ def thumb(rel, width=400):
 
 
 @register.simple_tag
+def rawimg(rel):
+    """**원본** 이미지 URL — 축소하지 않는다 (129).
+
+    `thumb` 에 0 을 주면 안 된다. `image` 뷰가 `w` 를 **있으면 축소본**으로
+    읽고 `max(32, …)` 로 바닥을 깔아서, `w=0` 은 원본이 아니라 **32px 짜리**가
+    된다. 조용히 다른 그림이 나오는 자리라 태그를 따로 둔다.
+    """
+    if not rel:
+        return ""
+    from viewer import data
+    return reverse("image") + "?" + urlencode({"p": str(rel),
+                                               "v": data.stamp(rel)})
+
+
+@register.simple_tag
 def cropurl(rel, bbox, width=200, rot=None, out=None):
     """검출 개체 하나만 잘라 낸 썸네일 URL.
 

@@ -17,8 +17,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from . import (antarctica, data, korea, manage_data, outcrop,
-               regroup, thresholds as th)
+from . import (antarctica, atlas as atlas_mod, data, korea,
+               manage_data, outcrop, regroup, thresholds as th)
 from .models import (Candidate, Detection, DiatomObject,  # noqa: E501
                      Image as ImageModel,
                      Locality,
@@ -1283,13 +1283,19 @@ def _upright_thumb(path, box, width, rot, size):
     return out
 
 
+# 축소본은 늘 JPEG 이지만(`_thumbnail` 이 그렇게 굽는다) **원본은 아니다** —
+# 도감 도판이 PNG 로 들어왔다 (129). 확장자로 정한다.
+_CTYPE = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
+
+
 def _jpeg(request, path):
-    """JPEG 응답. v= (원본 mtime) 가 붙은 주소면 영구 캐시를 허용한다.
+    """이미지 응답. v= (원본 mtime) 가 붙은 주소면 영구 캐시를 허용한다.
 
     주소에 mtime 이 들어 있으므로 그림이 바뀌면 주소가 바뀐다 — 옛 그림을
     붙잡고 있을 수가 없다. v= 없이 들어온 주소는 캐시를 막는다.
     """
-    resp = FileResponse(path.open("rb"), content_type="image/jpeg")
+    ctype = _CTYPE.get(path.suffix.lower(), "image/jpeg")
+    resp = FileResponse(path.open("rb"), content_type=ctype)
     if request.GET.get("v"):
         resp["Cache-Control"] = "public, max-age=31536000, immutable"
     else:
@@ -1332,6 +1338,69 @@ def _crop_thumb(path, box, width, pad=None):
     except OSError:
         return None
     return out
+
+
+def atlas_index(request):
+    """도감 목록. **DB 를 안 본다** (P15 §6 · 129).
+
+    글자 자료(`AtlasEntry`)는 아직 들어오는 중이고 이 화면은 거기 안 매달린다 —
+    도판 PNG 가 있으면 넘겨 볼 수 있어야 한다. 자리가 통째로 없으면 **빈 목록이
+    아니라 "아직 안 구웠다" 고 말한다**: 빈 화면을 내면 사람이 도감이 없다고
+    읽는다 (P15 §8.4 와 같은 줄).
+    """
+    rows = atlas_mod.atlases()
+    return render(request, "viewer/atlas.html", {
+        "atlases": rows,
+        # 굽는 중일 수 있다. **몇 쪽 중 몇 쪽인지 화면이 말한다** — 안 말하면
+        # 덜 구운 상태를 "원본이 그만큼" 으로 읽는다.
+        "partial": [a for a in rows if a["partial"]],
+    })
+
+
+def atlas_volume(request, atlas, vol):
+    """권 하나 — 쪽 격자."""
+    try:
+        offset = max(0, int(request.GET.get("offset", 0)))
+    except ValueError:
+        offset = 0
+    # **쪽 번호로 곧장 간다** (`?n=`). 색인이 `PDF p.174` 를 알려 주는데 격자를
+    # 넘겨 가며 찾게 하면 그 번호를 들고 온 뜻이 없다. 없는 쪽이면 격자로
+    # 물러나되 **말은 한다** — 조용히 첫 판을 내면 사람이 갔다고 믿는다.
+    raw_n = (request.GET.get("n") or "").strip()
+    if raw_n.isdigit():
+        if atlas_mod.page(atlas, vol, int(raw_n)) is not None:
+            return redirect("atlas_page", atlas=atlas, vol=vol, n=int(raw_n))
+        missing = raw_n
+    else:
+        missing = ""
+
+    ctx = atlas_mod.volume(atlas, vol, offset)
+    if ctx is None:
+        raise Http404(f"unknown atlas volume: {atlas}/{vol}")
+    ctx["missing_n"] = missing
+    here = reverse("atlas_volume", args=[atlas, vol])
+    ctx["prev_url"] = (f"{here}?offset={ctx['prev_offset']}"
+                       if ctx["prev_offset"] is not None else None)
+    ctx["next_url"] = (f"{here}?offset={ctx['next_offset']}"
+                       if ctx["next_offset"] is not None else None)
+    return render(request, "viewer/atlas_volume.html", ctx)
+
+
+def atlas_page(request, atlas, vol, n):
+    """쪽 하나. **색인이 짚어 오는 자리다** — 주소의 `n` 이 `PDF p.N` 이다.
+
+    안 구워진 쪽은 404 다. 빈 그림을 내면 사람이 **원본에 그 쪽이 없다**고
+    읽는다 — 아직 안 뜬 것과 원본에 없는 것은 다른 말이다.
+    """
+    ctx = atlas_mod.page(atlas, vol, n)
+    if ctx is None:
+        raise Http404(f"unknown atlas page: {atlas}/{vol}/{n}")
+    ctx["grid_url"] = (reverse("atlas_volume", args=[atlas, vol])
+                       + f"?offset={ctx['grid_offset']}")
+    for k, name in (("prev", "prev_url"), ("next", "next_url")):
+        ctx[name] = (reverse("atlas_page", args=[atlas, vol, ctx[k]])
+                     if ctx[k] else None)
+    return render(request, "viewer/atlas_page.html", ctx)
 
 
 def threshold_page(request, slug=None):

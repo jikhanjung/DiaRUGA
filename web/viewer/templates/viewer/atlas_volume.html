@@ -1,0 +1,63 @@
+{% extends "viewer/base.html" %}
+{% load viewer_extras %}
+{% block title %}{{ atlas.label }} {{ volume.label }} — DiaRUGA{% endblock %}
+{% block subtitle %}<a href="{% url 'atlas' %}">도감</a> /
+  {{ atlas.label }} / <b>{{ volume.label }}</b> · {{ total }}쪽{% endblock %}
+{% block nav %}
+  {% for v in atlas.volumes %}
+    <a href="{% url 'atlas_volume' atlas.code v.code %}">{{ v.label }}</a>
+  {% endfor %}
+{% endblock %}
+
+{% block content %}
+{% comment %}
+  쪽 격자. **번호는 `PDF p.N` 그대로다** — 색인이 그 번호로 자리를 짚으므로
+  화면에도 같은 번호가 보여야 사람이 색인과 맞춰 볼 수 있다.
+{% endcomment %}
+<style>
+  .pgrid { display: grid; gap: 10px;
+           grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .pg { border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+        display: block; background: var(--panel); }
+  .pg:hover { border-color: var(--accent); text-decoration: none; }
+  .pg img { width: 100%; display: block; aspect-ratio: 700/990;
+            object-fit: contain; background: #fff; }
+  .pg .no { padding: 4px 6px; font-size: .8rem; text-align: center; }
+  .pager { display: flex; gap: 10px; align-items: center; margin: 14px 0; }
+  .jump { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+</style>
+
+{% if missing_n %}
+  {% comment %}
+    **못 갔다는 것을 말한다.** 조용히 격자 첫 판을 내면 사람이 갔다고 믿고
+    엉뚱한 쪽을 본다. "아직 안 떴다" 와 "원본에 없다" 도 다른 말이라 둘 다 적는다.
+  {% endcomment %}
+  <p class="warn">p.{{ missing_n }} 은 이 권에 없습니다 —
+    아직 안 떴거나 원본에 없는 쪽입니다.</p>
+{% endif %}
+<div class="pager">
+  {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 앞</a>{% endif %}
+  <span class="dim">{{ offset|add:1 }}~{{ pages|length|add:offset }} / {{ total }}쪽</span>
+  {% if next_url %}<a class="chip" href="{{ next_url }}">뒤 →</a>{% endif %}
+  {% comment %}
+    **쪽 번호로 곧장 간다.** 색인이 `PDF p.174` 라고 알려 주는데 격자를 넘겨
+    가며 찾게 하면 그 번호를 들고 온 뜻이 없다.
+  {% endcomment %}
+  <form class="jump" method="get" action=".">
+    <label for="jump-n" class="dim">쪽으로</label>
+    <input id="jump-n" name="n" type="number" min="1" style="width: 6em">
+    <button type="submit">간다</button>
+  </form>
+</div>
+
+<div class="pgrid">
+  {% for p in pages %}
+    <a class="pg" href="{% url 'atlas_page' atlas.code volume.code p.n %}">
+      <img loading="lazy" src="{% thumb p.rel 220 %}" alt="{{ p.n }}쪽">
+      <div class="no">p.{{ p.n }}</div>
+    </a>
+  {% empty %}
+    <p class="warn">이 권은 아직 안 떴습니다.</p>
+  {% endfor %}
+</div>
+{% endblock %}

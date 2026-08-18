@@ -63,6 +63,17 @@ urlpatterns = [
     # 범위를 갈아치우지 않으므로 017·027·053 계열의 사고가 안 생긴다.
     path("d/<slug:slug>/catalog/", views.catalog, name="catalog"),
     path("d/<slug:slug>/catalog/save", views.save_catalog, name="save_catalog"),
+    # 도감 도판 (P15 §6 · 129). **DB 를 안 본다** — 파일이 곧 자료다
+    # (`viewer/atlas.py`). 글자 자료(`AtlasEntry`)가 아직 없어도 이 화면은 선다.
+    #
+    # **주소에 `PDF p.N` 을 그대로 쓴다.** 색인 셋이 전부 그 번호로 자리를
+    # 짚으므로(`Tafel 26 (Band1 PDF p.68/69)`) 색인에서 이 화면으로 가는 길이
+    # 계산 없이 선다 — 번호를 옮겨 적는 자리를 안 만든다.
+    path("atlas/", views.atlas_index, name="atlas"),
+    path("atlas/<slug:atlas>/<slug:vol>/", views.atlas_volume,
+         name="atlas_volume"),
+    path("atlas/<slug:atlas>/<slug:vol>/<int:n>/", views.atlas_page,
+         name="atlas_page"),
     path("thresholds/", views.threshold_page, name="thresholds_all"),
     path("d/<slug:slug>/thresholds/", views.threshold_page, name="thresholds"),
     path("api/threshold/preview", views.threshold_preview, name="threshold_preview"),

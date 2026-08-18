@@ -141,7 +141,10 @@ USE_TZ = True
 DATA_ROOT = Path(os.environ.get("DIARUGA_DATA_ROOT", PROJECT_ROOT))
 # 260729 이 photos 로 바뀐 것은 이름이 날짜였기 때문이다 — 슬라이드가 NAS 에서
 # 계속 들어오는데 첫 촬영일이 디렉토리 이름으로 남아 있을 이유가 없다 (P03).
-IMAGE_DIRS = ["photos", "stacked", "out", "out_hi"]
+# `atlas` 는 도감 도판이다 (P15 §6 · 129) — 사진이 아니라 스캔한 책이지만
+# **여는 길이 같다**: `/img?p=…&w=` 가 축소본을 만들어 캐시한다. 따로 문을
+# 내면 그 캐시·경로 검사(`safe_image_path`)를 한 벌 더 짜게 된다.
+IMAGE_DIRS = ["photos", "stacked", "out", "out_hi", "atlas"]
 
 # 검출 결과(<stem>_candidates.json)를 찾을 순서.
 DETECT_DIRS = ["out_hi", "out"]
