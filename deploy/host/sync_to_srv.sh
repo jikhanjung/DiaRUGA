@@ -105,6 +105,7 @@ if [ -n "$IMAGE" ]; then
                 "deploy/host/deploy.sh:bin/deploy.sh" \
                 "deploy/host/smoke.sh:bin/smoke.sh" \
                 "deploy/poll_nas.sh:bin/poll_nas.sh" \
+                "deploy/warm_thumbs.sh:bin/warm_thumbs.sh" \
                 "deploy/host/sync_to_srv.sh:bin/sync_to_srv.sh" \
                 "deploy/nginx/maintenance.html:www/DiaRUGA-maintenance.html" \
                 "deploy/nginx/unavailable.html:www/DiaRUGA-unavailable.html"; do
@@ -146,9 +147,11 @@ mkdir -p "$SRV/bin"
 # 파이프라인이 통째로 안 돈다 — 운영에 필요한 것은 전부 /srv 안에 있어야 한다.
 # **자기 자신도 옮긴다** — `deploy.sh` 가 `/srv/bin/sync_to_srv.sh` 를 부르고,
 # 저장소 없는 서버에서는 그것이 유일한 사본이다.
-for f in deploy.sh smoke.sh poll_nas.sh sync_to_srv.sh; do
+for f in deploy.sh smoke.sh poll_nas.sh warm_thumbs.sh sync_to_srv.sh; do
     src="deploy/host/$f"
-    [ -f "$REPO/$src" ] || src="deploy/$f"      # poll_nas.sh 는 deploy/ 에 있다
+    # poll_nas.sh·warm_thumbs.sh 는 deploy/ 에 있다 (호스트 전용이 아니라
+    # 이미지에도 들어가야 해서 — --from-image 갈래가 거기서 꺼낸다)
+    [ -f "$REPO/$src" ] || src="deploy/$f"
     copy "$src" "bin/$f"
     chmod_ok +x "$SRV/bin/$f"
     [ -x "$SRV/bin/$f" ] || echo "  ! bin/$f 에 실행 비트가 없다" >&2
