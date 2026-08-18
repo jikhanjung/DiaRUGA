@@ -57,6 +57,51 @@ def rel_of(atlas: str, vol: str, page: int) -> str:
     return f"atlas/{atlas}/{vol}/p{page:04d}{EXT}"
 
 
+def vol_code(volume: str | None) -> str:
+    """색인이 적은 권 표기를 **경로용 코드**로 (129).
+
+        "Band4" → "band4"       None · "" → "main"
+
+    **이 변환은 여기 하나뿐이다.** 색인 자료(`AtlasPlacement.volume`)는
+    원문 표기(`Band4`)를 그대로 들고 있어야 한다 — 인용에 쓰이는 값이라
+    화면의 경로 규칙을 알 이유가 없다(옆 세션과 합의, 2026-08-18). 그러면
+    맞추는 일이 화면 몫이 되는데, **세 화면과 링크 만드는 자리가 각자
+    `.lower()` 하면 넷째 도감에서 갈린다.** `naming.py` 가 폴더 이름 규칙을
+    한 자리로 모은 것과 같은 이유다.
+    """
+    v = (volume or "").strip().lower()
+    return v or "main"
+
+
+def page_url(atlas: str, volume: str | None, pdf_page) -> str:
+    """색인 항목 하나가 짚는 쪽으로 가는 주소. 못 만들면 빈 문자열.
+
+    **여기서 파일이 있는지 안 본다.** 링크 하나마다 디스크를 짚으면 검색 결과
+    한 판에 수백 번이 된다(105 의 "카드마다 되묻기"). 안 구운 쪽이면 그 화면이
+    **404 로 정직하게 말한다** — 빈 그림을 내지 않는다. 링크를 흐리게 할 자리는
+    `has_page()` 로 따로 묻는다.
+    """
+    from django.urls import reverse
+
+    try:
+        n = int(pdf_page)
+    except (TypeError, ValueError):
+        return ""
+    vol = vol_code(volume)
+    if n < 1 or not _ok(atlas, vol):
+        return ""
+    return reverse("atlas_page", args=[atlas, vol, n])
+
+
+def has_page(atlas: str, volume: str | None, pdf_page) -> bool:
+    """그 쪽이 실제로 떠 있는가. **디스크를 짚는다** — 자주 부르지 말 것."""
+    try:
+        n = int(pdf_page)
+    except (TypeError, ValueError):
+        return False
+    return n in _pages_on_disk(atlas, vol_code(volume))
+
+
 def _ok(*codes: str) -> bool:
     return all(bool(c) and bool(CODE.match(c)) for c in codes)
 

@@ -111,3 +111,47 @@ class AtlasPageTests(DiaRUGATestCase):
         for url in (reverse("index"), reverse("atlas")):
             self.assertIn(reverse("atlas"), self.c.get(url).content.decode(),
                           f"{url} 에 도감 문이 없다")
+
+
+class AtlasLinkTests(DiaRUGATestCase):
+    """색인 → 도판 링크. **변환이 한 자리에만 있어야 한다** (129 · 옆 세션 합의).
+
+    색인 자료는 권을 원문 표기(`"Band4"`)로 들고 있고 경로는 소문자다. 세
+    화면이 각자 `.lower()` 하면 넷째 도감에서 갈린다 — `naming.py` 와 같은 줄.
+
+    되살려서 잡히는가: `vol_code` 가 `.lower()` 를 안 하면 1번이, `None → main`
+    을 안 하면 2번이, `page_url` 이 없는 쪽에도 주소를 안 내면 4번이 실패한다.
+    """
+    def setUp(self):
+        super().setUp()
+        from django.conf import settings
+        seed(Path(settings.DATA_ROOT))
+
+    def test_volume_code_lowercased(self):
+        from viewer import atlas as A
+        self.assertEqual(A.vol_code("Band4"), "band4")
+
+    def test_null_volume_is_main(self):
+        from viewer import atlas as A
+        for v in (None, "", "   "):
+            self.assertEqual(A.vol_code(v), "main")
+
+    def test_link_from_index_placement(self):
+        from viewer import atlas as A
+        self.assertEqual(A.page_url("schmidt", "Band1", 68),
+                         reverse("atlas_page", args=["schmidt", "band1", 68]))
+        self.assertEqual(A.page_url("korean", None, 74),
+                         reverse("atlas_page", args=["korean", "main", 74]))
+
+    def test_link_does_not_check_disk(self):
+        # 안 구운 쪽에도 주소는 난다 — 그 화면이 404 로 말한다. 링크마다
+        # 디스크를 짚으면 검색 결과 한 판에 수백 번이 된다.
+        from viewer import atlas as A
+        self.assertTrue(A.page_url("schmidt", "Band1", 9999))
+        self.assertFalse(A.has_page("schmidt", "Band1", 9999))
+        self.assertTrue(A.has_page("schmidt", "Band1", 68))
+
+    def test_bad_placement_gives_no_link(self):
+        from viewer import atlas as A
+        for bad in (None, "", "abc", 0, -3):
+            self.assertEqual(A.page_url("schmidt", "Band1", bad), "")
