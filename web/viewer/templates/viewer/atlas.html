@@ -36,7 +36,7 @@
   /* 테마가 둘이라 색을 박지 않는다 — 이미 갈려 있는 토큰을 빌린다 (107) */
   .warnchip { background: var(--warn-bg); color: var(--warn-fg); }
   .pnote { font-size: .82rem; color: var(--warn-fg); }
-  .extra { margin-top: 4px; font-size: .86rem; }
+  .entryextra { margin-top: 4px; font-size: .86rem; }
   .platehead { margin: 22px 0 10px; font-size: 1rem; }
   .pager { display: flex; gap: 8px; margin: 14px 0; }
   .nocover { width: 132px; aspect-ratio: 700/990; border-radius: 4px;
@@ -117,7 +117,7 @@
         {% empty %}<span class="dim">자리가 안 적혀 있다</span>{% endfor %}
       </div>
       {% if r.extra.ecology or r.extra.distribution %}
-        <div class="extra">
+        <div class="entryextra">
           {% if r.extra.ecology %}<div><span class="dim">생태</span> {{ r.extra.ecology }}</div>{% endif %}
           {% if r.extra.distribution %}<div><span class="dim">분포</span> {{ r.extra.distribution }}</div>{% endif %}
         </div>

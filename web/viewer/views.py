@@ -1425,15 +1425,28 @@ def atlas_page(request, atlas, vol, n):
     안 구워진 쪽은 404 다. 빈 그림을 내면 사람이 **원본에 그 쪽이 없다**고
     읽는다 — 아직 안 뜬 것과 원본에 없는 것은 다른 말이다.
     """
-    ctx = atlas_mod.page(atlas, vol, n)
+    # **두 쪽 보기** (131). 원래 책처럼 펼쳐 본다 — Schmidt 는 해설면과 도판면이
+    # 한 펼침이라 왼쪽에서 읽고 오른쪽을 본다. 상태를 주소에 둔다: 눌러서 온
+    # 자리를 적어 두거나 새로고침해도 보던 모양 그대로여야 한다.
+    two = request.GET.get("spread") == "1"
+    ctx = (atlas_mod.spread(atlas, vol, n) if two
+           else atlas_mod.page(atlas, vol, n))
     if ctx is None:
         raise Http404(f"unknown atlas page: {atlas}/{vol}/{n}")
+    ctx["spread"] = two
     ctx["grid_url"] = (reverse("atlas_volume", args=[atlas, vol])
                        + f"?offset={ctx['grid_offset']}")
+    suffix = "?spread=1" if two else ""
     for k, name in (("prev", "prev_url"), ("next", "next_url")):
-        ctx[name] = (reverse("atlas_page", args=[atlas, vol, ctx[k]])
+        ctx[name] = (reverse("atlas_page", args=[atlas, vol, ctx[k]]) + suffix
                      if ctx[k] else None)
-    return render(request, "viewer/atlas_page.html", ctx)
+    # 보기를 바꾸는 문. **지금 보고 있는 쪽을 들고 간다** — 펼침에서 한 장으로
+    # 갈 때 첫 쪽으로 돌아가면 찾던 자리를 잃는다.
+    here = reverse("atlas_page", args=[atlas, vol, n])
+    ctx["one_url"], ctx["two_url"] = here, here + "?spread=1"
+    return render(request,
+                  "viewer/atlas_spread.html" if two else "viewer/atlas_page.html",
+                  ctx)
 
 
 def threshold_page(request, slug=None):

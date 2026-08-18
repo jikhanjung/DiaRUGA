@@ -60,6 +60,25 @@ from pathlib import Path
 # `volume` 은 PDF 하나다 — 색인이 `Band4 PDF p.174` 처럼 **권마다 따로** 센다.
 NAS = Path("/nfs/temp-share/DiaRUGA/Diadiction/origin")
 
+# **펼침에서 어느 쪽이 왼쪽인가** — 도감마다 다르다 (131). 자료로 갈랐다:
+#
+# | 도감 | 근거 | 왼쪽 |
+# |---|---|---|
+# | Schmidt | 도판면(p.69)의 Tafel 번호 `26` 이 **우상단** → 홀수가 오른쪽 | 짝수 |
+# | 한국 | 색인의 `책 p.172 · PDF p.73` — 책 짝수면(verso)이 PDF 홀수다 | 홀수 |
+# | 동남극 | 아래 가운데 `- 73 -` 가 PDF p.2 — 책 홀수면(recto)이 PDF 짝수다 | 홀수 |
+#
+# **Schmidt 만 반대다.** 해설면(짝수)과 도판면(홀수)이 한 펼침에 놓이는데,
+# 그것이 원래 책이 읽히는 모양이다 — 왼쪽에서 읽고 오른쪽을 본다.
+#
+# 넷째 도감을 더할 때 **이 값을 안 정하면 짝이 한 칸 밀린다.** 눈에 잘 안 띄는
+# 고장이라(그림은 나온다) 기본값을 두지 않고 표에 적게 했다.
+LEFT_PARITY = {
+    "korean": "odd",
+    "schmidt": "even",
+    "east-antarctic": "odd",
+}
+
 SOURCES = [
     # (도감 코드, 도감 이름, 권 코드, 권 이름, PDF)
     ("korean", "한국동식물도감 제9권 (담수조류)", "main", "본권",
@@ -132,7 +151,9 @@ def write_manifest(plan, dpi: int, only: str) -> Path:
     manifest = {"dpi": dpi, "atlases": {}}
     for atlas, atlas_name, vol, vol_name, fname, n in plan:
         at = manifest["atlases"].setdefault(
-            atlas, {"code": atlas, "label": atlas_name, "volumes": []})
+            atlas, {"code": atlas, "label": atlas_name,
+                    "left_parity": LEFT_PARITY.get(atlas, ""),
+                    "volumes": []})
         d = OUT / atlas / vol
         have = len(list(d.glob("p*.png"))) if d.exists() else 0
         at["volumes"].append({"code": vol, "label": vol_name, "source": fname,
@@ -163,6 +184,14 @@ def main() -> int:
     ap.add_argument("--force", action="store_true", help="있는 것도 다시 뜬다")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
+
+    missing_parity = sorted({a_ for a_, *_ in SOURCES if a_ not in LEFT_PARITY})
+    if missing_parity:
+        # **조용히 기본값을 쓰지 않는다.** 짝이 한 칸 밀려도 그림은 나오므로
+        # 사람이 한참 뒤에 알아챈다 — 지금 멈추는 편이 싸다.
+        print(f"!! LEFT_PARITY 에 없는 도감: {', '.join(missing_parity)} — "
+              f"펼침의 왼쪽이 어느 쪽인지 정해야 한다", file=sys.stderr)
+        return 2
 
     todo, plan = [], []
     for atlas, atlas_name, vol, vol_name, fname in SOURCES:

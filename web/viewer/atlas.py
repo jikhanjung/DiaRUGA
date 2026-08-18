@@ -212,6 +212,68 @@ def volume(atlas: str, vol: str, offset: int = 0) -> dict | None:
     }
 
 
+def left_parity(atlas_code: str) -> str:
+    """펼침에서 **왼쪽에 놓이는 쪽 번호의 홀짝**. `"even"` 또는 `"odd"`.
+
+    도감마다 다르다 — 굽는 스크립트의 `LEFT_PARITY` 가 원본이고 목록 파일에
+    실려 온다. 자료로 갈랐다(131): Schmidt 는 도판면(홀수)의 Tafel 번호가
+    **우상단**이라 홀수가 오른쪽이고, 한국·동남극은 색인의 `책 p.` ↔ `PDF p.`
+    대응이 그 반대를 말한다.
+
+    **모르면 `"odd"` 로 본다** — 첫 쪽이 표지로 혼자 오른쪽에 서는 흔한 모양이
+    아니라, 1·2 가 나란히 서는 쪽이다. 다만 굽는 스크립트가 표에 없는 도감을
+    아예 거절하므로 여기까지 오는 일은 목록이 낡았을 때뿐이다.
+    """
+    at = (_manifest().get("atlases") or {}).get(atlas_code) or {}
+    return "even" if at.get("left_parity") == "even" else "odd"
+
+
+def spread(atlas: str, vol: str, n: int) -> dict | None:
+    """`n` 이 든 펼침 하나 — 원래 책처럼 두 쪽 (131).
+
+    **번호가 바깥 모서리로 간다.** 왼쪽 쪽 번호는 좌상단, 오른쪽은 우상단이다
+    (사용자 2026-08-18) — 책이 그렇게 찍혀 있고, 화면의 표시가 그것과 어긋나면
+    어느 쪽을 보고 있는지 매번 되짚게 된다.
+
+    **한쪽이 없을 수 있다.** 첫 쪽이 표지로 혼자 서거나(짝수-왼쪽 도감의 p.1)
+    마지막 쪽이 짝을 못 만나는 자리다. 그때는 있는 쪽만 낸다 — 없는 자리에 빈
+    칸을 그리면 사람이 **안 구운 쪽**으로 읽는다.
+    """
+    if not _ok(atlas, vol):
+        return None
+    nums = _pages_on_disk(atlas, vol)
+    if not nums or n not in nums:
+        return None
+
+    want_even = left_parity(atlas) == "even"
+    left = n if ((n % 2 == 0) == want_even) else n - 1
+    right = left + 1
+    lo, hi = nums[0], nums[-1]
+
+    def side(num, where):
+        if num < lo or num > hi or num not in nums:
+            return None
+        return {"n": num, "rel": rel_of(atlas, vol, num), "side": where}
+
+    l, r = side(left, "left"), side(right, "right")
+    if l is None and r is None:
+        return None
+
+    at = next((a for a in atlases() if a["code"] == atlas), None)
+    v = next((x for x in (at or {}).get("volumes", []) if x["code"] == vol), None)
+    first = (l or r)["n"]
+    last = (r or l)["n"]
+    # 앞뒤로 **펼침 단위**로 옮긴다. 한 쪽씩 가면 같은 펼침을 두 번 본다.
+    prev_n = first - 1 if first - 1 >= lo else None
+    next_n = last + 1 if last + 1 <= hi else None
+    return {
+        "atlas": at, "volume": v, "left": l, "right": r, "n": n,
+        "prev": prev_n, "next": next_n,
+        "pos": nums.index(first) + 1, "total": len(nums),
+        "grid_offset": (nums.index(first) // PER_PAGE) * PER_PAGE,
+    }
+
+
 def page(atlas: str, vol: str, n: int) -> dict | None:
     """쪽 하나 — 앞뒤로 넘길 자리까지.
 

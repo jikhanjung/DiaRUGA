@@ -8,6 +8,7 @@
 {% block nav %}
   {% if prev_url %}<a href="{{ prev_url }}">← p.{{ prev }}</a>{% endif %}
   <a href="{{ grid_url }}">격자</a>
+  <a href="{{ two_url }}">두 쪽</a>
   {% if next_url %}<a href="{{ next_url }}">p.{{ next }} →</a>{% endif %}
 {% endblock %}
 
@@ -41,6 +42,7 @@
 
 <div class="sheetbar">
   <a class="chip" href="{% rawimg rel %}">원본 PNG</a>
+  <a class="chip" href="{{ two_url }}">두 쪽으로</a>
   <a class="chip" href="{{ grid_url }}">격자로</a>
 </div>
 {% endblock %}
