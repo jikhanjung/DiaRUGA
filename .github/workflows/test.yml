@@ -43,6 +43,11 @@ jobs:
       - name: test_zen_meta.py
         run: python pipeline/test_zen_meta.py
 
+      # 도감 색인 파서 (P15 1단계). **NAS 도 DB 도 없이 돈다** — 색인을
+      # 합성본으로 세운다. 러너에 `/nfs/temp-share` 가 없어도 이건 돌아야 한다.
+      - name: test_parse_atlas.py
+        run: python tools/test_parse_atlas.py
+
   browser:
     name: 브라우저 레이어
     runs-on: ubuntu-latest

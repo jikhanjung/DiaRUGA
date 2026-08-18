@@ -73,6 +73,28 @@ GENUS_FIX = {
 }
 
 
+def binomial(headword: str) -> str | None:
+    """색인 표제어에서 이명법을 뽑는다. 못 뽑으면 `None`.
+
+    **이름을 뽑는 규칙은 이 함수 하나뿐이다** — 색인에 표시를 다는 것
+    (`annotate_index.py`)도, 색인을 JSON 으로 뽑는 것(`parse_atlas.py`)도
+    여기를 부른다. 두 벌이 되면 붙는 자리가 어긋난다.
+
+    표제어는 이명법이 아니다. 저자까지 달려 있고(`Melosira ambigua (GRUN.)
+    O. F. MÜLLER`), **옛 도감은 종소명을 대문자로 쓴다**(`Melosira Roeseana`).
+    맞출 때는 소문자로 내리고 **표시는 원래 표기로 한다**(P15 9절).
+
+    `sp.`·`group` 처럼 종까지 안 내려간 것은 `None` 이다 — 물을 것이 없다.
+    """
+    words = headword.replace("*", "").split()
+    if len(words) < 2:
+        return None
+    genus, epithet = words[0].capitalize(), words[1].lower()
+    if not re.fullmatch(r"[a-zöäüéë\-]+", epithet):
+        return None
+    return f"{GENUS_FIX.get(genus, genus)} {epithet}"
+
+
 def read_names(root: Path) -> dict[str, set[str]]:
     """색인 셋에서 이명법을 뽑는다. 값은 그 이름이 나온 도감들."""
     names: dict[str, set[str]] = collections.defaultdict(set)
@@ -82,14 +104,9 @@ def read_names(root: Path) -> dict[str, set[str]]:
         if section:
             text = text.split(section[0])[1].split(section[1])[0]
         for m in re.finditer(pat, text, re.M):
-            words = m.group(1).replace("*", "").split()
-            if len(words) < 2:
-                continue
-            genus, epithet = words[0].capitalize(), words[1].lower()
-            # `sp.`·`group` 처럼 종까지 안 내려간 것은 물을 것이 없다
-            if not re.fullmatch(r"[a-zöäüéë\-]+", epithet):
-                continue
-            names[f"{GENUS_FIX.get(genus, genus)} {epithet}"].add(atlas)
+            name = binomial(m.group(1))
+            if name:
+                names[name].add(atlas)
     return dict(names)
 
 

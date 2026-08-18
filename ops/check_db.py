@@ -52,7 +52,8 @@ django.setup()
 from django.db.models import Count, Q                               # noqa: E402
 
 import judge                                                        # noqa: E402
-from viewer.models import (Candidate, ClassDef, Detection, DiatomObject,
+from viewer.models import (Atlas, AtlasEntry, AtlasPlacement,
+                           Candidate, ClassDef, Detection, DiatomObject,
                            Frame,    # noqa: E402
                            Locality, ObjectReview,
                            RunBatch, Sample, Slide, Stack, Viewpoint,
@@ -699,6 +700,65 @@ def check_thresholds(slug=None):
                      "refilter.py --slide 로 맞출 것"))
 
 
+def check_atlas(slug=None):
+    """도감이 들어와 있고, 우리 분류·종명이 그것과 맞는가 (P15 8.2).
+
+    **속이 열쇠 층이다.** 색인의 속명에는 잘못 펴진 자리가 남아 있고(119, 후보
+    30개) 도감마다 표기도 다르다(`Chaetoceras` ~ `Chaetoceros`). 그것을 **다
+    닫고 나서 반입하자는 것이 아니라 세자는 것**이다 — 안 맞는 속은 예외를 안
+    내고 조용히 안 이어지므로, 여기서 세지 않으면 아무도 모른다.
+
+    **종명은 아직 0건이다.** 자유 입력이라(`DiatomObject.species`) 값이 쌓이기
+    전에 규칙을 세우는 것이 가장 싸다 — 지금은 이 검사가 늘 0 이지만,
+    카탈로그가 채워지기 시작하면 여기서 처음 걸린다.
+
+    이 검사는 슬라이드와 무관하다 — `--slide` 를 줘도 도감 전체를 본다.
+    """
+    if not Atlas.objects.exists():
+        print("   도감이 안 들어와 있다 — `import_atlas.py` 로 넣는다 (건너뛴다)")
+        return
+
+    entries = AtlasEntry.objects.count()
+    places = AtlasPlacement.objects.count()
+    print(f"   도감 {Atlas.objects.count()} · 항목 {entries} · 자리 {places}")
+
+    # 자리가 없는 항목은 도감에서 그 항목을 열 수가 없다
+    no_place = AtlasEntry.objects.filter(placements__isnull=True)
+    report("자리가 없는 도감 항목", no_place.count(), entries,
+           "1단계 파서를 다시 돌린다 (tools/parse_atlas.py)",
+           [f"{e.atlas.key} #{e.seq} {e.name}" for e in no_place[:5]])
+
+    # 쪽이 없는 자리는 도판 이미지를 짚지 못한다 (한국 도감 199건은 원래 그렇다)
+    no_page = AtlasPlacement.objects.filter(pdf_page__isnull=True).count()
+    print(f"   PDF 쪽이 없는 자리 {no_page}건 "
+          f"(도판 이미지를 못 짚는다 — 색인이 원래 안 적은 자리다)")
+
+    genera = set(AtlasEntry.objects.exclude(genus="")
+                 .values_list("genus", flat=True))
+    # **`label` 로 맞춘다.** `ClassDef` 에 속 칸을 따로 두면 "분류를 더할 때
+    # 채울 것" 이 여덟에서 아홉이 되고, 그 목록은 하나라도 비면 예외 없이
+    # 조용히 다르게 구르는 자리다(038·040). 이름이 곧 속인 동안은 이것으로 선다
+    taxa = list(ClassDef.objects.filter(is_taxon=True, active=True))
+    off = [c for c in taxa if c.label not in genera]
+    report("분류(is_taxon)의 속이 도감에 없다", len(off), len(taxa),
+           "속명 표기가 갈렸거나 색인의 속명이 잘못 펴진 자리다 (119)",
+           [f"{c.key} ({c.label})" for c in off])
+
+    # **자유 입력 종명이 도감에 있는가** (P15 3절 (나))
+    names = set(AtlasEntry.objects.values_list("binomial", flat=True)) | \
+        set(AtlasEntry.objects.values_list("name", flat=True))
+    names.discard("")
+    said = [s.strip() for s in DiatomObject.objects
+            .exclude(species="").values_list("species", flat=True)]
+    miss = [s for s in said if s not in names]
+    if said:
+        report("개체 종명이 도감에 없다", len(miss), len(said),
+               "도감에 없는 이름과 이름이 달라 못 찾는 것은 다르다 (P15 8.4)",
+               sorted(set(miss))[:5])
+    else:
+        print("   개체에 적힌 종명이 아직 없다 (자유 입력 · P15 3절)")
+
+
 def main():
     global VERBOSE
     ap = argparse.ArgumentParser()
@@ -731,6 +791,8 @@ def main():
     check_catalog(args.slide)
     print("\n=== 10. 등급·자세 ===")
     check_grade_pose(args.slide)
+    print("\n=== 11. 도감 (P15) ===")
+    check_atlas(args.slide)
 
     print()
     if problems:

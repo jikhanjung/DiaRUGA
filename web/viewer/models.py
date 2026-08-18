@@ -1273,3 +1273,158 @@ class DiatomObject(models.Model):
 # (`(image, batch, mask_key)`) `geom` 스냅샷을 각자 들고 `Candidate` 에 FK 로
 # 안 매달리는 규약도 같았다 — 다른 것은 무엇을 말하느냐뿐이었고(하나는 판정,
 # 하나는 소속), 그래서 한 마스크에 대해 행이 둘로 갈려 있었다.
+
+
+# ─────────────────────────────────────────────────────── 도감 (P15 · 128 · 130)
+
+# 표제어가 어느 수준까지 내려갔나. **`genus_only` 와 `unreadable` 을 가른다** —
+# 앞엣것은 도감이 속까지만 동정한 것이고(`Navicula sp.`), 뒤엣것은 **이름이
+# 상해서 우리가 못 읽는 것**이다(`Synedra cyclopиm` — 종소명에 키릴 и 가 섞였다).
+# 한 칸에 담으면 화면이 둘을 같은 말로 하게 된다 (P15 8.4).
+ATLAS_RANK = [(k, k) for k in
+              ("species", "infraspecies", "genus_only", "unreadable")]
+
+
+class Atlas(models.Model):
+    """도감 하나. 지금 셋이고 늘어도 몇 개다 (P15 4.1).
+
+    **원본은 `Diadiction/md/*.md` 이고 이 세 표는 사본이다** (P15 4.2).
+    `tools/parse_atlas.py` 가 JSON 으로 뽑고 `ops/import_atlas.py` 가 넣는다.
+    **언제든 통째로 지우고 다시 만들 수 있어야 한다** — 그래서 여기에는
+    사람이 만든 것이 한 칸도 없다.
+
+    **학명 유효성 판정은 이 표에 안 담는다** (P15 4.3). 그것은 사람이
+    AlgaeBase 를 열어 내린 판단이라 재생성 불가이고, 반입이 덮으면 사라진다.
+    자리가 따로다 — `Diadiction/md/name_validity_log.md` 가 원본이고 뒤에
+    `TaxonName` 으로 들어온다. **한 칸이라도 이 표에 들어오는 순간
+    "지우고 다시 만들어도 안전하다" 가 거짓이 된다.**
+    """
+
+    # 도감 코드. **JSON 이름·`/data3/DiaRUGA/atlas/<코드>/` 의 이미지 폴더·
+    # 화면 URL 이 전부 이 값이다** (`korean`·`schmidt`·`east-antarctic`).
+    key = models.CharField(max_length=32, unique=True)
+    title = models.CharField(max_length=200)
+    # 화면에 놓이는 짧은 이름 ("Schmidt Atlas")
+    short = models.CharField(max_length=40)
+    # 어느 md 에서 왔나 (`Diadiction` 아래 상대 경로)
+    source = models.CharField(max_length=200, blank=True, default="", db_default="")
+    # **그 md 의 해시.** 지금 행이 어느 판의 색인에서 왔는지가 이 칸에 있다 —
+    # 색인이 바뀌면 값이 달라져 다시 반입할 자리가 눈에 띈다
+    source_sha256 = models.CharField(max_length=64, blank=True, default="", db_default="")
+    # 인용할 때 알아야 할 것 (OCR·발췌·원문 오류). **화면이 함께 말한다** (P15 9절)
+    note = models.TextField(blank=True, default="", db_default="")
+    sort_order = models.IntegerField(default=0, db_default=0)
+
+    class Meta:
+        ordering = ["sort_order", "key"]
+        verbose_name_plural = "atlases"
+
+    def __str__(self):
+        return self.short
+
+
+class AtlasEntry(models.Model):
+    """도감의 항목 하나. 표제어 2,059개가 여기 온다.
+
+    **표제어를 고치지 않는다.** 색인은 OCR 산물이라 기계가 고쳐 쓰면 인용이
+    원문과 어긋난다 — `Triceratium venustun` 은 원문이 그렇게 찍혀 있다(126).
+    `name` 은 색인에 적힌 그대로이고, **맞추는 데 쓸 이름은 `binomial` 이
+    따로 든다**(`harvest_worms.binomial` 이 만든다 — 그 규칙은 하나뿐이다).
+
+    **열쇠는 `(atlas, seq)` 다.** 이름은 한국 도감에서 한 번 겹치고
+    (`Cocconeis placentula EHRENBERG` 가 항목번호를 달리해 둘), 항목번호는
+    나머지 둘에 없다. **이 행은 언제든 지우고 다시 만드는 것이라 살아야 하는
+    것을 여기에 FK 로 매달지 않는다** — 이름으로 짚는다.
+    """
+
+    atlas = models.ForeignKey(Atlas, on_delete=models.CASCADE, related_name="entries")
+    # 색인 파일에서의 순서. 반입의 열쇠다
+    seq = models.PositiveIntegerField()
+    # 도감이 매긴 항목번호. 한국 도감만 있다 (169–680)
+    item_no = models.CharField(max_length=16, blank=True, default="", db_default="")
+    # **색인에 적힌 그대로.** 저자까지 붙어 있다
+    name = models.CharField(max_length=200)
+    # 표제어의 첫 낱말. **여기도 색인 표기 그대로다** — 속명이 잘못 펴진
+    # 자리가 있는데(119) 파서는 안 고친다. `ClassDef` 와 맞추는 열쇠 층이라
+    # `ops/check_db.py` 가 "안 맞는 속" 을 센다 (P15 8.2)
+    genus = models.CharField(max_length=64, blank=True, default="", db_default="")
+    # 맞추기용 이명법. 속은 소문자 종소명과 짝지어 정규화한다. 못 뽑으면 빈 칸
+    binomial = models.CharField(max_length=120, blank=True, default="", db_default="")
+    rank = models.CharField(max_length=16, choices=ATLAS_RANK,
+                            default="species", db_default="species")
+    # `var. ovata IWAHASHI` 처럼 종 아래 표기 (한국 도감 117건)
+    infra = models.CharField(max_length=120, blank=True, default="", db_default="")
+    authority = models.CharField(max_length=200, blank=True, default="", db_default="")
+    # **`(속명 추정)` 표시가 있는가** (46건). **없다고 확정이 아니다** — 표시가
+    # 없는데 잘못 펴진 것이 있다는 것이 119 의 요점이고, 확인된 것만 다섯 쪽이다.
+    # 화면이 이 칸을 "확정" 으로 말하면 안 된다
+    genus_guess = models.BooleanField(default=False, db_default=False)
+    # 도감마다 다른 것. 한국 `ecology`·`distribution`·`note`·`section`,
+    # 동남극 `samples[]`(그림마다 구간·깊이 cm·배율)·`original_note`·`notes[]`.
+    # **칸을 도감 수만큼 늘리는 쪽은 버렸다** — 넷째 도감이 오면 또 는다 (P15 4.1)
+    extra = models.JSONField(default=dict, blank=True, db_default={})
+    # 색인 md 의 몇 번째 줄에서 왔나. 근거를 되짚는 자리다
+    line = models.PositiveIntegerField(default=0, db_default=0)
+
+    class Meta:
+        ordering = ["atlas", "seq"]
+        constraints = [models.UniqueConstraint(
+            fields=["atlas", "seq"], name="atlasentry_unique_seq")]
+        indexes = [models.Index(fields=["atlas", "genus"]),
+                   models.Index(fields=["binomial"]),
+                   models.Index(fields=["genus"])]
+
+    def __str__(self):
+        return self.name
+
+
+class AtlasPlacement(models.Model):
+    """그 항목이 도감의 어디에 놓여 있나. **항목당 여럿이다.**
+
+    P15 4.1 은 이것을 `AtlasEntry` 의 칸으로 두려 했는데, 자료를 다 뽑고 보니
+    **Schmidt 254건이 자리를 여럿 갖는다**(최다 11 · 동남극 13건 · 한국 0건).
+    칸으로 두면 254건이 첫 자리만 남거나 JSON 으로 밀려나고, 밀려나면
+    **"이 Tafel 에 무엇이 있나"·"이 쪽을 열어라" 를 질의로 못 한다.**
+
+    **자리 표기가 도감마다 다르다** — 공통으로 뽑히는 것만 칸으로 두었다.
+
+        한국    항목번호 · pl. · 책 p. · PDF p.
+        Schmidt Tafel · fig. · Band · PDF p.N/N+1
+        동남극  Plate · fig. · PDF p.N/N+1 (시료는 `AtlasEntry.extra`)
+
+    **빈 것을 채우지 않는다** (P15 9절). 한국 항목 680 은 도판이 없고 PDF 쪽도
+    없다 — `null` 이다. 0 으로 두면 그것이 자료가 된다.
+    """
+
+    entry = models.ForeignKey(AtlasEntry, on_delete=models.CASCADE,
+                              related_name="placements")
+    seq = models.PositiveSmallIntegerField(default=0, db_default=0)
+    # 도판 번호. 한국 `pl.` · Schmidt `Tafel` · 동남극 `Plate`.
+    # **Tafel 은 열쇠가 아니다** — 해설 OCR 이 번호를 묶음째로 잘못 읽어 114건이
+    # 틀려 있었다(126). 쪽으로 짚는다
+    plate = models.PositiveIntegerField(null=True, blank=True)
+    # 번호가 없는 도판 자리 (동남극 `SEM Figures`)
+    plate_label = models.CharField(max_length=16, blank=True, default="", db_default="")
+    # 범위·목록이 섞여 원문 그대로 든다 (`11–13` · `1—8` · `4, 6`)
+    figures = models.CharField(max_length=120, blank=True, default="", db_default="")
+    book_page = models.PositiveIntegerField(null=True, blank=True)
+    # 해설면 / 도판면. **도판 이미지를 짚는 것이 이 둘이다**
+    # (`/data3/DiaRUGA/atlas/<도감>/<권>/p####.png`)
+    pdf_page = models.PositiveIntegerField(null=True, blank=True)
+    pdf_plate_page = models.PositiveIntegerField(null=True, blank=True)
+    # Schmidt 만 (`Band1`~`Band4`). **쪽 번호가 권마다 다시 센다** — 이미지를
+    # 짚을 때 권이 없으면 다른 쪽이 열린다. 경로용 소문자는 화면이 만든다
+    volume = models.CharField(max_length=16, blank=True, default="", db_default="")
+    # 색인이 이 자리에 단 주석. Schmidt 21건의 `Tafel 아님 · 권 뒤
+    # Verzeichnis(색인) 쪽에서 왔다` 가 여기 온다 — **`plate` 는 색인에 적힌
+    # 그대로 두고 주석이 그것을 뒤집는다.** `pdf_page` 는 성하다
+    note = models.TextField(blank=True, default="", db_default="")
+
+    class Meta:
+        ordering = ["entry", "seq"]
+        indexes = [models.Index(fields=["volume", "pdf_page"]),
+                   models.Index(fields=["plate"])]
+
+    def __str__(self):
+        where = f"pl.{self.plate}" if self.plate else (self.plate_label or "?")
+        return f"{where} p.{self.pdf_page}"
