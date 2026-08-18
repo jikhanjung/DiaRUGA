@@ -257,6 +257,16 @@ scan_nas → ingest_nas → group_focus_series → focus_stack --slide → segme
 하나만 돈다** — 잠금이 `segment_diatoms` 안에 있어 폴러가 도는 중에 손으로 돌려도
 기다렸다 이어 간다.
 
+**합성이 끝나면 축소본을 미리 굽는다** (125 · `deploy/warm_thumbs.sh`). 검출을
+기다리지 않는다 — 축소본 주소는 합성본과 프레임에만 달려 있고 그것은 그때 다
+있다. 안 구워 두면 **그 시야를 처음 여는 사람이 판마다 100~146ms 를 대신
+기다린다**(캐시에 있으면 2ms). 굽기가 실패해도 폴러는 안 멈춘다.
+
+손으로도 부른다 — `/srv/DiaRUGA/bin/warm_thumbs.sh <slug>` (슬라이드 하나 25초쯤,
+멱등이다). **폭 목록을 스크립트가 안 들고 있다**: 화면을 열어 화면이 부르는
+주소를 그대로 다시 부르므로 `{% thumb %}` 이 바뀌면 굽는 것도 따라간다.
+**옛 슬라이드의 프레임 축소본은 아직 차다**(TODOs `## 운영`).
+
 ### 검출 엔진이 두 벌이다
 
 `segment_diatoms.py --backend {sam2,yolo}`. **YOLO 는 `--keep-current` 로 넣어
@@ -667,6 +677,7 @@ YOLO 는 **라벨 없는 자리를 배경으로 배우므로** 별도 처리 없
 | `migrate/rebind.py` | 새 검출과 기존 교정을 다시 맺는다 |
 | `deploy/host/dbsync.sh` · `dbrun.sh` | DB 를 만지는 스크립트가 들어가는 **유일한 문** (9.2절) |
 | `deploy/poll_nas.sh` | 1분 폴러 |
+| `deploy/warm_thumbs.sh` | 축소본 미리 굽기. 폴러가 합성 뒤에 부른다 (125) |
 
 **저장소는 넷으로 갈려 있다** (100). `pipeline/`·`ops/` 는 `/srv` 로 가고,
 `migrate/`(이전기)·`tools/`(개발 도구)는 안 간다.
