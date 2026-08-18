@@ -12,8 +12,9 @@
 아직 `diatom` 인 것은 **생물 이름**이다(`pipeline/segment_diatoms.py`·YOLO 클래스·
 NAS 의 `DiatomPhotos/`).
 
-**브랜치** main · 도는 판 `v0.13.1` (파이프라인 `v0.5.2`) — **배포를 기다리는
-판이 없다.** 08-14 에 둘을 내보냈다: 12:23 에 `v0.13.0`(개체 카탈로그에서
+**브랜치** main · 도는 판 `v0.13.1` (파이프라인 `v0.5.2`) — **`v0.14.0` 이
+배포를 기다린다**(도감 · 마이그레이션 `0038` · 128~131). **배포 뒤에
+`ops/import_atlas.py` 를 돌려야 표가 채워진다**(3.8). 08-14 에 둘을 내보냈다: 12:23 에 `v0.13.0`(개체 카탈로그에서
 지우기·일괄 편집·묶음 풀기 ·
 [P16](devlog/20260814_P16_catalog-edit.md)·[120](devlog/20260814_120_catalog-edit.md)),
 13:48 에 `v0.13.1`(Rhizosolenia 분류 · 검토 화면에서 깊이 맵 빼기 ·
@@ -86,13 +87,27 @@ nginx 가 80 에서 `/DiaRUGA/` 을 떼고 `127.0.0.1:8090` 의 컨테이너로 
                /system-settings/dataset/  학습 자료 — 검토에서 정답을 얼마나 뽑나
                /system-settings/pipeline/ 파이프라인 — 폴러가 살아 있는가 (098)
 도감 목록      /atlas/                    도감 셋 — 표지·권·쪽 수 (129)
+도감 검색      /atlas/?q=<이름>            표제어·이명법·속 (131) — 여기만 DB 를 본다
 도감 쪽 격자   /atlas/<도감>/<권>/         ?n=<쪽> 으로 곧장 간다
 도감 쪽 한 장  /atlas/<도감>/<권>/<쪽>/    번호가 곧 `PDF p.N` 이다
+도감 두 쪽     /atlas/<도감>/<권>/<쪽>/?spread=1   원래 책처럼 펼친다 (131 덧)
 ```
 
-**도감 화면은 DB 를 안 본다** (129). 도판 PNG 1,336쪽이 `/data3/DiaRUGA/atlas/`
+**도판 화면은 DB 를 안 본다** (129). 도판 PNG 1,336쪽이 `/data3/DiaRUGA/atlas/`
 에 파일로 있고 그것이 곧 자료다(`viewer/atlas.py` — `outcrop.py` 와 같은 자리).
 **글자 자료(`AtlasEntry`)가 아직 반입 전이어도 이 화면은 선다.**
+
+**검색만 DB 를 본다** (131 · `v0.14.0`). `AtlasEntry`·`AtlasPlacement` 를 읽어
+표제어·이명법·속으로 찾고 그 자리의 쪽으로 간다 — **반입 전에는 결과가 빈다**
+(화면이 죽지는 않는다). 반입은 `ops/import_atlas.py` 이고 3.8 에 적어 두었다.
+검색이 말하는 방식에 규칙이 셋 있다(P15 · 119):
+
+- **`(속명 추정)` 을 "확정" 이라 말하지 않는다** — 표시가 없는데 잘못 펴진
+  항목이 있다. 확인된 것만 다섯 쪽이고 후보 30개가 남았다
+- **`sp.`·`group`(속까지 동정)과 이름이 상해 못 읽는 것을 가른다** — "도감에
+  없음" 과 "이름이 달라 못 찾음" 은 다른 말이다
+- **자리의 주석이 도판 번호를 뒤집는 21건은 번호를 단독으로 안 찍는다** —
+  권 뒤 Verzeichnis 쪽에서 온 인용이라 그 Tafel 이 실재하지 않는다. 쪽은 성하다
 
 - 굽는 것은 **호스트에서** `python tools/render_atlas_pages.py` — 컨테이너는
   원본 PDF 가 있는 `/nfs/temp-share` 를 못 본다 (P14 4.4). 멱등이라 다시 돌려도
@@ -594,6 +609,26 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
 일상이 되면 SQLite 를 다시 볼 문제다.**
 
 ### 3.8 아직 안 한 이전기·일회성
+
+- **`ops/import_atlas.py` 를 `v0.14.0` 배포 뒤에 돌린다.** 마이그레이션 `0038`
+  은 표(`Atlas`·`AtlasEntry`·`AtlasPlacement`)를 세울 뿐 **비어 있다** — 반입을
+  돌려야 항목 2,059 · 자리 2,480 이 들어가고 `/atlas/?q=` 가 결과를 낸다.
+  **멱등이라 다시 돌려도 된다**(도감마다 통째로 갈아치운다). 색인이 고쳐지면
+  호스트에서 `python tools/parse_atlas.py` 를 먼저 돌려 JSON 을 새로 뽑는다
+
+    ```bash
+    deploy/host/dbsync.sh import_atlas.py     # 처음 한 번
+    deploy/host/dbrun.sh  import_atlas.py --dry-run
+    deploy/host/dbrun.sh  import_atlas.py
+    ```
+
+- **도감 축소본을 미리 굽는다** (`v0.14.0` 배포·반입 뒤 · 5,344자리 · 5분쯤).
+  지금 **0개**라 처음 여는 사람이 다 문다 — `views._thumbnail` 이 캐시가 있으면
+  2ms 인데 없으면 `w=220` 이 97ms 이고, **격자가 한 판에 60장**을 부른다.
+  125 에서 잡은 것과 같은 자리다. **운영 캐시(`/data3/DiaRUGA/.thumbcache`)는
+  `paleoadmin` 소유라 운영 뷰어가 구워야 한다** — `/atlas/` 를 훑는다.
+  **`deploy/warm_thumbs.sh` 는 아직 도감을 안 덮는다**(`/d/<slug>/` 만 훑는다) —
+  거기 태우는 것은 다음 판이다 (`TODOs.md` 의 `## 운영`)
 
 - **`migrate/import_json.py` 를 아무 때나 돌리지 말 것.** 멱등이지만 `Candidate` 를
   지우고 다시 만들어서, DB 에서만 한 교정이 있는데 옛 JSON 을 넣으면 JSON 쪽으로
