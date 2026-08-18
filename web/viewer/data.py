@@ -4014,3 +4014,117 @@ def engines_from_batches(batches: list[dict]) -> list[dict]:
     # **교정이 되는 것을 맨 앞에 둔다.** 검토 화면의 기본 자리이고, 라디오는
     # 왼쪽부터 읽힌다.
     return sorted(out, key=lambda e: (not e["current"], e["label"]))
+
+
+# --- 도감 검색 (P15 §6 · 129) ------------------------------------------------
+#
+# **`viewer/atlas.py` 와 자리가 다르다.** 저쪽은 도판 PNG 를 읽는 곳이고 "DB 를
+# 안 본다" 고 적어 두었다. 이쪽은 DB → dict 라 이 파일이 맞다.
+ATLAS_PER_PAGE = 50
+
+
+def atlas_list() -> list[dict]:
+    """도감 셋. **차례는 `sort_order` 다** — 코드 정렬(`east-antarctic` 이 먼저)은
+    사람이 아는 차례가 아니다."""
+    from .models import Atlas
+    return [{"key": a.key, "title": a.title, "short": a.short,
+             "note": a.note, "count": a.entries.count()}
+            for a in Atlas.objects.order_by("sort_order", "key")]
+
+
+def atlas_genera(atlas_key: str = "") -> list[dict]:
+    """속 목록 — 많은 순. 거르는 칩으로 쓴다."""
+    from django.db.models import Count
+    from .models import AtlasEntry
+    qs = AtlasEntry.objects.exclude(genus="")
+    if atlas_key:
+        qs = qs.filter(atlas__key=atlas_key)
+    return list(qs.values("genus").annotate(n=Count("id"))
+                .order_by("-n", "genus")[:60])
+
+
+def _placement_dict(p) -> dict:
+    """자리 하나 — 도판 이미지로 가는 문까지.
+
+    **`plate` 를 단독으로 찍지 않는다.** `note` 가 그것을 뒤집는 자리가 21건
+    있다(`Tafel 아님 · 권 뒤 Verzeichnis 쪽에서 왔다`). 번호만 내면 화면이
+    없는 Tafel 을 있다고 말한다.
+
+    **PDF 쪽이 없는 자리가 201건이다** — 한국 도감이 원래 안 적었다. 그 자리는
+    이미지를 못 짚으므로 **링크를 안 낸다**: 눌러서 404 가 나는 링크는 "아직 안
+    구웠다" 로 읽혀 원인을 엉뚱한 데서 찾게 한다.
+    """
+    from . import atlas as atlas_mod
+    key = p.entry.atlas.key
+    where = f"pl.{p.plate}" if p.plate else (p.plate_label or "")
+    return {
+        "where": where,
+        "figures": p.figures,
+        "volume": p.volume,
+        "book_page": p.book_page,
+        "note": p.note,
+        "pdf_page": p.pdf_page,
+        "pdf_plate_page": p.pdf_plate_page,
+        # 해설면 / 도판면 — 두 문이다. 없는 쪽은 빈 문자열이라 화면이 안 낸다
+        "text_url": atlas_mod.page_url(key, p.volume, p.pdf_page),
+        "plate_url": atlas_mod.page_url(key, p.volume, p.pdf_plate_page),
+    }
+
+
+def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
+                 offset: int = 0) -> dict:
+    """도감 항목 검색.
+
+    **찾는 것은 셋이다** — 표제어(`name`, 저자까지 붙어 있다) · 이명법
+    (`binomial`) · 속(`genus`). 사람이 `Melosira ambigua` 로 찾는데 표제어는
+    `Melosira ambigua (GRUN.) O. F. MÜLLER` 라, 둘 다 안 걸면 안 나온다.
+
+    2천 행이라 `icontains` 로 충분하다. **흐린 검색은 DB 에 없다** — 반입 전
+    단계에서만 돌고 결과는 사람이 가른다 (P15 5절).
+    """
+    from django.db.models import Prefetch
+    from .models import AtlasEntry, AtlasPlacement
+
+    qs = (AtlasEntry.objects
+          .select_related("atlas")
+          .prefetch_related(Prefetch(
+              "placements",
+              queryset=AtlasPlacement.objects.select_related("entry__atlas")))
+          .order_by("binomial", "name"))
+    q = (q or "").strip()
+    if q:
+        from django.db.models import Q
+        qs = qs.filter(Q(name__icontains=q) | Q(binomial__icontains=q)
+                       | Q(genus__icontains=q))
+    if atlas_key:
+        qs = qs.filter(atlas__key=atlas_key)
+    if genus:
+        qs = qs.filter(genus__iexact=genus)
+
+    total = qs.count()
+    offset = max(0, min(offset, max(0, total - 1)))
+    rows = []
+    for e in qs[offset:offset + ATLAS_PER_PAGE]:
+        rows.append({
+            "name": e.name, "binomial": e.binomial, "genus": e.genus,
+            "authority": e.authority, "infra": e.infra, "item_no": e.item_no,
+            "rank": e.rank,
+            # **`genus_guess` 가 거짓인 것을 "확정" 이라고 쓰지 않는다** —
+            # 표시가 없는데 잘못 펴진 것이 있다는 것이 119 의 요점이다.
+            # 화면은 "표시가 있다" 만 말한다.
+            "genus_guess": e.genus_guess,
+            "atlas": {"key": e.atlas.key, "short": e.atlas.short,
+                      "title": e.atlas.title},
+            "extra": e.extra or {},
+            "places": [_placement_dict(p) for p in e.placements.all()],
+        })
+    return {
+        "q": q, "atlas_key": atlas_key, "genus": genus,
+        "total": total, "offset": offset, "per_page": ATLAS_PER_PAGE,
+        "rows": rows,
+        "shown_from": offset + 1 if rows else 0,
+        "shown_to": offset + len(rows),
+        "prev_offset": offset - ATLAS_PER_PAGE if offset > 0 else None,
+        "next_offset": (offset + ATLAS_PER_PAGE
+                        if offset + ATLAS_PER_PAGE < total else None),
+    }

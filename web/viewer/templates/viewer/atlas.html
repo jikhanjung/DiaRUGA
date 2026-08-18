@@ -21,11 +21,134 @@
   .atlasrow .body { flex: 1 1 auto; min-width: 0; }
   .atlasrow h2 { margin: 0 0 6px; font-size: 1.05rem; }
   .vols { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .atlasq { display: flex; gap: 8px; margin: 4px 0 12px; }
+  .atlasq input { flex: 1 1 auto; padding: 8px 10px; font-size: 1rem;
+                  border: 1px solid var(--line); border-radius: 6px;
+                  background: var(--panel); color: inherit; }
+  .atlaschips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+                margin-bottom: 12px; }
+  .entry { border-bottom: 1px solid var(--line); padding: 9px 2px; }
+  .ename { display: flex; flex-wrap: wrap; gap: 7px; align-items: baseline; }
+  .ename i { font-size: 1.02rem; }
+  .places { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px;
+            font-size: .88rem; }
+  .place { display: inline-flex; gap: 5px; align-items: center; }
+  /* 테마가 둘이라 색을 박지 않는다 — 이미 갈려 있는 토큰을 빌린다 (107) */
+  .warnchip { background: var(--warn-bg); color: var(--warn-fg); }
+  .pnote { font-size: .82rem; color: var(--warn-fg); }
+  .extra { margin-top: 4px; font-size: .86rem; }
+  .platehead { margin: 22px 0 10px; font-size: 1rem; }
+  .pager { display: flex; gap: 8px; margin: 14px 0; }
   .nocover { width: 132px; aspect-ratio: 700/990; border-radius: 4px;
              background: var(--panel); border: 1px dashed var(--line);
              display: grid; place-items: center; font-size: .78rem;
              color: var(--dim-fg, #888); text-align: center; }
 </style>
+
+{% comment %}
+  **검색이 먼저다.** 찾으러 온 사람에게 목록을 먼저 보이면 한 번 더 눌러야 한다.
+{% endcomment %}
+<form class="atlasq" method="get" action="{% url 'atlas' %}">
+  <input name="q" value="{{ q }}" placeholder="학명·속으로 찾는다 (예: Melosira ambigua · Navicula)"
+         autofocus aria-label="학명 검색">
+  {% if atlas_key %}<input type="hidden" name="atlas" value="{{ atlas_key }}">{% endif %}
+  <button type="submit">찾는다</button>
+  {% if searched %}<a class="chip" href="{% url 'atlas' %}">지운다</a>{% endif %}
+</form>
+
+<div class="atlaschips">
+  <span class="dim">도감</span>
+  <a class="chip{% if not atlas_key %} on{% endif %}"
+     href="{% url 'atlas' %}{% if q %}?q={{ q|urlencode }}{% endif %}">전체</a>
+  {% for b in books %}
+    <a class="chip{% if atlas_key == b.key %} on{% endif %}"
+       href="{% url 'atlas' %}?atlas={{ b.key|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+       title="{{ b.title }}">{{ b.short }} <span class="dim">{{ b.count }}</span></a>
+  {% endfor %}
+</div>
+
+{% if searched %}
+  {% comment %}
+    결과. **한 항목이 자리를 여럿 갖는다** (Schmidt 254건, 최다 11) — 자리를
+    칸으로 두지 않고 줄로 편다.
+  {% endcomment %}
+  <p class="dim">{{ total }}건{% if total %} 중 {{ shown_from }}~{{ shown_to }}{% endif %}
+    {% if genus %} · 속 <b>{{ genus }}</b>{% endif %}</p>
+
+  {% for r in rows %}
+    <div class="entry">
+      <div class="ename">
+        <i>{{ r.name }}</i>
+        {% if r.genus_guess %}
+          {% comment %}
+            **"확정" 이라는 말을 안 쓴다.** 표시가 없는데 잘못 펴진 것이 있다는
+            것이 119 의 요점이라, 표시가 있는 쪽만 말한다 (`models.py` 머리말).
+          {% endcomment %}
+          <span class="chip warnchip" title="색인이 속명을 문맥에서 복원했다고 표시한 항목">속명 추정</span>
+        {% endif %}
+        {% if r.rank == 'genus_only' %}
+          <span class="chip" title="도감이 속까지만 내려간 항목 (sp. · group)">속까지</span>
+        {% elif r.rank == 'unreadable' %}
+          <span class="chip warnchip" title="색인의 표기를 우리가 못 읽는다 — 도감이 속까지만 적은 것과 다른 말이다">못 읽음</span>
+        {% endif %}
+        <span class="dim">{{ r.atlas.short }}{% if r.item_no %} #{{ r.item_no }}{% endif %}</span>
+      </div>
+      <div class="places">
+        {% for pl in r.places %}
+          <span class="place">
+            {% if pl.volume %}<span class="dim">{{ pl.volume }}</span> {% endif %}
+            {% if pl.where %}{{ pl.where }}{% endif %}
+            {% if pl.figures %} <span class="dim">fig. {{ pl.figures }}</span>{% endif %}
+            {% if pl.book_page %} <span class="dim">책 p.{{ pl.book_page }}</span>{% endif %}
+            {% comment %}
+              **PDF 쪽이 없으면 링크를 안 낸다** (한국 도감 201건). 눌러서 404 가
+              나는 링크는 "아직 안 구웠다" 로 읽혀 원인을 엉뚱한 데서 찾게 한다.
+            {% endcomment %}
+            {% if pl.text_url %}<a class="chip" href="{{ pl.text_url }}">해설 p.{{ pl.pdf_page }}</a>{% endif %}
+            {% if pl.plate_url %}<a class="chip" href="{{ pl.plate_url }}">도판 p.{{ pl.pdf_plate_page }}</a>{% endif %}
+            {% if pl.note %}
+              {% comment %}
+                **주석이 `plate` 를 뒤집는 자리가 21건이다** (`Tafel 아님 · 권 뒤
+                Verzeichnis`). 번호만 내면 없는 Tafel 을 있다고 말한다.
+              {% endcomment %}
+              <span class="pnote">{{ pl.note }}</span>
+            {% endif %}
+          </span>
+        {% empty %}<span class="dim">자리가 안 적혀 있다</span>{% endfor %}
+      </div>
+      {% if r.extra.ecology or r.extra.distribution %}
+        <div class="extra">
+          {% if r.extra.ecology %}<div><span class="dim">생태</span> {{ r.extra.ecology }}</div>{% endif %}
+          {% if r.extra.distribution %}<div><span class="dim">분포</span> {{ r.extra.distribution }}</div>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+  {% empty %}
+    {% comment %}
+      **"도감에 없다" 와 "이름이 달라 못 찾았다" 는 다른 말이다** (P15 §8.4).
+      조용히 빈 결과를 내면 사람이 앞엣것으로 읽는다.
+    {% endcomment %}
+    <p class="warn">찾은 것이 없습니다. <b>도감에 없는 것</b>일 수도,
+      <b>표기가 달라 안 걸린 것</b>일 수도 있습니다 — 도감은 옛 표기를 쓰고
+      (<i>Actinocyclus Ehrenbergii</i>) Schmidt 는 전량 OCR 입니다.
+      속만으로 다시 찾아 보세요.</p>
+  {% endfor %}
+
+  <div class="pager">
+    {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 앞</a>{% endif %}
+    {% if next_url %}<a class="chip" href="{{ next_url }}">뒤 →</a>{% endif %}
+  </div>
+{% else %}
+  <div class="atlaschips">
+    <span class="dim">속</span>
+    {% for g in genera|slice:":24" %}
+      <a class="chip" href="{% url 'atlas' %}?genus={{ g.genus|urlencode }}">{{ g.genus }}
+        <span class="dim">{{ g.n }}</span></a>
+    {% endfor %}
+  </div>
+
+  <h2 class="platehead">도판</h2>
+{% endif %}
 
 {% if partial %}
   {% comment %}
@@ -37,7 +160,7 @@
     굽는 중이면 잠시 뒤 새로고침하세요.</p>
 {% endif %}
 
-{% for a in atlases %}
+{% if not searched %}{% for a in atlases %}
   <div class="atlasrow">
     <div class="cover">
       {% if a.cover_rel %}
@@ -65,5 +188,5 @@
   <p class="warn">도판이 아직 하나도 안 떠 있습니다.
     호스트에서 <code>python tools/render_atlas_pages.py</code> 를 돌리면 생깁니다
     (원본 PDF 는 NAS 공유에 있고 컨테이너는 그것을 못 봅니다).</p>
-{% endfor %}
+{% endfor %}{% endif %}
 {% endblock %}

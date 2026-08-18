@@ -1341,20 +1341,53 @@ def _crop_thumb(path, box, width, pad=None):
 
 
 def atlas_index(request):
-    """도감 목록. **DB 를 안 본다** (P15 §6 · 129).
+    """도감 — **검색이 먼저고 도판이 그다음이다** (P15 §6 · 129 · 131).
 
-    글자 자료(`AtlasEntry`)는 아직 들어오는 중이고 이 화면은 거기 안 매달린다 —
-    도판 PNG 가 있으면 넘겨 볼 수 있어야 한다. 자리가 통째로 없으면 **빈 목록이
-    아니라 "아직 안 구웠다" 고 말한다**: 빈 화면을 내면 사람이 도감이 없다고
-    읽는다 (P15 §8.4 와 같은 줄).
+    사용자가 청한 것은 "DB 내용을 빠르게 검색해 찾아오는" 화면이다. 그래서
+    검색창을 맨 위에 두고, 아무것도 안 찾았을 때만 도감 카드를 낸다 — 찾으러
+    온 사람에게 목록을 먼저 보이면 한 번 더 눌러야 한다.
+
+    **두 자료가 한 화면에 있고 서로 안 매달린다.** 글자(`AtlasEntry`)는 DB 에서
+    오고 도판은 파일에서 온다(`viewer/atlas.py`). 반입 전이면 검색만 비고,
+    도판을 안 구웠으면 카드만 빈다 — 한쪽이 없다고 다른 쪽이 안 뜨지 않는다.
     """
-    rows = atlas_mod.atlases()
-    return render(request, "viewer/atlas.html", {
-        "atlases": rows,
+    q = (request.GET.get("q") or "").strip()
+    atlas_key = (request.GET.get("atlas") or "").strip()
+    genus = (request.GET.get("genus") or "").strip()
+    try:
+        offset = max(0, int(request.GET.get("offset", 0)))
+    except ValueError:
+        offset = 0
+
+    plates = atlas_mod.atlases()
+    searched = bool(q or atlas_key or genus)
+    ctx = {
+        "atlases": plates,
         # 굽는 중일 수 있다. **몇 쪽 중 몇 쪽인지 화면이 말한다** — 안 말하면
         # 덜 구운 상태를 "원본이 그만큼" 으로 읽는다.
-        "partial": [a for a in rows if a["partial"]],
-    })
+        "partial": [a for a in plates if a["partial"]],
+        "books": data.atlas_list(),
+        "searched": searched,
+        "genera": data.atlas_genera(atlas_key),
+    }
+    if searched:
+        ctx.update(data.atlas_search(q, atlas_key, genus, offset))
+        base = reverse("atlas")
+        keep = {k: v for k, v in (("q", q), ("atlas", atlas_key),
+                                  ("genus", genus)) if v}
+        for name, off in (("prev_url", ctx["prev_offset"]),
+                          ("next_url", ctx["next_offset"])):
+            ctx[name] = (f"{base}?{urlencode({**keep, 'offset': off})}"
+                         if off is not None else None)
+        # 칩 주소는 `offset` 을 안 들고 간다 — 거르는 것을 바꾸면 결과가
+        # 달라지는데 옛 페이지 번호를 그대로 쓰면 빈 화면이 나온다.
+        ctx["chip_base"] = base
+        ctx["keep_q"] = q
+    else:
+        ctx["q"] = q
+        ctx["atlas_key"] = atlas_key
+        ctx["genus"] = genus
+    return render(request, "viewer/atlas.html", ctx)
 
 
 def atlas_volume(request, atlas, vol):
