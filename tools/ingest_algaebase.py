@@ -53,29 +53,65 @@ STATES = [("AlgaeBase에 없음", "AlgaeBase 에 없다"),
           ("미확인", "미확인")]
 BINOMIAL = re.compile(r"^([A-Z][a-zë\-]+ [a-zë\-]+(?: (?:var|f|subsp)\. [a-zë\-]+)?)")
 
+# **이름 칸에 도감의 다른 표기를 괄호로 달아 오기도 한다** —
+# `Chaetoceros affine (Chaetoceras affine)` 처럼 고전 속명을 함께 적어 온다.
+# 대조표의 열쇠는 괄호 앞이다. 안 벗기면 번호 검산이 어긋나 **그 줄이 통째로
+# 안 붙는다**(8일차에 5건이 그랬다). 괄호 안은 비고로 옮겨 남긴다
+PAREN = re.compile(r"^(.+?)\s*\(([^()]*)\)$")
+
+# 같은 이름이 두 벌 이상 온다 — **급한 148건을 먼저 돈 표와 순번 표가 겹친다.**
+# 뒤에 읽은 것이 이기게 두면 **무엇이 이길지가 파일 이름 정렬에 달린다**(`day10`
+# 이 `day7` 보다 앞이다). 알아낸 것이 많은 쪽이 이기게 하되, **진 기록도
+# 지우지 않는다** — 비고에 남기고 끝에 목록으로 낸다
+RANK = {"이명 → 갈아탄다": 5, "그대로 유효": 4, "확인 필요": 3, "미확인": 3,
+        "AlgaeBase 에 없다": 2, "사람 메모": 1, "아직 안 찾았다": 0,
+        "안 적혀 있다": 0}
+
 
 def clean(s: str) -> str:
     return s.replace("**", "").replace("*", "").strip()
 
 
-def read_batches() -> tuple[dict[str, dict], list[str]]:
+def better(a: dict, b: dict) -> dict:
+    """둘 중 더 많이 알아낸 쪽. 같으면 적어 온 말이 긴 쪽 (정렬 순서를 안 탄다)."""
+    ra, rb = RANK.get(a["상태"], 0), RANK.get(b["상태"], 0)
+    if ra != rb:
+        return a if ra > rb else b
+    la = len(a["원문"]) + len(a["비고"])
+    lb = len(b["원문"]) + len(b["비고"])
+    return a if la >= lb else b
+
+
+def read_batches() -> tuple[dict[str, dict], list[str], list[tuple]]:
     """`algaebase_day*.md` 를 전부 읽는다. 값은 이름 → {번호·판정·비고·출처파일}."""
     out: dict[str, dict] = {}
     files = sorted(BATCHES.glob("algaebase_day*.md"))
     warn: list[str] = []
+    clash: list[tuple] = []
     for path in files:
         text = path.read_text(encoding="utf-8")
         for num, name, verdict, note in ROW.findall(text):
             name, verdict, note = clean(name), clean(verdict), clean(note)
             if not name:
                 continue
+            표기 = ""
+            p = PAREN.match(name)
+            if p:
+                name, 표기 = p.group(1).strip(), p.group(2).strip()
             # **원문을 먼저 챙긴다** — 어떻게 갈리든 적어 온 말은 안 버린다
             rec = {"번호": int(num), "출처": path.name, "비고": note,
                    "원문": verdict}
+            rec["표기"] = 표기
             m = BINOMIAL.match(verdict)
             hit = next((v for k, v in STATES if k in verdict), None)
-            if m and not hit:
+            if m and m.group(1) != name:
+                # `Caloneis silicula(그대로 유효)` — **고친 이름 뒤에 상태를 달아
+                # 온다.** 뒤의 "그대로 유효" 는 *고친 이름이* 유효하다는 말이지
+                # 도감 표기가 유효하다는 말이 아니다. 상태 낱말을 먼저 보면
+                # 고친 이름을 통째로 버린다 (7~12일차 표가 이 꼴로 온다)
                 rec["상태"], rec["이름"] = "이명 → 갈아탄다", m.group(1)
+            elif m:
+                rec["상태"], rec["이름"] = "그대로 유효", ""
             elif hit:
                 rec["상태"], rec["이름"] = hit, ""
             elif verdict.strip("()—- ") == "":
@@ -83,11 +119,23 @@ def read_batches() -> tuple[dict[str, dict], list[str]]:
             else:
                 rec["상태"], rec["이름"] = "사람 메모", ""
                 warn.append(f"{path.name} #{num} {name}: 통용명 칸이 {verdict!r}")
-            if name in out and out[name]["상태"] != rec["상태"]:
-                warn.append(f"같은 이름이 두 번 오고 판정이 다르다: {name}")
-            out[name] = rec
+            prev = out.get(name)
+            if prev is None:
+                out[name] = rec
+                continue
+            win = better(prev, rec)
+            lose = rec if win is prev else prev
+            win = dict(win)
+            # **도감의 다른 표기는 진 기록에만 있을 수 있다** — 이긴 쪽이 그 칸을
+            # 안 적어 왔으면 가져온다. 판정이 아니라 도감이 어떻게 썼는가라서
+            # 어느 표가 이겼는지와 무관하다
+            win["표기"] = win.get("표기") or lose.get("표기", "")
+            if (prev["상태"], prev["이름"]) != (rec["상태"], rec["이름"]):
+                clash.append((name, win, lose))
+                win["진 기록"] = f"{lose['출처']} 은 {lose['원문'] or '—'}"
+            out[name] = win
     print(f"표 {len(files)}벌 · 항목 {len(out):,}개")
-    return out, warn
+    return out, warn, clash
 
 
 def check_numbers(recs: dict[str, dict]) -> list[str]:
@@ -113,9 +161,17 @@ def main() -> int:
                     help="번호 검산이 어긋나도 진행한다")
     args = ap.parse_args()
 
-    recs, warn = read_batches()
+    recs, warn, dupes = read_batches()
     for w in warn:
         print(f"  ! {w}")
+    if dupes:
+        print(f"\n**같은 이름을 두 표가 다르게 말한 것 {len(dupes)}건** "
+              f"(알아낸 것이 많은 쪽을 쓰고, 진 쪽은 비고에 남긴다)")
+        for name, win, lose in sorted(dupes, key=lambda x: x[1]["번호"]):
+            print(f"  #{win['번호']:4d} {name:32s} "
+                  f"{win['출처'].removeprefix('algaebase_').removesuffix('.md'):18s} "
+                  f"{(win['이름'] or win['상태'])[:34]:34s} "
+                  f"← {lose['원문'][:30] or '—'}")
     bad = check_numbers(recs)
     if bad:
         print(f"\n번호 검산에서 {len(bad)}건 어긋났다:")
@@ -149,8 +205,9 @@ def main() -> int:
             tally[r["상태"]] += 1
             cells[a] = r["이름"] or r["상태"]
             # 원문과 비고를 **둘 다** 남긴다
+            표기 = f"도감 표기 {r['표기']}" if r.get("표기") else ""
             extra = " · ".join(x for x in (r["원문"] if r["원문"] != r["이름"] else "",
-                                           r["비고"]) if x)
+                                           표기, r["비고"], r.get("진 기록", "")) if x)
             cells[b] = f"{r['상태']} · {r['출처']}" + (f" · {extra}" if extra else "")
             # **엇갈림을 내가 직접 센다** — 표의 `비고` 를 믿지 않고 두 칸을 비교한다
             worms = dict(zip(head, cells)).get("유효명", "")
