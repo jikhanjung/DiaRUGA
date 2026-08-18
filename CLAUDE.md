@@ -346,7 +346,7 @@ pipeline/  group_focus_series.py → focus_stack.py → segment_diatoms.py → r
 한 줄 알려 준다.
 
 web/viewer/
-  models.py      19개 모델. 읽기 전에 파일 첫 주석부터
+  models.py      21개 모델. 읽기 전에 파일 첫 주석부터
   naming.py      폴더 이름 → 층. **규칙은 여기 하나뿐이다** (Django·cv2 를 안 부른다)
   images.py      Image 를 만드는 문 하나 — 파이프라인 넷과 regroup 이 지난다
   data.py        DB → 뷰가 쓰는 dict. **읽기 전용이라는 약속이 있다**

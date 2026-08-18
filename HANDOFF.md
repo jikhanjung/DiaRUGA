@@ -671,7 +671,7 @@ YOLO 는 **라벨 없는 자리를 배경으로 배우므로** 별도 처리 없
 
 | 파일 | 무엇 |
 |---|---|
-| `web/viewer/models.py` | 스키마 19개 모델. 읽기 전에 파일 첫 주석부터. 층은 `Site → Locality → Sample → Slide` |
+| `web/viewer/models.py` | 스키마 21개 모델. 읽기 전에 파일 첫 주석부터. 층은 `Site → Locality → Sample → Slide` |
 | `web/viewer/naming.py` | **폴더 이름 → 층. 규칙은 여기 하나뿐이다** — 뷰어·파이프라인·마이그레이션이 같은 것을 본다 |
 | `web/viewer/catalog.py` | **개체 카탈로그 번호. 규칙은 여기 하나뿐이다** (105) |
 | `web/viewer/data.py` | DB → 뷰가 쓰는 dict. **읽기 전용이라는 약속이 있다.** `geom_box()`·`_spread_link_labels` 도 여기 |
