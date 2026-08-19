@@ -218,7 +218,7 @@ xlsx  ──(호스트, Django 안 씀)──▶  coredata/<지점>.csv + mappin
 
 ## 8. 단계
 
-**2·3단계는 [133](20260819_133_core-profile-import.md), 4단계는 [135](20260819_135_core-profile-chart.md)·[136](20260819_136_profile-into-corelog.md), 5단계는 [137](20260819_137_core-manual-entry.md) 에서 했다.**
+**2·3단계는 [133](20260819_133_core-profile-import.md), 4단계는 [135](20260819_135_core-profile-chart.md)·[136](20260819_136_profile-into-corelog.md), 5단계는 [137](20260819_137_core-manual-entry.md), 6단계는 [138](20260819_138_core-derived-series.md) 에서 했다. **P17 은 이것으로 끝났다.**
 
 1. **지점 둘을 세운다.** `RS14/GC04` · `RS19/GC17`. 코드는 안 고쳐도 된다 —
    시스템 설정 화면의 `create()` 가 이미 `Site`·`Locality` 를 만든다. **운영

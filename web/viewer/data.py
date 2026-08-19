@@ -2504,6 +2504,24 @@ def _segments(pts: list[tuple[int, float]], lo: float, hi: float) -> list[list[d
     return segs
 
 
+def profile_of(key: str, label: str, unit: str,
+               pts: list[tuple[int, float]], cap: int) -> dict:
+    """점 목록 하나를 화면이 그릴 수 있는 꼴로 (P17 4단계).
+
+    **반입·수동·파생이 같은 문을 지난다.** 줄이기와 끊기의 규칙이 셋으로
+    갈리면, 같은 자리에 나란히 선 칸들이 서로 다른 규칙으로 그려진다.
+    """
+    if not pts:
+        return {"key": key, "label": label, "unit": unit, "n": 0, "shown": 0,
+                "thinned": False, "segments": [], "lo": None, "hi": None}
+    vals = [v for _, v in pts]
+    lo, hi = min(vals), max(vals)
+    kept, thinned = _thin(pts, cap)
+    return {"key": key, "label": label, "unit": unit,
+            "n": len(pts), "shown": len(kept), "thinned": thinned,
+            "segments": _segments(kept, lo, hi), "lo": lo, "hi": hi}
+
+
 def core_profiles(loc: Locality, keys: list[str],
                   cap: int = PROFILE_MAX_POINTS) -> list[dict]:
     """고른 항목만 점까지 당겨 온다 (P17 4단계).
@@ -2525,25 +2543,10 @@ def core_profiles(loc: Locality, keys: list[str],
                        .values_list("depth_mm", "value", "series__key")):
         got[key].append((mm, v))
 
-    out = []
     # **고른 순서가 아니라 항목 순서로 놓는다** — 주소에 적힌 차례가 화면의
     # 차례가 되면 같은 조합인데 그림이 달라 보인다.
-    for key in sorted(rows, key=lambda k: (rows[k].sort_order, k)):
-        cs, pts = rows[key], got[key]
-        if not pts:
-            out.append({"key": key, "label": cs.label, "unit": cs.unit,
-                        "n": 0, "shown": 0, "thinned": False,
-                        "segments": [], "lo": None, "hi": None})
-            continue
-        vals = [v for _, v in pts]
-        lo, hi = min(vals), max(vals)
-        kept, thinned = _thin(pts, cap)
-        out.append({
-            "key": key, "label": cs.label, "unit": cs.unit,
-            "n": len(pts), "shown": len(kept), "thinned": thinned,
-            "segments": _segments(kept, lo, hi), "lo": lo, "hi": hi,
-        })
-    return out
+    return [profile_of(key, rows[key].label, rows[key].unit, got[key], cap)
+            for key in sorted(rows, key=lambda k: (rows[k].sort_order, k))]
 
 
 def core_series(loc: Locality) -> list[dict]:
@@ -2568,6 +2571,8 @@ def core_series(loc: Locality) -> list[dict]:
         "unit": cs.unit,
         "source": cs.source,
         "default_on": cs.default_on,
+        # 파생 항목과 한 목록에 정렬되므로 함께 낸다 (P17 6단계)
+        "sort_order": cs.sort_order,
         "origin": cs.origin,
         "note": cs.note,
         "n": cs.n,
@@ -2612,6 +2617,85 @@ def _axis_marks(rows: list[dict], bottom: float) -> list[dict]:
             "nudge_px": i * 17,
         })
     return out
+
+
+# 파생 항목의 이름표 접두사 (P17 6단계). **사람이 만드는 항목과 부딪히면 안
+# 된다** — 같은 `key` 가 둘이면 화면이 어느 쪽을 그리는지가 순서에 달린다.
+# `manage_data.create_series` 가 이 접두사를 거절한다.
+DERIVED_PREFIX = "d_"
+
+
+def derived_series(all_rows: list[dict]) -> list[dict]:
+    """관찰에서 세어 오는 항목 (P17 6단계). **저장하지 않는다.**
+
+    검출 수는 이미 DB 에 있다 — 관찰마다 `n_counted` 가 있고 시료마다 깊이가
+    있다. 테이블에 또 넣으면 **두 벌이 되고, 교정을 하나 고치는 순간 어긋난다.**
+    그래서 여기서 셈만 한다. `_slide_summary()` 가 이미 슬라이드마다 세어 둔
+    값을 쓰므로 질의가 늘지 않는다.
+
+    **숨긴 관찰도 센다.** `hidden` 은 보기 상태이고 `excluded` 가 자료의
+    성질이다 — 목록·합계와 같은 규칙이라야 두 화면의 숫자가 맞는다
+    (`datasets_by_locality()` 머리말).
+
+    **같은 깊이의 관찰이 여럿이면 더한다.** 관찰은 시료 하나를 처리 방법을
+    달리해 본 것이라 서로 동등하고(063), 어느 하나를 대표로 고를 근거가 없다.
+    더한 값이 부풀어 보이는 것이 대표를 몰래 고르는 것보다 낫다 — 그래서
+    **시야당 값을 함께 낸다.** 그쪽은 분모가 같이 커져 관찰 수에 안 흔들린다.
+    """
+    used = [r for r in all_rows
+            if r["depth_cm"] is not None and not r["excluded"]]
+    if not used:
+        return []
+
+    # 깊이(mm) → 합. 분자와 분모를 같은 자리에서 모은다 — 따로 모으면
+    # "검출 ÷ 시야" 가 "시야당" 과 안 맞는 일이 생긴다(`_slide_summary` 머리말).
+    counted: dict[int, int] = {}
+    groups: dict[int, int] = {}
+    per_cls: dict[str, dict[int, int]] = {}
+    for r in used:
+        mm = round(r["depth_cm"] * 10)
+        counted[mm] = counted.get(mm, 0) + r["n_counted"]
+        groups[mm] = groups.get(mm, 0) + r["n_groups"]
+        for c in r["counted"]:
+            per_cls.setdefault(c["key"], {})
+            per_cls[c["key"]][mm] = per_cls[c["key"]].get(mm, 0) + c["n"]
+
+    out = [{
+        "key": f"{DERIVED_PREFIX}counted", "label": "검출 수", "unit": "개",
+        "_pts": sorted((mm, float(v)) for mm, v in counted.items()),
+    }, {
+        "key": f"{DERIVED_PREFIX}per_view", "label": "시야당 검출 수",
+        "unit": "개/시야",
+        # 분모가 0인 깊이는 점을 안 만든다 — 0으로 두면 "안 나왔다" 가 되는데
+        # 실제로는 **아직 안 본 것**이다.
+        "_pts": sorted((mm, round(counted[mm] / groups[mm], 3))
+                       for mm in counted if groups.get(mm)),
+    }]
+    # 분류마다 하나. **`counted_classes()` 를 따른다** — 파편·미분류는 개체
+    # 하나로 세면 밀도가 부풀어서 그 목록에서 이미 빠져 있다.
+    for c in counted_classes():
+        pts = per_cls.get(c["key"], {})
+        out.append({
+            "key": f"{DERIVED_PREFIX}{c['key']}", "label": c["label"],
+            "unit": "개",
+            "_pts": sorted((mm, float(v)) for mm, v in pts.items()),
+        })
+
+    rows = []
+    for i, d in enumerate(out):
+        pts = d["_pts"]
+        rows.append({
+            "key": d["key"], "label": d["label"], "unit": d["unit"],
+            "source": "derived",
+            # **기본으로 안 켠다** (사용자 방침 2026-08-19: MS·함수율·Opal·TOC 넷).
+            "default_on": False,
+            "origin": "관찰에서 셈", "note": "",
+            "n": len(pts),
+            "min_cm": pts[0][0] / 10 if pts else None,
+            "max_cm": pts[-1][0] / 10 if pts else None,
+            "_pts": pts, "sort_order": 800 + i,
+        })
+    return rows
 
 
 # 목록에서 접어 두는 묶음 (P17 4단계). XRF 는 원소마다 한 항목이라 24개이고
@@ -2681,7 +2765,10 @@ def locality_detail(site_code: str, loc_code: str,
     # 깊이도 축을 잡는다 — 안 그러면 관찰이 아직 없는 코어(`RS14-GC04`·
     # `RS19-GC17`)는 자료를 다 넣어 놓고도 축이 안 서서 화면이 빈다. 나중에
     # 관찰이 붙으면 **같은 축 위에 얹힌다.**
-    series = core_series(loc)
+    # **파생이 먼저 있어야 축이 그것까지 본다.** 관찰만 있고 반입 자료가 없는
+    # 코어에서는 파생 항목이 유일한 코어 자료다.
+    series = sorted(core_series(loc) + derived_series(all_rows),
+                    key=lambda cs: (cs["sort_order"], cs["key"]))
     # **주소가 없으면 매핑표가 켜 둔 것**(`default_on`), 있으면 그대로 따른다.
     # `?series=` 를 빈 값으로 주는 것은 "다 끈다" 이므로 `None` 과 갈라야 한다 —
     # 없는 것과 비운 것이 같아지면 다 끌 수가 없다.
@@ -2735,7 +2822,7 @@ def locality_detail(site_code: str, loc_code: str,
         "axis": axis,
         # 코어 자료 (P17). 목록은 전부, **점은 켜진 것만** 싣는다.
         "series": series,
-        "profiles": core_profiles(loc, picked) if axis else [],
+        "profiles": _profiles_for(loc, series, picked) if axis else [],
         # 접어 둔 묶음에 켜진 것이 있으면 화면이 그 묶음을 펼쳐 놓아야 한다 —
         # 안 그러면 그림에는 있는데 어디서 껐는지 못 찾는다
         "collapsed_on": sum(1 for cs in series
@@ -2754,6 +2841,25 @@ def locality_detail(site_code: str, loc_code: str,
         # 그 화면의 지점·지역 칸은 어느 관찰에서 열어도 같은 행을 고친다.
         "edit_slug": rows[0]["slug"] if rows else "",
     }
+
+
+def _profiles_for(loc: Locality, series: list[dict],
+                  picked: list[str]) -> list[dict]:
+    """고른 항목의 그림. **파생은 DB 를 안 본다** (P17 6단계).
+
+    반입·수동은 `CorePoint` 에서 오고 파생은 관찰에서 세어 온 것이라 점이
+    이미 손에 있다. 둘을 `profile_of()` 라는 같은 문으로 통과시켜야 줄이기·
+    끊기 규칙이 갈리지 않는다.
+    """
+    by_key = {cs["key"]: cs for cs in series}
+    stored = [k for k in picked if not k.startswith(DERIVED_PREFIX)]
+    out = {p["key"]: p for p in core_profiles(loc, stored)}
+    for k in picked:
+        if k.startswith(DERIVED_PREFIX) and k in by_key:
+            cs = by_key[k]
+            out[k] = profile_of(k, cs["label"], cs["unit"], cs["_pts"],
+                                PROFILE_MAX_POINTS)
+    return [out[cs["key"]] for cs in series if cs["key"] in out]
 
 
 def _viewpoints_of(slide: Slide, only_current: bool = False, light: bool = False,

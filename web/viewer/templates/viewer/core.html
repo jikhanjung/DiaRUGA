@@ -395,6 +395,12 @@
           <span>{{ cs.label }}</span>
           {% if cs.unit %}<span class="dim">{{ cs.unit }}</span>{% endif %}
           {% if cs.source == "manual" %}<span class="csman">수동</span>{% endif %}
+          {% comment %}
+            **어디서 온 값인지 화면이 말한다.** 셋이 한 목록에 섞여 있는데
+            성질이 다르다 — 반입은 xlsx 가 원본이고, 수동은 사람이 넣은
+            것이며, 셈은 **관찰이 바뀌면 같이 바뀐다**(저장돼 있지 않다).
+          {% endcomment %}
+          {% if cs.source == "derived" %}<span class="csder">셈</span>{% endif %}
           {% if not cs.n %}<span class="dim">점 없음</span>{% endif %}
         </label>
       {% endif %}{% endfor %}

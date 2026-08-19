@@ -612,6 +612,11 @@ def create_series(loc: Locality, form) -> tuple[bool, str]:
     label = (form.get("label") or "").strip()
     if not KEY_RE.match(key):
         return False, "이름표(key)는 영문 소문자로 시작하고 영문·숫자·밑줄만 씁니다."
+    # **파생 항목과 같은 이름을 못 쓴다** (P17 6절). 같은 `key` 가 둘이면
+    # 화면이 어느 쪽을 그리는지가 정렬 순서에 달린다 — 예외도 경고도 없다.
+    if key.startswith(data.DERIVED_PREFIX):
+        return False, (f"`{data.DERIVED_PREFIX}` 로 시작하는 이름표는 "
+                       f"관찰에서 세어 오는 항목의 자리입니다.")
     if not label:
         return False, "화면에 뜰 이름이 필요합니다."
     if CoreSeries.objects.filter(locality=loc, key=key).exists():
