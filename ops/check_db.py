@@ -417,11 +417,31 @@ def check_layers(slug=None):
            [f"{x.locality.code}/{x.code}" for x in nopos])
 
     # 시료가 하나도 없는 지점. 지우다 만 자리이거나 사람이 미리 만든 것이다.
-    empty = [c for c in Locality.objects.all() if not c.samples.exists()]
+    #
+    # **코어 자료만 있는 지점은 빈 것이 아니다** (P17 · 139). 새 코어는 물성·
+    # 지화학이 먼저 들어오고 관찰이 나중에 붙는다 — `RS14-GC04`·`RS19-GC17` 이
+    # 그 상태로 들어왔고, 이 검사가 그것을 모르면 **경고가 늘 켜져 있게 된다.**
+    # 늘 켜진 경고는 아무도 안 보므로, 진짜 빈 지점을 놓치게 만든다.
+    empty = [c for c in Locality.objects.all()
+             if not c.samples.exists() and not _has_core_data(c)]
     if not slug:
         report("지점에 시료가 있다", len(empty), Locality.objects.count(),
                "빈 지점이 목록·지도에 자리만 차지한다",
                [f"{c.site.code}/{c.code}" for c in empty])
+
+
+def _has_core_data(loc) -> bool:
+    """코어 자료가 붙어 있는가 (P17).
+
+    **낡은 판에서도 죽지 않아야 한다.** 이 검사는 뷰어 이미지 안의 코드로 도는데
+    (`dbrun.sh`), 표가 없는 판에서 부르면 예외가 난다 — 무결성 검사가 배포
+    순서에 매달리면 정작 필요한 날 못 돌린다(이 파일의 `catalog` 임포트와 같은
+    자리다).
+    """
+    try:
+        return loc.core_series.exists()
+    except Exception:            # 표가 없는 옛 판
+        return False
 
 
 def check_links(slug=None):

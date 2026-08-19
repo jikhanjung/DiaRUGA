@@ -12,9 +12,10 @@
 아직 `diatom` 인 것은 **생물 이름**이다(`pipeline/segment_diatoms.py`·YOLO 클래스·
 NAS 의 `DiatomPhotos/`).
 
-**브랜치** main · 도는 판 `v0.14.0` (파이프라인 `v0.5.2`) — **`v0.15.0` 이 배포를
-기다린다**(코어 자료 · 마이그레이션 `0039` · [P17](devlog/20260819_P17_core-profiles.md) ·
-`work/20260819-sclee-ui`). **배포 뒤에 할 일이 있다** — 지점 둘을 만들고 반입한다(3.8).
+**브랜치** main · 도는 판 `v0.15.0` (파이프라인 `v0.5.2`) — **배포를 기다리는
+판이 없다.** 08-19 18:37 에 `v0.15.0` 을 내보냈다(코어 자료 · 마이그레이션 `0039` ·
+[P17](devlog/20260819_P17_core-profiles.md) · [140](devlog/20260819_140_v0150-release.md) ·
+지점 `RS14-GC04`·`RS19-GC17` 을 세우고 **99,453점 반입 완료**).
 08-18 18:00 에 `v0.14.0` 을 내보냈다(도감 · 마이그레이션 `0038` ·
 [128](devlog/20260818_128_atlas-parsers.md)~[131](devlog/20260818_131_atlas-search.md) ·
 반입 완료 · 도감 3 · 항목 2,059 · 자리 2,480). **그 배포가 한 번 엎어져 운영이
@@ -44,9 +45,9 @@ NAS 의 `DiatomPhotos/`).
 
 | | 지금 |
 |---|---|
-| 뷰어 | **`v0.14.0`** (마이그레이션 `0038`) — 08-18 18:00 에 배포했다 |
+| 뷰어 | **`v0.15.0`** (마이그레이션 `0039`) — 08-19 18:37 에 배포했다 |
 | 파이프라인 | `v0.5.2` |
-| **다음 판** | **`v0.15.0`** — **마이그레이션 `0039`**(표 둘을 세운다: `CoreSeries`·`CorePoint`). 절차는 [릴리스 흐름](docs/20260813_release-flow.md) · **파이프라인은 같이 안 올려도 된다**(표를 더하기만 하고 파이프라인이 안 쓴다) · 배포 뒤 **지점 둘을 만들고 코어 자료를 반입한다**(3.8) |
+| **다음 판** | 없다 — 배포를 기다리는 것이 없다. 절차는 [릴리스 흐름](docs/20260813_release-flow.md) |
 | 검토 대상 묶음 | **`yolo-3차`** (`RunBatch.for_review`) — 08-13 에 옮겼다 |
 
 **사람이 하는 일은 `yolo-3차` 검토다** — 08-13 에 검토 대상을 그리로 옮겼고
@@ -616,10 +617,12 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
 
 ### 3.8 아직 안 한 이전기·일회성
 
-- **코어 자료 반입 — `v0.15.0` 배포 뒤에 한다** (P17 · [133](devlog/20260819_133_core-profile-import.md)).
-  마이그레이션 `0039` 는 표를 세울 뿐 **비어 있다.** 순서가 있다:
+- **코어 자료 반입 — `v0.15.0` 배포 뒤에 돌렸다** (08-19 18:41 · `RS14-GC04`
+  42개 항목 88,658점 · `RS19-GC17` 27개 항목 10,795점 · 3.8초 ·
+  [140](devlog/20260819_140_v0150-release.md)). **원본이 고쳐지면 다시 돌린다** —
+  멱등이고 `source='import'` 인 항목만 갈아치운다. 순서는 이렇다:
 
-  **(1) 지점 둘을 먼저 만든다.** 시스템 설정 화면에서 손으로 만든다 —
+  **(1) 지점 둘을 먼저 만든다** (했다). 시스템 설정 화면에서 손으로 만든다 —
   지역 `RS14`·`RS19`(권역 남극), 지점 `GC04`·`GC17`(유형 시추코어).
   **반입기는 지점을 안 만든다**(이름이 한 글자 틀리면 엉뚱한 지점이 조용히
   생긴다). 그 전에는 `/loc/RS14/GC04/` 가 404 다.
@@ -631,16 +634,20 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
     ```bash
     python tools/coredata_extract.py \
         --xlsx-dir /nfs/temp-share/DiaRUGA/coredata \
-        --out      /data3/DiaRUGA/coredata
+        --out      /data3/DiaRUGA/tmp/coredata
     ```
+
+  **`/data3/DiaRUGA/coredata` 가 아니라 `tmp/` 아래다** — 그 부모가 그룹 쓰기가
+  없어 `sclee` 로는 디렉토리를 못 만든다(140 3절). 중간 CSV 는 xlsx + 매핑표로
+  언제든 다시 뽑는 산물이라 그 자리가 맞다.
 
   **(3) 컨테이너에서 CSV → DB.** 멱등이라 다시 돌려도 된다 —
   **`source='import'` 인 항목만 갈아치우고 사람이 넣은 것은 안 건드린다.**
 
     ```bash
     deploy/host/dbsync.sh import_coredata.py     # 처음 한 번
-    deploy/host/dbrun.sh  import_coredata.py --dry-run
-    deploy/host/dbrun.sh  import_coredata.py
+    deploy/host/dbrun.sh  import_coredata.py --dir /data3/DiaRUGA/tmp/coredata --dry-run
+    deploy/host/dbrun.sh  import_coredata.py --dir /data3/DiaRUGA/tmp/coredata
     ```
 
   사본 DB 실측으로 `RS14-GC04` 42개 항목 88,658점 · `RS19-GC17` 27개 항목
