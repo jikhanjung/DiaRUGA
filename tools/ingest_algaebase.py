@@ -19,6 +19,9 @@ AlgaeBase 는 자동으로 못 연다(Turnstile · `harvest_worms.py` 머리말)
 - **`(그대로 유효)` 는 이름이 아니다.** `확인 필요`·`미확인` 도 마찬가지다.
   학명 자리에 이런 말이 들어오면 조회 결과가 아니라 **사람이 남긴 상태**다
 - **`**` 를 벗긴다.** 표에서 굵게 적어 온다
+- **발음부호를 벗겨 적어 오기도 한다** (`kützingiana` → `kutzingiana`). 열쇠가
+  안 맞으면 그 줄이 대조표에 안 붙는다 — **번호가 가리키는 줄과 발음부호만
+  다를 때에 한해** 색인 표기로 되돌리고 적어 온 철자는 비고에 남긴다
 
 사용:
 
@@ -32,6 +35,7 @@ import collections
 import csv
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -178,12 +182,48 @@ def read_batches() -> tuple[dict[str, dict], list[str], list[tuple]]:
     return out, warn, clash
 
 
-def check_numbers(recs: dict[str, dict]) -> list[str]:
-    """번호가 `species_1845.tsv` 의 그 줄을 가리키는가. **어긋나면 멈춘다.**"""
+def species_order() -> list[str]:
+    """색인 표제어를 순번대로. 번호 검산과 발음부호 되돌리기가 함께 쓴다."""
     if not SPECIES.exists():
+        return []
+    return [l.split("\t")[0] for l in
+            SPECIES.read_text(encoding="utf-8").splitlines()[1:] if l.strip()]
+
+
+def fold(s: str) -> str:
+    """발음부호를 벗긴다 (ü→u · é→e). **비교에만 쓰고 저장하지 않는다.**"""
+    return "".join(c for c in unicodedata.normalize("NFKD", s)
+                   if not unicodedata.combining(c)).casefold()
+
+
+def restore_diacritics(recs: dict[str, dict], order: list[str]) -> list[str]:
+    """표가 발음부호를 벗겨 적어 온 이름을 색인 표기로 되돌린다.
+
+    **번호가 가리키는 줄과 발음부호만 다를 때에만** 손댄다 — 벗긴 꼴이 같아야
+    하므로 엉뚱한 이름에 붙을 수가 없고, 번호 검산이 그 위에서 또 본다.
+    되돌리지 않으면 그 줄은 대조표의 열쇠와 안 맞아 **통째로 안 붙는다**
+    (13일차 #637 `kutzingiana`. 대조표에 발음부호가 든 이름이 열이다).
+    """
+    fixed = []
+    for name in list(recs):
+        r = recs[name]
+        i = r["번호"] - 1
+        if not (0 <= i < len(order)) or order[i] == name:
+            continue
+        if fold(order[i]) != fold(name):
+            continue
+        rec = dict(recs.pop(name))
+        rec["철자"] = name
+        prev = recs.get(order[i])
+        recs[order[i]] = rec if prev is None else better(prev, rec)
+        fixed.append(f"#{r['번호']} {name} → {order[i]}")
+    return fixed
+
+
+def check_numbers(recs: dict[str, dict], order: list[str]) -> list[str]:
+    """번호가 `species_1845.tsv` 의 그 줄을 가리키는가. **어긋나면 멈춘다.**"""
+    if not order:
         return ["species_1845.tsv 가 없어 번호 검산을 못 했다"]
-    order = [l.split("\t")[0] for l in
-             SPECIES.read_text(encoding="utf-8").splitlines()[1:] if l.strip()]
     bad = []
     for name, r in recs.items():
         i = r["번호"] - 1
@@ -215,7 +255,14 @@ def main() -> int:
                   f"{win['출처'].removeprefix('algaebase_').removesuffix('.md'):18s} "
                   f"{골[:34]:34s} "
                   f"← {lose['원문'][:30] or '—'}")
-    bad = check_numbers(recs)
+    order = species_order()
+    fixed = restore_diacritics(recs, order)
+    if fixed:
+        print(f"\n표가 발음부호를 벗겨 적어 온 것 {len(fixed)}건 — "
+              f"색인 표기로 되돌렸다 (적어 온 철자는 비고에 남긴다)")
+        for f in fixed:
+            print(f"  {f}")
+    bad = check_numbers(recs, order)
     if bad:
         print(f"\n번호 검산에서 {len(bad)}건 어긋났다:")
         for b in bad[:10]:
@@ -249,8 +296,9 @@ def main() -> int:
             cells[a] = r["이름"] or r["상태"]
             # 원문과 비고를 **둘 다** 남긴다
             표기 = f"도감 표기 {r['표기']}" if r.get("표기") else ""
+            철자 = f"표는 {r['철자']} 로 적어 왔다" if r.get("철자") else ""
             extra = " · ".join(x for x in (r["원문"] if r["원문"] != r["이름"] else "",
-                                           표기, r["비고"], r.get("진 기록", ""),
+                                           표기, 철자, r["비고"], r.get("진 기록", ""),
                                            r.get("보류", ""), r.get("닫힘", "")) if x)
             cells[b] = f"{r['상태']} · {r['출처']}" + (f" · {extra}" if extra else "")
             # **엇갈림을 내가 직접 센다** — 표의 `비고` 를 믿지 않고 두 칸을 비교한다
