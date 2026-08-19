@@ -18,3 +18,7 @@
 # 보고서 .md -> .docx 변환 (md2docx.py). 분석 파이프라인에도 뷰어에도 쓰이지
 # 않으므로 어느 컨테이너 이미지에도 넣지 않는다.
 python-docx==1.2.0
+
+# 코어 자료 xlsx 읽기 (tools/coredata_extract.py, P17). **앞단 전용이다** —
+# 반입의 뒷단(ops/import_coredata.py)은 CSV 만 읽으므로 웹 이미지에는 안 넣는다.
+openpyxl==3.1.5

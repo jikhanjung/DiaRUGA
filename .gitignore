@@ -59,3 +59,8 @@ yolo11*.pt
 # **없으면 도표가 조용히 코드 블록으로 떨어진다.** 파일은 그럴듯하게 나오고
 # 크기만 3분의 1이 된다 — 굽고 나면 크기를 견줄 것.
 node_modules/
+
+# 코어 자료 중간 CSV (P17 4절). **커밋하지 않는다** — 사람이 확인한 판단은
+# `coredata/mapping.toml` 에 있고, CSV 는 거기서 나오는 산물이다(코어 하나에
+# 9만 행). 나가는 자리는 /data3/DiaRUGA/coredata 다.
+coredata/*.csv

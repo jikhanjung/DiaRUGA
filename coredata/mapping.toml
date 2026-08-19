@@ -1,0 +1,221 @@
+# 코어 자료 매핑표 (P17 1.1 · 4절)
+#
+# **반입기는 머리글의 단위를 근거로 삼지 않는다.** 실제로 세 자리가 틀려 있다 —
+# 전부 `RS14-GC04` 다:
+#
+#   MS   `Depth(mm)` 라고 적혀 있으나 값이 1~362 이고 코어가 362 cm 다 → cm
+#   Opal `depth(m)` 라고 적혀 있으나 값이 0~362 다               → cm
+#   Size 깊이 칸의 이름이 `NO.` 다 (RS19 쪽은 `Depth(cm)`)        → cm
+#
+# 그래서 어느 열이 무엇이고 깊이 단위가 무엇인지는 **여기 적힌 것만** 쓴다.
+# 여기 없는 시트는 안 읽는다 — 짐작하는 갈래를 두면 다음 코어에서 같은 침묵이
+# 돌아온다.
+#
+# **열은 번호로 짚는다(1부터).** 이름으로 짚으면 안 된다 — `MS` 는 `Point` 와
+# `Whole` 이, `Spectro` 는 `SCE` 와 `SCI` 가 **같은 머리글을 반복해서** 뒤엣것이
+# 앞엣것을 덮는다.
+#
+# `columns` 한 줄은 `[열, key, 화면 글자, 단위]` 다. `key` 는 주소에 실리는
+# 기계 이름이고(`?series=…`) 화면 글자는 언제든 다듬을 수 있다.
+#
+# `expect_max_cm` 은 코어 길이다. **단위를 잘못 읽으면 열 배로 어긋나므로**
+# 반입기가 그것으로 자기를 검사한다 — 짐작을 막는 것과 짝이 되는 자리다.
+#
+# `default_on` 은 코어마다 한 줄로 모아 둔다 — "열었을 때 무엇이 켜져 있나" 를
+# 한자리에서 읽으려고 그렇게 했다.
+
+# ---------------------------------------------------------------------------
+
+[[core]]
+site = "RS14"
+locality = "GC04"
+file = "RS14-GC04_data.xlsx"
+default_on = ["ms_whole", "wc", "opal", "toc"]
+# **코어 길이. 단위를 잘못 읽었는지 잡는 자리다** — mm 를 cm 로 읽으면 항목의
+# 최대 깊이가 이 값의 10배가 되고, 반대면 1/10 이 된다. 반입기가 벗어나면 멈춘다.
+expect_max_cm = 362
+
+  [[core.block]]
+  sheet = "W.C"
+  header_row = 2
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 10
+  columns = [[5, "wc", "함수율", "%"]]
+
+  [[core.block]]
+  sheet = "CN"
+  header_row = 2
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 20
+  columns = [
+    [2, "tn", "TN", "wt%"],
+    [3, "tc", "TC", "wt%"],
+    [4, "tic", "TIC", "wt%"],
+    [5, "caco3", "CaCO3", "%"],
+    [6, "toc", "TOC", "wt%"],
+    [7, "cn_ratio", "C/N", ""],
+  ]
+
+  # 깊이 칸의 이름이 `NO.` 다. 값은 0~356 이고 4 cm 간격이라 깊이가 맞다.
+  # `TYPE`(10열)은 `C`·`gM` 같은 글자라 안 읽는다.
+  [[core.block]]
+  sheet = "Size"
+  header_row = 2
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 30
+  columns = [
+    [2, "gravel", "Gravel", "%"],
+    [3, "sand", "Sand", "%"],
+    [4, "silt", "Silt", "%"],
+    [5, "clay", "Clay", "%"],
+    [6, "grain_mean", "입도 Mean", "φ"],
+    [7, "grain_sorting", "입도 Sorting", ""],
+    [8, "grain_skewness", "입도 Skewness", ""],
+    [9, "grain_kurtosis", "입도 Kurtosis", ""],
+  ]
+
+  # **머리글은 `Depth(mm)` 이지만 cm 다** (위 머리말). 한 시트에 표가 둘이라
+  # 깊이 칸도 둘이다 — 블록을 갈라 각자의 깊이 칸을 짚는다.
+  [[core.block]]
+  sheet = "MS"
+  header_row = 3
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 40
+  columns = [[2, "ms_point", "자기감수율 (Point)", "SI(10-5)"]]
+
+  [[core.block]]
+  sheet = "MS"
+  header_row = 3
+  depth_col = 4
+  depth_unit = "cm"
+  sort_order = 41
+  columns = [[5, "ms_whole", "자기감수율 (Whole)", "SI(10-5)"]]
+
+  # **여기는 진짜 mm 다** — 값이 1~3609 이고 그것이 360.9 cm 다.
+  # 단위는 아직 확인 못 했다 (P17 2절). 확인되면 여기 한 줄을 고친다.
+  [[core.block]]
+  sheet = "XRF"
+  header_row = 3
+  depth_col = 1
+  depth_unit = "mm"
+  sort_order = 900
+  columns = [
+    [2, "xrf_al", "XRF Al", ""], [3, "xrf_si", "XRF Si", ""],
+    [4, "xrf_p", "XRF P", ""],   [5, "xrf_s", "XRF S", ""],
+    [6, "xrf_cl", "XRF Cl", ""], [7, "xrf_ar", "XRF Ar", ""],
+    [8, "xrf_k", "XRF K", ""],   [9, "xrf_ca", "XRF Ca", ""],
+    [10, "xrf_ti", "XRF Ti", ""], [11, "xrf_v", "XRF V", ""],
+    [12, "xrf_cr", "XRF Cr", ""], [13, "xrf_mn", "XRF Mn", ""],
+    [14, "xrf_fe", "XRF Fe", ""], [15, "xrf_ni", "XRF Ni", ""],
+    [16, "xrf_cu", "XRF Cu", ""], [17, "xrf_zn", "XRF Zn", ""],
+    [18, "xrf_ga", "XRF Ga", ""], [19, "xrf_br", "XRF Br", ""],
+    [20, "xrf_rb", "XRF Rb", ""], [21, "xrf_sr", "XRF Sr", ""],
+    [22, "xrf_y", "XRF Y", ""],   [23, "xrf_zr", "XRF Zr", ""],
+    [24, "xrf_pd", "XRF Pd", ""], [25, "xrf_ba", "XRF Ba", ""],
+  ]
+
+  # **머리글은 `depth(m)` 이지만 cm 다** (위 머리말). `Final-opal` 만 읽는다 —
+  # 2·3열(`1차-opal`·`재분석_1`)은 그것을 만드는 중간값이다.
+  # `Opal (2)` 시트는 사용자가 편집하다 갈라 놓은 것이라 안 읽는다.
+  # `Opal 요약` 은 표가 아니라 사람이 읽는 문서다.
+  [[core.block]]
+  sheet = "Opal"
+  header_row = 1
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 50
+  columns = [[4, "opal", "Opal", "%"]]
+
+# ---------------------------------------------------------------------------
+
+[[core]]
+site = "RS19"
+locality = "GC17"
+file = "RS19-GC17_data.xlsx"
+default_on = ["ms_whole", "wc", "toc"]
+expect_max_cm = 599
+
+# **6열에 이름 없는 둘째 함수율이 있다.** 값이 5열과 0.2 쯤 다른데 무엇인지
+# 모른다 — 모르는 것을 이름 붙여 넣지 않는다. 확인되면 한 줄 더 적는다.
+  [[core.block]]
+  sheet = "W.C"
+  header_row = 2
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 10
+  columns = [[5, "wc", "함수율", "%"]]
+
+  [[core.block]]
+  sheet = "CN"
+  header_row = 2
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 20
+  columns = [
+    [2, "tn", "TN", "wt%"],
+    [3, "tc", "TC", "wt%"],
+    [4, "tic", "TIC", "wt%"],
+    [5, "caco3", "CaCO3", "%"],
+    [6, "toc", "TOC", "wt%"],
+    [7, "cn_ratio", "C/N", ""],
+  ]
+
+  # 13열 오른쪽은 계량 원자료(`Sample`·`Weight(g)`·`Density`·`AVERAGE`·
+  # `재분석 전`)라 안 읽는다 — 깊이 축에 얹을 값이 아니다.
+  [[core.block]]
+  sheet = "Size"
+  header_row = 2
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 30
+  columns = [
+    [2, "gravel", "Gravel", "%"],
+    [3, "sand", "Sand", "%"],
+    [4, "silt", "Silt", "%"],
+    [5, "clay", "Clay", "%"],
+    [6, "grain_mean", "입도 Mean", "φ"],
+    [7, "grain_sorting", "입도 Sorting", ""],
+    [8, "grain_skewness", "입도 Skewness", ""],
+    [9, "grain_kurtosis", "입도 Kurtosis", ""],
+  ]
+
+  [[core.block]]
+  sheet = "MS"
+  header_row = 3
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 40
+  columns = [[2, "ms_point", "자기감수율 (Point)", "SI(10-5)"]]
+
+  [[core.block]]
+  sheet = "MS"
+  header_row = 3
+  depth_col = 4
+  depth_unit = "cm"
+  sort_order = 41
+  columns = [[5, "ms_whole", "자기감수율 (Whole)", "SI(10-5)"]]
+
+  # `SCE`(정반사 제외)와 `SCI`(포함) 두 블록이 **같은 머리글을 반복한다** —
+  # 열 번호로만 갈린다. `Munsell C Hue`(3·11열)는 `0.6Y` 같은 글자라 안 읽는다.
+  [[core.block]]
+  sheet = "Spectro"
+  header_row = 1
+  depth_col = 1
+  depth_unit = "cm"
+  sort_order = 60
+  columns = [
+    [4, "sce_munsell_value", "Munsell Value (SCE)", ""],
+    [5, "sce_munsell_chroma", "Munsell Chroma (SCE)", ""],
+    [6, "sce_l", "L* (SCE)", ""],
+    [7, "sce_a", "a* (SCE)", ""],
+    [8, "sce_b", "b* (SCE)", ""],
+    [12, "sci_munsell_value", "Munsell Value (SCI)", ""],
+    [13, "sci_munsell_chroma", "Munsell Chroma (SCI)", ""],
+    [14, "sci_l", "L* (SCI)", ""],
+    [15, "sci_a", "a* (SCI)", ""],
+    [16, "sci_b", "b* (SCI)", ""],
+  ]

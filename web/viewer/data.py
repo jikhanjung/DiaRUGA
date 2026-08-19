@@ -18,12 +18,13 @@ from pathlib import Path
 from django.conf import settings
 from django.urls import reverse
 from django.db import connection, transaction
-from django.db.models import Case, Count, Prefetch, Q, When
+from django.db.models import Case, Count, Max, Min, Prefetch, Q, When
 from django.utils import timezone
 
 from . import antarctica, catalog, korea, outcrop
 from . import shape
-from .models import (Candidate, ClassDef, Detection, DiatomObject, Frame,
+from .models import (Candidate, ClassDef, CorePoint, CoreSeries, Detection,
+                     DiatomObject, Frame,
                      Image, Locality, ObjectReview,
                      Run, RunBatch, Site, Slide, Stack, Viewpoint,
                      ViewpointReview)
@@ -2447,6 +2448,38 @@ def _nice_step(span: float, want: int = 8) -> int:
     return 5000
 
 
+def core_series(loc: Locality) -> list[dict]:
+    """지점 하나의 측정 항목 목록 (P17). **점은 안 싣는다.**
+
+    화면이 축을 잡고 체크를 그리는 데 필요한 것은 항목의 이름·단위·범위까지다.
+    점까지 함께 내면 XRF 를 가진 코어에서 **20만 행이 목록 한 번에 딸려 온다** —
+    켤 생각도 없는 항목의 값을 매번 읽는 셈이다. 점은 그릴 때 따로 받는다.
+
+    **개수와 범위를 SQL 로 센다.** 항목마다 파이썬에서 세면 코어 하나에 질의가
+    항목 수만큼 난다 — 105 에서 카탈로그가 그렇게 390~560번 물었다.
+
+    깊이는 **여기서 cm 로 바꾼다.** DB 안은 mm 정수이고(`CorePoint` 머리말)
+    바꾸는 자리는 이 함수 하나다.
+    """
+    qs = (CoreSeries.objects.filter(locality=loc)
+          .annotate(n=Count("points"),
+                    lo=Min("points__depth_mm"), hi=Max("points__depth_mm")))
+    return [{
+        "key": cs.key,
+        "label": cs.label,
+        "unit": cs.unit,
+        "source": cs.source,
+        "default_on": cs.default_on,
+        "origin": cs.origin,
+        "note": cs.note,
+        "n": cs.n,
+        # 점이 하나도 없으면 범위가 없다. **0 으로 두지 않는다** — 0 cm 에서
+        # 잰 것과 구별이 안 된다.
+        "min_cm": cs.lo / 10 if cs.lo is not None else None,
+        "max_cm": cs.hi / 10 if cs.hi is not None else None,
+    } for cs in qs]
+
+
 def _axis_marks(rows: list[dict], bottom: float) -> list[dict]:
     """깊이 축의 시료 표식. **같은 깊이에 여럿 서면 겹친다.**
 
@@ -2535,14 +2568,23 @@ def locality_detail(site_code: str, loc_code: str,
     } for sl in slides]
     rows = [r for r in all_rows if with_hidden or not r["hidden"]]
 
+    # **축의 근거는 시료만이 아니다** (P17 6절). 코어 자료가 붙어 있으면 그
+    # 깊이도 축을 잡는다 — 안 그러면 관찰이 아직 없는 코어(`RS14-GC04`·
+    # `RS19-GC17`)는 자료를 다 넣어 놓고도 축이 안 서서 화면이 빈다. 나중에
+    # 관찰이 붙으면 **같은 축 위에 얹힌다.**
+    series = core_series(loc)
     depths = [r["depth_cm"] for r in rows if r["depth_cm"] is not None]
+    # **점이 없는 항목은 축을 안 잡는다** — 사람이 이름만 만들어 둔 항목이
+    # 그렇다. `max_cm` 이 `None` 인 것을 그대로 넘기면 비교에서 죽는다.
+    deepest = max([*depths, *(cs["max_cm"] for cs in series
+                              if cs["max_cm"] is not None)], default=None)
     axis = None
-    if depths:
+    if deepest is not None:
         # **위가 얕고 아래로 깊어진다** — 코어 로그의 관례다. 축은 늘 0 에서
         # 시작한다. 가장 얕은 시료부터 그리면 그 위의 구간이 없는 것처럼 보인다.
-        step = _nice_step(max(depths) or 1)
+        step = _nice_step(deepest or 1)
         # 가장 깊은 시료가 축 맨 끝에 붙으면 이름표가 잘린다. 한 칸 더 준다.
-        bottom = (int(max(depths) // step) + 1) * step
+        bottom = (int(deepest // step) + 1) * step
         axis = {
             "top": 0, "bottom": bottom, "step": step,
             "ticks": [{"cm": t, "pct": round(t / bottom * 100, 3)}
@@ -2569,6 +2611,9 @@ def locality_detail(site_code: str, loc_code: str,
         # 서로 맞는다.
         "totals": datasets_total(all_rows),
         "axis": axis,
+        # 코어 자료 (P17). 점은 아직 안 싣는다 — 이 화면이 그리는 것은
+        # 4단계이고, 여기서는 **축이 서는 근거**와 목록까지다.
+        "series": series,
         # 축에 못 놓는 것들. **버리지 않고 따로 낸다** — 안 보이면 이 코어에
         # 없는 시료가 된다.
         "unplaced": [r for r in rows if r["depth_cm"] is None],

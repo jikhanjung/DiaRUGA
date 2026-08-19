@@ -912,6 +912,26 @@
   .lithband .lithnote {
     font-size: 10.5px; color: var(--dim); text-align: center; line-height: 1.5;
   }
+  /* 코어 자료 목록 (P17 3단계). 그림은 4단계이고 여기는 무엇이 들어와
+     있는지만 낸다. **색을 박지 않는다** — 테마가 둘이라 토큰을 빌린다 (107) */
+  .cslist {
+    margin-top: 14px; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--panel); padding: 8px 10px;
+  }
+  .cslist .cshead {
+    font-size: 12px; font-weight: 600; margin-bottom: 6px;
+  }
+  .cslist .csrow {
+    display: flex; align-items: baseline; gap: 7px;
+    font-size: 12px; padding: 2px 0; white-space: nowrap;
+  }
+  /* 기본으로 켜지는 항목. 4단계에서 체크가 붙으면 그때 뜻이 살아난다 */
+  .cslist .csrow.on b { color: var(--accent); }
+  .cslist .csman {
+    font-size: 10.5px; padding: 0 5px; border-radius: 8px;
+    background: var(--warn-bg); color: var(--warn-fg);
+    border: 1px solid var(--warn-line);
+  }
   .mark {
     position: absolute; left: 146px; right: 0; height: 0;
     display: flex; align-items: center; gap: 7px; font-size: 12px;

@@ -1428,3 +1428,94 @@ class AtlasPlacement(models.Model):
     def __str__(self):
         where = f"pl.{self.plate}" if self.plate else (self.plate_label or "?")
         return f"{where} p.{self.pdf_page}"
+
+
+# --- 코어 자료 (P17) --------------------------------------------------------
+#
+# 지점 하나의 **깊이별 측정 항목**. MS(자기감수율) · 함수율 · Opal · TOC 가
+# 규조 자료를 읽을 때 함께 보는 넷이고, 나머지는 켜서 본다.
+
+
+class CoreSeries(models.Model):
+    """측정 항목 하나 — `RS14-GC04` 의 `Opal(%)` 같은 것 (P17 §3).
+
+    **칼럼을 고정한 테이블로 두지 않는다.** 코어마다 있는 항목이 다르다 —
+    `RS14-GC04` 에만 XRF·Opal 이 있고 `RS19-GC17` 에만 Spectro 가 있다. 칼럼을
+    박으면 절반이 빈 채로 남고 코어가 하나 들어올 때마다 마이그레이션이 붙는다.
+
+    **`key` 는 기계가 쓰고 `label` 이 화면에 뜬다.** 주소에 실리는 것도 `key` 다
+    (`?series=ms_whole,wc,opal,toc`) — 화면 글자를 다듬는 일이 링크를 깨면 안 된다.
+
+    **`unit` 은 화면에 그대로 나간다.** 사람이 확인한 값이라 여기서 짐작하지
+    않는다 (`SI(10-5)` · `%` · `wt%`).
+
+    **`source` 를 가르는 이유가 이 모델의 핵심이다.** xlsx 를 다시 반입할 때
+    **자기 출처의 항목만 갈아치운다** — 안 가르면 사람이 넣은 값이 재반입 한 번에
+    지워진다. 063 에서 `update_or_create` 의 `defaults` 에 `None` 을 실었다가
+    사람이 채운 소속이 날아간 것과 같은 줄이다.
+
+    **`default_on` 이 DB 에 있어야 한다.** 화면에 이름 넷을 박으면 항목 이름이
+    바뀔 때 예외 없이 그냥 아무것도 안 켜진다. 코어마다 다르게 켤 수도 있다.
+    """
+
+    # 어디서 온 값인가. **반입은 `import` 만 건드린다** (위 머리말).
+    SOURCE = [("import", "반입"), ("manual", "수동")]
+
+    locality = models.ForeignKey(Locality, on_delete=models.CASCADE,
+                                 related_name="core_series")
+    # 기계 이름. `ms_whole` · `ms_point` · `wc` · `opal` · `toc`
+    key = models.CharField(max_length=40)
+    label = models.CharField(max_length=80)                 # 화면 글자
+    unit = models.CharField(max_length=24, blank=True, default="", db_default="")
+    source = models.CharField(max_length=12, choices=SOURCE,
+                              default="import", db_default="import")
+    # 화면을 열었을 때 켜져 있는가. MS(Whole) · 함수율 · Opal · TOC 넷이 켜진다
+    default_on = models.BooleanField(default=False, db_default=False)
+    sort_order = models.PositiveSmallIntegerField(default=100, db_default=100)
+    # 어느 파일 어느 시트에서 왔는가. 반입기가 적는다 — 값이 이상할 때
+    # 원본으로 돌아가는 길이 이것 하나다
+    origin = models.CharField(max_length=200, blank=True, default="", db_default="")
+    note = models.TextField(blank=True, default="", db_default="")
+
+    class Meta:
+        verbose_name = "측정 항목"
+        ordering = ["locality", "sort_order", "key"]
+        constraints = [models.UniqueConstraint(fields=["locality", "key"],
+                                               name="uniq_core_series_key")]
+
+    def __str__(self):
+        return f"{self.locality}·{self.key}"
+
+
+class CorePoint(models.Model):
+    """측정 항목의 점 하나 — 깊이와 값.
+
+    **깊이를 mm 정수로 든다.** 화면과 축은 cm 로 말하지만(`depth_cm` property)
+    저장은 mm 다. 이유는 하나다 — **`(항목, 깊이)` 가 유일 제약이라 깊이가
+    열쇠이고, 열쇠가 부동소수면 안 된다.** XRF 는 1 mm 간격이라 cm 로 두면
+    `0.1`·`0.3` 같은 값이 열쇠가 되고, 다시 반입할 때 계산 경로가 조금만 달라도
+    같은 점이 두 줄로 생긴다. 정수 mm 는 그 갈래 자체가 없다.
+
+    **단위를 섞어 두지 않는다.** DB 안은 전부 mm 이고, cm 로 바꾸는 자리는
+    `data.py` 하나다 — 두 층이 섞이는 것은 이 저장소가 여러 번 당한 종류다.
+
+    **값이 없는 깊이는 행을 안 만든다.** `null` 로 채워 두면 화면이 그 구간을
+    이어 그려 **안 잰 구간이 잰 것처럼 뜬다.** 없으면 없는 것이다.
+    """
+
+    series = models.ForeignKey(CoreSeries, on_delete=models.CASCADE,
+                               related_name="points")
+    depth_mm = models.PositiveIntegerField()
+    value = models.FloatField()
+
+    class Meta:
+        ordering = ["series", "depth_mm"]
+        constraints = [models.UniqueConstraint(fields=["series", "depth_mm"],
+                                               name="uniq_core_point_depth")]
+
+    @property
+    def depth_cm(self) -> float:
+        return self.depth_mm / 10
+
+    def __str__(self):
+        return f"{self.depth_cm:g}cm = {self.value:g}"

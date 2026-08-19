@@ -175,9 +175,40 @@
         **노두에는 안 낸다.** 노두 지점에 깊이가 없는 것은 채워야 할 것이 빠진
         상태가 아니라 그 지점의 성질이다 — "깊이를 채우면 나옵니다" 라고 적으면
         사람이 없는 값을 채우러 간다. 아래 노두 안내가 이미 그 자리를 설명한다.
+
+        **관찰이 아예 없는 코어와 깊이만 안 채운 코어를 가른다** (P17 6절).
+        축은 이제 시료와 코어 자료 둘 중 하나만 있어도 선다 — 그래서 여기까지
+        온 것은 **둘 다 없다**는 뜻이고, 관찰이 하나도 없는 코어에 "정보 편집에서
+        깊이를 채우세요" 라고 적으면 고칠 관찰이 없는 사람을 편집 화면으로
+        보내게 된다.
       {% endcomment %}
-      <div class="note">깊이가 적힌 시료가 없어 축을 그릴 수 없습니다.
-        정보 편집에서 깊이를 채우면 여기 나옵니다.</div>
+      {% if rows %}
+        <div class="note">깊이가 적힌 시료가 없어 축을 그릴 수 없습니다.
+          정보 편집에서 깊이를 채우면 여기 나옵니다.</div>
+      {% else %}
+        <div class="note">아직 관찰도 코어 자료도 없습니다.
+          둘 중 하나만 들어와도 깊이 축이 여기 섭니다.</div>
+      {% endif %}
+    {% endif %}
+
+    {% comment %}
+      코어 자료 목록 (P17 3단계). **그림은 아직 아니다** — 여기 있는 것은
+      무엇이 몇 점 들어와 있고 어느 구간을 덮는가까지다. 반입이 실제로 앉았는지
+      화면에서 확인할 길이 없으면 반입기를 눌러 볼 수가 없다.
+    {% endcomment %}
+    {% if series %}
+      <div class="cslist">
+        <div class="cshead">코어 자료 <span class="dim">{{ series|length }}개 항목</span></div>
+        {% for cs in series %}
+          <div class="csrow{% if cs.default_on %} on{% endif %}">
+            <b>{{ cs.label }}</b>
+            {% if cs.unit %}<span class="dim">{{ cs.unit }}</span>{% endif %}
+            {% if cs.source == "manual" %}<span class="csman">수동</span>{% endif %}
+            <span class="dim">{{ cs.n }}점{% if cs.min_cm is not None %} ·
+              {{ cs.min_cm|floatformat:"-1" }}~{{ cs.max_cm|floatformat:"-1" }} cm{% endif %}</span>
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
 
     {% if unplaced %}
