@@ -77,8 +77,24 @@ def deletable(kind: str, pk: int) -> tuple[object | None, list[str]]:
         obj = Locality.objects.filter(pk=pk).first()
         if obj is None:
             return None, []
+        why = []
         n = obj.samples.count()
-        return obj, ([f"시료 {n}개가 이 지점에 달려 있습니다"] if n else [])
+        if n:
+            why.append(f"시료 {n}개가 이 지점에 달려 있습니다")
+        # **코어 자료도 센다** (P17). `CorePoint` 가 `CASCADE` 라 예외도 경고도
+        # 없이 함께 지워진다 — 실제로 `RS19-GC17` 을 지워 27개 항목 10,795점이
+        # 조용히 날아가는 것을 보고 넣었다. **새 코어는 시료가 0개라** 이 줄이
+        # 없으면 문턱이 그냥 열린다.
+        cs = list(obj.core_series.annotate(n_pts=Count("points"))
+                  .values("source", "n_pts"))
+        if cs:
+            pts = sum(c["n_pts"] for c in cs)
+            man = sum(1 for c in cs if c["source"] == "manual")
+            line = f"코어 자료 {len(cs)}개 항목 · 점 {pts:,}개가 함께 지워집니다"
+            if man:
+                line += f" (그중 수동 {man}개는 다시 만들 수 없습니다)"
+            why.append(line)
+        return obj, why
     if kind == "sample":
         obj = Sample.objects.filter(pk=pk).first()
         if obj is None:
@@ -650,13 +666,19 @@ def update_series(loc: Locality, key: str, form) -> tuple[bool, str]:
 def delete_series(loc: Locality, key: str) -> tuple[bool, str]:
     """항목을 지운다. 점도 함께 간다 (FK CASCADE).
 
+    **지우는 것은 고치는 것과 다르다.** 반입 항목을 고치면 다음 반입이 덮어
+    헛일이 되지만, 지우는 것은 **다시 반입하면 그대로 돌아온다.** 그리고 막아
+    두면 반입 자료가 붙은 지점을 영영 못 지운다 — 지우기 문턱이 코어 자료를
+    세기 시작했으므로(위 `deletable`) 치울 길이 있어야 한다.
+
     **몇 점이 함께 지워지는지 화면이 먼저 말한다** (063). 여기서는 지운 수를
     적어 되돌릴 수 없다는 것이 드러나게 한다.
     """
-    cs, err = _manual_series(loc, key)
+    cs = CoreSeries.objects.filter(locality=loc, key=key).first()
     if cs is None:
-        return False, err
+        return False, f"{loc} 에 항목 {key} 가 없습니다."
     n = CorePoint.objects.filter(series=cs).count()
-    label = cs.label
+    label, src = cs.label, cs.source
     cs.delete()
-    return True, f"항목 {label} 과 점 {n}개를 지웠습니다."
+    tail = " 다시 반입하면 돌아옵니다." if src == "import" else ""
+    return True, f"항목 {label} 과 점 {n}개를 지웠습니다.{tail}"

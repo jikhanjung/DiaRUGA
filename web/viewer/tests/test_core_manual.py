@@ -194,14 +194,22 @@ class SeriesEditTest(DiaRUGATestCase):
         self.assertEqual(cs.label, "새 이름")
         self.assertEqual(cs.points.count(), 2)
 
-    def test_반입_항목은_못_고치고_못_지운다(self):
+    def test_반입_항목은_못_고친다(self):
         _series(self.loc, "opal", source="import", points=[(0, 1.0)])
-        for fn in (lambda: md.update_series(self.loc, "opal", {"label": "x"}),
-                   lambda: md.delete_series(self.loc, "opal")):
-            ok, m = fn()
-            self.assertFalse(ok)
-            self.assertIn("반입한 항목", m)
+        ok, m = md.update_series(self.loc, "opal", {"label": "x"})
+        self.assertFalse(ok)
+        self.assertIn("반입한 항목", m)
         self.assertTrue(CoreSeries.objects.filter(key="opal").exists())
+
+    def test_반입_항목은_지울_수는_있다(self):
+        """**지우는 것은 고치는 것과 다르다.** 고치면 다음 반입이 덮어 헛일이
+        되지만 지우는 것은 다시 반입하면 돌아온다. 그리고 막아 두면 반입 자료가
+        붙은 지점을 영영 못 지운다(지우기 문턱이 코어 자료를 센다)."""
+        _series(self.loc, "opal", source="import", points=[(0, 1.0)])
+        ok, m = md.delete_series(self.loc, "opal")
+        self.assertTrue(ok, m)
+        self.assertIn("다시 반입하면", m)
+        self.assertEqual(CoreSeries.objects.count(), 0)
 
     def test_지우면_점도_간다(self):
         _series(self.loc, "a", points=[(0, 1.0), (100, 2.0)])
@@ -267,3 +275,47 @@ class ManualViewTest(DiaRUGATestCase):
         from .. import data
         ctx = data.locality_detail("RS14", "GC04")
         self.assertEqual([cs["key"] for cs in ctx["manual_series"]], ["ch"])
+
+
+class LocalityDeleteThresholdTest(DiaRUGATestCase):
+    """지점을 지울 때 코어 자료를 센다 (063).
+
+    **실제로 당한 자리다.** `RS19-GC17` 을 지웠더니 27개 항목 10,795점이
+    예외도 경고도 없이 함께 사라졌다 — `CorePoint` 가 `CASCADE` 이고
+    **새 코어는 시료가 0개라** 문턱이 그냥 열렸다.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.loc = _loc()
+
+    def test_코어_자료가_있으면_막는다(self):
+        _series(self.loc, "opal", source="import",
+                points=[(0, 1.0), (100, 2.0)])
+        obj, why = md.deletable("locality", self.loc.pk)
+        self.assertTrue(why, "시료가 0개라도 코어 자료가 있으면 막아야 한다")
+        self.assertIn("2", why[-1])          # 점 수를 적는다
+        ok, m = md.delete("locality", self.loc.pk)
+        self.assertFalse(ok)
+        self.assertTrue(Locality.objects.filter(pk=self.loc.pk).exists())
+
+    def test_수동_항목은_다시_만들_수_없다고_적는다(self):
+        _series(self.loc, "ch", source="manual", points=[(0, 1.0)])
+        _, why = md.deletable("locality", self.loc.pk)
+        self.assertIn("다시 만들 수 없습니다", why[-1])
+
+    def test_반입만_있으면_그_말은_안_적는다(self):
+        _series(self.loc, "opal", source="import", points=[(0, 1.0)])
+        _, why = md.deletable("locality", self.loc.pk)
+        self.assertNotIn("다시 만들 수 없습니다", why[-1])
+
+    def test_항목을_치우면_지워진다(self):
+        """막기만 하고 치울 길이 없으면 지점이 영영 안 지워진다."""
+        _series(self.loc, "opal", source="import", points=[(0, 1.0)])
+        md.delete_series(self.loc, "opal")
+        ok, m = md.delete("locality", self.loc.pk)
+        self.assertTrue(ok, m)
+
+    def test_코어_자료가_없으면_예전대로다(self):
+        ok, m = md.delete("locality", self.loc.pk)
+        self.assertTrue(ok, m)
