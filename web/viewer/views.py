@@ -318,7 +318,13 @@ def core_page(request, site_code, core_code):
     `Site` 행에 쓰는 문을 둘로 만들지 않는다.
     """
     with_hidden = _with_hidden(request)
-    ctx = data.locality_detail(site_code, core_code, with_hidden)
+    # 어느 측정 항목을 그릴 것인가 — `?series=ms_whole,wc,opal,toc` (P17 4단계).
+    #
+    # **주소가 없는 것과 비어 있는 것은 다르다.** 없으면 매핑표가 켜 둔 넷이
+    # 켜지고, 비어 있으면 **다 끈 것**이다. 하나로 보면 전부 끌 방법이 없어진다.
+    raw = request.GET.get("series")
+    keys = None if raw is None else [k for k in raw.split(",") if k]
+    ctx = data.locality_detail(site_code, core_code, with_hidden, keys)
     if ctx is None:
         raise Http404(f"unknown locality: {site_code}/{core_code}")
     return render(request, "viewer/core.html", {

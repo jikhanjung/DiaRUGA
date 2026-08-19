@@ -912,26 +912,89 @@
   .lithband .lithnote {
     font-size: 10.5px; color: var(--dim); text-align: center; line-height: 1.5;
   }
-  /* 코어 자료 목록 (P17 3단계). 그림은 4단계이고 여기는 무엇이 들어와
-     있는지만 낸다. **색을 박지 않는다** — 테마가 둘이라 토큰을 빌린다 (107) */
-  .cslist {
-    margin-top: 14px; border: 1px solid var(--line); border-radius: 4px;
-    background: var(--panel); padding: 8px 10px;
+  /* 코어 자료 — 깊이별 측정 항목 (P17 4단계).
+     **색을 박지 않는다** — 테마가 둘이라 토큰을 빌린다 (107) */
+  .csbox {
+    margin-top: 22px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel); padding: 12px 14px 14px;
   }
-  .cslist .cshead {
-    font-size: 12px; font-weight: 600; margin-bottom: 6px;
+  .csbox > h3 {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px;
+    font-size: 14px;
   }
-  .cslist .csrow {
-    display: flex; align-items: baseline; gap: 7px;
-    font-size: 12px; padding: 2px 0; white-space: nowrap;
+  .cspicks { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .cspickone {
+    display: flex; align-items: baseline; gap: 5px;
+    font-size: 12px; white-space: nowrap; cursor: pointer;
   }
-  /* 기본으로 켜지는 항목. 4단계에서 체크가 붙으면 그때 뜻이 살아난다 */
-  .cslist .csrow.on b { color: var(--accent); }
-  .cslist .csman {
+  /* 점이 없는 항목. 끌 수도 켤 수도 없으니 그렇게 보여야 한다 */
+  .cspickone.nopt { opacity: .55; cursor: default; }
+  .cspickone input { cursor: inherit; }
+  .csman {
     font-size: 10.5px; padding: 0 5px; border-radius: 8px;
     background: var(--warn-bg); color: var(--warn-fg);
     border: 1px solid var(--warn-line);
   }
+  .csmore { margin-top: 8px; }
+  .csmore > summary {
+    font-size: 12px; cursor: pointer; color: var(--dim);
+    padding: 3px 0;
+  }
+  .csmore > summary:hover { color: var(--fg); }
+  .csmore .cspicks { margin: 6px 0 2px 14px; }
+  .csgo { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .csgo .cslink { font-size: 12px; color: var(--dim); }
+  .csgo .cslink:hover { color: var(--accent); }
+
+  /* 그림. 깊이 축 하나에 항목 칸이 여럿 붙는다 */
+  .cschart {
+    display: flex; gap: 10px; margin-top: 14px; align-items: stretch;
+    overflow-x: auto;            /* 항목을 많이 켜면 가로로 넘긴다 */
+  }
+  .csdepth {
+    position: relative; width: 42px; flex: 0 0 auto;
+    /* 칸의 머리글·발치와 높이를 맞춘다: 머리 32 + 그림 520 + 발 13 + 수 14.
+       **머리글 높이를 바꾸면 이 값도 함께 움직인다** — 어긋나면 눈금이
+       그림과 다른 자리에 선다 */
+    margin: 44px 0 27px;
+    height: 520px; border-right: 1px solid var(--line);
+  }
+  .cstick { position: absolute; right: 5px; height: 0; }
+  .cstick span {
+    position: absolute; right: 0; top: -0.6em;
+    font-size: 10.5px; color: var(--dim);
+  }
+  .cstrack { flex: 0 0 132px; display: flex; flex-direction: column; }
+  /* **세 줄까지 준다.** 한 줄로 두었더니 `자기감수율 (Whole) SI(10-5)` 가
+     `SI(10-` 에서 잘렸다 — 단위가 잘리면 그림을 읽을 수 없다. 두 줄로도
+     모자랐다(실측). `.csdepth` 의 위 여백이 이 높이와 같아야 눈금이 그림과
+     같은 자리에 선다 */
+  .cshdr {
+    font-size: 11.5px; line-height: 1.25;
+    height: 44px; overflow: hidden;
+  }
+  .cshdr b { font-weight: 600; }
+  .csplot {
+    position: relative; height: 520px;
+    border: 1px solid var(--line); border-radius: 3px;
+    background: var(--group-bg);
+  }
+  /* **세로로 눌린 좌표계다** — viewBox 가 100 x 코어길이(cm)이고 폭이 118px
+     라, 선 굵기는 non-scaling-stroke 가 지킨다 (템플릿 참고) */
+  .csplot svg { display: block; width: 100%; height: 100%; }
+  .csplot polyline { fill: none; stroke: var(--accent); stroke-width: 1.3; }
+  .csplot .cslone { fill: var(--accent); }
+  .csempty {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; font-size: 11px; color: var(--dim);
+  }
+  /* 항목마다 x 축이 따로라 양 끝 값을 적어야 그림이 읽힌다 */
+  .csfoot {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--dim); margin-top: 2px; height: 13px;
+  }
+  .csn { font-size: 10px; height: 14px; }
+
   .mark {
     position: absolute; left: 146px; right: 0; height: 0;
     display: flex; align-items: center; gap: 7px; font-size: 12px;

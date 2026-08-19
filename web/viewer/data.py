@@ -2448,6 +2448,104 @@ def _nice_step(span: float, want: int = 8) -> int:
     return 5000
 
 
+# 한 항목이 화면으로 내려갈 수 있는 점 수의 상한 (P17 4단계). XRF 가 한
+# 원소에 3,575점이라 켜면 그대로 SVG 경로 하나에 들어간다.
+PROFILE_MAX_POINTS = 800
+
+# 선을 끊는 문턱. 그 항목의 **중앙 간격**의 몇 배부터 "안 잰 구간" 으로 보는가.
+# 깊이 간격이 코어 안에서 바뀌므로(RS14 는 0-340cm 4cm, 340-366cm 8cm) 고정
+# 간격으로 잴 수 없다. 배수를 넉넉히 잡아 정상적인 성김에는 안 끊긴다.
+PROFILE_GAP_FACTOR = 4
+
+
+def _thin(pts: list[tuple[int, float]], cap: int) -> tuple[list, bool]:
+    """점이 너무 많으면 줄인다. **값을 지어내지 않는다.**
+
+    평균을 내면 **없던 값이 생기고**, n개마다 하나씩 집으면 뾰족한 곳이 조용히
+    사라진다. 구간마다 **실제로 잰 점 중 가장 작은 것과 가장 큰 것**을 남기면
+    둘 다 피한다 — 남는 것은 전부 진짜 측정값이고 봉우리·골이 살아 있다.
+    """
+    if len(pts) <= cap:
+        return pts, False
+    n = max(1, cap // 2)
+    step = len(pts) / n
+    out: list[tuple[int, float]] = []
+    for i in range(n):
+        lo, hi = int(i * step), max(int(i * step) + 1, int((i + 1) * step))
+        chunk = pts[lo:hi]
+        keep = {min(chunk, key=lambda p: p[1]), max(chunk, key=lambda p: p[1])}
+        out.extend(sorted(keep))
+    return out, True
+
+
+def _segments(pts: list[tuple[int, float]], lo: float, hi: float) -> list[list[dict]]:
+    """점을 이어진 토막들로 나눈다. **빈 구간을 가로지르지 않는다.**
+
+    이으면 **안 잰 구간이 잰 것처럼 뜬다.** 값을 안 넣는 것만으로는 안 되고
+    (그 깊이에 행이 없을 뿐이다) 그리는 쪽이 끊어야 한다.
+
+    `x` 는 0~100 으로 정규화한 값이다 — 축을 잡는 계산을 여기 한 곳에 모은다.
+    """
+    span = (hi - lo) or 1
+    gaps = sorted(pts[i + 1][0] - pts[i][0] for i in range(len(pts) - 1))
+    limit = (gaps[len(gaps) // 2] * PROFILE_GAP_FACTOR) if gaps else None
+    segs, cur = [], []
+    prev = None
+    for mm, v in pts:
+        if prev is not None and limit and (mm - prev) > limit:
+            segs.append(cur)
+            cur = []
+        cur.append({"cm": mm / 10, "x": round((v - lo) / span * 100, 3), "v": v})
+        prev = mm
+    if cur:
+        segs.append(cur)
+    # 점 하나짜리 토막은 선이 안 된다. **버리지 않는다** — 그 깊이에 잰 값이
+    # 있었다는 것이 자료다. 화면이 점으로 찍는다.
+    return segs
+
+
+def core_profiles(loc: Locality, keys: list[str],
+                  cap: int = PROFILE_MAX_POINTS) -> list[dict]:
+    """고른 항목만 점까지 당겨 온다 (P17 4단계).
+
+    **고른 것만 읽는다.** 42개 항목을 전부 당기면 코어 하나에 9만 점이고, 그중
+    화면이 그리는 것은 넷이다. `core_series()` 가 목록을 내고 이쪽이 값을 낸다.
+
+    x 축은 **항목마다 따로 잡는다.** 함수율(%)과 자기감수율(SI)을 한 축에 얹을
+    수 없다 — 단위가 다르다. 그래서 칸을 나란히 두고 각자 제 최소~최대를 편다.
+    """
+    if not keys:
+        return []
+    rows = {cs.key: cs for cs in CoreSeries.objects.filter(locality=loc,
+                                                           key__in=keys)}
+    got: dict[str, list[tuple[int, float]]] = {k: [] for k in rows}
+    for mm, v, key in (CorePoint.objects
+                       .filter(series__locality=loc, series__key__in=rows)
+                       .order_by("series__key", "depth_mm")
+                       .values_list("depth_mm", "value", "series__key")):
+        got[key].append((mm, v))
+
+    out = []
+    # **고른 순서가 아니라 항목 순서로 놓는다** — 주소에 적힌 차례가 화면의
+    # 차례가 되면 같은 조합인데 그림이 달라 보인다.
+    for key in sorted(rows, key=lambda k: (rows[k].sort_order, k)):
+        cs, pts = rows[key], got[key]
+        if not pts:
+            out.append({"key": key, "label": cs.label, "unit": cs.unit,
+                        "n": 0, "shown": 0, "thinned": False,
+                        "segments": [], "lo": None, "hi": None})
+            continue
+        vals = [v for _, v in pts]
+        lo, hi = min(vals), max(vals)
+        kept, thinned = _thin(pts, cap)
+        out.append({
+            "key": key, "label": cs.label, "unit": cs.unit,
+            "n": len(pts), "shown": len(kept), "thinned": thinned,
+            "segments": _segments(kept, lo, hi), "lo": lo, "hi": hi,
+        })
+    return out
+
+
 def core_series(loc: Locality) -> list[dict]:
     """지점 하나의 측정 항목 목록 (P17). **점은 안 싣는다.**
 
@@ -2516,8 +2614,19 @@ def _axis_marks(rows: list[dict], bottom: float) -> list[dict]:
     return out
 
 
+# 목록에서 접어 두는 묶음 (P17 4단계). XRF 는 원소마다 한 항목이라 24개이고
+# 그대로 두면 체크 목록을 지배한다 — 사용자 방침 2026-08-19 로 **감춘 채로
+# 둔다**(지우지 않는다. 펼치면 켤 수 있다).
+#
+# **`key` 접두사로 가른다.** 매핑표가 `xrf_al` 처럼 짓는다. 이런 묶음이 하나
+# 더 생기면 그때는 `CoreSeries` 에 묶음 이름을 칸으로 두는 것이 맞다 — 지금
+# 하나뿐인 것을 위해 칼럼을 더하지 않는다.
+COLLAPSED_PREFIX = "xrf_"
+
+
 def locality_detail(site_code: str, loc_code: str,
-                    with_hidden: bool = False) -> dict | None:
+                    with_hidden: bool = False,
+                    series_keys: list[str] | None = None) -> dict | None:
     """지점 하나 — 위치 방향으로 본 화면. 시추코어면 깊이, 노두면 단면상의 위치.
 
     **목록의 부분집합이 아니어야 이 화면이 값을 한다.** 목록은 관찰끼리
@@ -2573,6 +2682,19 @@ def locality_detail(site_code: str, loc_code: str,
     # `RS19-GC17`)는 자료를 다 넣어 놓고도 축이 안 서서 화면이 빈다. 나중에
     # 관찰이 붙으면 **같은 축 위에 얹힌다.**
     series = core_series(loc)
+    # **주소가 없으면 매핑표가 켜 둔 것**(`default_on`), 있으면 그대로 따른다.
+    # `?series=` 를 빈 값으로 주는 것은 "다 끈다" 이므로 `None` 과 갈라야 한다 —
+    # 없는 것과 비운 것이 같아지면 다 끌 수가 없다.
+    have = {cs["key"] for cs in series}
+    if series_keys is None:
+        picked = [cs["key"] for cs in series if cs["default_on"]]
+    else:
+        # 없는 key 는 조용히 버린다. 링크가 낡았다는 이유로 화면이 죽으면 안 된다
+        picked = [k for k in series_keys if k in have]
+    picked_set = set(picked)
+    for cs in series:
+        cs["on"] = cs["key"] in picked_set
+        cs["collapsed"] = cs["key"].startswith(COLLAPSED_PREFIX)
     depths = [r["depth_cm"] for r in rows if r["depth_cm"] is not None]
     # **점이 없는 항목은 축을 안 잡는다** — 사람이 이름만 만들어 둔 항목이
     # 그렇다. `max_cm` 이 `None` 인 것을 그대로 넘기면 비교에서 죽는다.
@@ -2611,9 +2733,16 @@ def locality_detail(site_code: str, loc_code: str,
         # 서로 맞는다.
         "totals": datasets_total(all_rows),
         "axis": axis,
-        # 코어 자료 (P17). 점은 아직 안 싣는다 — 이 화면이 그리는 것은
-        # 4단계이고, 여기서는 **축이 서는 근거**와 목록까지다.
+        # 코어 자료 (P17). 목록은 전부, **점은 켜진 것만** 싣는다.
         "series": series,
+        "profiles": core_profiles(loc, picked) if axis else [],
+        # 접어 둔 묶음에 켜진 것이 있으면 화면이 그 묶음을 펼쳐 놓아야 한다 —
+        # 안 그러면 그림에는 있는데 어디서 껐는지 못 찾는다
+        "collapsed_on": sum(1 for cs in series
+                            if cs["collapsed"] and cs["on"]),
+        "n_collapsed": sum(1 for cs in series if cs["collapsed"]),
+        # 체크를 되돌릴 자리. **빈 값이 "다 끄기" 라서 주소에 남는다**
+        "picked_param": ",".join(picked),
         # 축에 못 놓는 것들. **버리지 않고 따로 낸다** — 안 보이면 이 코어에
         # 없는 시료가 된다.
         "unplaced": [r for r in rows if r["depth_cm"] is None],

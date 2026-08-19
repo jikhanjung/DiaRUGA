@@ -121,7 +121,7 @@ class CorePageTest(DiaRUGATestCase):
         html = r.content.decode()
         # **글자로 짚지 않는다** — `base.html` 의 CSS 주석에 "코어 자료" 가
         # 들어 있어서 어느 화면에서나 걸린다. 렌더된 블록을 본다.
-        self.assertIn('class="cslist"', html)
+        self.assertIn('class="csbox"', html)
         self.assertIn("OPAL", html)
         # 축이 섰으므로 "축을 그릴 수 없습니다" 가 뜨면 안 된다
         self.assertNotIn("축을 그릴 수 없습니다", html)
@@ -141,7 +141,7 @@ class CorePageTest(DiaRUGATestCase):
                           kind="outcrop", area="kr", sample_code="0901")
         r = self.client.get(reverse("core", args=["BP", "BP09"]))
         self.assertEqual(r.status_code, 200)
-        self.assertNotIn('class="cslist"', r.content.decode())
+        self.assertNotIn('class="csbox"', r.content.decode())
 
 
 class ImportCoredataTest(DiaRUGATestCase):
@@ -336,3 +336,147 @@ class MappingTableTest(DiaRUGATestCase):
         for name, core in self.cores.items():
             keys = [c[1] for b in core["block"] for c in b["columns"]]
             self.assertEqual(len(keys), len(set(keys)), f"{name}: key 중복")
+
+
+class ProfileChartTest(DiaRUGATestCase):
+    """꺾은선 (P17 4단계). **줄이기·끊기·고르기가 잡히는 자리다.**"""
+
+    def setUp(self):
+        super().setUp()
+        self.loc = _bare_locality()
+
+    def test_고른_것만_점을_읽는다(self):
+        """42개 항목을 다 당기면 코어 하나에 9만 점이다."""
+        _series(self.loc, "opal", default_on=True, points=[(0, 1.0), (100, 2.0)])
+        _series(self.loc, "toc", points=[(0, 0.5), (100, 0.6)])
+        ctx = data.locality_detail("RS14", "GC04")
+        self.assertEqual([p["key"] for p in ctx["profiles"]], ["opal"])
+
+    def test_주소가_없으면_기본이_켜진다(self):
+        _series(self.loc, "opal", default_on=True, points=[(0, 1.0), (100, 2.0)])
+        _series(self.loc, "tn", points=[(0, 0.5)])
+        ctx = data.locality_detail("RS14", "GC04", series_keys=None)
+        self.assertEqual([p["key"] for p in ctx["profiles"]], ["opal"])
+
+    def test_빈_주소는_다_끈다(self):
+        """`?series=` 와 주소 없음이 같아지면 **전부 끌 방법이 없어진다.**"""
+        _series(self.loc, "opal", default_on=True, points=[(0, 1.0), (100, 2.0)])
+        ctx = data.locality_detail("RS14", "GC04", series_keys=[])
+        self.assertEqual(ctx["profiles"], [])
+        self.assertFalse(any(cs["on"] for cs in ctx["series"]))
+
+    def test_없는_key_는_버리고_화면은_선다(self):
+        """링크가 낡았다는 이유로 화면이 죽으면 안 된다."""
+        _series(self.loc, "opal", points=[(0, 1.0), (100, 2.0)])
+        ctx = data.locality_detail("RS14", "GC04", series_keys=["nosuch", "opal"])
+        self.assertEqual([p["key"] for p in ctx["profiles"]], ["opal"])
+
+    def test_x_는_항목마다_따로_편다(self):
+        """함수율(%)과 자기감수율(SI)을 한 축에 얹을 수 없다."""
+        _series(self.loc, "opal", points=[(0, 10.0), (100, 20.0), (200, 30.0)])
+        (pr,) = data.core_profiles(self.loc, ["opal"])
+        xs = [pt["x"] for seg in pr["segments"] for pt in seg]
+        self.assertEqual((pr["lo"], pr["hi"]), (10.0, 30.0))
+        self.assertEqual(xs, [0, 50, 100])
+
+    def test_빈_구간을_가로지르지_않는다(self):
+        """이으면 **안 잰 구간이 잰 것처럼 뜬다.**"""
+        pts = [(0, 1.0), (10, 1.0), (20, 1.0), (5000, 2.0), (5010, 2.0)]
+        _series(self.loc, "opal", points=pts)
+        (pr,) = data.core_profiles(self.loc, ["opal"])
+        self.assertEqual(len(pr["segments"]), 2)
+        self.assertEqual([len(s) for s in pr["segments"]], [3, 2])
+
+    def test_고르게_잰_것은_안_끊는다(self):
+        pts = [(i * 20, float(i)) for i in range(30)]
+        _series(self.loc, "opal", points=pts)
+        (pr,) = data.core_profiles(self.loc, ["opal"])
+        self.assertEqual(len(pr["segments"]), 1)
+
+    def test_점이_많으면_줄이고_줄였다고_말한다(self):
+        """XRF 가 한 원소에 3,575점이다. **조용히 줄이면 안 잰 구간과 같아진다.**"""
+        pts = [(i, float(i % 7)) for i in range(3000)]
+        _series(self.loc, "xrf_fe", points=pts)
+        (pr,) = data.core_profiles(self.loc, ["xrf_fe"], cap=200)
+        self.assertEqual(pr["n"], 3000)
+        self.assertTrue(pr["thinned"])
+        self.assertLessEqual(pr["shown"], 200)
+        self.assertGreater(pr["shown"], 0)
+
+    def test_줄여도_봉우리와_골이_남는다(self):
+        """**평균을 내지 않는다** — 없던 값이 생기고 뾰족한 곳이 사라진다."""
+        pts = [(i, 1.0) for i in range(1000)]
+        pts[500] = (500, 99.0)                       # 봉우리 하나
+        pts[700] = (700, -50.0)                      # 골 하나
+        _series(self.loc, "xrf_fe", points=pts)
+        (pr,) = data.core_profiles(self.loc, ["xrf_fe"], cap=100)
+        vals = [pt["v"] for seg in pr["segments"] for pt in seg]
+        self.assertIn(99.0, vals)
+        self.assertIn(-50.0, vals)
+        # 남은 값이 전부 실제로 잰 값인가 (지어낸 값이 없는가)
+        real = {v for _, v in pts}
+        self.assertTrue(set(vals) <= real)
+
+    def test_안_줄여도_되면_그대로_둔다(self):
+        _series(self.loc, "opal", points=[(0, 1.0), (100, 2.0)])
+        (pr,) = data.core_profiles(self.loc, ["opal"], cap=800)
+        self.assertFalse(pr["thinned"])
+        self.assertEqual(pr["shown"], 2)
+
+    def test_XRF_는_접어_둔다(self):
+        _series(self.loc, "opal", default_on=True, points=[(0, 1.0)])
+        _series(self.loc, "xrf_fe", points=[(0, 1.0)])
+        ctx = data.locality_detail("RS14", "GC04")
+        by = {cs["key"]: cs for cs in ctx["series"]}
+        self.assertTrue(by["xrf_fe"]["collapsed"])
+        self.assertFalse(by["opal"]["collapsed"])
+        self.assertEqual(ctx["n_collapsed"], 1)
+        self.assertEqual(ctx["collapsed_on"], 0)
+
+    def test_접어_둔_것이_켜져_있으면_센다(self):
+        """그림에는 있는데 끄는 자리를 못 찾는 상태가 되면 안 된다."""
+        _series(self.loc, "xrf_fe", points=[(0, 1.0)])
+        ctx = data.locality_detail("RS14", "GC04", series_keys=["xrf_fe"])
+        self.assertEqual(ctx["collapsed_on"], 1)
+
+
+class ProfileChartPageTest(DiaRUGATestCase):
+    """화면. 자료가 어느 갈래로 가는지를 본다 (086)."""
+
+    def setUp(self):
+        super().setUp()
+        self.loc = _bare_locality()
+        self.url = reverse("core", args=["RS14", "GC04"])
+
+    def test_켜진_항목이_그려진다(self):
+        _series(self.loc, "opal", default_on=True,
+                points=[(0, 10.0), (1000, 20.0), (3620, 30.0)])
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('class="cschart"', html)
+        self.assertIn("<polyline", html)
+        # 깊이를 그대로 y 좌표로 쓴다 — 축 계산이 한 군데로 모인다
+        self.assertIn('viewBox="0 0 100 400"', html)
+
+    def test_다_끄면_그림이_없고_그렇게_적는다(self):
+        _series(self.loc, "opal", default_on=True, points=[(0, 10.0), (3620, 20.0)])
+        html = self.client.get(self.url, {"series": ""}).content.decode()
+        self.assertNotIn('class="cschart"', html)
+        self.assertIn("켜 둔 항목이 없습니다", html)
+
+    def test_줄인_것을_화면이_말한다(self):
+        pts = [(i, float(i % 7)) for i in range(3000)]
+        _series(self.loc, "xrf_fe", points=pts)
+        html = self.client.get(self.url, {"series": "xrf_fe"}).content.decode()
+        self.assertIn("3000점 중", html)
+
+    def test_점이_없는_항목은_켤_수_없다(self):
+        """켜 봐야 빈 칸이 그려진다. 누를 수 있으면 고장으로 읽힌다."""
+        _series(self.loc, "opal")
+        html = self.client.get(self.url).content.decode()
+        self.assertIn("disabled", html)
+
+    def test_노두에는_그림이_없다(self):
+        fx.make_world(slug="bp09", site_code="BP", loc_code="BP09",
+                      kind="outcrop", area="kr", sample_code="0901")
+        html = self.client.get(reverse("core", args=["BP", "BP09"])).content.decode()
+        self.assertNotIn('class="cschart"', html)

@@ -191,25 +191,6 @@
       {% endif %}
     {% endif %}
 
-    {% comment %}
-      코어 자료 목록 (P17 3단계). **그림은 아직 아니다** — 여기 있는 것은
-      무엇이 몇 점 들어와 있고 어느 구간을 덮는가까지다. 반입이 실제로 앉았는지
-      화면에서 확인할 길이 없으면 반입기를 눌러 볼 수가 없다.
-    {% endcomment %}
-    {% if series %}
-      <div class="cslist">
-        <div class="cshead">코어 자료 <span class="dim">{{ series|length }}개 항목</span></div>
-        {% for cs in series %}
-          <div class="csrow{% if cs.default_on %} on{% endif %}">
-            <b>{{ cs.label }}</b>
-            {% if cs.unit %}<span class="dim">{{ cs.unit }}</span>{% endif %}
-            {% if cs.source == "manual" %}<span class="csman">수동</span>{% endif %}
-            <span class="dim">{{ cs.n }}점{% if cs.min_cm is not None %} ·
-              {{ cs.min_cm|floatformat:"-1" }}~{{ cs.max_cm|floatformat:"-1" }} cm{% endif %}</span>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
 
     {% if unplaced %}
       {% comment %}
@@ -311,6 +292,136 @@
     </section>
   </div>
 </div>
+
+{% comment %}
+  코어 자료 — 깊이별 측정 항목 (P17 4단계).
+
+  **`.corelog` 안에 넣지 않는다.** 거기는 `.mark`(시료 표식)가 `left:146px` 부터
+  오른쪽 끝까지 절대 위치로 깔려 있어서, 칸을 끼우면 관찰이 있는 코어에서 서로
+  겹친다. 여기는 폭을 다 쓰는 제 구역이고 **깊이 축을 따로 그린다** — 눈금 값은
+  같은 `axis` 에서 나오므로 두 그림의 깊이가 어긋날 수 없다.
+
+  **x 축은 항목마다 따로다.** 함수율(%)과 자기감수율(SI)을 한 축에 얹을 수
+  없다 — 각 칸이 제 최소~최대를 편다. 그래서 칸마다 양 끝에 값을 적는다.
+
+  **SVG 는 `viewBox="0 0 100 <bottom>"` 에 `preserveAspectRatio="none"` 이다.**
+  깊이를 그대로 y 좌표로 쓰면 축 계산이 한 군데로 모인다. 그 대신 세로로 늘어난
+  좌표계라 선이 눌리므로 `vector-effect="non-scaling-stroke"` 로 굵기를 지킨다.
+{% endcomment %}
+{% if axis and series %}
+<section class="csbox">
+  <h3>코어 자료 <span class="dim">{{ series|length }}개 항목 ·
+    {{ profiles|length }}개 보는 중</span></h3>
+
+  {% comment %}
+    고르는 자리. **평범한 GET 폼이다** — 고른 것이 주소에 남아야 "이 조합으로
+    보라" 를 링크로 주고받는다. JS 가 없어도 돈다.
+  {% endcomment %}
+  <form class="cspick" method="get">
+    {% if with_hidden %}<input type="hidden" name="hidden" value="1">{% endif %}
+    <div class="cspicks">
+      {% for cs in series %}{% if not cs.collapsed %}
+        <label class="cspickone{% if not cs.n %} nopt{% endif %}"
+               title="{{ cs.n }}점{% if cs.min_cm is not None %} · {{ cs.min_cm|floatformat:"-1" }}~{{ cs.max_cm|floatformat:"-1" }} cm{% endif %}{% if cs.origin %} · {{ cs.origin }}{% endif %}">
+          <input type="checkbox" name="series" value="{{ cs.key }}"
+                 {% if cs.on %}checked{% endif %}
+                 {% if not cs.n %}disabled{% endif %}>
+          <span>{{ cs.label }}</span>
+          {% if cs.unit %}<span class="dim">{{ cs.unit }}</span>{% endif %}
+          {% if cs.source == "manual" %}<span class="csman">수동</span>{% endif %}
+          {% if not cs.n %}<span class="dim">점 없음</span>{% endif %}
+        </label>
+      {% endif %}{% endfor %}
+    </div>
+
+    {% comment %}
+      XRF 는 원소마다 한 항목이라 24개다. 접어 둔다 — **지우는 것이 아니다.**
+      켜 놓은 것이 있으면 펼친 채로 연다(그림에는 있는데 끄는 자리를 못 찾는
+      상태가 안 되게).
+    {% endcomment %}
+    {% if n_collapsed %}
+      <details class="csmore"{% if collapsed_on %} open{% endif %}>
+        <summary>XRF <span class="dim">{{ n_collapsed }}개 원소{% if collapsed_on %} · {{ collapsed_on }}개 켜져 있습니다{% endif %}</span></summary>
+        <div class="cspicks">
+          {% for cs in series %}{% if cs.collapsed %}
+            <label class="cspickone">
+              <input type="checkbox" name="series" value="{{ cs.key }}"
+                     {% if cs.on %}checked{% endif %}>
+              <span>{{ cs.label }}</span>
+            </label>
+          {% endif %}{% endfor %}
+        </div>
+      </details>
+    {% endif %}
+
+    <div class="csgo">
+      <button type="submit">보기</button>
+      {% comment %}
+        **"다 끄기" 는 `?series=` 를 빈 값으로 보내는 것이다.** 체크를 다 풀고
+        누르면 브라우저가 `series` 를 아예 안 보내는데, 그러면 "주소가 없다" 가
+        되어 기본 넷이 다시 켜진다. 빈 값을 함께 실어 그 갈래를 갈라 준다.
+      {% endcomment %}
+      <a class="cslink" href="?series={% if with_hidden %}&hidden=1{% endif %}">다 끄기</a>
+      <a class="cslink" href="?{% if with_hidden %}hidden=1{% endif %}">기본으로</a>
+    </div>
+  </form>
+
+  {% if profiles %}
+    <div class="cschart" style="--bottom:{{ axis.bottom }}">
+      {% comment %} 깊이 축. `.corelog` 의 눈금과 같은 `axis` 에서 나온다 {% endcomment %}
+      <div class="csdepth">
+        {% for t in axis.ticks %}
+          <div class="cstick" style="top:{{ t.pct }}%"><span>{{ t.cm }}</span></div>
+        {% endfor %}
+      </div>
+
+      {% for pr in profiles %}
+        <div class="cstrack">
+          <div class="cshdr">
+            <b>{{ pr.label }}</b>
+            {% if pr.unit %}<span class="dim">{{ pr.unit }}</span>{% endif %}
+          </div>
+          <div class="csplot">
+            {% if pr.segments %}
+              <svg viewBox="0 0 100 {{ axis.bottom }}"
+                   preserveAspectRatio="none" aria-label="{{ pr.label }}">
+                {% for seg in pr.segments %}
+                  {% if seg|length > 1 %}
+                    <polyline vector-effect="non-scaling-stroke"
+                              points="{% for pt in seg %}{{ pt.x }},{{ pt.cm }} {% endfor %}"/>
+                  {% else %}
+                    {% comment %}
+                      점 하나짜리 토막. **버리지 않는다** — 그 깊이에 잰 값이
+                      있었다는 것이 자료다. 선이 안 되니 점으로 찍는다.
+                    {% endcomment %}
+                    {% for pt in seg %}
+                      <circle class="cslone" cx="{{ pt.x }}" cy="{{ pt.cm }}" r="1"/>
+                    {% endfor %}
+                  {% endif %}
+                {% endfor %}
+              </svg>
+            {% else %}
+              <div class="csempty">점 없음</div>
+            {% endif %}
+          </div>
+          <div class="csfoot">
+            <span>{{ pr.lo|floatformat:"-2" }}</span>
+            <span>{{ pr.hi|floatformat:"-2" }}</span>
+          </div>
+          {% comment %}
+            **줄였으면 줄였다고 적는다** — 조용히 줄이면 안 잰 구간과 구별이
+            안 된다. 줄이는 방법은 `data._thin` 머리말에 있다(실제로 잰 점의
+            최소·최대를 남긴다. 평균을 내지 않는다).
+          {% endcomment %}
+          <div class="csn dim">{% if pr.thinned %}{{ pr.n }}점 중 {{ pr.shown }}점{% else %}{{ pr.n }}점{% endif %}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="note">켜 둔 항목이 없습니다. 위에서 고르면 여기 그려집니다.</div>
+  {% endif %}
+</section>
+{% endif %}
 <script>
 // 끌어다 놓기. **입력 칸은 그대로 살아 있다** — 드래그가 안 되는 환경(터치·
 // 원격 데스크톱)에서도 눌러서 고를 수 있어야 한다. JS 가 없으면 파일 칸이
