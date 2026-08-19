@@ -123,9 +123,18 @@
       </div>
     {% endif %}
     {% if axis %}
+    {% comment %}
+      **칸 수를 한 군데에만 적는다** (P17 5단계). 머리줄·그림·표식·발치가 전부
+      이 값으로 자리를 잡으므로, 여기가 어긋나면 넷이 함께 어긋난다.
+    {% endcomment %}
+    <div class="logscroll" style="--lanes:{{ profiles|length }}">
     <div class="loghead">
       <span class="lh-depth">깊이</span>
       <span class="lh-lith">암상</span>
+      {% for pr in profiles %}
+        <span class="lh-track" style="--i:{{ forloop.counter0 }}"
+              title="{{ pr.label }}{% if pr.unit %} ({{ pr.unit }}){% endif %}">{{ pr.label }}</span>
+      {% endfor %}
       <span class="lh-samp">시료</span>
     </div>
     <div class="logbody" style="--bottom:{{ axis.bottom }}">
@@ -146,6 +155,33 @@
       <div class="lithband" title="암상 기재가 들어올 자리입니다 (아직 자료가 없습니다)">
         <span class="lithnote">암상 기재가<br>들어올 자리</span>
       </div>
+
+      {% comment %}
+        측정 항목 칸. **깊이 축을 그대로 나눠 쓴다** — `top:0; bottom:0` 이라
+        눈금과 어긋날 수가 없다. SVG 는 `viewBox="0 0 100 <코어길이cm>"` 에
+        `preserveAspectRatio="none"` 이고, 세로로 눌린 좌표계라 선 굵기는
+        `vector-effect` 가 지킨다.
+      {% endcomment %}
+      {% for pr in profiles %}
+        <div class="cslane" style="--i:{{ forloop.counter0 }}"
+             title="{{ pr.label }} · {{ pr.n }}점{% if pr.thinned %} 중 {{ pr.shown }}점{% endif %}">
+          {% if pr.segments %}
+            <svg viewBox="0 0 100 {{ axis.bottom }}" preserveAspectRatio="none"
+                 aria-label="{{ pr.label }}">
+              {% for seg in pr.segments %}
+                {% if seg|length > 1 %}
+                  <polyline vector-effect="non-scaling-stroke"
+                            points="{% for pt in seg %}{{ pt.x }},{{ pt.cm }} {% endfor %}"/>
+                {% else %}
+                  {% for pt in seg %}
+                    <circle class="cslone" cx="{{ pt.x }}" cy="{{ pt.cm }}" r="1"/>
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            </svg>
+          {% endif %}
+        </div>
+      {% endfor %}
 
       {% comment %}
         시료 위치 — 이 값들은 진짜다 (Sample.depth_cm).
@@ -169,6 +205,26 @@
             시야 {{ m.row.n_groups }}</span>
         </div>
       {% endfor %}
+    </div>
+    {% comment %}
+      칸마다 x 축이 따로다(단위가 다르니 한 축에 못 얹는다). **양 끝 값을
+      적어야 그림이 읽힌다.** 줄인 것은 줄였다고 적는다 — 조용히 줄이면 안 잰
+      구간과 구별이 안 된다.
+    {% endcomment %}
+    {% if profiles %}
+      <div class="logfoot">
+        {% for pr in profiles %}
+          <div class="lf-track" style="--i:{{ forloop.counter0 }}">
+            {% if pr.segments %}
+              <div class="lf-ends"><span>{{ pr.lo|floatformat:"-2" }}</span><span>{{ pr.hi|floatformat:"-2" }}</span></div>
+              <div class="lf-n">{% if pr.thinned %}{{ pr.n }}→{{ pr.shown }}점{% else %}{{ pr.n }}점{% endif %}</div>
+            {% else %}
+              <div class="lf-n">점 없음</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
     </div>
     {% elif not is_outcrop %}
       {% comment %}
@@ -366,59 +422,9 @@
     </div>
   </form>
 
-  {% if profiles %}
-    <div class="cschart" style="--bottom:{{ axis.bottom }}">
-      {% comment %} 깊이 축. `.corelog` 의 눈금과 같은 `axis` 에서 나온다 {% endcomment %}
-      <div class="csdepth">
-        {% for t in axis.ticks %}
-          <div class="cstick" style="top:{{ t.pct }}%"><span>{{ t.cm }}</span></div>
-        {% endfor %}
-      </div>
-
-      {% for pr in profiles %}
-        <div class="cstrack">
-          <div class="cshdr">
-            <b>{{ pr.label }}</b>
-            {% if pr.unit %}<span class="dim">{{ pr.unit }}</span>{% endif %}
-          </div>
-          <div class="csplot">
-            {% if pr.segments %}
-              <svg viewBox="0 0 100 {{ axis.bottom }}"
-                   preserveAspectRatio="none" aria-label="{{ pr.label }}">
-                {% for seg in pr.segments %}
-                  {% if seg|length > 1 %}
-                    <polyline vector-effect="non-scaling-stroke"
-                              points="{% for pt in seg %}{{ pt.x }},{{ pt.cm }} {% endfor %}"/>
-                  {% else %}
-                    {% comment %}
-                      점 하나짜리 토막. **버리지 않는다** — 그 깊이에 잰 값이
-                      있었다는 것이 자료다. 선이 안 되니 점으로 찍는다.
-                    {% endcomment %}
-                    {% for pt in seg %}
-                      <circle class="cslone" cx="{{ pt.x }}" cy="{{ pt.cm }}" r="1"/>
-                    {% endfor %}
-                  {% endif %}
-                {% endfor %}
-              </svg>
-            {% else %}
-              <div class="csempty">점 없음</div>
-            {% endif %}
-          </div>
-          <div class="csfoot">
-            <span>{{ pr.lo|floatformat:"-2" }}</span>
-            <span>{{ pr.hi|floatformat:"-2" }}</span>
-          </div>
-          {% comment %}
-            **줄였으면 줄였다고 적는다** — 조용히 줄이면 안 잰 구간과 구별이
-            안 된다. 줄이는 방법은 `data._thin` 머리말에 있다(실제로 잰 점의
-            최소·최대를 남긴다. 평균을 내지 않는다).
-          {% endcomment %}
-          <div class="csn dim">{% if pr.thinned %}{{ pr.n }}점 중 {{ pr.shown }}점{% else %}{{ pr.n }}점{% endif %}</div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="note">켜 둔 항목이 없습니다. 위에서 고르면 여기 그려집니다.</div>
+  {% if not profiles %}
+    <div class="note">켜 둔 항목이 없습니다. 고르면 위 코어 로그의 깊이 축
+      옆에 그려집니다.</div>
   {% endif %}
 </section>
 {% endif %}

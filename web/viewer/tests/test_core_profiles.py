@@ -452,7 +452,9 @@ class ProfileChartPageTest(DiaRUGATestCase):
         _series(self.loc, "opal", default_on=True,
                 points=[(0, 10.0), (1000, 20.0), (3620, 30.0)])
         html = self.client.get(self.url).content.decode()
-        self.assertIn('class="cschart"', html)
+        # **코어 로그 안이다** — 시료 표식 옆에서 읽어야 하는 그림이다
+        # (사용자 요청 2026-08-19). 아래에 따로 그리던 것을 옮겼다.
+        self.assertIn('class="cslane"', html)
         self.assertIn("<polyline", html)
         # 깊이를 그대로 y 좌표로 쓴다 — 축 계산이 한 군데로 모인다
         self.assertIn('viewBox="0 0 100 400"', html)
@@ -460,7 +462,7 @@ class ProfileChartPageTest(DiaRUGATestCase):
     def test_다_끄면_그림이_없고_그렇게_적는다(self):
         _series(self.loc, "opal", default_on=True, points=[(0, 10.0), (3620, 20.0)])
         html = self.client.get(self.url, {"series": ""}).content.decode()
-        self.assertNotIn('class="cschart"', html)
+        self.assertNotIn('class="cslane"', html)
         self.assertIn("켜 둔 항목이 없습니다", html)
 
     def test_줄인_것을_화면이_말한다(self):
@@ -479,4 +481,34 @@ class ProfileChartPageTest(DiaRUGATestCase):
         fx.make_world(slug="bp09", site_code="BP", loc_code="BP09",
                       kind="outcrop", area="kr", sample_code="0901")
         html = self.client.get(reverse("core", args=["BP", "BP09"])).content.decode()
-        self.assertNotIn('class="cschart"', html)
+        self.assertNotIn('class="cslane"', html)
+
+
+class LaneLayoutTest(DiaRUGATestCase):
+    """칸이 코어 로그 안에 있으면 **시료 표식이 그만큼 밀려야 한다** (P17 5단계).
+
+    예전 `.mark` 는 `left:146px` 에 못 박혀 있었다. 거기가 곧 첫 칸 자리라,
+    안 밀면 표식이 그림 위에 겹쳐 앉는다 — 관찰이 있는 코어에서만 나는 고장이고
+    **새 코어 둘은 관찰이 0개라 안 겹친다.** 그래서 여기서 관찰이 있는 코어로
+    본다(086: 자료가 어느 갈래로 가는지).
+    """
+
+    def test_칸_수가_화면에_실린다(self):
+        w = fx.make_world(slug="rs23", depth_cm=71.0)
+        _series(w.locality, "opal", default_on=True, points=[(0, 1.0), (1000, 2.0)])
+        _series(w.locality, "wc", default_on=True, points=[(0, 1.0), (1000, 2.0)])
+        html = self.client.get(reverse("core", args=["RS23", "GC03"])).content.decode()
+        # 머리줄·그림·표식·발치가 전부 이 값으로 자리를 잡는다
+        self.assertIn("--lanes:2", html)
+        self.assertIn('style="--i:0"', html)
+        self.assertIn('style="--i:1"', html)
+        # 표식도 함께 있어야 이 시험이 뜻을 갖는다
+        self.assertIn('class="mark', html)
+
+    def test_다_끄면_칸이_0_이라_표식이_제자리다(self):
+        w = fx.make_world(slug="rs23", depth_cm=71.0)
+        _series(w.locality, "opal", default_on=True, points=[(0, 1.0), (1000, 2.0)])
+        html = self.client.get(reverse("core", args=["RS23", "GC03"]),
+                               {"series": ""}).content.decode()
+        self.assertIn("--lanes:0", html)
+        self.assertNotIn('class="cslane"', html)
