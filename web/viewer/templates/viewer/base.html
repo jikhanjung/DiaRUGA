@@ -954,6 +954,50 @@
     min-width: calc(var(--lane0) + var(--lanes, 0) * var(--lanew) + 200px);
   }
 
+  /* 사람이 넣는 자리 (P17 5단계) */
+  .csedit { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .csedit > summary {
+    font-size: 12.5px; cursor: pointer; padding: 3px 0;
+  }
+  .csedit > summary:hover { color: var(--accent); }
+  .csform { margin: 10px 0 4px; display: grid; gap: 8px; }
+  .csrow { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .csrow.csrow-top { align-items: flex-start; }
+  .csrow > span:first-child {
+    width: 96px; flex: 0 0 auto; color: var(--dim); text-align: right;
+  }
+  .csrow textarea {
+    flex: 1 1 auto; min-width: 260px; font-family: ui-monospace, monospace;
+    font-size: 12px; background: var(--field-bg); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px;
+  }
+  .csrow select, .csfields input {
+    background: var(--field-bg); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px;
+    font-size: 12px;
+  }
+  .csrow.csrow-chk { padding-left: 106px; }
+  .csrow.csrow-chk > span:first-child { width: auto; text-align: left; }
+  .csfields { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .csfields input[name="label"] { min-width: 220px; flex: 1 1 220px; }
+  .csinline { display: flex; align-items: center; gap: 4px; }
+  .csgo .csprimary { font-weight: 600; }
+  /* 미리 보기. **아무것도 안 쓴 상태다** — 그렇게 보여야 한다 */
+  .cspv {
+    margin: 8px 0; padding: 9px 12px; font-size: 12px;
+    border: 1px solid var(--warn-line); border-radius: 4px;
+    background: var(--warn-bg); color: var(--warn-fg);
+  }
+  .cspv ul { margin: 5px 0 5px 18px; }
+  .cspv li { margin: 2px 0; }
+  .cspv .cswarn { font-weight: 600; }
+  .csnew { border-top: 1px dashed var(--line); padding-top: 10px; }
+  .csown {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+    font-size: 12px; margin-top: 8px;
+  }
+  .csdel { display: flex; align-items: center; gap: 6px; }
+
   /* 코어 자료 — 깊이별 측정 항목 (P17 4단계).
      **색을 박지 않는다** — 테마가 둘이라 토큰을 빌린다 (107) */
   .csbox {

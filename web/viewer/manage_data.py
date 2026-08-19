@@ -14,6 +14,7 @@
 - 관찰(`Slide`)은 여기서 안 지운다. 폴더가 만드는 것이고 그 아래에 **재생성
   불가한 교정**이 달려 있다 — 지우는 문을 아예 두지 않는다
 """
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -21,7 +22,8 @@ from django.db import transaction
 from django.db.models import Count
 
 from . import data
-from .models import (Locality, ObjectReview, RunBatch, Sample, Site, Slide,
+from .models import (CorePoint, CoreSeries,
+                     Locality, ObjectReview, RunBatch, Sample, Site, Slide,
                      Viewpoint)
 
 
@@ -448,3 +450,208 @@ def training_overview() -> dict:
                     for k, v in sorted(cls.items(), key=lambda kv: -kv[1])],
         "slides": rows,
     }
+
+
+# --- 코어 자료를 사람이 넣는다 (P17 5단계) ---------------------------------
+#
+# **반입이 건드리는 것과 겹치지 않는다.** `ops/import_coredata.py` 는
+# `source='import'` 인 항목만 갈아치우고, 여기서 만드는 것은 전부 `manual` 이다.
+# 그 선이 지켜져야 재반입 한 번에 사람이 넣은 값이 안 지워진다.
+#
+# **층이 다른 것을 한 문으로 받지 않는다** (116). 항목의 속성(이름·단위·기본
+# 켜기)과 점 목록은 요청을 가른다 — 이름 한 글자를 고치는 일이 그 항목의 점을
+# 갈아치우는 일이 되면 안 된다.
+
+# `key` 는 주소에 실린다(`?series=`). 영문 소문자로 시작하는 식별자만 받는다.
+KEY_RE = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
+
+# 한 번에 붙여넣을 수 있는 줄 수. 반입기가 내는 가장 큰 항목이 3,575점이라
+# 그보다 넉넉히 잡되, 실수로 파일 통째를 붙였을 때는 멈춘다.
+MAX_PASTE_LINES = 20000
+
+
+def parse_points(text: str) -> dict:
+    """붙여넣은 것을 `(깊이 mm, 값)` 으로 읽는다. **규칙은 여기 하나뿐이다.**
+
+    화면에서 미리 보이는 것과 저장하는 것이 **같은 파서를 지나야 한다** — 둘로
+    나누면 "미리 보기에서는 되는데 저장하면 다르다" 가 생긴다.
+
+    받는 꼴은 `깊이 값` 두 칸이고 사이는 탭·쉼표·빈칸 아무거나다(엑셀에서 두
+    칸을 긁으면 탭이다). 깊이는 **cm** 로 받아 mm 정수로 든다 —
+    `CorePoint` 가 그렇게 들고, 바꾸는 자리를 늘리지 않는다.
+
+    **버린 줄을 세어서 돌려준다.** 조용히 건너뛰면 몇 점이 왜 안 들어왔는지
+    알 수가 없다 — 붙여넣기는 머리글이 따라오는 일이 흔하다.
+    """
+    rows: dict[int, float] = {}
+    skipped: list[str] = []
+    clash: list[str] = []
+    n_lines = 0
+    for i, raw in enumerate(text.splitlines(), 1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        n_lines += 1
+        if n_lines > MAX_PASTE_LINES:
+            skipped.append(f"{i}행부터: 한 번에 {MAX_PASTE_LINES}줄까지입니다")
+            break
+        parts = [t for t in re.split(r"[\t,;\s]+", line) if t]
+        if len(parts) < 2:
+            skipped.append(f"{i}행: 칸이 둘이 아닙니다 ({line[:24]})")
+            continue
+        try:
+            cm, val = float(parts[0]), float(parts[1])
+        except ValueError:
+            skipped.append(f"{i}행: 숫자가 아닙니다 ({line[:24]})")
+            continue
+        if cm < 0:
+            skipped.append(f"{i}행: 깊이가 음수입니다 ({parts[0]})")
+            continue
+        mm = round(cm * 10)
+        if mm in rows and rows[mm] != val:
+            # 반입기(`read_block`)와 같은 규칙이다 — 같은 값이면 한 번만 넣고,
+            # 다르면 어느 쪽이 맞는지 사람이 정한다.
+            clash.append(f"{cm:g} cm: {rows[mm]:g} 와 {val:g}")
+            continue
+        rows[mm] = val
+    return {"rows": rows, "skipped": skipped, "clash": clash}
+
+
+def _manual_series(loc: Locality, key: str) -> tuple[CoreSeries | None, str]:
+    """사람이 넣은 항목만 내준다.
+
+    **반입 항목에는 점을 못 넣는다.** 넣어 봐야 다음 반입에 지워지는데, 그때
+    조용히 사라지면 왜 없어졌는지 알 길이 없다 — 아예 못 하게 하고 이유를 적는다.
+    """
+    cs = CoreSeries.objects.filter(locality=loc, key=key).first()
+    if cs is None:
+        return None, f"{loc} 에 항목 {key} 가 없습니다."
+    if cs.source != "manual":
+        return None, (f"{cs.label} 은 xlsx 에서 반입한 항목이라 여기서 못 고칩니다 "
+                      f"— 다시 반입하면 지워집니다. 원본을 고치고 다시 반입하세요.")
+    return cs, ""
+
+
+def preview_points(loc: Locality, key: str, text: str) -> tuple[bool, dict]:
+    """저장하면 무엇이 일어나는가. **아무것도 안 쓴다.**
+
+    누르기 전에 보여야 하는 것은 셋이다 — 몇 점이 새로 들어오고, 몇 점이
+    이미 있는 깊이를 **덮고**, 몇 줄이 버려지는가 (063 의 지우기 문턱과 같은 줄).
+    """
+    cs, err = _manual_series(loc, key)
+    if cs is None:
+        return False, {"error": err}
+    got = parse_points(text)
+    have = set(CorePoint.objects.filter(series=cs)
+               .values_list("depth_mm", flat=True))
+    new = [mm for mm in got["rows"] if mm not in have]
+    over = [mm for mm in got["rows"] if mm in have]
+    depths = sorted(got["rows"])
+    return True, {
+        "series": cs, "n_have": len(have),
+        "n_new": len(new), "n_over": len(over),
+        # 갈아치우기를 고르면 이만큼이 사라진다
+        "n_gone": len(have - set(got["rows"])),
+        "skipped": got["skipped"], "clash": got["clash"],
+        "range_cm": (depths[0] / 10, depths[-1] / 10) if depths else None,
+        "sample": [(mm / 10, got["rows"][mm]) for mm in depths[:5]],
+        "text": text,
+    }
+
+
+def save_points(loc: Locality, key: str, text: str,
+                replace: bool) -> tuple[bool, str]:
+    """붙여넣은 점을 넣는다. **항목 하나만 건드리는 좁은 문이다.**
+
+    `/review` 처럼 범위를 갈아치우지 않는다 — 017·027·053 계열의 사고가
+    구조적으로 안 생긴다.
+
+    **서버가 다시 검사한다.** 미리 보기가 막았다고 여기서 안 보면, 화면을 안
+    거친 요청 하나로 그대로 들어온다 (화면에서 막는 것은 막는 것이 아니다).
+    """
+    cs, err = _manual_series(loc, key)
+    if cs is None:
+        return False, err
+    got = parse_points(text)
+    if got["clash"]:
+        return False, ("같은 깊이에 값이 둘입니다 — 어느 쪽인지 정해 주세요: "
+                       + " · ".join(got["clash"][:3]))
+    if not got["rows"]:
+        return False, "넣을 점이 없습니다." + (
+            " " + got["skipped"][0] if got["skipped"] else "")
+    with transaction.atomic():
+        if replace:
+            CorePoint.objects.filter(series=cs).delete()
+            CorePoint.objects.bulk_create(
+                [CorePoint(series=cs, depth_mm=mm, value=v)
+                 for mm, v in sorted(got["rows"].items())], batch_size=2000)
+        else:
+            have = dict(CorePoint.objects.filter(
+                series=cs, depth_mm__in=list(got["rows"]))
+                .values_list("depth_mm", "id"))
+            CorePoint.objects.bulk_create(
+                [CorePoint(series=cs, depth_mm=mm, value=v)
+                 for mm, v in sorted(got["rows"].items()) if mm not in have],
+                batch_size=2000)
+            for mm, pk in have.items():
+                CorePoint.objects.filter(pk=pk).update(value=got["rows"][mm])
+    n = CorePoint.objects.filter(series=cs).count()
+    tail = f" ({len(got['skipped'])}줄은 못 읽어 버렸습니다)" if got["skipped"] else ""
+    return True, f"{cs.label} 에 {len(got['rows'])}점을 넣었습니다 — 이제 {n}점입니다.{tail}"
+
+
+def create_series(loc: Locality, form) -> tuple[bool, str]:
+    """측정 항목을 하나 만든다. **언제나 `manual` 이다.**
+
+    **`key` 는 받아서 소문자로 낮춘다.** 기계 이름이라 대소문자를 가릴 이유가
+    없고, 화면에 뜨는 것은 `label` 이다. 다만 **화면의 `pattern` 도 같은 것을
+    받아야 한다** — 폼이 막는데 서버가 받으면 둘이 다른 말을 하는 것이고,
+    그 어긋남은 나중에 어느 쪽이 규칙인지 모르게 만든다.
+    """
+    key = (form.get("key") or "").strip().lower()
+    label = (form.get("label") or "").strip()
+    if not KEY_RE.match(key):
+        return False, "이름표(key)는 영문 소문자로 시작하고 영문·숫자·밑줄만 씁니다."
+    if not label:
+        return False, "화면에 뜰 이름이 필요합니다."
+    if CoreSeries.objects.filter(locality=loc, key=key).exists():
+        return False, f"{loc} 에 항목 {key} 가 이미 있습니다."
+    CoreSeries.objects.create(
+        locality=loc, key=key, label=label,
+        unit=(form.get("unit") or "").strip()[:24], source="manual",
+        default_on=bool(form.get("default_on")),
+        # 반입 항목(10~900) 뒤에 놓는다. 사람이 넣은 것이 목록 끝에 모인다
+        sort_order=950,
+        note=(form.get("note") or "").strip())
+    return True, f"항목 {label} 을 만들었습니다 — 이제 점을 넣으세요."
+
+
+def update_series(loc: Locality, key: str, form) -> tuple[bool, str]:
+    """항목의 속성만 고친다. **점은 안 건드린다** (116)."""
+    cs, err = _manual_series(loc, key)
+    if cs is None:
+        return False, err
+    label = (form.get("label") or "").strip()
+    if not label:
+        return False, "화면에 뜰 이름이 필요합니다."
+    cs.label = label
+    cs.unit = (form.get("unit") or "").strip()[:24]
+    cs.default_on = bool(form.get("default_on"))
+    cs.note = (form.get("note") or "").strip()
+    cs.save(update_fields=["label", "unit", "default_on", "note"])
+    return True, f"항목 {cs.label} 을 고쳤습니다."
+
+
+def delete_series(loc: Locality, key: str) -> tuple[bool, str]:
+    """항목을 지운다. 점도 함께 간다 (FK CASCADE).
+
+    **몇 점이 함께 지워지는지 화면이 먼저 말한다** (063). 여기서는 지운 수를
+    적어 되돌릴 수 없다는 것이 드러나게 한다.
+    """
+    cs, err = _manual_series(loc, key)
+    if cs is None:
+        return False, err
+    n = CorePoint.objects.filter(series=cs).count()
+    label = cs.label
+    cs.delete()
+    return True, f"항목 {label} 과 점 {n}개를 지웠습니다."

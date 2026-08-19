@@ -314,17 +314,19 @@ def settings_redirect(request, tab=""):
 def core_page(request, site_code, core_code):
     """지점 하나 — 위치 방향으로 본 화면. 근거는 `data.locality_detail()` 머리말.
 
-    **읽기 전용이다.** 속성은 `/d/<slug>/edit/` 이 고친다 — 같은 `Locality`·
-    `Site` 행에 쓰는 문을 둘로 만들지 않는다.
+    **지점·지역 속성은 여기서 안 고친다.** 그쪽은 `/d/<slug>/edit/` 이 한다 —
+    같은 `Locality`·`Site` 행에 쓰는 문을 둘로 만들지 않는다.
+
+    **코어 자료는 여기서 넣는다** (P17 5단계). 다른 행이고, 다른 문 둘이 받는다
+    (`core_series_edit`·`core_points_edit`). 이 뷰 자체는 여전히 GET 이다.
     """
     with_hidden = _with_hidden(request)
     # 어느 측정 항목을 그릴 것인가 — `?series=ms_whole,wc,opal,toc` (P17 4단계).
     #
     # **주소가 없는 것과 비어 있는 것은 다르다.** 없으면 매핑표가 켜 둔 넷이
     # 켜지고, 비어 있으면 **다 끈 것**이다. 하나로 보면 전부 끌 방법이 없어진다.
-    raw = request.GET.get("series")
-    keys = None if raw is None else [k for k in raw.split(",") if k]
-    ctx = data.locality_detail(site_code, core_code, with_hidden, keys)
+    ctx = data.locality_detail(site_code, core_code, with_hidden,
+                               _series_arg(request))
     if ctx is None:
         raise Http404(f"unknown locality: {site_code}/{core_code}")
     return render(request, "viewer/core.html", {
@@ -333,6 +335,90 @@ def core_page(request, site_code, core_code):
         "msg": request.GET.get("msg", ""), "err": request.GET.get("err", ""),
         "max_photos": outcrop.MAX_PHOTOS,
     })
+
+
+@require_POST
+def core_series_edit(request, site_code, core_code):
+    """측정 항목을 만들고 고치고 지운다 (P17 5단계). **속성만 건드린다.**
+
+    **POST 전용이다.** 주소를 누르는 것만으로 항목이 지워지면 안 된다.
+
+    점은 여기서 안 만진다 — `core_points_edit` 가 따로 받는다. 층이 다른 것을
+    한 payload 에 실었다가 난 사고가 116 이다.
+    """
+    # **`outcrop_only=False` 를 줘야 한다.** 이 문의 임자는 시추코어인데
+    # `_locality` 는 노두 전용이 기본이다 — 그냥 부르면 404 다.
+    loc = _locality(site_code, core_code, outcrop_only=False)
+    # **노두에는 코어 자료가 없다.** 단면상의 위치는 거리가 아니라 순서라 cm
+    # 축이 안 잡힌다(`data.locality_detail` 머리말). 화면이 이미 안 내지만
+    # **화면에서 막는 것은 막는 것이 아니다.**
+    if loc.kind == "outcrop":
+        return _back_to_core(site_code, core_code, False,
+                             "노두 지점에는 깊이 축이 없어 코어 자료를 둘 수 없습니다.")
+    act = (request.POST.get("act") or "").strip()
+    key = (request.POST.get("key") or "").strip()
+    if act == "create":
+        ok, m = manage_data.create_series(loc, request.POST)
+    elif act == "update":
+        ok, m = manage_data.update_series(loc, key, request.POST)
+    elif act == "delete":
+        ok, m = manage_data.delete_series(loc, key)
+    else:
+        ok, m = False, "모르는 요청입니다."
+    return _back_to_core(site_code, core_code, ok, m)
+
+
+@require_POST
+def core_points_edit(request, site_code, core_code):
+    """점을 붙여넣는다 (P17 5단계). **항목 하나만 건드리는 좁은 문이다.**
+
+    `act=preview` 는 아무것도 안 쓰고 무엇이 일어날지만 보인다 — 몇 점이 새로
+    들어오고 몇 점이 덮이고 몇 줄이 버려지는가. **미리 보기와 저장이 같은
+    파서를 지난다**(`manage_data.parse_points`) — 둘로 나누면 "미리 보기에서는
+    되는데 저장하면 다르다" 가 생긴다.
+
+    **서버가 다시 검사한다.** 미리 보기를 안 거친 요청이 그대로 들어올 수 있다.
+    """
+    loc = _locality(site_code, core_code, outcrop_only=False)
+    # **노두에는 코어 자료가 없다.** 단면상의 위치는 거리가 아니라 순서라 cm
+    # 축이 안 잡힌다(`data.locality_detail` 머리말). 화면이 이미 안 내지만
+    # **화면에서 막는 것은 막는 것이 아니다.**
+    if loc.kind == "outcrop":
+        return _back_to_core(site_code, core_code, False,
+                             "노두 지점에는 깊이 축이 없어 코어 자료를 둘 수 없습니다.")
+    key = (request.POST.get("key") or "").strip()
+    text = request.POST.get("points") or ""
+    if (request.POST.get("act") or "") == "preview":
+        ok, pv = manage_data.preview_points(loc, key, text)
+        if not ok:
+            return _back_to_core(site_code, core_code, False, pv["error"])
+        # 미리 보기는 화면을 다시 그린다. 고른 항목·숨김은 그대로 이어 간다.
+        ctx = data.locality_detail(site_code, core_code, _with_hidden(request),
+                                   _series_arg(request))
+        return render(request, "viewer/core.html", {
+            **ctx, "with_hidden": _with_hidden(request),
+            "msg": "", "err": "", "max_photos": outcrop.MAX_PHOTOS,
+            "preview": pv, "preview_key": key,
+        })
+    ok, m = manage_data.save_points(
+        loc, key, text, replace=bool(request.POST.get("replace")))
+    return _back_to_core(site_code, core_code, ok, m)
+
+
+def _back_to_core(site_code, core_code, ok, msg):
+    """쓰고 나서 지점 화면으로 돌려보낸다 (POST → redirect).
+
+    **되돌아가는 자리가 하나여야 한다** — 새로고침이 같은 쓰기를 다시 하지
+    않게 하는 것이 이 패턴의 목적이고, `outcrop_edit` 가 이미 같은 문을 쓴다.
+    """
+    here = reverse("core", args=[site_code, core_code])
+    return redirect(f"{here}?{urlencode({'msg' if ok else 'err': msg})}")
+
+
+def _series_arg(request):
+    """`?series=` 를 읽는다. **없는 것과 비어 있는 것은 다르다** (P17 4단계)."""
+    raw = request.GET.get("series")
+    return None if raw is None else [k for k in raw.split(",") if k]
 
 
 def _highlight_arg(request):

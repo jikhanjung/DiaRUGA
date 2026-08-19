@@ -2743,6 +2743,10 @@ def locality_detail(site_code: str, loc_code: str,
         "n_collapsed": sum(1 for cs in series if cs["collapsed"]),
         # 체크를 되돌릴 자리. **빈 값이 "다 끄기" 라서 주소에 남는다**
         "picked_param": ",".join(picked),
+        # 사람이 넣는 자리가 고를 수 있는 것 (P17 5단계). **반입 항목은 안
+        # 낸다** — 넣어 봐야 다음 반입에 지워진다. 서버도 같은 것을 다시 본다
+        # (`manage_data._manual_series`).
+        "manual_series": [cs for cs in series if cs["source"] == "manual"],
         # 축에 못 놓는 것들. **버리지 않고 따로 낸다** — 안 보이면 이 코어에
         # 없는 시료가 된다.
         "unplaced": [r for r in rows if r["depth_cm"] is None],

@@ -51,6 +51,16 @@ urlpatterns = [
     # 올리기·지우기. POST 전용이다.
     path("loc/<str:site_code>/<str:core_code>/photos/",
          views.outcrop_edit, name="outcrop_edit"),
+    # 코어 자료를 사람이 넣는다 (P17 5단계). **POST 전용이고 문이 둘이다** —
+    # 항목의 속성과 점 목록은 층이 달라 요청을 가른다(116). 이름 한 글자를
+    # 고치는 일이 그 항목의 점을 갈아치우는 일이 되면 안 된다.
+    path("loc/<str:site_code>/<str:core_code>/series/",
+         views.core_series_edit, name="core_series_edit"),
+    # **열쇠가 경로에 없다.** 어느 항목에 넣을지는 화면의 `<select>` 가 고르는데,
+    # 경로에 두면 JS 로 action 을 갈아 줘야 하고 JS 가 없는 자리에서는 **엉뚱한
+    # 항목에 조용히 저장된다.** 본문으로 받으면 그 갈래가 아예 없다.
+    path("loc/<str:site_code>/<str:core_code>/series/points",
+         views.core_points_edit, name="core_points_edit"),
     path("d/<slug:slug>/", views.dataset, name="dataset"),
     path("d/<slug:slug>/edit/", views.dataset_edit, name="dataset_edit"),
     # 시야 전체를 검토/미검토로. **POST 전용이다** — 주소를 누르는 것만으로
