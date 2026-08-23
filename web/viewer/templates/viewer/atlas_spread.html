@@ -28,63 +28,79 @@
   쓰고 있고(P11 묶기 팝업) `position: fixed · max-width: 520px` 이라, 그대로
   빌리면 펼침이 화면 구석에 520px 로 박힌다 — 실제로 한 번 그렇게 만들었다.
   예외도 경고도 없이 **작게 나올 뿐**이라 눈으로 봐야 안다.
+
+  **펼침이 창 하나에 다 들어간다** (141). 예전에는 폭에 맞춰 늘려 놓아 세로로
+  넘쳐서, 두 쪽을 나란히 두고도 **한 번에 다 못 보고 굴려야 했다** — 펼쳐 놓는
+  뜻이 거기서 반쯤 없어진다. 이제 낱장이 창 높이에 맞고, 크게 볼 때는 확대한다
+  (`_atlasview.html`). 넘기기·확대·쪽으로 가기는 한 장 보기와 같은 조작이다.
 {% endcomment %}
 <style>
-  .bookspread { display: flex; gap: 0; justify-content: center; align-items: flex-start; }
-  .leaf { position: relative; flex: 0 1 auto; max-width: 50%; }
-  .leaf img { width: 100%; display: block; background: #fff;
-              border: 1px solid var(--line); }
+  .bookspread { display: flex; gap: 0; justify-content: center;
+                align-items: center; }
+  {% comment %}
+    **높이로 맞춘다.** 폭으로 맞추면(`width: 100%`) 창 높이를 넘겨 잘린다 —
+    두 쪽의 원본 비율이 같으므로 높이를 맞추면 나란한 높이도 저절로 맞는다.
+    낱장이 창 높이를 그대로 받아야 쪽 번호(`.pgno`)가 그림 모서리에 붙는다 —
+    낱장만 늘어나고 그림이 그 안에서 가운데 서면 번호가 허공에 뜬다.
+  {% endcomment %}
+  .leaf { position: relative; flex: 0 1 auto; max-width: 50%; height: 100%;
+          display: block; }
+  .leaf img { height: 100%; width: auto; max-width: 100%; object-fit: contain;
+              display: block; background: #fff; border: 1px solid var(--line); }
   /* 안쪽(제본) 모서리는 맞붙이고 바깥만 둥글린다 — 펼친 책의 모양이다 */
   .leaf.left  img { border-right: none; border-radius: 4px 0 0 4px; }
   .leaf.right img { border-left: none;  border-radius: 0 4px 4px 0; }
   /* 짝이 없을 때는 혼자 서므로 네 모서리를 다 둥글린다 */
   .bookspread.alone .leaf img { border: 1px solid var(--line); border-radius: 4px; }
+  .bookspread.alone .leaf { max-width: 100%; }
   /* 쪽 번호 — **바깥 모서리**. 그림 위에 얹되 읽히게 바탕을 깐다 */
   .pgno { position: absolute; top: 6px; font-size: .8rem; padding: 1px 7px;
           border-radius: 10px; background: var(--panel); color: var(--dim);
-          border: 1px solid var(--line); opacity: .92; }
+          border: 1px solid var(--line); opacity: .92; z-index: 1; }
   .leaf.left  .pgno { left: 6px; }
   .leaf.right .pgno { right: 6px; }
   .bookbar { display: flex; gap: 10px; align-items: center;
                justify-content: center; margin: 10px 0; }
   @media (max-width: 760px) {
     /* 좁은 화면에서 두 쪽을 나란히 두면 둘 다 못 읽는다 — 위아래로 편다.
-       그때는 번호가 바깥 모서리라는 말이 성립하지 않으므로 둘 다 왼쪽이다. */
+       그때는 번호가 바깥 모서리라는 말이 성립하지 않으므로 둘 다 왼쪽이다.
+       창 높이를 반씩 나눠 갖는다 — 낱장마다 100% 를 주면 아래쪽이 잘린다. */
     .bookspread { flex-direction: column; align-items: center; }
-    .leaf { max-width: 100%; }
+    .leaf { max-width: 100%; height: 50%; }
     .leaf img { border: 1px solid var(--line); border-radius: 4px; }
     .leaf.right .pgno { right: auto; left: 6px; }
   }
 </style>
 
+{% include "viewer/_atlasview.html" %}
+
+<div class="aview" id="aview">
+  <div class="bookspread{% if not left or not right %} alone{% endif %}" id="acanvas">
+    {% comment %}
+      **없는 쪽에 빈 칸을 그리지 않는다.** 표지가 혼자 서는 자리인데 옆에 회색
+      네모를 두면 사람이 **안 구운 쪽**으로 읽는다 (129 와 같은 줄).
+    {% endcomment %}
+    {% if left %}
+      <a class="leaf left" href="{% url 'atlas_page' atlas.code volume.code left.n %}"
+         title="p.{{ left.n }} 한 장으로">
+        <span class="pgno">p.{{ left.n }}</span>
+        <img src="{% thumb left.rel 1100 %}" data-full="{% rawimg left.rel %}"
+             alt="{{ volume.label }} p.{{ left.n }}" draggable="false">
+      </a>
+    {% endif %}
+    {% if right %}
+      <a class="leaf right" href="{% url 'atlas_page' atlas.code volume.code right.n %}"
+         title="p.{{ right.n }} 한 장으로">
+        <span class="pgno">p.{{ right.n }}</span>
+        <img src="{% thumb right.rel 1100 %}" data-full="{% rawimg right.rel %}"
+             alt="{{ volume.label }} p.{{ right.n }}" draggable="false">
+      </a>
+    {% endif %}
+  </div>
+</div>
+
 <div class="bookbar">
-  {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 앞</a>{% endif %}
   <span class="dim">{{ atlas.label }} · {{ volume.label }}</span>
-  {% if next_url %}<a class="chip" href="{{ next_url }}">뒤 →</a>{% endif %}
-</div>
-
-<div class="bookspread{% if not left or not right %} alone{% endif %}">
-  {% comment %}
-    **없는 쪽에 빈 칸을 그리지 않는다.** 표지가 혼자 서는 자리인데 옆에 회색
-    네모를 두면 사람이 **안 구운 쪽**으로 읽는다 (129 와 같은 줄).
-  {% endcomment %}
-  {% if left %}
-    <a class="leaf left" href="{% url 'atlas_page' atlas.code volume.code left.n %}"
-       title="p.{{ left.n }} 한 장으로">
-      <span class="pgno">p.{{ left.n }}</span>
-      <img src="{% thumb left.rel 1100 %}" alt="{{ volume.label }} p.{{ left.n }}">
-    </a>
-  {% endif %}
-  {% if right %}
-    <a class="leaf right" href="{% url 'atlas_page' atlas.code volume.code right.n %}"
-       title="p.{{ right.n }} 한 장으로">
-      <span class="pgno">p.{{ right.n }}</span>
-      <img src="{% thumb right.rel 1100 %}" alt="{{ volume.label }} p.{{ right.n }}">
-    </a>
-  {% endif %}
-</div>
-
-<div class="bookbar">
   <a class="chip" href="{{ one_url }}">한 장으로</a>
   <a class="chip" href="{{ grid_url }}">격자로</a>
   {% if left %}<a class="chip" href="{% rawimg left.rel %}">원본 p.{{ left.n }}</a>{% endif %}

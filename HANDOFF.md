@@ -100,6 +100,12 @@ nginx 가 80 에서 `/DiaRUGA/` 을 떼고 `127.0.0.1:8090` 의 컨테이너로 
 도감 두 쪽     /atlas/<도감>/<권>/<쪽>/?spread=1   원래 책처럼 펼친다 (131 덧)
 ```
 
+**도판 두 화면은 조작을 한 조각에서 가져온다** (`_atlasview.html` · 141).
+`←` `→` 넘긴다 · `g` 격자 · `s` 한 장↔두 쪽 · 휠·`+` `-` `0` 확대 · 끌어서
+이동 · 조작 띠의 `쪽으로 [__]`. **배율은 곱수(`×2.4`)로 말한다** — 원본 PNG 의
+화소 수를 화면이 모르므로 %를 적으면 안 된다. 늘려 보기 시작하면 축소본에서
+원본 PNG 로 갈아 끼운다(`naturalWidth` 로 판정 — 폭을 코드에 안 박는다).
+
 **도판 화면은 DB 를 안 본다** (129). 도판 PNG 1,336쪽이 `/data3/DiaRUGA/atlas/`
 에 파일로 있고 그것이 곧 자료다(`viewer/atlas.py` — `outcrop.py` 와 같은 자리).
 **글자 자료(`AtlasEntry`)가 아직 반입 전이어도 이 화면은 선다.**
@@ -531,8 +537,8 @@ ObjectReview.objects.filter(image=…, batch=…).exclude(mask_key__in=keys).del
 ### 3.4 확인하는 법 — 자동 시험이 먼저다 (P08)
 
 ```bash
-python web/manage.py test viewer --exclude-tag browser   # 538개 · 6.9초
-python web/manage.py test viewer                         # 664개 · 170초
+python web/manage.py test viewer --exclude-tag browser   # 742개 · 9.4초
+python web/manage.py test viewer                         # 904개 · 199초 (브라우저 162개 포함)
 ```
 
 > **08-13 에 세었다** (`v0.12.0` · 114). 그전까지 이 자리에 적혀 있던 455/561 은

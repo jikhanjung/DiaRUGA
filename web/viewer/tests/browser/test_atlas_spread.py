@@ -32,26 +32,37 @@ class AtlasSpreadLayoutTest(BrowserTestCase):
                              "pages": 4, "rendered": 4}]}}}), encoding="utf-8")
 
     def test_펼침이_제자리에_넓게_놓인다(self):
+        """**낱장을 잰다** (141 에서 옮겼다).
+
+        예전에는 `.bookspread` 의 폭을 봤는데, 141 에서 그 요소가 창을 꽉 채우는
+        캔버스(`#acanvas`)를 겸하게 되어 **어떤 경우에도 넓다** — 이름이 부딪혀도
+        통과하는, 실패할 수 없는 시험이 됐다. 실제로 걸리는 것은 **낱장**이다:
+        `.spread` 규칙을 입으면 `max-width: 520px` 에 눌려 낱장이 반토막 난다.
+        """
         page = self.open(reverse("atlas_page", args=["schmidt", "band1", 2])
                          + "?spread=1")
         page.wait_for_selector(".bookspread img", state="visible", timeout=10_000)
+        page.wait_for_timeout(200)
         m = page.evaluate("""() => {
           const sp = document.querySelector('.bookspread');
+          const v = document.getElementById('aview');
           const L = document.querySelector('.leaf.left');
           const R = document.querySelector('.leaf.right');
           const s = getComputedStyle(sp);
           const b = e => e.getBoundingClientRect();
           return {pos: s.position,
-                  w: Math.round(b(sp).width),
-                  main: Math.round(b(document.querySelector('main')).width),
+                  vw: Math.round(b(v).width), vh: Math.round(b(v).height),
                   lw: Math.round(b(L).width), rw: Math.round(b(R).width),
+                  lh: Math.round(b(L).height),
                   gap: Math.round(b(R).left - b(L).right),
                   sameRow: Math.abs(b(L).top - b(R).top) < 2};
         }""")
         # **`fixed` 면 base 의 팝업 규칙을 입은 것이다.**
         self.assertEqual(m["pos"], "static", "펼침이 팝업 규칙을 입었다")
-        self.assertGreater(m["w"], m["main"] * 0.8,
-                           f"펼침이 좁다 ({m['w']} / {m['main']}) — 이름이 부딪혔나")
+        self.assertGreater(m["lw"] + m["rw"], m["vw"] * 0.6,
+                           f"펼침이 좁다 ({m}) — 이름이 부딪혔나")
+        # **창 높이를 다 쓴다** — 141 에서 창 하나에 들어가게 했다
+        self.assertGreaterEqual(m["lh"], m["vh"] - 2, f"낱장이 창을 못 채운다 {m}")
         self.assertTrue(m["sameRow"], "두 쪽이 한 줄에 안 놓였다")
         self.assertEqual(m["gap"], 0, "제본 자리가 벌어졌다")
 

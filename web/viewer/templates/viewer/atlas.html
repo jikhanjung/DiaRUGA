@@ -38,7 +38,18 @@
   .pnote { font-size: .82rem; color: var(--warn-fg); }
   .entryextra { margin-top: 4px; font-size: .86rem; }
   .platehead { margin: 22px 0 10px; font-size: 1rem; }
-  .pager { display: flex; gap: 8px; margin: 14px 0; }
+  .pager { display: flex; gap: 8px; margin: 14px 0; align-items: center; }
+  /* 미리보기. **`display` 를 안 준다** — 주면 브라우저 기본 `[hidden]` 을
+     특이도에서 이겨 감추라고 해 놓고 그대로 보인다(CLAUDE.md, 세 번 당한 자리). */
+  .apreview { position: fixed; z-index: 40; width: 320px; padding: 6px;
+              pointer-events: none; background: var(--panel);
+              border: 1px solid var(--line); border-radius: 6px;
+              box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+  .apreview img { width: 100%; display: block; background: #fff;
+                  border-radius: 3px; min-height: 40px; }
+  .apreview.failed img { display: none; }
+  .apreview .cap { font-size: .78rem; color: var(--dim); padding: 4px 2px 0; }
+  .apreview.failed .cap { color: var(--warn-fg); }
   .nocover { width: 132px; aspect-ratio: 700/990; border-radius: 4px;
              background: var(--panel); border: 1px dashed var(--line);
              display: grid; place-items: center; font-size: .78rem;
@@ -56,24 +67,48 @@
   {% if searched %}<a class="chip" href="{% url 'atlas' %}">지운다</a>{% endif %}
 </form>
 
+{% comment %}
+  **거르개 주소는 뷰가 만든다** (`_atlas_chips` · 141). 셋(`q`·`atlas`·`genus`)이
+  서로 살아남아야 하는데 여기서 이어 붙이면 자리마다 빠뜨리는 것이 달라진다 —
+  실제로 도감 칩이 속을 떨어뜨리고 있었다.
+{% endcomment %}
 <div class="atlaschips">
   <span class="dim">도감</span>
-  <a class="chip{% if not atlas_key %} on{% endif %}"
-     href="{% url 'atlas' %}{% if q %}?q={{ q|urlencode }}{% endif %}">전체</a>
-  {% for b in books %}
-    <a class="chip{% if atlas_key == b.key %} on{% endif %}"
-       href="{% url 'atlas' %}?atlas={{ b.key|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+  <a class="chip{% if not atlas_key %} on{% endif %}" href="{{ atlas_all_url }}">전체</a>
+  {% for b in book_chips %}
+    <a class="chip{% if b.on %} on{% endif %}" href="{{ b.url }}"
        title="{{ b.title }}">{{ b.short }} <span class="dim">{{ b.count }}</span></a>
   {% endfor %}
 </div>
+
+{% if genus %}
+  {% comment %}
+    **걸린 속을 하나만 뺄 수 있어야 한다.** 예전에는 "지운다" 뿐이라 속을
+    빼려면 검색어까지 같이 날아갔다 — 좁혀 놓고 넓히려던 사람이 처음부터
+    다시 친다.
+  {% endcomment %}
+  <div class="atlaschips">
+    <span class="dim">속</span>
+    <span class="chip on">{{ genus }}</span>
+    <a class="chip" href="{{ genus_clear_url }}" title="속으로 거르는 것만 뺀다">속 거르개를 뺀다</a>
+  </div>
+{% endif %}
 
 {% if searched %}
   {% comment %}
     결과. **한 항목이 자리를 여럿 갖는다** (Schmidt 254건, 최다 11) — 자리를
     칸으로 두지 않고 줄로 편다.
   {% endcomment %}
-  <p class="dim">{{ total }}건{% if total %} 중 {{ shown_from }}~{{ shown_to }}{% endif %}
-    {% if genus %} · 속 <b>{{ genus }}</b>{% endif %}</p>
+  {% comment %}
+    **앞뒤를 위에도 둔다.** 한 판이 50줄이라, 아래에만 있으면 다음 판으로 가려고
+    끝까지 굴려야 한다.
+  {% endcomment %}
+  <div class="pager">
+    <span class="dim">{{ total }}건{% if total %} 중 {{ shown_from }}~{{ shown_to }}{% endif %}
+      {% if genus %} · 속 <b>{{ genus }}</b>{% endif %}</span>
+    {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 앞</a>{% endif %}
+    {% if next_url %}<a class="chip" href="{{ next_url }}">뒤 →</a>{% endif %}
+  </div>
 
   {% for r in rows %}
     <div class="entry">
@@ -104,8 +139,14 @@
               **PDF 쪽이 없으면 링크를 안 낸다** (한국 도감 201건). 눌러서 404 가
               나는 링크는 "아직 안 구웠다" 로 읽혀 원인을 엉뚱한 데서 찾게 한다.
             {% endcomment %}
-            {% if pl.text_url %}<a class="chip" href="{{ pl.text_url }}">해설 p.{{ pl.pdf_page }}</a>{% endif %}
-            {% if pl.plate_url %}<a class="chip" href="{{ pl.plate_url }}">도판 p.{{ pl.pdf_plate_page }}</a>{% endif %}
+            {% comment %}
+              `data-prev` 는 **미리 볼 쪽의 상대경로**다 — 마우스를 올리거나
+              키보드로 짚으면 그 자리에서 축소본을 낸다(아래 스크립트).
+            {% endcomment %}
+            {% if pl.text_url %}<a class="chip" href="{{ pl.text_url }}"
+               data-prev="{{ pl.text_rel }}" data-prevlabel="해설 p.{{ pl.pdf_page }}">해설 p.{{ pl.pdf_page }}</a>{% endif %}
+            {% if pl.plate_url %}<a class="chip" href="{{ pl.plate_url }}"
+               data-prev="{{ pl.plate_rel }}" data-prevlabel="도판 p.{{ pl.pdf_plate_page }}">도판 p.{{ pl.pdf_plate_page }}</a>{% endif %}
             {% if pl.note %}
               {% comment %}
                 **주석이 `plate` 를 뒤집는 자리가 21건이다** (`Tafel 아님 · 권 뒤
@@ -138,11 +179,102 @@
     {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 앞</a>{% endif %}
     {% if next_url %}<a class="chip" href="{{ next_url }}">뒤 →</a>{% endif %}
   </div>
+
+  {% comment %}
+    **미리보기** (141). 한 낱말로 예순 건이 나오는데 어느 쪽인지 고르려면
+    지금까지는 눌러 들어갔다 돌아 나오기를 되풀이해야 했다 — 도판면인지
+    해설면인지도 눌러 봐야 알았다.
+
+    **디스크를 안 짚는다.** 축소본 주소를 서버가 미리 만들면 링크 하나마다
+    `stat` 이 나가 한 판에 수백 번이 된다(`atlas.page_url` 머리말과 같은 줄).
+    그래서 경로만 내려보내고 **띄울 때** 주소를 만든다. `v=`(수정 시각)를 안
+    붙이므로 브라우저가 옛 그림을 붙잡을 수 있는데, 도판 PNG 는 한 번 굽고
+    안 바뀌는 것이라 여기서는 성립하지 않는다.
+
+    **아직 안 구운 쪽이면 그림이 안 뜬다** — 그때 빈 칸을 남기지 않고 말한다.
+  {% endcomment %}
+  <div class="apreview" id="apreview" hidden>
+    <img alt="" id="apreview-img">
+    <div class="cap" id="apreview-cap"></div>
+  </div>
+  <script>
+  (function () {
+    var IMG = "{% url 'image' %}";
+    var panel = document.getElementById('apreview');
+    var img = document.getElementById('apreview-img');
+    var cap = document.getElementById('apreview-cap');
+    var timer = null, cur = null, anchor = null;
+
+    function place() {
+      if (!anchor) return;
+      var r = anchor.getBoundingClientRect(), pad = 10;
+      var w = panel.offsetWidth, h = panel.offsetHeight;
+      panel.style.left = Math.min(window.innerWidth - w - pad,
+                                  Math.max(pad, r.left)) + 'px';
+      var top = r.bottom + 8;
+      // 아래에 자리가 모자라면 위로 올린다 — 화면 밖으로 나가면 안 뜬 것과 같다
+      if (top + h > window.innerHeight - pad) {
+        top = Math.max(pad, r.top - h - 8);
+      }
+      panel.style.top = top + 'px';
+    }
+
+    function show(a) {
+      var rel = a.getAttribute('data-prev');
+      if (!rel) return;
+      anchor = a;
+      if (cur !== rel) {
+        cur = rel;
+        cap.textContent = a.getAttribute('data-prevlabel') || '';
+        panel.classList.remove('failed');
+        img.setAttribute('src', IMG + '?p=' + encodeURIComponent(rel) + '&w=420');
+      }
+      panel.hidden = false;
+      place();
+    }
+
+    function hide() { panel.hidden = true; anchor = null; if (timer) { clearTimeout(timer); timer = null; } }
+
+    // 그림이 붙으면 높이가 달라진다 — 다시 놓는다
+    img.addEventListener('load', place);
+    img.addEventListener('error', function () {
+      // **"아직 안 떴다" 를 말한다.** 빈 칸을 남기면 원본에 그 쪽이 없는 것으로 읽는다
+      panel.classList.add('failed');
+      cap.textContent = (anchor && anchor.getAttribute('data-prevlabel') || '') +
+                        ' — 이 쪽은 아직 안 떴습니다';
+      place();
+    });
+
+    function over(e) {
+      var a = e.target.closest && e.target.closest('a[data-prev]');
+      if (!a) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () { show(a); }, 140);
+    }
+    function out(e) {
+      var a = e.target.closest && e.target.closest('a[data-prev]');
+      if (!a) return;
+      hide();
+    }
+    document.addEventListener('mouseover', over);
+    document.addEventListener('mouseout', out);
+    // 키보드로 짚어도 뜬다 — 탭으로 옮겨 다니는 사람에게도 같은 것이 보여야 한다
+    document.addEventListener('focusin', function (e) {
+      var a = e.target.closest && e.target.closest('a[data-prev]');
+      if (a) show(a);
+    });
+    document.addEventListener('focusout', hide);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') hide();
+    });
+    window.addEventListener('scroll', hide, true);
+  })();
+  </script>
 {% else %}
   <div class="atlaschips">
     <span class="dim">속</span>
-    {% for g in genera|slice:":24" %}
-      <a class="chip" href="{% url 'atlas' %}?genus={{ g.genus|urlencode }}">{{ g.genus }}
+    {% for g in genus_chips|slice:":24" %}
+      <a class="chip{% if g.on %} on{% endif %}" href="{{ g.url }}">{{ g.genus }}
         <span class="dim">{{ g.n }}</span></a>
     {% endfor %}
   </div>

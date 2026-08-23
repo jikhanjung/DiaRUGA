@@ -1,0 +1,308 @@
+{% comment %}
+  도판을 보는 조작 — **한 장(`atlas_page`)과 두 쪽(`atlas_spread`)이 같이 쓴다.**
+
+  두 화면이 하는 일이 같다(넘긴다·확대한다·쪽으로 간다). 각자 적으면 한쪽만
+  고치는 날이 오고, 그때 **키가 한 화면에서만 듣는** 상태가 된다 — 예외도 경고도
+  없이 "가끔 안 되는" 것으로 보인다. 그래서 조작은 여기 하나뿐이다.
+
+  ## 무엇이 필요한가
+
+  부르는 쪽이 **`#aview`(창) 안에 `#acanvas`(옮길 것)** 를 둔다. 그 안의
+  `img[data-full]` 이 원본 PNG 주소를 들고 있으면 늘려 볼 때 갈아 끼운다.
+  나머지(앞뒤·격자·보기 전환 주소)는 두 화면의 컨텍스트가 같은 이름으로 들고
+  있어 여기서 그대로 쓴다.
+
+  **이 조각은 `#aview` 보다 앞에 놓인다**(조작 띠가 그림 위에 있어야 한다).
+  그래서 스크립트는 **DOM 이 다 선 뒤에** 시작한다 — 파싱 중에 찾으면 `#aview`
+  가 아직 없어 `return` 으로 조용히 물러난다. 예외도 경고도 없는 종류의 고장이다.
+
+  ## 조심한 자리
+
+  - **끌어서 옮기는 것이 링크를 누른다.** 펼침의 낱장은 `<a>` 라(눌러서 한 장으로
+    간다) 끌고 나면 클릭이 뒤따른다 — 움직였으면 그 클릭 한 번을 막는다
+  - **배율을 %로 말하지 않는다.** 원본 PNG 의 화소 수를 화면이 모른다(파일을
+    열어야 안다). 모르는 것을 100% 라고 부르면 그 숫자로 판단하게 된다 —
+    **곱수(×)로 말하고, 원본을 실제로 물어 온 때만 "원본" 이라고 적는다**
+  - **`w=` 없는 `/img` 가 원본이다.** `thumb` 에 0 을 주면 32px 이 된다(`rawimg`
+    머리말) — 그래서 원본 주소는 템플릿이 `rawimg` 로 만들어 넘긴다
+  - **쪽으로 가는 것은 격자를 지난다.** 없는 쪽이면 격자가 "이 권에 없다" 고
+    말해 준다(`atlas_volume`) — 여기서 다시 판정하면 말하는 자리가 둘이 된다
+{% endcomment %}
+<style>
+  .aview { position: relative; overflow: hidden; height: 70vh; min-height: 320px;
+           background: var(--panel); border: 1px solid var(--line);
+           border-radius: 6px; touch-action: none; cursor: default; }
+  .aview.grabbable { cursor: grab; }
+  .aview.grabbing  { cursor: grabbing; }
+  {% comment %}
+    **창을 꽉 채워야 그림이 높이에 맞는다.** `max-height: 100%` 는 부모 높이가
+    정해져 있을 때만 먹는다 — 높이가 `auto` 인 부모에 걸면 백분율이 풀리지
+    않아 **그림이 원래 높이 그대로 서고 창을 넘겨 잘린다.** 예외도 경고도
+    없다(한 번 그렇게 만들었다. 2005px 짜리가 745px 창에 들어 있었다).
+  {% endcomment %}
+  #acanvas { transform-origin: center center; will-change: transform;
+             width: 100%; height: 100%;
+             display: flex; align-items: center; justify-content: center; }
+  /* 확대하면 브라우저가 부드럽게 뭉갠다 — 도판의 선을 볼 자리라 화소를 남긴다 */
+  .aview.zoomed #acanvas img { image-rendering: -webkit-optimize-contrast; }
+  .abar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+          margin: 10px 0; }
+  .abar .ajump { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .abar .ajump input { width: 5.5em; }
+  .azoom { display: inline-flex; gap: 6px; align-items: center; }
+  .azoom .lv { font-variant-numeric: tabular-nums; color: var(--dim);
+               font-size: .86rem; min-width: 4.2em; text-align: right; }
+  .azoom .lv.on { color: var(--fg); }
+  .akeys { font-size: .8rem; color: var(--dim); }
+  @media (max-width: 760px) {
+    .abar .ajump { margin-left: 0; }
+    .akeys { display: none; }
+  }
+</style>
+
+<div class="abar">
+  {% if prev_url %}<a class="chip" href="{{ prev_url }}">← {% if spread %}앞{% else %}p.{{ prev }}{% endif %}</a>{% endif %}
+  <a class="chip" href="{{ grid_url }}">격자</a>
+  {% if spread %}
+    <a class="chip" href="{{ one_url }}">한 장</a>
+  {% else %}
+    <a class="chip" href="{{ two_url }}">두 쪽</a>
+  {% endif %}
+  {% if next_url %}<a class="chip" href="{{ next_url }}">{% if spread %}뒤{% else %}p.{{ next }}{% endif %} →</a>{% endif %}
+
+  <span class="azoom">
+    <button type="button" id="azoom-out" title="작게 (-)">−</button>
+    <span class="lv" id="azoom-lv">×1.0</span>
+    <button type="button" id="azoom-in" title="크게 (+)">+</button>
+    <button type="button" id="azoom-fit" title="화면에 맞춘다 (0)">맞춤</button>
+  </span>
+  <span class="akeys">← → 넘긴다 · <b>g</b> 격자 · <b>s</b> 보기 · 휠 확대</span>
+
+  {% comment %}
+    **쪽 번호는 `PDF p.N` 이다** — Tafel 번호가 아니다. 색인의 Tafel 은 OCR 값이라
+    114건이 틀려 있어 열쇠로 못 쓴다(P15). 격자의 입력칸과 같은 이름·같은 문이다.
+    보던 모양(`spread`)을 들고 가서 두 쪽으로 읽다 뛰어도 두 쪽으로 열린다.
+  {% endcomment %}
+  <form class="ajump" method="get"
+        action="{% url 'atlas_volume' atlas.code volume.code %}">
+    <label class="dim" for="ajump-n">쪽으로</label>
+    <input id="ajump-n" name="n" type="number" min="1" inputmode="numeric"
+           placeholder="{{ n }}" aria-label="PDF 쪽 번호로 간다">
+    <span class="dim">/ {{ total }}</span>
+    {% if spread %}<input type="hidden" name="spread" value="1">{% endif %}
+    <button type="submit">간다</button>
+  </form>
+</div>
+
+<script>
+(function () {
+  // **DOM 이 다 선 뒤에 시작한다** — 이 조각은 `#aview` 앞에 놓인다(위 머리말).
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+
+  function start() {
+  var view = document.getElementById('aview');
+  var canvas = document.getElementById('acanvas');
+  if (!view || !canvas) return;
+
+  var lv = document.getElementById('azoom-lv');
+  var MODE = {% if spread %}'two'{% else %}'one'{% endif %};
+  // 도감·권·보기마다 따로 기억한다. 한 장과 두 쪽은 캔버스 폭이 달라
+  // 같은 자리를 나눠 쓰면 옮겨 간 자리가 화면 밖이 된다.
+  // 코드는 `[a-z0-9-]` 만 통과한다(`atlas.CODE`) — 그래서 그대로 이어 붙인다.
+  var SKEY = 'diaruga.atlas.view.{{ atlas.code }}.{{ volume.code }}';
+
+  // --- 창 높이 ---------------------------------------------------------------
+  // 머리줄 높이가 화면마다 달라 CSS 에 상수로 박으면 어긋난다 — 재서 채운다.
+  // JS 가 안 돌면 CSS 의 70vh 가 그대로 남는다(못 쓰게 되지 않는다).
+  function fitHeight() {
+    var top = view.getBoundingClientRect().top;
+    var rest = 0;
+    var after = view.nextElementSibling;
+    while (after) {
+      rest += after.getBoundingClientRect().height;
+      after = after.nextElementSibling;
+    }
+    var h = Math.max(320, window.innerHeight - top - rest - 26);
+    view.style.height = h + 'px';
+    // 여백이 겹치는 자리를 다 셀 수는 없다 — **재서 남은 만큼 물린다.**
+    // 몇 화소가 넘치면 창 전체가 굴러가고, 그러면 넘길 때마다 자리가 흔들린다.
+    var over = document.documentElement.scrollHeight - window.innerHeight;
+    if (over > 0) view.style.height = Math.max(320, h - over) + 'px';
+  }
+
+  // --- 확대 / 이동 -----------------------------------------------------------
+  var k = 1, tx = 0, ty = 0, hires = false;
+  var MAXK = 12;
+
+  function apply() {
+    canvas.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + k + ')';
+    view.classList.toggle('zoomed', k > 1);
+    view.classList.toggle('grabbable', k > 1);
+    // **곱수로 말한다.** 원본 화소 수를 모르는 채로 %를 적으면 그 숫자로
+    // 판단하게 된다 — 원본을 실제로 물어 온 때만 그렇게 적는다.
+    lv.textContent = '×' + (k < 10 ? k.toFixed(1) : String(Math.round(k))) +
+                     (hires ? ' 원본' : '');
+    lv.classList.toggle('on', k !== 1);
+    save();
+    maybeHiRes();
+  }
+
+  // **창이 아니라 그림의 크기로 잰다.** 캔버스는 창을 꽉 채우고 있어서(위 CSS)
+  // 그것으로 재면 세로로 긴 도판이 옆으로 한참 빠져나가도 안 걸린다.
+  function contentSize() {
+    var w = 0, h = 0;
+    canvas.querySelectorAll('img').forEach(function (im) {
+      w += im.offsetWidth; h = Math.max(h, im.offsetHeight);
+    });
+    return { w: w || canvas.offsetWidth, h: h || canvas.offsetHeight };
+  }
+
+  function clampPan() {
+    var vw = view.clientWidth, vh = view.clientHeight;
+    // offsetWidth 는 배치 크기라 transform 에 안 딸려 온다 — 배율을 손으로 곱한다
+    var c = contentSize();
+    var cw = c.w * k, ch = c.h * k;
+    // 그림이 화면 밖으로 완전히 빠져나가지 않게 한다
+    var mx = Math.max(0, (cw - vw) / 2) + Math.min(vw, cw) * 0.25;
+    var my = Math.max(0, (ch - vh) / 2) + Math.min(vh, ch) * 0.25;
+    tx = Math.min(mx, Math.max(-mx, tx));
+    ty = Math.min(my, Math.max(-my, ty));
+  }
+
+  function zoomAt(nk, cx, cy) {
+    nk = Math.min(MAXK, Math.max(1, nk));
+    if (nk === k) return;
+    var r = view.getBoundingClientRect();
+    // 커서 아래 지점이 그대로 있도록 평행이동을 보정한다.
+    // 화면점 = 창중심 + t + k·(캔버스좌표) 이므로 t' = d − (k'/k)(d − t).
+    var dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
+    tx = dx - (nk / k) * (dx - tx);
+    ty = dy - (nk / k) * (dy - ty);
+    k = nk;
+    if (k === 1) { tx = 0; ty = 0; } else { clampPan(); }
+    apply();
+  }
+
+  function zoomStep(f) {
+    var r = view.getBoundingClientRect();
+    zoomAt(k * f, r.left + r.width / 2, r.top + r.height / 2);
+  }
+
+  function fit() { k = 1; tx = 0; ty = 0; apply(); }
+
+  view.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    zoomAt(k * (e.deltaY < 0 ? 1.18 : 1 / 1.18), e.clientX, e.clientY);
+  }, { passive: false });
+
+  // --- 끌어서 옮긴다 ---------------------------------------------------------
+  // **끌고 난 클릭 한 번을 막는다.** 펼침의 낱장은 `<a>` 라, 안 막으면 옮기려다
+  // 한 장 보기로 넘어간다 — 보던 자리를 잃는다.
+  var drag = null, moved = false;
+  view.addEventListener('mousedown', function (e) {
+    if (e.button !== 0 || k === 1) return;
+    drag = { x: e.clientX, y: e.clientY, tx: tx, ty: ty };
+    moved = false;
+    view.classList.add('grabbing');
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (!drag) return;
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+    tx = drag.tx + dx; ty = drag.ty + dy;
+    clampPan(); apply();
+  });
+  window.addEventListener('mouseup', function () {
+    if (!drag) return;
+    drag = null;
+    view.classList.remove('grabbing');
+  });
+  view.addEventListener('click', function (e) {
+    if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; }
+  }, true);
+
+  // --- 늘려 보기 시작하면 원본으로 갈아 끼운다 -------------------------------
+  // **축소본 폭(1600·1100)을 코드에 박지 않는다** — `naturalWidth` 로 잰다.
+  // 원본 PNG 는 몇 MB 라 처음부터 물리지 않는다: 늘려 볼 때만 부른다.
+  function maybeHiRes() {
+    if (hires || k === 1) return;
+    var imgs = canvas.querySelectorAll('img[data-full]');
+    var need = false;
+    imgs.forEach(function (im) {
+      if (im.naturalWidth && im.offsetWidth * k > im.naturalWidth) need = true;
+    });
+    if (!need) return;
+    hires = true;
+    imgs.forEach(function (im) {
+      var full = im.getAttribute('data-full');
+      if (full) im.setAttribute('src', full);
+    });
+  }
+
+  // --- 배율·자리를 쪽을 넘겨도 지킨다 ----------------------------------------
+  // **화면이 말하므로 숨은 상태가 아니다** — 배율 칸에 ×N 이 떠 있고 [맞춤] 이
+  // 옆에 있다. 도판 하나를 확대해 보고 다음 쪽으로 갈 때 매번 다시 맞추는 것이
+  // 이 화면에서 제일 잦은 헛손질이다. `session` 이라 창을 닫으면 없어진다.
+  function save() {
+    try {
+      sessionStorage.setItem(SKEY, JSON.stringify(
+        { m: MODE, k: k, x: tx, y: ty }));
+    } catch (err) { /* 사생활 모드 */ }
+  }
+  function restore() {
+    var s = null;
+    try { s = JSON.parse(sessionStorage.getItem(SKEY) || 'null'); } catch (err) { s = null; }
+    if (!s || s.m !== MODE) return;
+    k = Math.min(MAXK, Math.max(1, Number(s.k) || 1));
+    tx = Number(s.x) || 0; ty = Number(s.y) || 0;
+    clampPan();
+  }
+
+  // --- 키 -------------------------------------------------------------------
+  // 첫 쪽·마지막 쪽에서는 갈 곳이 없다 — `null` 이라 아무 일도 안 한다.
+  var GO = {
+    prev: {% if prev_url %}"{{ prev_url }}"{% else %}null{% endif %},
+    next: {% if next_url %}"{{ next_url }}"{% else %}null{% endif %},
+    grid: "{{ grid_url }}",
+    flip: {% if spread %}"{{ one_url }}"{% else %}"{{ two_url }}"{% endif %}
+  };
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = document.activeElement;
+    if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    var go = null;
+    switch (e.key) {
+      case 'ArrowLeft':  go = GO.prev; break;
+      case 'ArrowRight': go = GO.next; break;
+      case 'g': case 'G': go = GO.grid; break;
+      case 's': case 'S': go = GO.flip; break;
+      case '0': e.preventDefault(); fit(); return;
+      case '+': case '=': e.preventDefault(); zoomStep(1.25); return;
+      case '-': case '_': e.preventDefault(); zoomStep(1 / 1.25); return;
+      default: return;
+    }
+    if (!go) return;
+    e.preventDefault();
+    window.location.href = go;
+  });
+
+  document.getElementById('azoom-in').addEventListener('click', function () { zoomStep(1.25); });
+  document.getElementById('azoom-out').addEventListener('click', function () { zoomStep(1 / 1.25); });
+  document.getElementById('azoom-fit').addEventListener('click', fit);
+
+  window.addEventListener('resize', function () { fitHeight(); clampPan(); apply(); });
+  // 그림이 아직 안 붙었을 수 있다 — 붙고 나서 다시 잰다(배치 크기가 그때 잡힌다)
+  canvas.querySelectorAll('img').forEach(function (im) {
+    im.addEventListener('load', function () { clampPan(); apply(); });
+  });
+  fitHeight();
+  restore();
+  apply();
+  }
+})();
+</script>

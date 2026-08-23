@@ -124,3 +124,45 @@ class AtlasSearchTests(DiaRUGATestCase):
         from viewer import data
         self.assertEqual([b["key"] for b in data.atlas_list()],
                          ["korean", "schmidt"])
+
+    # --- 141 — 거르개와 미리보기 -------------------------------------------
+
+    # 9) 도감 칩이 속을 떨어뜨리지 않는다
+    def test_book_chip_keeps_genus(self):
+        """**셋(`q`·`atlas`·`genus`)이 서로 살아남아야 한다.** 도감 칩이 속을
+        떨어뜨리고 있었다 — 좁혀 놓고 도감을 바꾸면 조용히 넓어져서, 사람은
+        그 도감에 그 속이 많은 줄로 읽는다."""
+        html = self.get(q="Navicula", genus="Navicula")
+        self.assertIn("atlas=schmidt&amp;genus=Navicula", html)
+        self.assertIn("q=Navicula&amp;atlas=schmidt", html)
+
+    # 10) 속만 따로 뺄 수 있다
+    def test_genus_can_be_cleared_alone(self):
+        """예전에는 "지운다" 뿐이라 속을 빼려면 **검색어까지 같이 날아갔다.**"""
+        html = self.get(q="Navicula", genus="Navicula")
+        self.assertIn("속 거르개를 뺀다", html)
+        # 속을 뺀 주소에 검색어가 남아 있어야 한다
+        import re
+        m = re.search(r'href="([^"]*)"[^>]*title="속으로 거르는 것만 뺀다"', html)
+        self.assertIsNotNone(m, "속만 빼는 문이 없다")
+        self.assertIn("q=Navicula", m.group(1))
+        self.assertNotIn("genus=", m.group(1))
+
+    # 11) 미리보기가 짚을 자리가 내려간다 — **디스크를 안 짚는다**
+    def test_preview_rel_without_touching_disk(self):
+        """축소본 주소를 서버가 미리 만들면 링크 하나마다 `stat` 이 나가 한 판에
+        수백 번이 된다(`atlas.page_url` 머리말). 경로만 내려보낸다."""
+        from viewer import data
+        rows = data.atlas_search(q="Navicula abrupta")["rows"]
+        pl = rows[0]["places"][0]
+        self.assertEqual(pl["plate_rel"], "atlas/schmidt/band1/p0023.png")
+        self.assertEqual(pl["text_rel"], "atlas/schmidt/band1/p0022.png")
+        # 쪽 번호가 없는 자리는 빈 문자열이다 (한국 도감 201건)
+        korean = data.atlas_search(q="Sceletonema")["rows"][0]["places"][0]
+        self.assertEqual(korean["text_rel"], "")
+        self.assertEqual(korean["plate_rel"], "")
+
+    # 12) 그 자리가 화면에 붙어 있다
+    def test_preview_attribute_on_chip(self):
+        html = self.get(q="Navicula abrupta")
+        self.assertIn('data-prev="atlas/schmidt/band1/p0023.png"', html)

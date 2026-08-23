@@ -16,31 +16,34 @@
 {% comment %}
   쪽 하나. **색인이 짚어 오는 자리다** — 주소의 번호가 곧 `PDF p.N` 이다.
 
-  원본을 그대로 내려받는 길도 둔다(`?w=` 없는 `/img`). 화면에서 크게 봐도
-  모자란 때가 있고, 그때 PDF 를 다시 여는 것보다 이쪽이 빠르다.
+  넘기기·확대·쪽으로 가기는 **`_atlasview.html` 하나에 있다** — 두 쪽 보기와
+  같은 조작이라 갈라 적으면 한쪽만 고치는 날이 온다.
+
+  **그림을 링크로 감싸지 않는다.** 예전에는 눌러서 원본 PNG 를 열었는데,
+  이제 그 자리가 확대·이동을 받는다 — 끌 때마다 원본이 열리면 못 쓴다.
+  원본으로 가는 문은 아래 띠에 그대로 있다.
 {% endcomment %}
 <style>
-  .sheet { text-align: center; }
-  .sheet img { max-width: 100%; height: auto; background: #fff;
-               border: 1px solid var(--line); border-radius: 4px; }
+  /* 1600 은 검토 화면의 본판과 같은 폭이다 — 축소본 캐시를 나눠 쓴다.
+     늘려 보기 시작하면 `data-full`(원본)로 갈아 끼운다(`_atlasview.html`). */
+  #acanvas img { max-width: 100%; max-height: 100%; object-fit: contain;
+                 display: block; background: #fff; border: 1px solid var(--line);
+                 border-radius: 4px; }
   .sheetbar { display: flex; gap: 10px; align-items: center;
               justify-content: center; margin: 10px 0; }
 </style>
 
+{% include "viewer/_atlasview.html" %}
+
+<div class="aview" id="aview">
+  <div id="acanvas">
+    <img src="{% thumb rel 1600 %}" data-full="{% rawimg rel %}"
+         alt="{{ atlas.label }} {{ volume.label }} p.{{ n }}" draggable="false">
+  </div>
+</div>
+
 <div class="sheetbar">
-  {% if prev_url %}<a class="chip" href="{{ prev_url }}">← p.{{ prev }}</a>{% endif %}
   <span class="dim">{{ atlas.label }} · {{ volume.label }} · PDF p.{{ n }}</span>
-  {% if next_url %}<a class="chip" href="{{ next_url }}">p.{{ next }} →</a>{% endif %}
-</div>
-
-<div class="sheet">
-  {% comment %} 1600 은 검토 화면의 본판과 같은 폭이다 — 축소본 캐시를 나눠 쓴다 {% endcomment %}
-  <a href="{% rawimg rel %}" title="원본 PNG 를 연다">
-    <img src="{% thumb rel 1600 %}" alt="{{ atlas.label }} {{ volume.label }} p.{{ n }}">
-  </a>
-</div>
-
-<div class="sheetbar">
   <a class="chip" href="{% rawimg rel %}">원본 PNG</a>
   <a class="chip" href="{{ two_url }}">두 쪽으로</a>
   <a class="chip" href="{{ grid_url }}">격자로</a>

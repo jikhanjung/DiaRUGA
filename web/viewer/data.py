@@ -4352,7 +4352,24 @@ def _placement_dict(p) -> dict:
         # 해설면 / 도판면 — 두 문이다. 없는 쪽은 빈 문자열이라 화면이 안 낸다
         "text_url": atlas_mod.page_url(key, p.volume, p.pdf_page),
         "plate_url": atlas_mod.page_url(key, p.volume, p.pdf_plate_page),
+        # 미리보기가 짚을 자리 (141). **여기서도 디스크를 안 짚는다** —
+        # `page_url` 과 같은 이유다(한 판에 수백 번이 된다). 이름 규칙은
+        # `atlas.rel_of` 하나뿐이라 화면이 다시 만들지 않는다.
+        "text_rel": _atlas_rel(key, p.volume, p.pdf_page),
+        "plate_rel": _atlas_rel(key, p.volume, p.pdf_plate_page),
     }
+
+
+def _atlas_rel(key: str, volume, pdf_page) -> str:
+    """도감 쪽 하나의 상대경로. 번호가 없으면 빈 문자열."""
+    from . import atlas as atlas_mod
+    try:
+        n = int(pdf_page)
+    except (TypeError, ValueError):
+        return ""
+    if n < 1:
+        return ""
+    return atlas_mod.rel_of(key, atlas_mod.vol_code(volume), n)
 
 
 def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",

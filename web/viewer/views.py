@@ -1479,7 +1479,35 @@ def atlas_index(request):
         ctx["q"] = q
         ctx["atlas_key"] = atlas_key
         ctx["genus"] = genus
+    # **거르개 주소는 화면이 아니라 여기서 만든다** (141). 셋(`q`·`atlas`·
+    # `genus`)이 서로 살아남아야 하는데 템플릿에서 이어 붙이면 자리마다 빠뜨리는
+    # 것이 달라진다 — 실제로 도감 칩이 `genus` 를 떨어뜨리고 있었다. 거른 것을
+    # **하나씩 지울 수 있어야** 한다: 지금은 속을 빼려면 검색어까지 지워야 한다.
+    ctx.update(_atlas_chips(q, atlas_key, genus, ctx["books"], ctx["genera"]))
     return render(request, "viewer/atlas.html", ctx)
+
+
+def _atlas_chips(q, atlas_key, genus, books, genera):
+    """도감·속 칩의 주소. **`offset` 은 안 들고 간다** — 거르개가 바뀌면
+    결과 수가 달라져 옛 페이지 번호가 빈 화면이 된다.
+    """
+    base = reverse("atlas")
+
+    def url(**over):
+        keep = {"q": q, "atlas": atlas_key, "genus": genus}
+        keep.update(over)
+        keep = {k: v for k, v in keep.items() if v}
+        return f"{base}?{urlencode(keep)}" if keep else base
+
+    return {
+        "atlas_all_url": url(atlas=""),
+        "genus_clear_url": url(genus=""),
+        "book_chips": [{**b, "url": url(atlas=b["key"]),
+                        "on": atlas_key == b["key"]} for b in books],
+        "genus_chips": [{**g, "url": url(genus=g["genus"], atlas=atlas_key),
+                         "on": genus.lower() == g["genus"].lower()}
+                        for g in genera],
+    }
 
 
 def atlas_volume(request, atlas, vol):
@@ -1492,9 +1520,13 @@ def atlas_volume(request, atlas, vol):
     # 넘겨 가며 찾게 하면 그 번호를 들고 온 뜻이 없다. 없는 쪽이면 격자로
     # 물러나되 **말은 한다** — 조용히 첫 판을 내면 사람이 갔다고 믿는다.
     raw_n = (request.GET.get("n") or "").strip()
+    # **보던 모양을 들고 간다** (141). 두 쪽으로 읽다 쪽 번호로 뛰면 두 쪽으로
+    # 열려야 한다 — 한 장으로 떨어뜨리면 찾아간 자리에서 보기를 다시 고르게 된다.
+    keep = "?spread=1" if request.GET.get("spread") == "1" else ""
     if raw_n.isdigit():
         if atlas_mod.page(atlas, vol, int(raw_n)) is not None:
-            return redirect("atlas_page", atlas=atlas, vol=vol, n=int(raw_n))
+            return redirect(reverse("atlas_page", args=[atlas, vol, int(raw_n)])
+                            + keep)
         missing = raw_n
     else:
         missing = ""
