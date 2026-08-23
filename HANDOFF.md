@@ -12,9 +12,10 @@
 아직 `diatom` 인 것은 **생물 이름**이다(`pipeline/segment_diatoms.py`·YOLO 클래스·
 NAS 의 `DiatomPhotos/`).
 
-**브랜치** main · 도는 판 `v0.16.0` (파이프라인 `v0.5.2`) — **배포를 기다리는
-판이 없다.** 08-23 19:33 에 `v0.16.0` 을 내보냈다(도감을 읽는 조작 ·
-**마이그레이션 없음** · [141](devlog/20260823_141_atlas-view-controls.md)).
+**브랜치** main · 도는 판 `v0.16.0` (파이프라인 `v0.5.2`) — **`v0.16.1` 을 내는
+중이다**(한국 도감 쪽 대응표 · **마이그레이션 없음** ·
+[147](devlog/20260823_147_korean-plate-pages.md)). 08-23 19:33 에 `v0.16.0` 을
+내보냈다(도감을 읽는 조작 · [141](devlog/20260823_141_atlas-view-controls.md)).
 08-19 18:37 에 `v0.15.0` 을 내보냈다(코어 자료 · 마이그레이션 `0039` ·
 [P17](devlog/20260819_P17_core-profiles.md) · [140](devlog/20260819_140_v0150-release.md) ·
 지점 `RS14-GC04`·`RS19-GC17` 을 세우고 **99,453점 반입 완료**).
@@ -49,7 +50,7 @@ NAS 의 `DiatomPhotos/`).
 |---|---|
 | 뷰어 | **`v0.16.0`** (마이그레이션 없음) — 08-23 19:33 에 배포했다 |
 | 파이프라인 | `v0.5.2` |
-| **다음 판** | 없다 — 배포를 기다리는 것이 없다. 절차는 [릴리스 흐름](docs/20260813_release-flow.md) |
+| **다음 판** | **`v0.16.1`** — 한국 도감 쪽 대응표([147](devlog/20260823_147_korean-plate-pages.md)). **뷰어 코드가 안 바뀐다** — `atlas/*.json` 이 이미지에 실려 가서(`COPY . .` → `/app/atlas/`) **새 이미지가 서야** 그 컨테이너의 `ops/import_atlas.py` 가 새 표를 넣는다. **판 먼저, 반입 나중.** 절차는 [릴리스 흐름](docs/20260813_release-flow.md) |
 | 검토 대상 묶음 | **`yolo-3차`** (`RunBatch.for_review`) — 08-13 에 옮겼다 |
 
 **사람이 하는 일은 `yolo-3차` 검토다** — 08-13 에 검토 대상을 그리로 옮겼고
@@ -539,8 +540,8 @@ ObjectReview.objects.filter(image=…, batch=…).exclude(mask_key__in=keys).del
 ### 3.4 확인하는 법 — 자동 시험이 먼저다 (P08)
 
 ```bash
-python web/manage.py test viewer --exclude-tag browser   # 742개 · 9.4초
-python web/manage.py test viewer                         # 904개 · 199초 (브라우저 162개 포함)
+python web/manage.py test viewer --exclude-tag browser   # 747개 · 9.4초
+python web/manage.py test viewer                         # 909개 · 199초 (브라우저 162개 포함)
 ```
 
 > **08-13 에 세었다** (`v0.12.0` · 114). 그전까지 이 자리에 적혀 있던 455/561 은
@@ -674,6 +675,21 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
     deploy/host/dbsync.sh import_atlas.py     # 처음 한 번
     deploy/host/dbrun.sh  import_atlas.py --dry-run
     deploy/host/dbrun.sh  import_atlas.py
+    ```
+
+  **`v0.16.1` 배포 뒤에 다시 돌린다**([147](devlog/20260823_147_korean-plate-pages.md)) —
+  한국 도감의 쪽 대응표가 들어와 `pdf_plate_page` 가 0 → 510 이 된다.
+  **판을 먼저 내야 하는 이유가 여기 있다**: `atlas/*.json` 은 **이미지에 실려
+  간다**(`COPY . .` → `/app/atlas/`). 옛 이미지의 컨테이너로 돌리면 **옛 JSON 을
+  조용히 넣는다** — 예외도 경고도 없다. **컨테이너가 어느 JSON 을 보는지 먼저
+  확인한다**: 지금 `main` 의 `atlas/korean.json` 은 `c0d8978f3e6a` 로 시작하는
+  해시다(`atlas.source_sha256`). **그 값이 안 나오면 반입하지 말 것.**
+  반입 전에 사본을 뜬다 — 도감마다 통째로 갈아치우는 반입이다.
+
+    ```bash
+    deploy/host/dbrun.sh backup_db.py --note before-147
+    docker compose -f /srv/DiaRUGA/docker-compose.yml run --rm --entrypoint python web \
+        -c "import json;print(json.load(open('/app/atlas/korean.json'))['atlas']['source_sha256'][:12])"
     ```
 
 - **도감 축소본 — 08-18 배포 직후에 구웠다** (5,344자리 · 9분 · 미생성 0 ·
