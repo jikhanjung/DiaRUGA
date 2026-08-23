@@ -56,6 +56,7 @@ import hashlib
 import json
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -66,6 +67,12 @@ from harvest_worms import DIADICTION, binomial  # noqa: E402
 from annotate_index import MARK  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "atlas"
+
+# **색인에 없는 자리를 여기서 가져온다** (147). 한국 도감 색인은 자리 표기를
+# 넷으로 못박아 두어 **도판이 PDF 몇 쪽인지 적는 칸이 없고**, 481~680 은 쪽
+# 이미지로 판독한 구간이라 `PDF p.` 도 안 따라왔다. 색인은 안 고치고
+# (인용의 근거다 · P15 4.2) 잰 것을 표로 따로 두었다. 머리말이 근거를 든다
+KR_PAGES = OUT / "korean_pages.toml"
 
 INFRA = re.compile(r"\b(var\.|subsp\.|f\.)\s")
 
@@ -171,8 +178,19 @@ KR_BODY = re.compile(r"^- (생태|분포|비고):\s*(.*)$")
 KR_FIELD = {"생태": "ecology", "분포": "distribution", "비고": "note"}
 
 
+def kr_pages() -> dict:
+    """`atlas/korean_pages.toml` — 잰 쪽 대응. 없으면 멈춘다."""
+    if not KR_PAGES.exists():
+        raise SystemExit(f"쪽 대응표가 없다: {KR_PAGES}")
+    d = tomllib.loads(KR_PAGES.read_text(encoding="utf-8"))
+    return {"offset": d["offset"]["book_minus_pdf"],
+            "pages": d["source"]["pages"],
+            "plates": {int(k): v for k, v in d["plates"].items()}}
+
+
 def parse_korean(text: str) -> tuple[list[dict], int]:
     """`**169. *이름***` + `<sub>자리</sub>` + `- 생태/분포/비고:` 세 줄짜리다."""
+    pages = kr_pages()
     body, offset = head_of(text, "## 종별 상세")
     entries: list[dict] = []
     sect = None
@@ -203,6 +221,20 @@ def parse_korean(text: str) -> tuple[list[dict], int]:
                     p["book_page"] = num(tok[4:].strip())
                 elif tok.startswith("PDF p."):
                     p["pdf_page"] = num(tok[6:].strip())
+            # **색인에 없는 둘을 여기서 채운다** (147 · `korean_pages.toml`).
+            # `pdf_page` 는 **잰 옵셋**이지 짐작이 아니다 — 도판이 책 쪽번호를
+            # 함께 먹어서 옵셋이 도판을 지나도 안 밀린다(표 머리말에 근거).
+            # **색인이 적어 온 값은 안 덮는다** — 어긋나면 `check` 가 말한다
+            # **발췌본 밖으로 나가면 안 채운다** — 항목 680 이 그 자리다.
+            # 책 p.370 인데 발췌본이 369(PDF 270)에서 끝나 그 설명이 안 실려
+            # 있다. 셈만 하면 PDF 271 이 나오는데 **그런 쪽은 없다.**
+            # 빈 것을 채우지 않는다(P15 9절 · `AtlasPlacement` 머리말)
+            if p["pdf_page"] is None and p["book_page"] is not None:
+                n = p["book_page"] - pages["offset"]
+                if 1 <= n <= pages["pages"]:
+                    p["pdf_page"] = n
+            if p["plate"] is not None:
+                p["pdf_plate_page"] = pages["plates"].get(p["plate"])
             entries[-1]["placements"].append(p)
             continue
         m = KR_BODY.match(line)
@@ -453,6 +485,46 @@ def check(spec: dict, text: str, entries: list[dict]) -> list[str]:
             bad.append(f"#{e['seq']} {e['name']}: 못 읽은 자리 {e['extra']['unparsed']}")
         if not e["placements"] and e["seq"] != len(entries):
             bad.append(f"#{e['seq']} {e['name']}: 자리가 하나도 없다")
+    if spec["key"] == "korean":
+        bad += check_korean(entries)
+    return bad
+
+
+def check_korean(entries: list[dict]) -> list[str]:
+    """쪽 대응표가 아직 맞는가 (147).
+
+    표는 사람이 재서 커밋한 것이고 색인은 따로 바뀐다. **둘이 어긋나는 날이
+    오는데 그날 조용하면 안 된다** — 화면이 엉뚱한 쪽을 열어도 예외가 안 난다.
+    그래서 돌 때마다 셋을 다시 본다.
+
+    1. **번호가 PDF 차례대로 오르는가** — 도판 번호를 하나 잘못 읽으면 여기서
+       걸린다. `Tafel` 114건이 틀렸던 자리가 그 꼴이다(126 · 119)
+    2. **색인이 부르는 도판이 표에 다 있는가**
+    3. **색인이 적어 온 `PDF p.` 가 잰 옵셋과 맞는가** — 어긋나면 색인의
+       `책 p.` 나 `PDF p.` 둘 중 하나가 틀린 것이다. 지금 둘 알고 있다
+       (#238 · #424 · 표의 `[[typo]]`). **고치지 않고 말만 한다**
+    """
+    pages = kr_pages()
+    bad = []
+    nums = sorted(pages["plates"])
+    if [pages["plates"][n] for n in nums] != sorted(pages["plates"][n] for n in nums):
+        bad.append("쪽 대응표: 도판 번호와 PDF 쪽의 차례가 어긋난다")
+    for n in range(nums[0], nums[-1] + 1):
+        if n not in pages["plates"]:
+            bad.append(f"쪽 대응표: Plate {n} 이 빠져 있다")
+    off, known = pages["offset"], {238, 424}
+    for e in entries:
+        for p in e["placements"]:
+            if p["plate"] is not None and p["plate"] not in pages["plates"]:
+                bad.append(f"#{e['item_no']}: Plate {p['plate']} 이 쪽 대응표에 없다")
+            if p["pdf_page"] is not None and not 1 <= p["pdf_page"] <= pages["pages"]:
+                bad.append(f"#{e['item_no']}: PDF p.{p['pdf_page']} 는 "
+                           f"발췌본 {pages['pages']}쪽 밖이다")
+            if p["book_page"] is None or p["pdf_page"] is None:
+                continue
+            if p["book_page"] - p["pdf_page"] != off and int(e["item_no"]) not in known:
+                bad.append(f"#{e['item_no']}: 책 p.{p['book_page']} · "
+                           f"PDF p.{p['pdf_page']} 가 옵셋 {off} 과 안 맞는다")
     return bad
 
 
@@ -484,6 +556,11 @@ def main() -> int:
             failed = True
             continue
         print("  ✓ 색인이 스스로 말하는 수와 맞는다")
+        if spec["key"] == "korean":
+            ps = [p for e in entries for p in e["placements"]]
+            print(f"  · 쪽 대응표로 채운 것 — 도판 쪽 "
+                  f"{sum(1 for p in ps if p['pdf_plate_page'])}/{len(ps)} · "
+                  f"해설 쪽 {sum(1 for p in ps if p['pdf_page'])}/{len(ps)}")
         if args.dry_run:
             continue
         args.out.mkdir(parents=True, exist_ok=True)
