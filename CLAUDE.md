@@ -705,7 +705,7 @@ git config --list --show-origin | grep -E '^.*user\.'          # 어느 파일�
 ssh-keygen -t ed25519 -C "<계정>@paleo-server"                  # 공개키를 GitHub 에 등록
 ssh -T git@github.com                                          # "Hi <아이디>!" 가 나와야 한다
 
-git clone git@github.com:jikhanjung/DiaRUGA.git
+git clone git@github.com:koprifossillab/DiaRUGA.git
 git switch -c work/<YYYYMMDD>-<계정>
 ```
 
