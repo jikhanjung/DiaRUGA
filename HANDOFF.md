@@ -12,8 +12,10 @@
 아직 `diatom` 인 것은 **생물 이름**이다(`pipeline/segment_diatoms.py`·YOLO 클래스·
 NAS 의 `DiatomPhotos/`).
 
-**브랜치** main · 도는 판 `v0.16.1` (파이프라인 `v0.5.2`) — **배포를 기다리는
-판이 없다.** 08-23 20:00 에 `v0.16.1` 을 내보내고 **도감을 다시 반입했다**
+**브랜치** main · 도는 판 `v0.16.1` (파이프라인 `v0.5.2`) — **`v0.17.0` 이
+배포를 기다린다** (종명 칸 ↔ 도감 · 검토 화면에서 개체 카드로 · 마이그레이션
+없음 · [149](devlog/20260825_149_species-atlas-and-back-link.md)).
+08-23 20:00 에 `v0.16.1` 을 내보내고 **도감을 다시 반입했다**
 (한국 도감 쪽 대응표 · 마이그레이션 없음 ·
 [147](devlog/20260823_147_korean-plate-pages.md)). 같은 날 19:33 에 `v0.16.0` 을
 내보냈다(도감을 읽는 조작 · [141](devlog/20260823_141_atlas-view-controls.md)).
@@ -51,7 +53,7 @@ NAS 의 `DiatomPhotos/`).
 |---|---|
 | 뷰어 | **`v0.16.1`** (마이그레이션 없음) — 08-23 20:00 에 배포하고 도감을 다시 반입했다 |
 | 파이프라인 | `v0.5.2` |
-| **다음 판** | 없다 — 배포를 기다리는 것이 없다. 절차는 [릴리스 흐름](docs/20260813_release-flow.md) |
+| **다음 판** | **`v0.17.0`** — 마이그레이션 없음 · 뒤처리 스크립트 없음. 절차는 [릴리스 흐름](docs/20260813_release-flow.md) |
 | 검토 대상 묶음 | **`yolo-3차`** (`RunBatch.for_review`) — 08-13 에 옮겼다 |
 
 **사람이 하는 일은 `yolo-3차` 검토다** — 08-13 에 검토 대상을 그리로 옮겼고
@@ -541,8 +543,8 @@ ObjectReview.objects.filter(image=…, batch=…).exclude(mask_key__in=keys).del
 ### 3.4 확인하는 법 — 자동 시험이 먼저다 (P08)
 
 ```bash
-python web/manage.py test viewer --exclude-tag browser   # 747개 · 9.4초
-python web/manage.py test viewer                         # 909개 · 199초 (브라우저 162개 포함)
+python web/manage.py test viewer --exclude-tag browser   # 762개 · 9.6초
+python web/manage.py test viewer                         # 929개 · 205초 (브라우저 167개 포함)
 ```
 
 > **08-13 에 세었다** (`v0.12.0` · 114). 그전까지 이 자리에 적혀 있던 455/561 은
