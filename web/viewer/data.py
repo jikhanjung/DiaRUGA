@@ -1056,7 +1056,16 @@ def link_mains(slide) -> dict:
              .prefetch_related("members__image"))
     for link in links:
         members = list(link.members.all())
-        best = max(members, key=_member_area)
+        # **지운 판은 얼굴이 못 된다** (151). 여기는 *가장 크게 보이는* 것을
+        # 고르는데, **지운 마스크가 가장 큰 자리가 실제로 있었다** — `obj#8094`
+        # 는 프레임 하나가 189×258 로 잡혔고(나머지는 ~137×223) 사람이 그것을
+        # 오검출로 지웠는데, 카탈로그 카드는 계속 **그 지운 마스크**로 그려지고
+        # 있었다. 개체의 얼굴은 크롭·학습 자료가 함께 쓰는 자리다.
+        #
+        # **전부 지웠으면 옛 규칙 그대로다** — 「지운 것」 화면이 그 카드를
+        # 그려야 하고, 거기서는 지운 것이 곧 볼 것이다.
+        live = [m for m in members if not m.removed] or members
+        best = max(live, key=_member_area)
         for m in members:
             out[(m.image_id, m.batch_id, m.mask_key)] = (best, len(members))
     return out
@@ -3562,6 +3571,14 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # 판정까지 끌고 간다.
     prune_objects(orphaned)
 
+    # **지운 판이 대표면 얼굴을 옮긴다** (151). 묶인 판을 지우는 것은 허용하되
+    # (사용자 방침 2026-08-25) 개체의 얼굴이 오검출이 되는 것만 막는다.
+    # 청소 뒤에 한다 — 먼저 하면 곧 지워질 행을 세울 수 있다.
+    _reelect_removed_reps(
+        ObjectReview.objects.filter(image=image, batch=batch,
+                                    mask_key__in=removed)
+        .values_list("diatom_object_id", flat=True))
+
     n_drawn, drawn_spread, links_moved = _save_drawn(
         vp, image, drawn, (cur.width, cur.height), batch)
 
@@ -3835,6 +3852,45 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
         # 그대로 돌려주고, 이미 이 개체에 속한 행은 옮길 것이 없다.
         merge_into_object(src.diatom_object, rows)
     return out
+
+
+def _reelect_removed_reps(ids) -> int:
+    """**대표가 지워졌으면 살아 있는 판으로 옮긴다** (151). 돌려주는 것은 옮긴 수.
+
+    `_reelect_reps` 와 다른 자리다 — 저쪽은 대표 **행이 사라진** 것이고 여기는
+    행은 있는데 그 판이 오검출로 지워진 것이다. 예외는 안 나고, `is_rep` 의
+    유일 제약도 "둘 이상" 만 막아 이 상태를 통과시킨다.
+
+    **묶인 판을 지우는 것은 막지 않기로 했다** (사용자 방침 2026-08-25) —
+    묶음은 정체에 대한 말이고 오검출 판정은 판마다 다르다. 그러면 남는 해악은
+    하나다: **개체의 얼굴이 오검출이 되는 것.** 그것만 여기서 막는다.
+
+    고르는 기준은 116 그대로다 — **합성본이 있으면 합성본**, 없으면 남은 것 중
+    가장 크게 보이는 판(`link_mains` 와 같은 기준이라 카드와 얼굴이 안 갈린다).
+
+    **살아 있는 판이 하나도 없으면 안 옮긴다.** 전부 오검출인 개체는 얼굴을
+    고를 자리가 없고, 그것은 `check_db` 가 따로 세는 상태다.
+    """
+    if not ids:
+        return 0
+    n = 0
+    for obj in (DiatomObject.objects.filter(pk__in=set(ids),
+                                            members__is_rep=True,
+                                            members__removed=True)
+                .distinct().prefetch_related("members__image")):
+        live = [m for m in obj.members.all() if not m.removed]
+        if not live:
+            continue
+        stacks = [m for m in live if m.image.kind == "stack"]
+        want = (stacks or live)
+        row = max(want, key=_member_area)
+        # **옛 대표를 먼저 내린다** — `is_rep` 은 개체당 하나라는 유일 제약이
+        # 있어 순서를 바꾸면 `IntegrityError` 다 (`merge_into_object` 와 같은 줄).
+        ObjectReview.objects.filter(diatom_object=obj, is_rep=True).update(
+            is_rep=False)
+        ObjectReview.objects.filter(pk=row.pk).update(is_rep=True)
+        n += 1
+    return n
 
 
 def _reelect_reps(ids) -> int:
