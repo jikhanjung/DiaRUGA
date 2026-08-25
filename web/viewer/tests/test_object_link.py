@@ -69,10 +69,17 @@ class ObjectLinkSchemaTest(DiaRUGATestCase):
 
     def test_한_마스크는_한_묶음에만(self):
         """열쇠가 `(image, batch, mask_key)` 라 판정 행이 애초에 하나뿐이다 —
-        같은 마스크를 두 개체가 물 자리가 구조적으로 없다."""
-        self.make_link()
+        같은 마스크를 두 개체가 물 자리가 구조적으로 없다.
+
+        **모델을 직접 쓴다** — `fx.new_review` 는 이미 있는 줄을 고쳐 준다(P18).
+        제약은 DB 의 사실이라 팩토리를 지나면 안 본 것이 된다.
+        """
+        link = self.make_link()
         with self.assertRaises(IntegrityError), transaction.atomic():
-            self.judgement(self.imgs()[0], "10_10_50_50")
+            ObjectReview.objects.create(
+                viewpoint=self.w.vp, image=self.imgs()[0], batch=self.batch,
+                mask_key="10_10_50_50", diatom_object=link,
+                bind_method="exact", geom={"bbox": [1, 2, 3, 4]})
 
     def test_대표는_둘일_수_없다(self):
         link = self.make_link()
@@ -88,11 +95,19 @@ class ObjectLinkSchemaTest(DiaRUGATestCase):
             self.batch.delete()
 
     def test_사람이_그린_마스크도_멤버가_된다(self):
-        """batch=NULL (P09 5.2 와 같은 뜻) — 짝 제약이 그쪽도 잡는가."""
+        """batch=NULL (P09 5.2 와 같은 뜻) — 짝 제약이 그쪽도 잡는가.
+
+        **모델을 직접 쓴다.** `fx.new_review` 는 이미 있는 줄을 고쳐 주므로
+        (P18 — 검토 완료가 통과분에 판정을 세운다) 그것으로는 제약을 못 본다.
+        제약은 DB 의 사실이지 팩토리의 성질이 아니다.
+        """
         imgs = self.imgs()
-        self.judgement(imgs[0], "5_5_30_30", batch=None)
+        row = self.judgement(imgs[0], "5_5_30_30", batch=None)
         with self.assertRaises(IntegrityError), transaction.atomic():
-            self.judgement(imgs[0], "5_5_30_30", batch=None)
+            ObjectReview.objects.create(
+                viewpoint=self.w.vp, image=imgs[0], batch=None,
+                mask_key="5_5_30_30", diatom_object=row.diatom_object,
+                bind_method="exact", geom=row.geom)
 
     def test_시야를_지우면_묶음도_간다(self):
         """CASCADE — 시야가 사라지면 그 안의 개체는 뜻이 없다."""

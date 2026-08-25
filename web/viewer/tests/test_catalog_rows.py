@@ -25,6 +25,10 @@ class CatalogNumberTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def rows(self):
         return data.catalog_rows("rs23")
@@ -78,6 +82,10 @@ class SingletonFrameTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2, with_stack=False)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_프레임_개체는_f_가_붙는다(self):
         rows = data.catalog_rows("rs23")
@@ -94,6 +102,10 @@ class NoNumberTest(DiaRUGATestCase):
     def setUpTestData(cls):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2)
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_묶음_코드가_없으면_번호도_없다(self):
         """**`M` 을 대신 붙이면 안 된다** — 엔진이 낸 개체가 손그림으로 기록된다."""
@@ -125,6 +137,10 @@ class ManualObjectTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_손그림은_꼬리가_M_이다(self):
         det = self.w.detection()
@@ -152,6 +168,10 @@ class SpeciesOnRowTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_적은_종명이_카드에_온다(self):
         det = self.w.detection()
@@ -192,6 +212,10 @@ class LinkedViewTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         self.det = self.w.detection()
@@ -240,6 +264,10 @@ class LinkedViewTest(DiaRUGATestCase):
 
         묶기 패널이 *사람이 묶기를 누른 판*을 대표로 세우므로(`repKey = curKey`),
         이것은 **사람이 고른 판을 그대로 그린다**는 말이다.
+
+        **대표 판에 현재 검출이 없으면 `view` 로 그린다.** 판정이 `geom` 을
+        스스로 들고 있어 검출 없이도 그릴 수 있다 — 이 픽스처의 프레임이 그
+        자리다. 검출이 있으면 카드 줄 자체가 대표의 줄이 된다.
         """
         self.link((30, 30), (90, 90), rep=1)
         r = self.row()
@@ -259,7 +287,9 @@ class LinkedViewTest(DiaRUGATestCase):
 
     def test_보여줄_상자가_그_멤버의_것이다(self):
         """**상자가 비면 예외가 안 나고 원래 상자로 되돌아간다** — 운영에서
-        그랬다. 그러면 다른 판의 그림을 이 개체의 옛 자리로 잘라 낸다."""
+        그랬다. 그러면 다른 판의 그림을 이 개체의 옛 자리로 잘라 낸다.
+
+        """
         self.link((30, 30), (90, 90), rep=1)
         self.assertEqual(self.row()["view"]["bbox_xywh"], [20, 20, 90, 90])
 
@@ -307,6 +337,10 @@ class OrderTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_viewpoints=3, n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_시야_순이다(self):
         gids = [r["group_id"] for r in data.catalog_rows("rs23")]

@@ -24,7 +24,7 @@ from .models import (Candidate, Detection, DiatomObject,  # noqa: E501
                      Locality,
                      ObjectReview, Run,
                      Sample, Site,
-                     Slide, ThresholdSet, Viewpoint)
+                     Slide, ThresholdSet, Viewpoint, ViewpointReview)
 
 import sys
 from pathlib import Path
@@ -1073,8 +1073,14 @@ def catalog(request, slug):
     q = (request.GET.get("q") or "").strip()
     if q:
         low = q.lower()
+        # **멤버 아무 번호나 맞춘다** (P18 "공개·인용"). 번호는 판정 하나의
+        # 이름이라 한 개체에 번호가 여럿이고, **묶기 전에 적어 둔 번호가 묶은
+        # 뒤에도 찾아져야 한다** — 논문에 적힌 것이 그 번호일 수 있다.
+        # 카드가 내보이는 것은 앵커의 번호 하나뿐이라, 그것만 맞추면 나머지
+        # 번호로 찾아온 사람에게 "없다" 고 답하게 된다.
         rows = [r for r in rows
                 if low in r["catalog_no"].lower()
+                or any(low in n.lower() for n in (r.get("member_nos") or []))
                 or low in (r.get("species") or "").lower()
                 or low in (r.get("note") or "").lower()]
 
@@ -1142,6 +1148,17 @@ def catalog(request, slug):
     # **왜 못 적는가를 화면이 말한다.** 잠가 놓고 이유를 안 적으면 사람이 같은
     # 일을 몇 번이고 다시 한다 (063).
     batch = data.review_batch_info()
+    # **왜 이만큼만 나오는가를 말한다** (P18). 카드가 개체 단위가 되면서
+    # **검토 안 한 시야는 카드가 없다** — 개체는 사람이 손대기 전까지 없고,
+    # 완료를 누르면 그 시야의 남은 마스크가 전부 개체가 된다(`confirm_kept`).
+    #
+    # **조용히 줄면 자료가 사라진 것으로 읽힌다.** 파편을 감출 때 몇 개를
+    # 감췄는지 적는 것과 같은 줄이다.
+    n_vp = Viewpoint.objects.filter(slide__slug=slug).count()
+    n_done = ViewpointReview.objects.filter(
+        viewpoint__slide__slug=slug, done=True,
+        batch_id=(batch or {}).get("id")).count() if batch else 0
+
     if batch is None:
         blocked = ("검토할 묶음이 정해져 있지 않아 개체가 하나도 안 보입니다 — "
                    "시스템 설정 · 운영에서 고르세요.")
@@ -1170,6 +1187,8 @@ def catalog(request, slug):
         # 카드가 두 칸을 감추고, 유형을 파편으로 바꿀 때 물어볼 수 있다.
         # 서버는 `data.check_grade_pose` 가 다시 검사한다 — 화면에서 막는 것은
         # 막는 것이 아니다(063).
+        "n_vp": n_vp,
+        "n_done": n_done,
         "counted_keys": [r["key"] for r in data.counted_classes()],
         "grades": DiatomObject.GRADE,
         "poses": DiatomObject.POSE,
@@ -2271,6 +2290,11 @@ def _split_off(row, src) -> DiatomObject:
         grade=src.grade, pose=src.pose)
     ObjectReview.objects.filter(pk=row.pk).update(diatom_object=obj,
                                                   is_rep=True)
+    # **갈라 나간 개체는 자기가 앵커다** (P18). 멤버가 하나뿐이라 고를 것이 없다.
+    # 그리고 **떠나온 쪽의 앵커가 이 행이었으면 그쪽은 앵커를 잃는다** —
+    # `SET_NULL` 로 비고, 다음 줄이 남은 멤버로 넘긴다.
+    DiatomObject.objects.filter(pk=obj.pk).update(anchor_id=row.pk)
+    data.reanchor([src.pk])
     return obj
 
 

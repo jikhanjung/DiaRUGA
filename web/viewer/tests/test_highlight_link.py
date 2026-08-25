@@ -34,6 +34,10 @@ class HighlightLinkTest(DiaRUGATestCase):
     def setUpTestData(cls):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=3)
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         self.c = Client()
@@ -81,9 +85,12 @@ class HighlightLinkTest(DiaRUGATestCase):
         그 갈래에서는 개체가 **프레임의 것**이라 `img` 가 합성본이 아니다 —
         여기가 어긋나면 화면이 판을 못 찾아 표시가 안 붙는다.
         """
-        fx.make_world(slug="bp09", site_code="BP", loc_code="BP09",
-                      sample_code="0901", area="kor", kind="outcrop",
-                      with_stack=False, n_candidates=3)
+        w = fx.make_world(slug="bp09", site_code="BP", loc_code="BP09",
+                          sample_code="0901", area="kor", kind="outcrop",
+                          with_stack=False, n_candidates=3)
+        # 카드가 개체 단위라 판정이 있어야 줄이 난다 (P18).
+        for vp in w.viewpoints:
+            fx.review_done(vp)
         # **파편으로 고르면 안 된다** — 카탈로그는 파편을 기본으로 감춘다
         # (등급·자세를 안 매기므로). 세 화면에 다 나오는 개체라야 셋을 비교한다.
         row = next(r for r in data.candidate_rows("bp09") if r["cls"] == "rod")

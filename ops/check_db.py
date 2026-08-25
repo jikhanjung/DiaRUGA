@@ -504,6 +504,28 @@ def check_links(slug=None):
            "개체의 얼굴이 오검출이다 — 크롭과 학습 자료가 그것을 쓴다",
            bad_rep)
 
+    # **앵커가 성한가** (P18). 카탈로그 번호를 어느 판정에서 뽑을지가 이 칸이고,
+    # 비어 있으면 **그 개체의 번호를 만들 재료가 없다.** 남의 판정을 가리키면
+    # 더 나쁘다 — 예외는 안 나고 **다른 개체의 이름이 이 카드에 적힌다.**
+    #
+    # **묶음만 보지 않는다.** 앵커는 혼자인 개체에도 있어야 하므로 여기서만
+    # 시야가 넓다(`links` 는 멤버가 둘 이상인 것뿐이다).
+    objs = DiatomObject.objects.all()
+    if slug:
+        objs = objs.filter(viewpoint__slide__slug=slug)
+    objs = list(objs.select_related("anchor").prefetch_related("members"))
+    live = [o for o in objs if o.members.all()]
+    no_anchor = [f"obj#{o.pk}" for o in live if o.anchor_id is None]
+    report("개체마다 앵커가 있다", len(no_anchor), len(live),
+           "카탈로그 번호를 만들 재료가 없다 (data.reanchor 가 세운다)",
+           no_anchor)
+    stray = [f"obj#{o.pk}" for o in live
+             if o.anchor_id is not None
+             and o.anchor.diatom_object_id != o.pk]
+    report("앵커가 그 개체의 판정이다", len(stray), len(live),
+           "남의 판정으로 번호를 만든다 — 다른 개체의 이름이 카드에 적힌다",
+           stray)
+
     # 멤버의 이미지가 묶음의 시야에 속하는가. 어긋나면 화면이 못 그린다.
     stray = [l for l in links
              if any(m.image.viewpoint_id != l.viewpoint_id

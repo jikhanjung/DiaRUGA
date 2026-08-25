@@ -126,9 +126,10 @@ class ReviewBatchScopeTest(DiaRUGATestCase):
         kw = dict(viewpoint=self.w.vp, image=det.image, batch=None,
                   source="manual", mask_key="m0a1b2c3",
                   geom={"bbox": [1, 1, 2, 2]})
-        fx.new_review(**kw)
+        row = fx.new_review(**kw)
+        # **모델을 직접 쓴다** — 팩토리는 이미 있는 줄을 고쳐 준다 (P18).
         with self.assertRaises(IntegrityError):
-            fx.new_review(**kw)
+            ObjectReview.objects.create(diatom_object=row.diatom_object, **kw)
 
     # --- 묶음이 없는 검출 --------------------------------------------------
 

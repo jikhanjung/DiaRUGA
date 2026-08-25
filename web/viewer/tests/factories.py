@@ -420,13 +420,33 @@ def add_review(vp, mask_key, *, image=None, removed=False, accepted=False,
     geom = {}
     if cand is not None:
         geom = {"bbox": cand.bbox_xywh, "polygon": list(cand.polygon)}
+    # **이미 있으면 그것을 고친다** (P18). 검토 완료(`review_done`)가 통과분에
+    # 판정을 세워 두므로 그 뒤에 부르면 열쇠가 부딪힌다 —
+    # `(image, batch, mask_key)` 는 유일 제약이다. 운영의 문(`judgement_for`)도
+    # get-or-create 라, 여기서 늘 새로 만들면 **시험 자료가 운영과 다른 모양**이
+    # 된다(이 파일 머리말).
+    row = ObjectReview.objects.filter(image=det.image, batch=det.batch,
+                                      mask_key=mask_key).first()
+    if row is not None:
+        obj = row.diatom_object
+        for f, v in (("label", label), ("species", species), ("note", note)):
+            if v:
+                setattr(obj, f, v)
+        obj.save()
+        row.removed, row.accepted = removed, accepted
+        if geom and not row.geom:
+            row.geom = geom
+        row.save(update_fields=["removed", "accepted", "geom"])
+        return row
     obj = DiatomObject.objects.create(viewpoint=vp, batch=det.batch,
                                       label=label, species=species, note=note)
-    return ObjectReview.objects.create(
+    row = ObjectReview.objects.create(
         viewpoint=vp, image=det.image, batch=det.batch, mask_key=mask_key,
         candidate=cand, bind_method="exact" if cand else "orphan", geom=geom,
         diatom_object=obj, is_rep=True,
         removed=removed, accepted=accepted)
+    DiatomObject.objects.filter(pk=obj.pk).update(anchor=row)
+    return row
 
 
 def new_review(**kw) -> ObjectReview:
@@ -462,7 +482,36 @@ def new_review(**kw) -> ObjectReview:
             **({"batch": b} if b is not None else
                {"batch_id": kw.get("batch_id")}))
     kw.setdefault("is_rep", True)
-    return ObjectReview.objects.create(diatom_object=obj, **kw)
+    # **이미 있으면 그것을 고친다** — `add_review` 와 같은 이유다 (P18). 검토
+    # 완료(`review_done`)가 통과분에 판정을 세워 두므로 그 뒤에 부르면
+    # `(image, batch, mask_key)` 유일 제약에 부딪힌다. 운영의 문
+    # (`judgement_for`)도 get-or-create 라 이쪽이 운영과 같은 모양이다.
+    #
+    # **유일 제약 자체를 보는 시험은 모델을 직접 쓴다** — 제약은 DB 의 사실이지
+    # 이 함수의 성질이 아니다. 여기서 재사용해 주면 그 시험이 아무것도 안 본다.
+    have = ObjectReview.objects.filter(
+        image_id=getattr(kw.get("image"), "pk", kw.get("image"))
+        or kw.get("image_id"),
+        batch_id=getattr(kw.get("batch"), "pk", kw.get("batch"))
+        or kw.get("batch_id"),
+        mask_key=kw.get("mask_key")).first()
+    if have is not None:
+        dobj = have.diatom_object
+        for f, v in (("label", label), ("species", species), ("note", note)):
+            if v:
+                setattr(dobj, f, v)
+        dobj.save()
+        for f, v in kw.items():
+            if f in ("image", "image_id", "batch", "batch_id", "mask_key",
+                     "viewpoint", "viewpoint_id", "is_rep"):
+                continue
+            setattr(have, f, v)
+        have.save()
+        return have
+    row = ObjectReview.objects.create(diatom_object=obj, **kw)
+    if obj.anchor_id is None:
+        DiatomObject.objects.filter(pk=obj.pk).update(anchor=row)
+    return row
 
 
 def links(vp=None):
@@ -475,6 +524,30 @@ def links(vp=None):
     qs = (DiatomObject.objects.annotate(_n=Count("members"))
           .filter(_n__gte=2))
     return qs if vp is None else qs.filter(viewpoint=vp)
+
+
+def review_done(vp, batch=None) -> int:
+    """그 시야를 **검토 완료로 표시한 것과 같은 상태**로 만든다 (P18).
+
+    돌려주는 것은 새로 선 판정 수.
+
+    카탈로그 카드가 개체 단위가 되면서(P18) **판정이 없는 후보는 카드가 없다** —
+    사람이 손대기 전까지 개체는 없는 것이 맞고, 완료를 누르면 남은 마스크가
+    전부 개체가 된다(`confirm_kept`, 2026-08-11). 그래서 카탈로그를 보는 시험은
+    이 문을 지나야 **운영에 있는 모양**이 된다.
+
+    **운영이 쓰는 그 함수를 그대로 부른다** — 옆문으로 행을 심으면 시험 자료가
+    운영과 다른 모양이 되고, 그런 시험은 덮은 줄 알게 한다(이 파일 머리말).
+    """
+    if batch is None:
+        batch = RunBatch.objects.filter(for_review=True).first()
+    made = data.confirm_kept(vp, batch)
+    # **완료 표시도 함께 남긴다.** 실제 완료(`save_review`)는 둘을 한 자리에서
+    # 한다 — 판정을 세우고(`confirm_kept`), `(시야, 묶음)` 에 완료를 적는다.
+    # 하나만 하면 카탈로그는 차는데 화면은 "덜 봤다" 고 말한다.
+    ViewpointReview.objects.update_or_create(
+        viewpoint=vp, batch=batch, defaults={"done": True})
+    return sum(len(v) for v in made.values())
 
 
 def link_reviews(rows, rep=0) -> DiatomObject:
@@ -493,7 +566,13 @@ def link_reviews(rows, rep=0) -> DiatomObject:
         row.is_rep = (i == rep)
         row.save(update_fields=["diatom_object", "is_rep"])
     DiatomObject.objects.filter(pk__in=ghosts, members__isnull=True).delete()
-    return target
+    # **앵커는 가장 오래된 멤버다** (P18). 운영에서 새로 묶으면 그릇이 빈 개체라
+    # `data.reanchor` 가 그렇게 세운다(`merge_into_object` 끝) — 여기서 그릇의
+    # 옛 앵커를 그대로 두면 **`rep` 을 무엇으로 주느냐에 따라 번호가 달라져**
+    # 시험 자료가 운영과 다른 모양이 된다.
+    DiatomObject.objects.filter(pk=target.pk).update(
+        anchor=min(rows, key=lambda r: r.pk))
+    return DiatomObject.objects.get(pk=target.pk)
 
 
 def _write(rel):

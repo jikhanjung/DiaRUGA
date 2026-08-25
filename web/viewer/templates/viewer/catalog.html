@@ -65,6 +65,12 @@
   }
   .catcard .no button:hover { border-color: var(--accent); color: var(--accent); }
   .catcard .no.none { color: var(--warn); font-family: inherit; font-size: 11.5px; }
+  /* 번호가 어느 판의 것인가 (P18). 번호 옆이라 흐리게 — 읽을 것은 번호다. */
+  .catcard .no .nofrom { flex: none; font-family: inherit; font-size: 10.5px;
+                         color: var(--dim); }
+  /* 검토한 시야가 몇인가 (P18). 진행률 옆이라 같은 크기로 둔다. */
+  .catbar .vpdone { font-size: 12px; color: var(--warn-fg); }
+  .catbar .vpdone b { color: var(--fg); }
   .catcard .row { display: flex; gap: 6px; align-items: center; }
   .catcard .row > label { flex: none; width: 3.4em; font-size: 11.5px; color: var(--dim); }
   .catcard input[type=text], .catcard select, .catcard textarea {
@@ -246,6 +252,18 @@
         title="종명·등급·자세가 다 찬 개체입니다. 파편은 세지 않습니다">동정
     <b>{{ n_named }}</b> / {{ n_all }}
     <i><s style="width:{{ pct }}%"></s></i>{{ pct }}%</span>
+  {% comment %}
+    **왜 이만큼만 나오는가** (P18). 카드 하나가 개체 하나가 되면서 **검토 안 한
+    시야는 카드가 없다** — 개체는 사람이 손대기 전까지 없고, 완료를 누르면 그
+    시야의 남은 마스크가 전부 개체가 된다.
+
+    **조용히 줄면 자료가 사라진 것으로 읽힌다** — 파편을 감출 때 몇 개를
+    감췄는지 적는 것과 같은 줄이다. 다 봤으면 안 적는다(글자만 는다).
+  {% endcomment %}
+  {% if n_done < n_vp %}
+    <span class="vpdone" title="개체는 사람이 손대기 전까지 없습니다. 검토 완료를 누르면 그 시야의 남은 마스크가 전부 개체가 되고 여기 옵니다">시야
+      <b>{{ n_done }}</b>/{{ n_vp }} 검토</span>
+  {% endif %}
   <form class="catsearch" method="get">
     {% if cls %}<input type="hidden" name="cls" value="{{ cls }}">{% endif %}
     {% if show_frag %}<input type="hidden" name="frag" value="1">{% endif %}
@@ -418,7 +436,17 @@
     </a>
     <div class="fld">
       {% if r.catalog_no %}
+        {% comment %}
+          **번호가 어느 판의 것인지 적는다** (P18). 카드는 개체인데 번호는 판정
+          하나의 이름이라, 안 적으면 `f03` 이 카드 전체를 설명하는 것처럼
+          읽힌다 — 이 개체는 판 넷에 걸쳐 있고 그림은 대표(다른 판)일 수 있다.
+
+          **이 줄의 번호일 때는 안 적는다** — 늘 적으면 글자만 는다.
+        {% endcomment %}
         <div class="no"><span class="v">{{ r.catalog_no }}</span>
+          {% if not r.no_here %}<span class="nofrom"
+            title="번호는 판정 하나의 이름입니다. 이 개체의 다른 판 번호로도 찾을 수 있습니다"
+            >{% if r.no_from is not None %}프레임 {{ r.no_from }}{% else %}합성본{% endif %} 기준</span>{% endif %}
           <button type="button" class="copy" title="번호 복사">복사</button></div>
       {% else %}
         <div class="no none" title="{{ r.catalog_why }}">번호 없음 — {{ r.catalog_why }}</div>

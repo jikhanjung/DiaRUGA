@@ -32,6 +32,10 @@ class CatalogGradePoseTest(BrowserTestCase):
                                site_code=f"RS{self.uniq}", n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
         self.key = self.w.keys()[0]
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
 
     def open_catalog(self):
         return self.open(reverse("catalog", args=[self.w.slide.slug]))
@@ -195,6 +199,10 @@ class CatalogFragToggleTest(BrowserTestCase):
         RunBatch.objects.filter(for_review=True).update(code="S1")
         self.frag_key = self.w.keys()[0]
         fx.add_review(self.w.vp, self.frag_key, label="round_frag")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_기본은_꺼져_있고_누르면_파편이_나온다(self):
         """**그 파편 카드가 나오는지**를 본다 — 카드 수를 세면 픽스처가 만드는
@@ -224,6 +232,10 @@ class CatalogGradePoseReadOnlyTest(BrowserTestCase):
                                site_code=f"RS{self.uniq}", n_candidates=2,
                                state="processing")
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_다섯_칸이_다_안_눌린다(self):
         page = self.open(reverse("catalog", args=[self.w.slide.slug]))

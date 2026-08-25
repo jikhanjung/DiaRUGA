@@ -26,6 +26,10 @@ class CatalogEditTest(BrowserTestCase):
         self.w = fx.make_world(slug=f"rs23-{self.uniq}",
                                site_code=f"RS{self.uniq}", n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
 
     def open_catalog(self):
         return self.open(reverse("catalog", args=[self.w.slide.slug]))
@@ -134,8 +138,11 @@ class CatalogEditTest(BrowserTestCase):
         page.go_back(wait_until="load")
         page.wait_for_timeout(1500)
 
+        # **빈 것을 세지 않는다** (P18). 검토 완료가 통과분마다 개체를 세우므로
+        # 개체가 후보 수만큼 있다 — 여기서 보려는 것은 *적은 종명이 남았는가*다.
         self.assertEqual(
-            list(DiatomObject.objects.values_list("species", flat=True)),
+            [x for x in DiatomObject.objects.values_list("species", flat=True)
+             if x],
             ["Eucampia antarctica"])
 
     def test_저장되면_카드가_그렇게_말한다(self):
@@ -161,6 +168,10 @@ class CatalogReadOnlyTest(BrowserTestCase):
                                site_code=f"RS{self.uniq}", n_candidates=2,
                                state="processing")
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_세_칸이_다_안_눌린다(self):
         page = self.open(reverse("catalog", args=[self.w.slide.slug]))
@@ -212,6 +223,10 @@ class CatalogRemoveBrowserTest(BrowserTestCase):
         self.w = fx.make_world(slug=f"rs23-{self.uniq}",
                                site_code=f"RS{self.uniq}", n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_지우면_카드가_잠기고_되살리기로_바뀐다(self):
         page = self.open(reverse("catalog", args=[self.w.slide.slug]))
@@ -289,6 +304,10 @@ class CatalogBulkBrowserTest(BrowserTestCase):
         self.w = fx.make_world(slug=f"rs23-{self.uniq}",
                                site_code=f"RS{self.uniq}", n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_고른_둘에만_앉는다(self):
         # **파편도 함께 낸다** — 기본 화면은 파편을 감추므로 카드가 모자란다.
@@ -313,8 +332,10 @@ class CatalogBulkBrowserTest(BrowserTestCase):
                for o in ObjectReview.objects.select_related("diatom_object")}
         for k in picked:
             self.assertEqual(got.get(k), "rod", k)
-        # **안 고른 카드는 안 건드린다**
-        self.assertIsNone(got.get(left))
+        # **안 고른 카드는 안 건드린다.** 줄은 있다 — 검토 완료가 통과분마다
+        # 판정을 세우므로(P18) *없는 것*이 아니라 *빈 것*이어야 한다.
+        self.assertFalse(got.get(left),
+                         f"안 고른 카드에 분류가 앉았다: {got.get(left)!r}")
 
     def test_고칠_칸을_안_채우면_말한다(self):
         """아무것도 안 하고 "저장됨" 이 뜨는 갈래를 안 만든다 (063)."""

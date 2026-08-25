@@ -29,6 +29,13 @@ class SwitchReviewBatchTest(DiaRUGATestCase):
         # 두 번째 묶음 — **그 묶음 안에서 현재 검출**이다. 운영이 그 모양이다
         # (`sam2-전수`·`yolo-3차` 둘 다 `is_current` 가 켜져 있다).
         fx.add_other_engine(cls.w.vp, label="yolo-3차", current=True, code="Y3")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # **묶음마다 따로 세운다**: 개체의 열쇠에 묶음이 있어 카탈로그가 엔진마다
+        # 완전히 별개다(`DiatomObject.batch`). 한쪽만 세우면 갈아 낀 뒤 카드가
+        # 없어 이 시험이 아무것도 안 본다.
+        for _b in RunBatch.objects.all():
+            for _vp in cls.w.viewpoints:
+                fx.review_done(_vp, _b)
 
     def use(self, code):
         """관리 화면이 하는 일 — 검토 대상을 간다."""
@@ -111,6 +118,10 @@ class NoReviewBatchTest(DiaRUGATestCase):
     def setUpTestData(cls):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2)
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_검토_대상이_없으면_빈_목록이다(self):
         """조용히 아무 묶음이나 보여주지 않는다 (P10 3.6)."""
@@ -134,6 +145,10 @@ class QueryCountTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_viewpoints=6, n_candidates=2)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_시야가_늘어도_묶음_조회는_한_번이다(self):
         from django.db import connection

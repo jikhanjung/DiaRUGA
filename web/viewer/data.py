@@ -446,6 +446,10 @@ def _apply_review(det: Detection, reviews: dict, state) -> dict:
             d["grade"] = o.diatom_object.grade
         if o.diatom_object.pose:
             d["pose"] = o.diatom_object.pose
+        # **어느 개체의 것인가** (P18). 카탈로그가 카드를 개체 단위로 모으는
+        # 열쇠다 — 이 칸이 없는 후보는 **아직 아무도 안 본 것**이라 카드가 없다
+        # (사용자 방침 2026-08-25: 개체는 사람이 손대기 전까지 없는 것이 맞다).
+        d["obj_id"] = o.diatom_object_id
 
     kept.sort(key=lambda r: -(r.get("area_px") or 0))
     for i, d in enumerate(kept):
@@ -671,7 +675,8 @@ def slide_label(slug: str) -> str | None:
     return Slide.objects.filter(slug=slug).values_list("name", flat=True).first()
 
 
-def candidate_rows(slug: str, batch_id=None, gone: bool = False) -> list[dict]:
+def candidate_rows(slug: str, batch_id=None, gone: bool = False,
+                   all_images: bool = False) -> list[dict]:
     """데이터셋 전체의 검출 개체를 한 목록으로. **시야를 한 번만 훑는다.**
 
     예전에는 뷰가 `dataset_detail()` 로 시야 74개를 훑은 뒤, 그룹마다 다시
@@ -724,15 +729,35 @@ def candidate_rows(slug: str, batch_id=None, gone: bool = False) -> list[dict]:
         # `None` 이고, 카탈로그 번호의 `f` 토막이 그것을 그대로 따른다
         # (`catalog.catalog_no`). `f` 가 붙어 있느냐가 곧 "어느 이미지를 보고 잰
         # 것이냐" 를 말한다.
-        if stacked:
+        if all_images:
+            # **디스크를 안 짚는다.** `_frames` 는 프레임마다 `exists()` 를
+            # 부르는데(캐러셀이 없는 판을 흐리게 그리려고), 카탈로그는 그것을
+            # 쓸 일이 없다 — 시야 570개 × 프레임 넷이면 한 판에 `stat` 이
+            # 2천 번이다. **개수를 세려고 자료를 물질화하지 말라**는 그 줄이다.
+            frames = [(fr.name, by_path[fr.path][1], fr.path,
+                       by_path[fr.path][0], fr.seq)
+                      for fr in vp.frames.all() if fr.path in by_path]
+        else:
+            frames = [(f["name"], f["detection"], f["rel"], f["image_id"],
+                       f["seq"])
+                      for f in _frames(vp, by_path) if f["detection"]]
+        if all_images:
+            # **판을 안 고른다** (P18). 개체 카탈로그가 쓰는 갈래다 — 카드를 개체
+            # 단위로 모으려면 **모든 판의 후보**가 있어야 한다. 합성본에서 안
+            # 잡히고 어떤 프레임에서만 잡힌 규조각이 여기서 들어온다(106).
+            #
+            # **중복은 부르는 쪽이 접는다.** 같은 규조각이 판마다 한 줄씩 나오는데,
+            # 그것을 하나로 모으는 열쇠가 `obj_id` 다.
+            sources = ([(Path(st.focused_path).stem, stacked[1],
+                         st.focused_path, stacked[0], None)] if stacked else [])
+            sources += frames
+        elif stacked:
             sources = [(Path(st.focused_path).stem, stacked[1],
                         st.focused_path, stacked[0], None)]
         else:
             # **프레임마다 자기 검출을 준다.** 예전에는 대표 검출 하나를 프레임
             # 수만큼 되돌려 같은 개체가 여러 줄로 나왔다.
-            sources = [(f["name"], f["detection"], f["rel"], f["image_id"],
-                        f["seq"])
-                       for f in _frames(vp, by_path) if f["detection"]]
+            sources = frames
         for stem, d, image_rel, image_id, frame_seq in sources:
             for c in d["removed_candidates" if gone else "candidates"]:
                 rows.append({
@@ -848,11 +873,16 @@ def judgement_for(vp, image, batch, key, cand=None) -> ObjectReview:
     if row is not None:
         return row
     obj = DiatomObject.objects.create(viewpoint=vp, batch_id=batch_id)
-    return ObjectReview.objects.create(
+    row = ObjectReview.objects.create(
         viewpoint=vp, image_id=image_id, batch_id=batch_id, mask_key=key,
         diatom_object=obj, is_rep=True, candidate=cand,
         bind_method="exact" if cand else "orphan",
         bind_score=1.0 if cand else None)
+    # **새 개체는 자기가 앵커다** (P18). 멤버가 하나뿐이라 고를 것이 없고, 나중에
+    # 무엇을 묶어 넣어도 이 값이 그대로 남는 것이 요점이다 — 카탈로그 번호가
+    # 묶는 행위에 안 움직인다.
+    DiatomObject.objects.filter(pk=obj.pk).update(anchor=row)
+    return row
 
 
 def confirm_kept(vp: Viewpoint, batch) -> dict:
@@ -1006,6 +1036,10 @@ def merge_into_object(obj: DiatomObject, rows) -> int:
         rep_pk = rows[0][0].pk
     ObjectReview.objects.filter(pk=rep_pk).update(is_rep=True)
     prune_objects(orphaned)
+    # **그릇의 앵커는 그대로다** (P18) — 묶어도 번호가 안 움직이는 것이 이
+    # 칸의 요점이라 여기서 손대지 않는다. 다만 그릇이 앵커를 안 갖고 있었으면
+    # (옛 자료·유령을 걷은 뒤) 이 자리에서 세운다.
+    reanchor([obj.pk])
     return rep_pk
 
 
@@ -1137,36 +1171,137 @@ def catalog_rows(slug: str, gone: bool = False) -> list[dict]:
 
     layer = layer_codes(slide)
     codes = batch_codes()
-    mains = link_mains(slide)
+    facts = object_facts(slide)
 
-    rows = candidate_rows(slug, gone=gone)
-    for r in rows:
-        r["catalog_no"], r["catalog_why"] = catalog_no_for(r, layer, codes)
+    # **모든 판을 훑는다** (P18) — 카드를 개체 단위로 모으려면 프레임에만 잡힌
+    # 것도 손에 있어야 한다.
+    raw = candidate_rows(slug, gone=gone, all_images=True)
+
+    # 개체마다 한 줄. **고르는 것은 대표의 줄이다** (152) — 카드가 그리는 그림·
+    # 지표·저장이 전부 그 판의 것이어야 화면과 숫자가 안 갈린다.
+    picked, extra = {}, {}
+    for r in raw:
+        oid = r.get("obj_id")
+        if oid is None:
+            # **아직 아무도 안 본 후보다.** 개체가 없으니 카드도 없다
+            # (사용자 방침 2026-08-25). 검토 완료를 누르면 `confirm_kept` 가
+            # 개체를 세우고 그때 카드가 생긴다.
+            continue
+        f = facts.get(oid)
+        if f is None:
+            continue
+        here = (r.get("image_id"), r["key"])
+        # 대표의 줄을 먼저, 없으면 앵커의 줄, 그것도 없으면 처음 만난 줄.
+        rank = 0 if here == f["rep"] else (1 if here == f["anchor"] else 2)
+        cur = picked.get(oid)
+        if cur is None or rank < cur[0]:
+            picked[oid] = (rank, r)
+        # **번호는 판정마다 하나씩 있다** (P18 "공개·인용"). 묶기 전에 적어 둔
+        # 번호가 묶은 뒤에도 찾아져야 하므로 전부 들고 다닌다.
+        extra.setdefault(oid, []).append(r)
+
+    rows = []
+    for oid, (_rank, r) in picked.items():
+        f = facts[oid]
+        # **번호는 앵커에서 뽑는다** (P18). 대표를 ★ 로 옮겨도 번호가 안 움직인다 —
+        # 얼굴은 대표, 이름은 앵커로 축을 갈라 두었다.
+        src = f["anchor_row"] or r
+        r["catalog_no"], r["catalog_why"] = catalog_no_for(src, layer, codes)
+        # **번호가 어느 판의 것인지 적는다.** 카드는 개체인데 번호는 판정 하나의
+        # 이름이라, 안 적으면 `f03` 이 카드 전체를 설명하는 것처럼 읽힌다.
+        r["no_from"] = src.get("frame_seq")
+        r["no_here"] = (src.get("image_id"), src.get("key")) == \
+                       (r.get("image_id"), r.get("key"))
+        # 멤버들의 번호 — 검색이 이 중 아무것이나 맞춘다.
+        r["member_nos"] = [
+            no for no in
+            (catalog_no_for(m, layer, codes)[0] for m in extra.get(oid, []))
+            if no]
         r.setdefault("species", "")
         r.setdefault("note", "")
         r.setdefault("grade", "")
         r.setdefault("pose", "")
-        # **묶었으면 가장 큰 프레임을 그린다.** 원래 행은 안 건드리고 `view` 로만
-        # 낸다 — 크롭·지표·번호가 전부 원래 이미지 기준이라, 섞으면 화면이 다른
-        # 이미지의 숫자를 이 개체 옆에 적는다.
-        hit = mains.get((r.get("image_id"), r.get("batch_id"), r["key"]))
-        if hit:
-            best, n = hit
-            geom = best.geom or {}
-            box = geom_box(geom) or _key_bbox(best.mask_key)
-            if best.image_id != r.get("image_id") and geom.get("polygon") and box:
-                r["view"] = {"rel": best.image.path,
-                             "bbox_xywh": list(box),
-                             "polygon": list(geom["polygon"])}
-            r["linked_n"] = n
-            # **푸는 데 필요한 것은 `link_id` 하나다** (P16 5.3). 카드가 이미
-            # 들고 있는 것에서 한 줄로 얻는다 — 카드마다 되묻지 않는다(105).
-            r["link_id"] = best.diatom_object_id
+        # **고른 줄이 대표가 아니면 대표를 그린다** (152). 대표 판에 현재
+        # 검출이 없을 때가 그 자리다 — 그림·상자만 갈고 번호·지표는 이 줄의
+        # 것으로 둔다(섞으면 화면이 다른 판의 숫자를 이 그림 옆에 적는다).
+        if (f["rep"] and f["rep"] != (r.get("image_id"), r.get("key"))
+                and f["rep_row"]):
+            r["view"] = f["rep_row"]
+        if f["n"] > 1:
+            r["linked_n"] = f["n"]
+            # **푸는 데 필요한 것은 `link_id` 하나다** (P16 5.3).
+            r["link_id"] = oid
+        rows.append(r)
 
     rows.sort(key=lambda r: (r["group_id"],
                              (r.get("bbox_xywh") or [0, 0])[1],
                              (r.get("bbox_xywh") or [0, 0])[0]))
     return rows
+
+
+def _member_view(m):
+    """멤버 하나를 **그릴 수 있는 모양**으로. 기하가 없으면 `None`.
+
+    `link_mains` 가 쓰던 것과 같은 재료다 — 판정이 `geom` 스냅샷을 스스로 들고
+    있어(CLAUDE.md) 그 판에 현재 검출이 없어도 그릴 수 있다.
+    """
+    geom = m.geom or {}
+    box = geom_box(geom) or _key_bbox(m.mask_key)
+    if not (box and geom.get("polygon")):
+        return None
+    return {"rel": m.image.path, "bbox_xywh": list(box),
+            "polygon": list(geom["polygon"])}
+
+
+def object_facts(slide) -> dict:
+    """개체마다 **대표·앵커·멤버 수** (P18). 열쇠는 개체 id.
+
+    카탈로그가 카드를 개체 단위로 모을 때 쓴다. **한 번만 묻는다**(105) —
+    카드마다 물으면 한 판에 질의가 수백 번이다.
+
+    `rep`·`anchor` 는 `(이미지 id, mask_key)` 다. 카드의 줄을 고르는 데 쓰고,
+    `anchor_row` 는 번호를 만드는 재료다 — 앵커가 **다른 판**일 수 있으므로
+    그 판의 `frame_seq` 가 함께 필요하다.
+    """
+    out = {}
+    # **경로로 맞춘다** — `Frame` 에는 `Image` 로 가는 FK 가 없고 `path` 가 유일
+    # 열쇠다 (`_frames` 와 같은 규칙). 프레임마다 되짚으면 시야 하나에 질의가
+    # 프레임 수만큼 는다.
+    fseq = dict(Frame.objects.filter(slide=slide).values_list("path", "seq"))
+    seqs = {pk: fseq.get(path) for pk, path in
+            Image.objects.filter(viewpoint__slide=slide)
+            .values_list("pk", "path")}
+    objs = (DiatomObject.objects.filter(viewpoint__slide=slide)
+            .select_related("anchor", "viewpoint")
+            .prefetch_related("members__image"))
+    for obj in objs:
+        members = list(obj.members.all())
+        if not members:
+            continue                       # 유령 — `check_db` 가 센다
+        rep = next((m for m in members if m.is_rep), None)
+        anchor = obj.anchor
+        # **앵커가 이 개체의 멤버가 아니면 안 쓴다.** 그런 상태는 `check_db` 가
+        # 세는 고장이고, 그대로 쓰면 남의 판정으로 번호를 만든다.
+        if anchor is not None and anchor.diatom_object_id != obj.pk:
+            anchor = None
+        if anchor is None:
+            anchor = min(members, key=lambda m: m.pk)
+        out[obj.pk] = {
+            "n": len(members),
+            "rep": (rep.image_id, rep.mask_key) if rep else None,
+            # **대표를 그릴 재료.** 대표 판에 현재 검출이 없으면 후보 줄이 없어
+            # 카드가 다른 판의 줄로 떨어지는데, 그때도 **그림은 대표여야 한다**
+            # (152). 그 자리를 옛 `view` 가 메운다.
+            "rep_row": _member_view(rep) if rep else None,
+            "anchor": (anchor.image_id, anchor.mask_key),
+            "anchor_row": {"group_id": obj.viewpoint.idx,
+                           "image_id": anchor.image_id,
+                           "key": anchor.mask_key,
+                           "batch_id": anchor.batch_id,
+                           "source": anchor.source,
+                           "frame_seq": seqs.get(anchor.image_id)},
+        }
+    return out
 
 
 SPECIES_MAX = 120
@@ -1272,6 +1407,8 @@ def _catalog_prune(obj) -> bool:
         oid = obj.diatom_object_id
         obj.delete()
         prune_objects([oid])
+        # 지운 줄이 앵커였으면 남은 멤버로 넘긴다 (P18).
+        reanchor([oid])
         return False
     return True
 
@@ -3589,6 +3726,9 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # **판정을 지운 뒤에 개체를 걷는다.** 순서를 바꾸면 `CASCADE` 가 살아 있는
     # 판정까지 끌고 간다.
     prune_objects(orphaned)
+    # **앵커를 잃었으면 다시 세운다** (P18). 지운 행이 앵커였으면 `SET_NULL` 로
+    # 비는데, 그대로 두면 그 개체의 카탈로그 번호를 만들 재료가 없다.
+    reanchor(orphaned)
 
     # **지운 판이 대표면 얼굴을 옮긴다** (151). 묶인 판을 지우는 것은 허용하되
     # (사용자 방침 2026-08-25) 개체의 얼굴이 오검출이 되는 것만 막는다.
@@ -3773,6 +3913,8 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0),
     prune_objects(orphaned)
     # **대표를 잃은 개체가 남는다** — 번지기가 만든 자리다 (아래 머리말).
     _reelect_reps(orphaned)
+    # 앵커도 같은 자리에서 빈다 (P18).
+    reanchor(orphaned)
     # 번지면 묶음이 생기고, 지우면 멤버가 빠져 묶음이 아니게 될 수 있다.
     # **둘 다 화면의 사슬을 갈아야 하는 순간이다** (부르는 쪽 주석).
     return len(keep), spread, bool(spread or orphaned)
@@ -3871,6 +4013,31 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
         # 그대로 돌려주고, 이미 이 개체에 속한 행은 옮길 것이 없다.
         merge_into_object(src.diatom_object, rows)
     return out
+
+
+def reanchor(ids) -> int:
+    """앵커를 잃은 개체에 앵커를 다시 세운다 (P18). 돌려주는 것은 세운 수.
+
+    앵커 판정이 지워지면 `SET_NULL` 이라 칸이 빈다 — 그러면 **카탈로그 번호를
+    만들 재료가 없어진다.** 남은 멤버 중 **가장 오래된 것**으로 넘긴다(그 개체가
+    선 순서를 따르는 것이고, 마이그레이션 `0040` 이 채운 규칙과 같다).
+
+    **번호가 바뀐다.** 조용히 바뀌면 안 되는 자리라 화면이 그렇게 적어야 한다 —
+    앵커를 잃는 것은 *그 판을 지웠다* 는 뜻이고 사람이 한 일이다.
+
+    **멤버가 하나도 없으면 안 세운다.** 그런 개체는 `prune_objects` 가 걷고,
+    남아 있으면 `check_db` 가 유령으로 센다.
+    """
+    if not ids:
+        return 0
+    n = 0
+    for obj in DiatomObject.objects.filter(pk__in=set(ids), anchor__isnull=True):
+        row = obj.members.order_by("pk").first()
+        if row is None:
+            continue
+        DiatomObject.objects.filter(pk=obj.pk).update(anchor=row)
+        n += 1
+    return n
 
 
 def _reelect_removed_reps(ids) -> int:

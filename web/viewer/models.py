@@ -1258,6 +1258,31 @@ class DiatomObject(models.Model):
     # `TextField` 인 것은 화면 상한이 500자(`views.NOTE_MAX`)라 옛 200자로는
     # 잘리고, 이어 붙이면 그보다 길어질 수 있어서다.
     note = models.TextField(blank=True, default="", db_default="")
+    # **카탈로그 번호를 어느 판정에서 뽑나** (P18 · 사용자 방침 2026-08-25).
+    #
+    # 카드 하나가 개체 하나가 되면서 생긴 칸이다. 번호는 계속 **파생**이고
+    # (`catalog.py` 머리말의 "저장하지 않는다 — 늘 계산해서 낸다"), 저장하는
+    # 것은 **번호가 아니라 그 재료를 어디서 가져올까**다. 그래서 층을 고치거나
+    # 재검출을 돌리면 번호는 새 재료로 다시 계산된다 — 저장된 값이 실제와
+    # 어긋나는 그 함정에 안 걸린다.
+    #
+    # **왜 대표(`is_rep`)를 안 쓰나.** 대표는 *어느 판이 이 규조각을 가장 잘
+    # 보여주나*이고 사람이 ★ 로 옮긴다 — 번호가 그것을 따라가면 **이미 적어 둔
+    # 번호가 무효가 된다.** 두 축을 갈라 둔다: 얼굴은 대표, 이름은 앵커.
+    #
+    # **묶어도 안 움직인다.** 그릇의 앵커를 그대로 두는 것이 `merge_into_object`
+    # 의 규칙이고, 그것이 `test_묶어도_번호가_그대로다` 가 지키는 자리다.
+    #
+    # **비어 있을 수 있다.** 앵커 판정이 지워지면 `SET_NULL` 이고, 그때는 남은
+    # 멤버 중 가장 오래된 것으로 넘긴다(`data.reanchor`) — **조용히 바뀌면 안
+    # 되는 자리**라 화면이 그렇게 적는다. `check_db` 가 빈 앵커를 센다.
+    #
+    # **찾는 길은 여기 안 매인다** (P18 "공개·인용"). 번호는 판정 하나의
+    # 이름이라 한 개체에 번호가 여럿이고, **그중 아무것이나 같은 카드를 연다** —
+    # 논문에 적힌 번호가 나중에 앵커가 넘어가도 열려야 하기 때문이다.
+    anchor = models.ForeignKey("ObjectReview", on_delete=models.SET_NULL,
+                               null=True, blank=True,
+                               related_name="anchor_of")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

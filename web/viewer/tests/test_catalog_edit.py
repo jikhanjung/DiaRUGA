@@ -32,6 +32,10 @@ class CatalogRemoveTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_viewpoints=1, n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         self.c = Client()
@@ -63,7 +67,26 @@ class CatalogRemoveTest(DiaRUGATestCase):
         # **섞어서 내지 않는다** — 기본 화면의 카드 수가 안 늘어난다
         self.assertNotIn(self.key, self.keys_shown())
 
+    def test_확인_표시가_있으면_되돌려도_줄이_남는다(self):
+        """**검토 완료가 통과분에 남긴 표시도 표시다** (P18).
+
+        `auto_confirmed` 는 *엔진이 통과시킨 것을 사람이 확인했다* 는 기록이라
+        (`confirm_kept`), 지웠다 되돌렸다고 없앨 것이 아니다.
+        """
+        self.post("remove")
+        got = self.post("restore")
+        self.assertTrue(got["kept"])
+        self.assertTrue(ObjectReview.objects.filter(
+            image=self.det.image_id, mask_key=self.key).exists())
+
     def test_되돌리면_다시_보이고_줄이_지워진다(self):
+        # **확인 표시를 걷고 본다** (P18). 검토 완료가 통과분에 판정을 세우면서
+        # `auto_confirmed` 를 붙이는데, 그것도 표시라 줄이 안 지워진다 —
+        # 여기서 보려는 것은 *표시가 하나도 없을 때* 지우는가다. 사람이 완료
+        # 전에 지정했다 물린 자리가 운영의 그 모양이다.
+        ObjectReview.objects.filter(
+            image=self.det.image_id, mask_key=self.key).update(
+                auto_confirmed=False)
         self.post("remove")
         got = self.post("restore")
         self.assertFalse(got["removed"])
@@ -71,7 +94,11 @@ class CatalogRemoveTest(DiaRUGATestCase):
         self.assertFalse(got["kept"])
         self.assertFalse(ObjectReview.objects.filter(
             image=self.det.image_id, mask_key=self.key).exists())
-        self.assertIn(self.key, self.keys_shown())
+        # **카드도 함께 사라진다** (P18). 표시가 하나도 없는 후보는 개체가 아니고
+        # 개체가 아니면 카드가 없다 — 예전에는 후보가 곧 카드라 다시 나타났다.
+        # 운영에서는 검토 완료가 확인 표시를 남기므로 이 자리에 잘 안 온다
+        # (`test_확인_표시가_있으면_되돌려도_줄이_남는다` 가 그쪽이다).
+        self.assertNotIn(self.key, self.keys_shown())
 
     def test_종명이_있으면_되돌려도_줄이_남는다(self):
         """되돌리기가 지우는 것은 **표시가 없는 줄**이지 사람이 적은 것이 아니다."""
@@ -127,6 +154,10 @@ class CatalogBulkTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_viewpoints=2, n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         self.c = Client()
@@ -223,6 +254,10 @@ class CatalogEditScreenTest(DiaRUGATestCase):
                                 "polygon": [500, 500, 520, 500,
                                             520, 520, 500, 520]})])
         fx.add_review(cls.w.vp, keys[1], image=det.image, removed=True)
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         self.c = Client()
@@ -299,6 +334,12 @@ class CatalogEditReadOnlyTest(DiaRUGATestCase):
         cls.w = fx.make_world(slug="rs23", n_viewpoints=1, n_candidates=2,
                               state="running")
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        # **줄을 뜨기 전에 해야 한다** — 순서를 바꾸면 `cls.rows` 가 비어
+        # 이 시험이 실패할 수 없게 된다(064 가 겪은 그 자리다).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
         cls.rows = data.catalog_rows("rs23")
 
     def setUp(self):

@@ -43,6 +43,10 @@ class CatalogAtlasBrowserTest(BrowserTestCase):
         RunBatch.objects.filter(for_review=True).update(code="S1")
         make_atlas()
         self.rows = data.candidate_rows(self.w.slide.slug)
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
 
     def open_catalog(self, **q):
         page = self.open(reverse("catalog", args=[self.w.slide.slug]))
@@ -160,6 +164,11 @@ class ToCatalogMenuTest(BrowserTestCase):
                                site_code=f"RS{self.uniq}",
                                n_viewpoints=20, n_candidates=2)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        # **줄을 뜨기 전에 해야 한다** — 순서를 바꾸면 아래가 빈 목록을 집는다.
+        for _vp in self.w.viewpoints:
+            fx.review_done(_vp)
         # **카탈로그의 맨 끝 개체를 고른다.** 앞쪽 개체를 고르면 그 카드가
         # 스크롤 없이도 첫 화면에 들어와 **스크롤을 빼도 통과한다** — 실제로
         # 그렇게 짰다가 되살려 보고 알았다(149 에서 쪽 옮기기가 같은 자리였다).

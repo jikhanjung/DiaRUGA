@@ -31,6 +31,10 @@ class CatalogPageTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_viewpoints=2, n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         self.c = Client()
@@ -233,6 +237,10 @@ class FramePageTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2, with_stack=False)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_프레임_갈래도_열린다(self):
         r = Client().get(reverse("catalog", args=["rs23"]))
@@ -249,6 +257,10 @@ class SaveCatalogTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         self.c = Client()
@@ -296,6 +308,12 @@ class SaveCatalogTest(DiaRUGATestCase):
     def test_다_비우면_그_줄을_지운다(self):
         """표시가 사라진 행을 남기면 "교정 전체 초기화" 가 안 되고 그 행을 세는
         자리가 어긋난다 (`save_review` 와 같은 규칙)."""
+        # **확인 표시를 걷고 본다** (P18). 검토 완료가 통과분에 판정을 세우면서
+        # `auto_confirmed` 를 붙이는데, 그것도 표시라 줄이 안 지워진다 —
+        # 여기서 보려는 것은 *표시가 하나도 없을 때* 지우는가다. 사람이 완료
+        # 전에 지정했다 물린 자리가 운영의 그 모양이다.
+        ObjectReview.objects.filter(mask_key=self.r0["key"]).update(
+            auto_confirmed=False)
         self.post(species="Eucampia antarctica")
         self.assertTrue(ObjectReview.objects.filter(mask_key=self.r0["key"]).exists())
         out = self.post(species="")
@@ -342,7 +360,10 @@ class SaveCatalogTest(DiaRUGATestCase):
     def test_남의_이미지를_짚으면_409(self):
         """**조용히 대표 이미지에 안 앉힌다** — 사람이 보고 있던 것과 다른 자리에
         판단이 쌓인다 (`save_review` 와 같은 이유)."""
-        fx.make_world(slug="rs23-b", n_candidates=2)
+        w2 = fx.make_world(slug="rs23-b", n_candidates=2)
+        # 카드가 개체 단위라 판정이 있어야 줄이 난다 (P18).
+        for _vp in w2.viewpoints:
+            fx.review_done(_vp)
         other_img = data.catalog_rows("rs23-b")[0]["image_id"]
         out = self.post(409, image=other_img, species="x")
         self.assertIn("현재 검출이 없다", out["error"])
@@ -376,6 +397,10 @@ class SpreadLabelTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         self.c = Client()
@@ -466,6 +491,10 @@ class ReadOnlyTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2, state="processing")
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_왜_못_적는지_적혀_있다(self):
         """잠가 놓고 이유를 안 적으면 사람이 같은 일을 몇 번이고 다시 한다 (063)."""
@@ -508,6 +537,10 @@ class NoCodeTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=2)
         RunBatch.objects.filter(for_review=True).update(code="")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def test_이유가_화면에_있다(self):
         html = Client().get(reverse("catalog", args=["rs23"])).content.decode()

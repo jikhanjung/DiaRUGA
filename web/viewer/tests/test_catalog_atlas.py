@@ -150,6 +150,10 @@ class CatalogAtlasTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         super().setUp()
@@ -215,6 +219,10 @@ class CatalogHighlightTest(DiaRUGATestCase):
         fx.make_classes()
         cls.w = fx.make_world(slug="rs23", n_candidates=3)
         RunBatch.objects.filter(for_review=True).update(code="S1")
+        # **카드가 개체 단위다** (P18) — 판정이 없는 후보는 카드가 없다.
+        # 검토 완료가 그 자리에서 개체를 세운다(`confirm_kept`).
+        for _vp in cls.w.viewpoints:
+            fx.review_done(_vp)
 
     def setUp(self):
         super().setUp()
