@@ -749,6 +749,17 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 
 ## 운영
 
+- [ ] **`browser/test_catalog_atlas` 의 둘이 가끔 흔들린다** (2026-08-25 · 152).
+      전체 942개를 네 번 돌려 **한 번** `test_치면_도감_이름이_목록에_찬다` ·
+      `test_이름을_지우면_판도_닫힌다` 가 ERROR 로 떨어졌다. **따로 돌리면 늘
+      통과한다.** 둘 다 `api/atlas/suggest` 왕복을 타서, `tests/browser/base.py`
+      가 적어 둔 경합(살아 있는 서버 스레드와 `flush`)에 더 노출되는 것으로
+      보인다 — 그때 500 이 나면 크로미움이 콘솔에 적고 이 겹은 그것을 JS 고장과
+      구별하지 못한다.
+
+      **`expect_http_error(500)` 로 덮지 않았다** — 그러면 진짜 500 까지 함께
+      눈감는다. 자국을 남겨 두는 쪽이 낫다.
+
 - [ ] **`smoke.sh` 의 스크립트 대조가 트리 하나만 본다** (2026-08-25 · 151).
       `REPO="${DIARUGA_REPO:-$HOME/projects/DiaRUGA}"` 인데 **UI 작업은 옆
       트리(`~/projects/DiaRUGA-ui`)에서 한다**. `v0.17.2` 로 `check_db.py` 를
