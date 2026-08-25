@@ -962,6 +962,26 @@ CATALOG_FILTERS = {
 }
 
 
+def _catalog_hl(rows, hl):
+    """짚어 온 개체(`?obj=&img=`)의 행. 없으면 `None` (149).
+
+    **열쇠가 `(mask_key, 이미지)` 둘이다** — 118 이 반대 방향에서 쓰는 것과
+    같다. 시야 하나에 판이 여럿이고 교정도 판마다 따로라, 키만으로 짚으면
+    다른 판의 같은 자리를 집는다.
+
+    `img` 가 비어 있으면 키만으로 찾는다 — 검출이 없는 판에서 눌러 온 경우다.
+    """
+    if not hl:
+        return None
+    for r in rows:
+        if r["key"] != hl["key"]:
+            continue
+        if hl["image"] and str(r.get("image_id")) != hl["image"]:
+            continue
+        return r
+    return None
+
+
 def catalog(request, slug):
     """개체 카탈로그 — 검출된 규조 개체마다 카드 하나, 거기에 동정을 적는다.
 
@@ -996,6 +1016,32 @@ def catalog(request, slug):
     if show_gone:
         rows = data.catalog_rows(slug, gone=True)
 
+    # **검토 화면이 짚어 온 개체** (149). `?obj=<mask_key>&img=<이미지>` 로 오고
+    # 열쇠는 118 이 반대 방향에서 쓰는 것과 같다.
+    #
+    # **찾은 자리로 데려가는 것까지가 이 기능이다.** 카드가 거르개에 걸려
+    # 있거나(파편은 기본으로 감춘다) 다른 쪽에 있으면 화면은 **아무 일도 안 한
+    # 것처럼 보인다** — 눌러서 왔는데 늘 보던 첫 판이 뜨면 사람은 링크가 고장
+    # 났다고 읽는다. 그래서 감춘 것을 펴고 그 쪽으로 넘기며, **그렇게 했다고
+    # 적는다.**
+    hl = _highlight_arg(request)
+    hl_row = _catalog_hl(rows, hl)
+    hl_say = ""
+    if hl and hl_row is None and not show_gone:
+        # **지운 개체일 수 있다.** 그쪽은 화면이 아예 달라서(P16 5.1) 안 찾아
+        # 보면 "없다" 고 말하게 된다. `catalog_rows` 는 한 판을 통째로 다시
+        # 만드는 함수라 **못 찾았을 때만** 부른다.
+        gone_rows = data.catalog_rows(slug, gone=True)
+        hl_row = _catalog_hl(gone_rows, hl)
+        if hl_row is not None:
+            rows, show_gone = gone_rows, True
+            hl_say = "오검출로 지운 개체입니다 — 「지운 것」 을 열었습니다."
+    if hl and hl_row is None:
+        # **왜 없는지 말한다.** 표시가 없기만 하면 사람은 이 화면을 훑으며
+        # 그 개체를 계속 찾는다 (118 이 반대쪽에서 겪은 자리).
+        hl_say = ("짚어 온 개체의 카드가 이 카탈로그에 없습니다 — 카탈로그는 "
+                  "시야마다 판 하나만 봅니다(프레임에만 있는 개체는 안 나옵니다).")
+
     cls = request.GET.get("cls") or ""
     # **파편은 기본으로 감춘다** (사용자 2026-08-11). 처음부터 다 내면 카드가
     # 파편으로 덮여 동정할 것이 안 보인다. 감추는 것은 화면일 뿐이라 진행도·
@@ -1009,6 +1055,11 @@ def catalog(request, slug):
     # 때와 같은 이유다 — 지운 것을 되살리러 온 사람에게 지운 것의 절반을 감추면
     # "지웠는데 없다" 가 된다. 실측으로 살아 있는 교정의 65%가 파편이다.
     show_frag = request.GET.get("frag") == "1" or show_gone
+    # **짚어 온 개체가 파편이면 펴 준다.** 파편은 기본으로 감춰져 있어, 안 펴면
+    # 눌러서 온 사람에게 빈 자리가 보인다 — 감춘 것과 없는 것을 화면이 갈라
+    # 말하기로 한 그 규칙이 여기서도 걸린다.
+    if hl_row is not None and data.is_fragment(hl_row.get("cls")):
+        show_frag = True
     if not show_frag and not data.is_fragment(cls):
         rows = [r for r in rows if not data.is_fragment(r.get("cls"))]
 
@@ -1045,6 +1096,21 @@ def catalog(request, slug):
         offset = max(0, int(request.GET.get("offset", 0)))
     except ValueError:
         offset = 0
+    # **그 카드가 있는 쪽을 연다.** 한 판에 120장이라 개체가 셋째 쪽에 있으면
+    # 첫 판만 보고 "없다" 가 된다.
+    #
+    # **거르개까지 풀지는 않는다** — 사람이 걸어 둔 것을 링크가 걷으면 지금
+    # 보고 있던 자리를 잃는다. 대신 걸렸다고 적는다.
+    if hl_row is not None:
+        # **값이 아니라 그 행 자체로 찾는다** — 행에 리스트가 매달려 있어
+        # `==` 는 깊이 비교가 된다.
+        idx = next((i for i, r in enumerate(rows) if r is hl_row), -1)
+        if idx < 0:
+            hl_row = None
+            hl_say = ("짚어 온 개체가 지금 걸어 둔 거르개에 걸려 안 보입니다 — "
+                      "거르개를 지우면 나옵니다.")
+        else:
+            offset = (idx // CATALOG_PER_PAGE) * CATALOG_PER_PAGE
     page = rows[offset:offset + CATALOG_PER_PAGE]
 
     def page_url(off):
@@ -1062,6 +1128,16 @@ def catalog(request, slug):
         if show_gone:
             qd["gone"] = "1"
         return f"?{urlencode(qd)}"
+
+    # **이미 적힌 종명이 도감의 어느 자리인가** (149). 카드에 `도판` 을 놓으려면
+    # 이것이 있어야 하는데, **카드마다 물으면 한 판에 질의가 120번 난다** (105 —
+    # 카탈로그가 이미 그렇게 느렸던 자리다). 한 번만 묻고 나눠 준다.
+    #
+    # **화면에 놓을 카드에만 건다.** 거른 뒤의 `rows` 전체에 걸면 안 보이는
+    # 카드까지 묻는다.
+    atlas_hits = data.atlas_for_names(r.get("species") or "" for r in page)
+    for r in page:
+        r["atlas_hit"] = atlas_hits.get((r.get("species") or "").strip().lower())
 
     # **왜 못 적는가를 화면이 말한다.** 잠가 놓고 이유를 안 적으면 사람이 같은
     # 일을 몇 번이고 다시 한다 (063).
@@ -1098,6 +1174,11 @@ def catalog(request, slug):
         "grades": DiatomObject.GRADE,
         "poses": DiatomObject.POSE,
         "species_seen": data.species_seen(),
+        # 짚어 온 개체 (149). 카드 하나에 표시가 붙고, 못 찾았으면 왜 없는지가
+        # `hl_say` 에 있다 — 아무 말 없이 표시만 없으면 사람이 계속 찾는다.
+        "hl_key": (hl_row or {}).get("key", ""),
+        "hl_image": (hl_row or {}).get("image_id", "") or "",
+        "hl_say": hl_say,
         "n_all": n_all,
         "n_named": n_named,
         "n_left": n_all - n_named,
@@ -1485,6 +1566,21 @@ def atlas_index(request):
     # **하나씩 지울 수 있어야** 한다: 지금은 속을 빼려면 검색어까지 지워야 한다.
     ctx.update(_atlas_chips(q, atlas_key, genus, ctx["books"], ctx["genera"]))
     return render(request, "viewer/atlas.html", ctx)
+
+
+def atlas_suggest(request):
+    """종명 칸의 자동완성 (149). **읽기만 한다.**
+
+    `/atlas/?q=` 의 검색과 다른 자리다 — 저쪽은 사람이 읽는 화면이고 여기는
+    **입력칸이 쓸 값**이다. 그래서 `binomial` 이 있는 항목만 낸다
+    (`data._atlas_name_rows` 머리말 — 119 가 가른 둘을 도로 섞지 않는다).
+
+    **못 찾아도 200 이다.** 자동완성은 거드는 것이라 빈 목록이 정상이고,
+    오류로 내면 화면이 "고장" 을 적을 자리를 만들어야 한다 — 도감 색인이
+    아직 절반인 지금은 안 걸리는 이름이 흔하다.
+    """
+    rows = data.atlas_suggest(request.GET.get("q") or "", limit=20)
+    return JsonResponse({"rows": rows})
 
 
 def _atlas_chips(q, atlas_key, genus, books, genera):

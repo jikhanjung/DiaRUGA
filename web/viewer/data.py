@@ -4429,3 +4429,113 @@ def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
         "next_offset": (offset + ATLAS_PER_PAGE
                         if offset + ATLAS_PER_PAGE < total else None),
     }
+
+
+def _atlas_entry_qs():
+    """도감 항목 질의 하나 — 자리(`placements`)까지 함께 뜬다.
+
+    `atlas_search` 가 쓰는 것과 같은 모양이다. 자리를 미리 안 뜨면 항목마다
+    질의가 한 번씩 더 나간다(105 의 "카드마다 되묻기").
+    """
+    from .models import AtlasEntry, AtlasPlacement
+    return (AtlasEntry.objects
+            .select_related("atlas")
+            .prefetch_related(Prefetch(
+                "placements",
+                queryset=AtlasPlacement.objects.select_related("entry__atlas"))))
+
+
+def _atlas_name_rows(entries) -> list[dict]:
+    """도감 항목들을 **종명 칸이 쓸 모양**으로 (149).
+
+    **`binomial` 이 빈 항목은 안 낸다.** 그 칸은 "맞추기용 이명법" 이라
+    (`AtlasEntry` 머리말) 비어 있다는 것은 도감이 속까지만 내려갔거나
+    (`sp.`·group) 표기를 못 읽는다는 뜻이다 — **119 가 가른 둘이다.** 그것을
+    종명 칸의 값으로 주면 사람이 그대로 적게 되어 화면이 둘을 도로 섞는다.
+    속까지만 아는 개체는 사람이 손으로 적는다(칸은 계속 자유 입력이다).
+
+    **한 이름이 도감마다 한 행이다.** 값을 열쇠로 모으지 않으면 자동완성 목록에
+    같은 값이 두 번 놓이고, 사람은 무엇이 다른지 모른 채 하나를 고른다.
+
+    `genus_guess` 는 **하나라도 붙어 있으면** 붙인다. 표시가 있는 쪽만 말하는
+    것이고(119), 없다고 확정이라 말하지 않는다.
+    """
+    out, by = [], {}
+    for e in entries:
+        val = (e.binomial or "").strip()
+        if not val:
+            continue
+        row = by.get(val.lower())
+        if row is None:
+            row = by[val.lower()] = {"value": val, "names": [], "atlases": [],
+                                     "genus_guess": False, "places": []}
+            out.append(row)
+        if e.name not in row["names"]:
+            row["names"].append(e.name)
+        if e.atlas.short not in row["atlases"]:
+            row["atlases"].append(e.atlas.short)
+        row["genus_guess"] = row["genus_guess"] or e.genus_guess
+        row["places"].extend(_placement_dict(p) for p in e.placements.all())
+    for row in out:
+        # **띄울 자리 하나를 여기서 고른다.** 안 고르면 화면 셋(카드의 `도판` ·
+        # 미리보기 · 자동완성 목록)이 각자 "도판이 있는 첫 자리" 를 찾게 되고,
+        # 셋이 다른 자리를 고르면 눌러서 뜨는 쪽과 미리 보이는 쪽이 갈린다.
+        #
+        # **PDF 쪽이 없는 자리가 201건이다**(한국 도감) — 그 자리는 이미지를 못
+        # 짚으므로 `plate_url` 이 비어 있고, 여기서 걸러진다.
+        row["plate"] = next((p for p in row["places"] if p["plate_url"]), None)
+    return out
+
+
+def atlas_suggest(q: str = "", limit: int = 20) -> list[dict]:
+    """종명 칸의 자동완성 — **도감에 실린 이름**을 준다 (149).
+
+    `species_seen()` 과 짝이다. 그쪽은 이미 적은 종명을 주므로 **처음 적는
+    사람에게 아무것도 못 준다** — 종명이 0건이면 목록도 빈다. 도감은 반입만
+    되어 있으면 처음부터 찬다.
+
+    **가두지 않는다.** 도감에 없는 이름도 그대로 적힌다 — 화석속은 등록부가
+    성글고 색인도 아직 절반이다(1,845 중 1,527). 자동완성은 거들 뿐이고
+    `DiatomObject.species` 는 계속 자유 입력이다.
+
+    **디스크를 안 짚는다** — `atlas.page_url` 머리말과 같은 줄이다. 축소본
+    주소는 화면이 `plate_rel` 로 만든다.
+
+    두 글자부터 찾는다. 한 글자로는 2천 행의 절반이 걸려 목록이 뜻을 잃는다.
+    """
+    q = (q or "").strip()
+    if len(q) < 2:
+        return []
+    qs = (_atlas_entry_qs()
+          .exclude(binomial="")
+          .filter(Q(binomial__icontains=q) | Q(name__icontains=q))
+          .order_by("binomial", "atlas__sort_order", "seq"))
+    # **넉넉히 떠서 모은 뒤에 자른다.** 같은 이름이 도감마다 한 행이라 질의에서
+    # 먼저 자르면 목록 끝이 한 이름의 여러 자리로 찬다.
+    return _atlas_name_rows(qs[:max(1, limit) * 4])[:max(1, limit)]
+
+
+def atlas_for_names(names) -> dict:
+    """이미 적힌 종명들 → 도감 자리. 열쇠는 **소문자로 맞춘 이름**이다.
+
+    **한 번만 묻는다** (105). 카드마다 물으면 한 판(120장)에 질의가 120번 난다.
+
+    대소문자를 안 가린다 — `binomial__in` 은 SQLite 에서 글자를 그대로 맞춰
+    사람이 첫 글자를 달리 친 것을 못 찾는다. 2천 행이라 `iexact` 를 이어
+    붙여도 된다(`atlas_search` 가 `icontains` 로 충분한 것과 같은 줄).
+    """
+    want = {}
+    for n in names:
+        n = (n or "").strip()
+        if n:
+            want.setdefault(n.lower(), n)
+    if not want:
+        return {}
+    cond = Q()
+    for n in want.values():
+        cond |= Q(binomial__iexact=n)
+    qs = (_atlas_entry_qs()
+          .exclude(binomial="")
+          .filter(cond)
+          .order_by("binomial", "atlas__sort_order", "seq"))
+    return {r["value"].lower(): r for r in _atlas_name_rows(qs)}

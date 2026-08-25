@@ -84,6 +84,9 @@ urlpatterns = [
          name="atlas_volume"),
     path("atlas/<slug:atlas>/<slug:vol>/<int:n>/", views.atlas_page,
          name="atlas_page"),
+    # 종명 칸의 자동완성 (149). **화면이 아니라 입력칸이 쓴다** — 그래서
+    # `/atlas/` 아래가 아니라 `api/` 다. 도감 화면은 이것을 안 부른다.
+    path("api/atlas/suggest", views.atlas_suggest, name="atlas_suggest"),
     path("thresholds/", views.threshold_page, name="thresholds_all"),
     path("d/<slug:slug>/thresholds/", views.threshold_page, name="thresholds"),
     path("api/threshold/preview", views.threshold_preview, name="threshold_preview"),
