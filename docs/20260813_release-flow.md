@@ -17,7 +17,7 @@
 |---|---|---|---|
 | PR (`pull_request`) | 돈다 | 돈다 | **안 한다** |
 | `main` 에 push | 돈다 | 돈다 (`:ci`) | **안 한다** |
-| **`v*` 태그 push** | 돈다 | 돈다 | **한다** (`honestjung/diaruga:<태그>`) |
+| **`v*` 태그 push** | 돈다 | 돈다 | **한다** (`koprifossillab/diaruga:<태그>`) |
 
 **굽기는 늘 검증하되 올리는 것은 태그일 때만이다.** 그러니 **손으로 굽지
 않는다** — `deploy/docker-compose.yml` 은 남아 있지만 그것은 개발용이고,
@@ -82,7 +82,7 @@ CI 가 시험을 다시 돌리고, 굽고, 민다 (약 4분). **레지스트리�
 
 ```bash
 gh run watch <run-id> --exit-status
-docker manifest inspect honestjung/diaruga:v0.12.2 >/dev/null && echo 있다
+docker manifest inspect koprifossillab/diaruga:v0.12.2 >/dev/null && echo 있다
 ```
 
 ## 6. 사본을 뜬다
@@ -168,7 +168,7 @@ git push origin main && gh run watch <id> --exit-status
 # 5    태그 → CI 가 굽고 민다
 git tag -a v0.12.2 -F - && git push origin v0.12.2
 gh run watch <id> --exit-status
-docker manifest inspect honestjung/diaruga:v0.12.2 >/dev/null && echo 있다
+docker manifest inspect koprifossillab/diaruga:v0.12.2 >/dev/null && echo 있다
 
 # 6~8  사본 · 배포 · 눈으로
 deploy/host/dbrun.sh backup_db.py --note before-116

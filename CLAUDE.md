@@ -34,7 +34,7 @@
 
 **048 에서 이름을 한 겹으로 모았다.** 저장소·경로(`/srv/DiaRUGA`·`/data3/DiaRUGA`·
 `~/venv/DiaRUGA`)·URL(`/DiaRUGA/`)·DB(`DiaRUGA.db`)가 전부 `DiaRUGA` 다. **기술이
-소문자를 강제하는 자리만 `diaruga`** — Docker Hub 이미지(`honestjung/diaruga`),
+소문자를 강제하는 자리만 `diaruga`** — Docker Hub 이미지(`koprifossillab/diaruga`),
 파이썬 패키지(`diarugaweb`), 브라우저 `localStorage` 키. 환경변수는 `DIARUGA_*`.
 
 **`diatom` 이 남아 있는 자리는 생물 이름이라 그렇다** — `pipeline/segment_diatoms.py`,

@@ -24,7 +24,7 @@ services:
     env_file: [.env]
     environment:
       TZ: Asia/Seoul
-    image: honestjung/diaruga:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
+    image: koprifossillab/diaruga:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
     entrypoint: ["/app/deploy/entrypoint-web.sh"]
     volumes:
       # 사본 DB. **디렉토리째로** 물린다 — WAL 의 -wal·-shm 형제 때문이다

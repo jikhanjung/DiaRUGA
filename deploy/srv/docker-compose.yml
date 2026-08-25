@@ -47,7 +47,7 @@ x-common: &common
 services:
   web:
     <<: *common
-    image: honestjung/diaruga:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
+    image: koprifossillab/diaruga:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
     entrypoint: ["/app/deploy/entrypoint-web.sh"]
     ports:
       # 루프백에만 붙인다. 바깥으로 나가는 문은 nginx 하나뿐이다
@@ -62,7 +62,7 @@ services:
     # 없는 파이프라인 태그를 가리키게 되어 **폴러가 4시간 반 동안 멈췄다**
     # (v0.1.1 로 올린 순간부터 524번 실패). 그때 로그는 "NAS 가 내려갔는가" 라고
     # 적었다 — 원인과 전혀 다른 말이라 더 늦게 알았다.
-    image: honestjung/diaruga-pipeline:${PIPELINE_TAG:?PIPELINE_TAG 를 .env 에 넣을 것}
+    image: koprifossillab/diaruga-pipeline:${PIPELINE_TAG:?PIPELINE_TAG 를 .env 에 넣을 것}
     profiles: ["manual"]        # `up` 에 딸려 뜨지 않게 — 일회성으로만 돌린다
     environment:
       TZ: Asia/Seoul
@@ -112,7 +112,7 @@ services:
   # GPU 를 쓰는 일은 pipeline 서비스로 간다.
   dbtool:
     <<: *common
-    image: honestjung/diaruga:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
+    image: koprifossillab/diaruga:${IMAGE_TAG:?IMAGE_TAG 를 .env 에 넣을 것}
     profiles: ["manual"]
     entrypoint: ["python"]
     working_dir: /srv/DiaRUGA/scripts

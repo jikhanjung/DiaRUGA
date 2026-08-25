@@ -927,7 +927,7 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       실제로는 사람 손에 걸려 있었다.
 
       **다음 태그를 밀 때 볼 것**: 굽기 레이어가 초록인가 · `docker pull
-      honestjung/diaruga:<판>` 이 되는가(굽기가 성공해도 push 가 빠지면 모른다).
+      koprifossillab/diaruga:<판>` 이 되는가(굽기가 성공해도 push 가 빠지면 모른다).
       되면 손으로 올리는 단계를 배포 절차에서 뺀다
 - [ ] **`smoke.sh` 가 슬라이드마다 화면을 하나만 연다** — 시야 목록뿐이라
       `/crops/`·`/detections/`·`/catalog/`·`/g/<n>/` 이 죽어도 통과한다.

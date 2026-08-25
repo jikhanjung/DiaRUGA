@@ -88,6 +88,6 @@ jobs:
           context: .
           file: deploy/Dockerfile.base
           push: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          tags: honestjung/diaruga:${{ github.ref_type == 'tag' && github.ref_name || 'ci' }}
+          tags: koprifossillab/diaruga:${{ github.ref_type == 'tag' && github.ref_name || 'ci' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

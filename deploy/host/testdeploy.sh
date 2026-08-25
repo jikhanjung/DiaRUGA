@@ -80,10 +80,10 @@ say "안전 검사 통과 (DB·노두 사진·서브경로가 운영과 갈라�
 # --- 2) 이미지. 받다 실패하면 지금 도는 것을 안 건드리고 끝난다 -----------
 if [ "$PULL" = 1 ]; then
     say "이미지를 받는다"
-    docker pull "honestjung/diaruga:$VER"
+    docker pull "koprifossillab/diaruga:$VER"
 else
-    docker image inspect "honestjung/diaruga:$VER" >/dev/null 2>&1 ||
-        die "로컬에 honestjung/diaruga:$VER 가 없다 (--no-pull 을 줬다)"
+    docker image inspect "koprifossillab/diaruga:$VER" >/dev/null 2>&1 ||
+        die "로컬에 koprifossillab/diaruga:$VER 가 없다 (--no-pull 을 줬다)"
 fi
 
 # --- 3) .env 의 판만 **제자리에서**. 파일을 다시 만들지 않는다 ------------

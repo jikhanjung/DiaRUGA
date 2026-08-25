@@ -41,7 +41,7 @@ say "=== 배포 $PREV → $VER ==="
 # 1) 받는다. 실패하면 여기서 끝 — 도는 것을 안 건드린다.
 if [ "$PULL" = 1 ]; then
     say "이미지를 받는다"
-    docker pull "honestjung/diaruga:$VER"
+    docker pull "koprifossillab/diaruga:$VER"
 fi
 
 # 2) .env 의 판만 **제자리에서** 고친다. 파일을 다시 만들지 않는다.

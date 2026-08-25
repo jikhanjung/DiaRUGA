@@ -57,7 +57,7 @@ IMAGE=""
 if [ "${1:-}" = "--from-image" ]; then
     IMAGE="${2:-}"
     [ -n "$IMAGE" ] || { echo "쓰임새: $0 --from-image <판>" >&2; exit 2; }
-    case "$IMAGE" in */*) ;; *) IMAGE="honestjung/diaruga:$IMAGE";; esac
+    case "$IMAGE" in */*) ;; *) IMAGE="koprifossillab/diaruga:$IMAGE";; esac
 fi
 
 [ -d "$SRV" ] || { echo "배포 디렉토리가 없다: $SRV" >&2; exit 1; }

@@ -58,8 +58,8 @@ flowchart TB
 
 | 이미지 | 무엇 | 크기 감각 |
 |---|---|---|
-| `honestjung/diaruga` | 뷰어. Django · pillow · gunicorn | 가볍다 |
-| `honestjung/diaruga-pipeline` | 그룹핑·합성·SAM2·YOLO 검출 | torch 때문에 무겁다 |
+| `koprifossillab/diaruga` | 뷰어. Django · pillow · gunicorn | 가볍다 |
+| `koprifossillab/diaruga-pipeline` | 그룹핑·합성·SAM2·YOLO 검출 | torch 때문에 무겁다 |
 
 **웹 이미지에 torch 를 넣지 않으려고 갈랐다.** requirements 가 넷으로 나뉜 것도
 같은 이유다 — 호스트는 `requirements.txt`, 컨테이너가 `-web` 과 `-pipeline` 을
