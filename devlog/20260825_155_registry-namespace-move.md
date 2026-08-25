@@ -67,7 +67,7 @@ curl -s 'https://auth.docker.io/token?service=registry.docker.io\
 같은 이미지라 레이어는 `Mounted from honestjung/diaruga` 로 넘어갔다(같은
 레지스트리 안이라 다시 안 올린다).
 
-## 4. 함정 — 파이프라인 이미지는 Hub 에 그 판이 없다
+## 4. 파이프라인 이미지는 Hub 에 그 판이 없었다
 
 `/srv/DiaRUGA/.env` 의 `PIPELINE_TAG=v0.5.2` 인데 **Hub 의
 `honestjung/diaruga-pipeline` 은 `v0.5.1` 까지다.** CI 가 파이프라인을 안 굽고
@@ -76,8 +76,25 @@ curl -s 'https://auth.docker.io/token?service=registry.docker.io\
 
 026 은 "뷰어 판에 끌려가 없는 파이프라인 태그를 가리켰다" 였는데, 이쪽은
 **가리키는 태그가 레지스트리에 아예 없는데도 로컬에 있어서 돈다.** 로컬을 잃는
-날에 드러난다. 옮기는 김에 `koprifossillab/diaruga-pipeline:v0.5.2` 를 올려 두는
-편이 낫다 (7.58 GB — 아직 안 했다).
+날에 드러난다.
+
+**그래서 올렸다** — `v0.5.0`·`v0.5.1`·`v0.5.2` 셋. 7.58 GB 인데 45초에 끝났다.
+**같은 레지스트리 안에서는 레이어를 다시 안 올린다**(cross-repo mount):
+
+```
+3 Mounted from honestjung/diaruga            ← 베이스가 뷰어와 같다
+7 Mounted from honestjung/diaruga-pipeline
+1 Mounted from koprifossillab/phyloserver    ← 남의 저장소에서도 온다
+1 Pushed                                     ← 실제로 올라간 것은 이 하나뿐
+```
+
+**크기를 보고 겁먹을 일이 아니었다.** 옛 이름 쪽이 public 이라 거기서 그대로
+끌어 쓴다 — 뒤집으면 **옛 저장소를 지우면 이 mount 가 안 된다.** 지금은
+`koprifossillab/diaruga-pipeline` 이 제 blob 을 갖고 있으므로 상관없지만,
+`honestjung/*` 를 정리할 때는 **옮긴 것이 다 올라간 뒤에** 한다.
+
+새 저장소도 **public 으로 생겼고 익명 pull 이 된다** — `v0.5.2` 가 이제
+레지스트리에 있으니 로컬을 잃어도 받아 온다.
 
 ## 5. 고친 자리
 
@@ -102,10 +119,20 @@ curl -s 'https://auth.docker.io/token?service=registry.docker.io\
 `honestjung/diaruga:v0.12.0` 이 레지스트리에 선 것은 사실이고, 기록은 그때
 이름으로 둔다.
 
-**아직 안 한 것** — `/srv/DiaRUGA` 의 넷(`docker-compose.yml`·`bin/deploy.sh`·
-`bin/sync_to_srv.sh`·`test/docker-compose.yml`)은 운영 자리라 손대지 않았다.
-파일만 고치는 것이라 도는 컨테이너는 안 건드리지만, **다음 `up -d` 부터 새
-이름을 본다.** 두 이미지 다 이 호스트에 새 이름으로 있으므로 그때 멈추지 않는다.
+**`/srv/DiaRUGA` 의 넷**(`docker-compose.yml`·`bin/deploy.sh`·
+`bin/sync_to_srv.sh`·`test/docker-compose.yml`)도 갔다 — 사람이 고쳤다. 파일만
+고치는 것이라 도는 컨테이너는 안 건드리고, **다음 `up -d` 부터 새 이름을
+본다.** `compose config --images` 가 `koprifossillab/diaruga:v0.18.0` 으로
+풀리는 것까지 봤다.
+
+**옆 트리도 함께 올렸다** — `~/projects/DiaRUGA-ui` 는 별도 클론이 아니라 같은
+`.git` 의 linked worktree 인데, 제 커밋 없이 `main` 보다 뒤져 있어 그 트리의
+`deploy/`·`.github/` 에 옛 이름이 남아 있었다. **거기서 `deploy.sh` 를 부르면
+옛 이름을 받으러 간다** — fast-forward 로 올렸다.
+
+**아직 안 지난 것 — CI 의 push 경로.** `main` push 에서는 `Docker Hub 로그인`
+레이어를 건너뛴다(설계대로 태그일 때만 민다). 굽기는 초록이었지만 **새 secrets
+로 실제로 미는 것은 다음 `v*` 태그가 처음이다.**
 
 ## 6. 다음 태그를 밀 때 볼 것
 
