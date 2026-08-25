@@ -242,6 +242,20 @@ class CatalogHighlightTest(DiaRUGATestCase):
         # 다른 카드에는 안 붙는다 — 붙으면 표시가 아무 말도 안 하는 것이다
         self.assertNotIn("catcard hl", self.card_of(html, self.rows[0]["key"]))
 
+    # 9-b) 무슨 표시인지 글자로 적는다 (150)
+    #
+    # 테두리만 두면 그것이 *누르고 온 그 개체*인지 이미 골라 둔 것인지 화면에서
+    # 안 갈린다 — 118 이 반대편에서 먼저 겪은 자리다.
+    def test_무슨_표시인지_글자로_적는다(self):
+        row = self.rows[1]
+        html = self.get(obj=row["key"], img=row["image_id"])
+        self.assertIn("눌러서 오신 개체", html)
+        # 카드 하나에만 붙는다
+        self.assertEqual(html.count("눌러서 오신 개체"), 1)
+
+    def test_안_짚었으면_표시가_없다(self):
+        self.assertNotIn("눌러서 오신 개체", self.get())
+
     # 10) 못 찾으면 왜 없는지 적는다
     def test_못_찾으면_왜_없는지_적는다(self):
         html = self.get(obj="no-such-key", img=self.rows[0]["image_id"])

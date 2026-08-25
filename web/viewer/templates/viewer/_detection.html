@@ -2737,26 +2737,10 @@
                        run: function () { openLinkPanel(one); } });
         }
         {% comment %}
-          **이 개체 카드로** (149). 개체를 두고 하는 말은 카탈로그에서 적기로
-          했는데(0036), 검토하다 "이건 동정해 둬야겠다" 싶으면 그 화면을 따로
-          열어 번호로 다시 찾아야 했다 — 118 이 낸 길의 반대 방향이 없었다.
-          **열쇠는 118 과 같은 `(obj, img)` 다.**
-
-          **읽기 전용에서는 안 낸다** — 이 갈래는 `readOnly` 가 아닐 때만 돈다.
-          카탈로그는 검토 대상 묶음만 따라가므로(`data.catalog_rows`) 다른
-          묶음의 개체는 거기 카드가 아예 없고, 눌러서 "없습니다" 를 보는 자리를
-          만들지 않는다.
-
-          **`leave()` 로 떠난다.** 지연 저장이 걸려 있을 수 있고, 그것이 못
-          나가면 떠나면 안 된다 (116 — "떠나는 자리는 전부 그 문으로 보낸다").
+          **카드로 가는 항목은 여기 없다** (150). 149 에서 묶기 바로 아래
+          두었더니 **검토하다 잘못 눌러 화면이 넘어갔다**(사용자 2026-08-25).
+          맨 아래로 내렸다 — 아래 `toCard` 를 볼 것.
         {% endcomment %}
-        items.push({ label: '📇 이 개체 카드로',
-                     run: function () {
-                       var c1 = cands[one];
-                       if (!c1) return;
-                       leave(CATALOG_URL + '?obj=' + encodeURIComponent(keyOf(c1)) +
-                             '&img=' + encodeURIComponent(curImage || ''));
-                     } });
       }
       items.push({ sep: true });
       // 분류 직접 지정 — 조각난 것이 봉상/원형으로 잘못 분류되는 것을 고친다.
@@ -2807,6 +2791,37 @@
     }
     if (!readOnly && sel.size) items.push({ label: '선택 해제', run: function () { sel.clear(); redraw(); } });
     if (!readOnly && history.length) items.push({ label: '↶ 실행취소', run: undo });
+
+    {% comment %}
+      **이 개체 카드로** (149 · 자리는 150). 개체를 두고 하는 말은 카탈로그에서
+      적기로 했는데(0036), 검토하다 "이건 동정해 둬야겠다" 싶으면 그 화면을
+      따로 열어 번호로 다시 찾아야 했다 — 118 이 낸 길의 반대 방향이 없었다.
+      **열쇠는 118 과 같은 `(obj, img)` 다.**
+
+      **맨 아래에 둔다.** 149 에서는 묶기(`⛓`) 바로 아래였는데, 둘 다 개체
+      하나를 고르고 누르는 것이라 손이 같은 자리로 가고 **잘못 눌러 화면이
+      넘어간 일이 여러 번 났다**(사용자 2026-08-25). 되돌릴 수 있는 항목들
+      사이에 **화면을 떠나는 항목**을 끼우지 않는다 — 실행취소가 안 듣는
+      유일한 항목이다. 줄(`sep`)로 한 번 더 가른다.
+
+      **읽기 전용에서는 안 낸다.** 카탈로그는 검토 대상 묶음만 따라가므로
+      (`data.catalog_rows`) 다른 묶음의 개체는 거기 카드가 아예 없고, 눌러서
+      "없습니다" 를 보는 자리를 만들지 않는다.
+
+      **`leave()` 로 떠난다.** 지연 저장이 걸려 있을 수 있고, 그것이 못 나가면
+      떠나면 안 된다 (116 — "떠나는 자리는 전부 그 문으로 보낸다").
+    {% endcomment %}
+    var toCard = (!readOnly && live.length === 1) ? live[0] : -1;
+    if (toCard >= 0 && cands[toCard]) {
+      items.push({ sep: true });
+      items.push({ label: '📇 이 개체 카드로 (화면을 떠납니다)',
+                   run: function () {
+                     var c1 = cands[toCard];
+                     if (!c1) return;
+                     leave(CATALOG_URL + '?obj=' + encodeURIComponent(keyOf(c1)) +
+                           '&img=' + encodeURIComponent(curImage || ''));
+                   } });
+    }
     if (!items.length) return;
 
     menu = document.createElement('div');

@@ -94,8 +94,29 @@
      더하는 순간 **감춘 단추가 조용히 보이기 시작한다.** */
   .catcard .plate[hidden] { display: none; }
   /* **짚어 온 개체** (149). 골라 둔 것(`.pick`)과 헷갈리면 안 되므로 테두리를
-     쓴다 — 카드에 이미 배경색이 분류별로 걸려 있다. */
+     쓴다 — 카드에 이미 배경색이 분류별로 걸려 있다.
+
+     **테두리만으로는 부족하다** (150 · 118 이 반대편에서 먼저 겪었다). 표시가
+     하나 더 있는 것을 보고 그것이 *누르고 온 그 개체*인지 이미 골라 둔
+     것인지 화면에서 안 갈린다 — 그래서 글자로 적는다. */
   .catcard.hl { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .catcard .hlmark {
+    position: absolute; right: 6px; top: 6px; z-index: 3;
+    font-size: 10.5px; line-height: 1; padding: 3px 8px; border-radius: 999px;
+    background: var(--accent); color: var(--bg); white-space: nowrap;
+    pointer-events: none;
+  }
+  /* **한 번만 뛴다.** 계속 깜빡이면 검토하는 내내 눈이 그리로 끌린다 — 표시는
+     "여기 있다" 고 한 번 말하는 것이지 상태가 아니다 (118). */
+  @keyframes hlpulse {
+    0%   { outline-color: var(--accent); outline-offset: 10px; }
+    100% { outline-color: var(--accent); outline-offset: 2px; }
+  }
+  .catcard.hl { animation: hlpulse .45s ease-out 2; }
+  /* 움직임을 줄이라고 한 사람에게는 안 뛴다 — 자리는 스크롤이 이미 알려 준다. */
+  @media (prefers-reduced-motion: reduce) {
+    .catcard.hl { animation: none; }
+  }
   .catcard input:focus, .catcard select:focus, .catcard textarea:focus {
     outline: none; border-color: var(--accent);
   }
@@ -371,6 +392,14 @@
              aria-label="일괄 편집에 고른다">
     {% endif %}
     {% comment %}
+      **무슨 표시인지 글자로 적는다** (150). 고르는 칸은 왼쪽 위라 자리가
+      안 겹친다. 검토 화면이 같은 자리에서 쓰는 문구를 그대로 쓴다 —
+      두 화면이 같은 일을 다르게 부르면 사람이 다른 일로 읽는다.
+    {% endcomment %}
+    {% if hl_key and r.key == hl_key and r.image_id == hl_image %}
+      <span class="hlmark">눌러서 오신 개체</span>
+    {% endif %}
+    {% comment %}
       **개체를 들고 간다** (118). 시야만 열면 거기 개체가 수십 개라 어느 것을
       보고 눌렀는지 다시 찾아야 했다 — `obj`(개체 키)와 `img`(그 개체가 있는
       판)를 함께 보내면 검토 화면이 그 자리를 표시하고, 다른 판의 개체면
@@ -601,6 +630,44 @@
     if (pvCur === a) { pvHide(); return; }
     pvShow(a);
   });
+
+  // --- 짚어 온 개체를 화면 안으로 (150) --------------------------------------
+  //
+  // **쪽을 맞추는 것만으로는 부족하다.** 149 는 그 카드가 있는 쪽을 열어 놓고
+  // 거기서 끝났는데, 한 판이 120장이라 **카드가 화면 밖이면 사람이 여전히
+  // 훑어 찾는다** (사용자 2026-08-25).
+  //
+  // **차례를 바꾸지 않는다.** 그 카드를 맨 위로 올리는 길도 있었지만,
+  // 카탈로그는 *번호를 따라 읽는 표*라(`data.catalog_rows` 머리말) 한 장을
+  // 앞으로 빼면 그 성질이 깨지고 **옆 개체와 견주는 일**도 못 하게 된다.
+  //
+  // **그림이 늦게 뜨면 자리가 밀린다.** 카드 그림은 `loading="lazy"` 이고
+  // 높이가 저마다 달라, 한 번 맞춰 놓아도 위쪽 그림이 뜨면서 목표가 내려간다.
+  // 그래서 그 카드의 그림이 뜬 뒤와 **나머지가 다 뜬 뒤**에 한 번씩 더 맞춘다.
+  //
+  // **사람이 스크롤을 시작했으면 안 건드린다.** 보고 있던 자리를 빼앗는 것이
+  // 못 찾는 것보다 나쁘다 — 검토 화면이 배율을 안 되돌리는 것과 같은 줄이다.
+  //
+  // **읽기 전용에서도 돈다** — 보는 일이지 고치는 일이 아니다.
+  (function () {
+    var mark = document.querySelector(".catcard.hl");
+    if (!mark) return;
+    var moved = false;
+    // `scroll` 은 안 듣는다 — 우리가 옮긴 것도 그 이벤트를 내므로, 그것을
+    // 사람의 손으로 읽으면 첫 번째 맞추기가 나머지를 스스로 껐을 것이다.
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      window.addEventListener(ev, function () { moved = true; },
+                              {passive: true, once: true});
+    });
+    function bring() {
+      if (moved) return;
+      mark.scrollIntoView({block: "center", inline: "nearest"});
+    }
+    bring();
+    var img = mark.querySelector(".pic img");
+    if (img && !img.complete) { img.addEventListener("load", bring); }
+    window.addEventListener("load", bring);
+  })();
 
   if (READONLY) return;
 

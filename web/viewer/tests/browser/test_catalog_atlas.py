@@ -13,6 +13,15 @@
 **도판 PNG 는 여기 없다.** 그래서 그림은 404 로 떨어지는데, 그 갈래도 화면이
 말해야 한다("아직 안 떴습니다") — 빈 칸을 남기면 원본에 그 쪽이 없는 것으로
 읽힌다.
+
+## 안 덮은 것 (150)
+
+**그림이 늦게 떠서 자리가 밀리는 것을 여기서 못 만든다.** 카탈로그가 그림이 다
+뜬 뒤에 한 번 더 맞추는 것은 그 상황을 위한 것인데, 픽스처의 그림은 곧바로
+떠서 **그 줄을 빼도 이 시험들이 전부 통과한다**(되살려서 확인했다). 사람이
+굴렸을 때 그만두는 쪽은 덮여 있다(`load` 를 손으로 던져서 본다).
+
+덮은 척하지 않으려고 적어 둔다 — 실패할 수 없는 시험은 없는 것보다 나쁘다.
 """
 from django.urls import reverse
 
@@ -20,7 +29,7 @@ from .base import BrowserTestCase
 from .. import factories as fx
 from ..test_catalog_atlas import make_atlas
 from ... import data
-from ...models import RunBatch
+from ...models import Candidate, RunBatch
 
 NAME = "Melosira ambigua"
 
@@ -135,14 +144,31 @@ class CatalogAtlasBrowserTest(BrowserTestCase):
 
 
 class ToCatalogMenuTest(BrowserTestCase):
-    """검토 화면 → 개체 카드 (#4)."""
+    """검토 화면 → 개체 카드 (#4).
+
+    **카드가 화면 안에 들어와야 한다** (150). 149 는 그 카드가 있는 쪽을 열어
+    놓고 거기서 끝났는데, 한 판이 120장이라 **화면 밖이면 사람이 여전히 훑어
+    찾는다**(사용자 2026-08-25). 3겹은 그것을 못 본다 — 쪽이 맞는 것과 눈에
+    보이는 것은 다른 일이고, 스크롤은 JS 가 한다.
+    """
 
     def make_data(self):
         fx.make_classes()
+        # **카드가 여럿이어야 스크롤이 성립한다.** 두 장이면 둘 다 첫 화면에
+        # 들어와, 스크롤을 안 해도 통과하는 시험이 된다.
         self.w = fx.make_world(slug=f"rs23-{self.uniq}",
-                               site_code=f"RS{self.uniq}", n_candidates=2)
+                               site_code=f"RS{self.uniq}",
+                               n_viewpoints=20, n_candidates=2)
         RunBatch.objects.filter(for_review=True).update(code="S1")
-        self.cand = self.w.detection().candidates.order_by("raw_id").first()
+        # **카탈로그의 맨 끝 개체를 고른다.** 앞쪽 개체를 고르면 그 카드가
+        # 스크롤 없이도 첫 화면에 들어와 **스크롤을 빼도 통과한다** — 실제로
+        # 그렇게 짰다가 되살려 보고 알았다(149 에서 쪽 옮기기가 같은 자리였다).
+        rows = data.catalog_rows(self.w.slide.slug)
+        self.target = rows[-1]
+        self.gid = self.target["group_id"]
+        self.cand = Candidate.objects.get(
+            detection__image_id=self.target["image_id"],
+            detection__is_current=True, mask_key=self.target["key"])
 
     def menu_item(self, menu, text):
         for el in menu.query_selector_all("button, .mi"):
@@ -151,8 +177,7 @@ class ToCatalogMenuTest(BrowserTestCase):
         return None
 
     def test_메뉴에서_카드로_간다(self):
-        page = self.open(reverse("group", args=[self.w.slide.slug,
-                                                self.w.vp.idx]))
+        page = self.open(reverse("group", args=[self.w.slide.slug, self.gid]))
         page.wait_for_selector(".detview .box")
         menu = self.context_menu_at(self.cand.center_x, self.cand.center_y)
         self.assertIsNotNone(menu, "우클릭 메뉴가 안 열렸다")
@@ -167,3 +192,77 @@ class ToCatalogMenuTest(BrowserTestCase):
         hl = page.query_selector(".catcard.hl")
         self.assertIsNotNone(hl, "짚어 온 카드에 표시가 없다")
         self.assertEqual(hl.get_attribute("data-key"), self.cand.mask_key)
+        self.assert_on_screen(page, hl)
+
+    def test_카드로_가는_항목이_맨_아래다(self):
+        """**되돌릴 수 있는 항목들 사이에 화면을 떠나는 항목을 끼우지 않는다** (150).
+
+        149 에서는 묶기(`⛓`) 바로 아래였는데, 둘 다 개체 하나를 고르고 누르는
+        것이라 손이 같은 자리로 가고 **잘못 눌러 넘어간 일이 여러 번 났다**
+        (사용자 2026-08-25). 실행취소가 안 듣는 유일한 항목이다.
+        """
+        page = self.open(reverse("group", args=[self.w.slide.slug, self.gid]))
+        page.wait_for_selector(".detview .box")
+        menu = self.context_menu_at(self.cand.center_x, self.cand.center_y)
+        self.assertIsNotNone(menu, "우클릭 메뉴가 안 열렸다")
+        labels = [(el.inner_text() or "") for el in
+                  menu.query_selector_all("button")]
+        hit = [i for i, t in enumerate(labels) if "이 개체 카드로" in t]
+        self.assertEqual(len(hit), 1, f"항목이 하나가 아니다: {labels}")
+        self.assertEqual(hit[0], len(labels) - 1,
+                         f"맨 아래가 아니다 — 뒤에 {labels[hit[0] + 1:]} 가 있다")
+        link = [i for i, t in enumerate(labels) if "동일 개체 묶기" in t]
+        if link:
+            self.assertGreater(hit[0] - link[0], 1,
+                               "묶기 바로 아래다 — 잘못 누르는 그 자리다")
+
+    def assert_on_screen(self, page, el):
+        """그 카드가 **지금 보이는 자리**에 있는가 (150).
+
+        `scrollIntoView` 를 불렀는지가 아니라 **결과**를 본다 — 그림이 늦게
+        떠서 자리가 밀리면 부르기는 했는데 화면 밖인 상태가 된다.
+        """
+        # 그림이 다 뜬 뒤에 한 번 더 맞추므로 그때까지 기다린다
+        page.wait_for_load_state("load")
+        page.wait_for_timeout(200)
+        box = el.bounding_box()
+        h = page.evaluate("() => window.innerHeight")
+        self.assertIsNotNone(box, "카드가 그려지지 않았다")
+        self.assertGreater(box["y"] + box["height"], 0,
+                           f"카드가 화면 위로 벗어나 있다 (y={box['y']:.0f})")
+        self.assertLess(box["y"], h,
+                        f"카드가 화면 아래로 벗어나 있다 "
+                        f"(y={box['y']:.0f} · 화면 높이 {h})")
+
+    def test_사람이_스크롤하면_안_뺏는다(self):
+        """**보고 있던 자리를 빼앗는 것이 못 찾는 것보다 나쁘다.**
+
+        그림이 늦게 뜨면 자리가 밀리므로 다 뜬 뒤에 한 번 더 맞추는데, 그 사이
+        사람이 굴렸으면 그만둔다.
+
+        **늦은 맞추기를 손으로 부른다** (`window` 에 `load` 를 던진다). 픽스처는
+        그림이 곧바로 떠서 진짜 `load` 가 **굴리기 전에** 끝나 버리고, 그러면
+        이 시험은 아무것도 안 본다 — 실제로 처음에 그렇게 짰다.
+        """
+        page = self.open_card_page()
+        y0 = page.evaluate("() => window.scrollY")
+        # 맨 끝 카드를 골랐으니 처음 맞추기가 실제로 굴렸어야 한다
+        self.assertGreater(y0, 0, "처음 맞추기가 화면을 안 옮겼다")
+        page.mouse.wheel(0, -300)                         # 사람이 굴렸다
+        page.wait_for_function(f"() => window.scrollY !== {y0}", timeout=5_000)
+        y1 = page.evaluate("() => window.scrollY")
+        # 그림이 다 뜬 뒤의 맞추기 — 사람이 굴렸으므로 그만둬야 한다
+        page.evaluate("() => window.dispatchEvent(new Event('load'))")
+        page.wait_for_timeout(200)
+        self.assertEqual(page.evaluate("() => window.scrollY"), y1,
+                         "사람이 굴린 뒤에 화면이 저절로 옮겨 갔다")
+
+    def open_card_page(self):
+        """짚어 온 개체를 실은 카탈로그를 연다."""
+        url = (f"{self.live_server_url}"
+               f"{reverse('catalog', args=[self.w.slide.slug])}"
+               f"?obj={self.cand.mask_key}&img={self.target['image_id']}")
+        self.page.goto(url, wait_until="load")
+        self.page.wait_for_selector(".catcard.hl")
+        self.page.wait_for_timeout(200)
+        return self.page
