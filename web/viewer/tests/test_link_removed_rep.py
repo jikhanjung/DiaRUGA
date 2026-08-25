@@ -87,15 +87,31 @@ class LinkRemovedRepTest(DiaRUGATestCase):
     # --- 1. 얼굴 고르기 -----------------------------------------------------
 
     def test_지운_판은_얼굴이_안_된다(self):
-        """가장 크게 보이는 것을 고르는데 **그것이 지운 판이면 건너뛴다.**"""
+        """**대표가 지운 판이면 산 멤버로 물러난다** (151 · 자리는 152).
+
+        152 부터 얼굴은 대표다. 그런데 대표가 지워져 있으면 그대로 쓸 수 없어
+        산 것 중 가장 큰 것으로 물러나는데, **그 물러남이 실제로 도는지**를 본다
+        — 안 물러나면 카드가 사람이 오검출이라고 지운 마스크를 그린다.
+        """
+        # 대표를 프레임(더 큰 쪽)으로 옮겨 놓는다 — 그것이 얼굴이어야 한다
+        ObjectReview.objects.filter(diatom_object=self.obj).update(is_rep=False)
+        ObjectReview.objects.filter(pk=self.frame_row.pk).update(is_rep=True)
         self.assertEqual(self.face_of().pk, self.frame_row.pk,
-                         "가장 큰 판을 얼굴로 안 골랐다 — 앞의 전제가 깨졌다")
+                         "대표를 얼굴로 안 골랐다 — 앞의 전제가 깨졌다")
         ObjectReview.objects.filter(pk=self.frame_row.pk).update(removed=True)
         self.assertEqual(self.face_of().pk, self.stack_row.pk,
                          "지운 마스크를 개체의 얼굴로 그리고 있다")
 
-    def test_전부_지웠으면_옛_규칙_그대로다(self):
-        """「지운 것」 화면이 그 카드를 그려야 한다 — 거기서는 지운 것이 볼 것이다."""
+    def test_대표를_그대로_쓴다(self):
+        """**크기가 대표를 이기면 안 된다** (152). 프레임이 네 배 크다."""
+        self.assertEqual(self.face_of().pk, self.stack_row.pk,
+                         "크기가 대표를 이겼다")
+
+    def test_전부_지웠으면_가장_큰_것으로_물러난다(self):
+        """「지운 것」 화면이 그 카드를 그려야 한다 — 거기서는 지운 것이 볼 것이다.
+
+        대표까지 지워졌고 물러날 산 멤버도 없다. **빈 얼굴을 내놓지 않는다.**
+        """
         ObjectReview.objects.filter(diatom_object=self.obj).update(removed=True)
         self.assertEqual(self.face_of().pk, self.frame_row.pk)
 

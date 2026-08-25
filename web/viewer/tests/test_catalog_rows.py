@@ -199,8 +199,11 @@ class LinkedViewTest(DiaRUGATestCase):
         self.batch = self.det.batch
         self.frame_img = self.w.vp.images.filter(kind="frame").first()
 
-    def link(self, *sizes, box_key="bbox_xywh"):
+    def link(self, *sizes, box_key="bbox_xywh", rep=0):
         """합성본 멤버 + 프레임 멤버 하나. `sizes` 는 각 멤버의 (w, h).
+
+        `rep` 은 **대표로 세울 멤버**다 (0 합성본 · 1 프레임). 152 부터 카드가
+        그리는 것은 크기가 아니라 대표라, 이 인자가 곧 시험의 조건이다.
 
         **`box_key` 가 기본으로 `bbox_xywh` 인 것이 요점이다.** 실제 저장
         (`views.save_object_link`)이 그 키를 쓰는데 이 픽스처가 `bbox` 를 쓰고
@@ -222,7 +225,7 @@ class LinkedViewTest(DiaRUGATestCase):
                           batch=self.batch, mask_key="500_500_20_20",
                           geom=geom(20, 20, fw, fh)),
         ]
-        return fx.link_reviews(rows, rep=0)
+        return fx.link_reviews(rows, rep=rep)
 
     def row(self):
         return next(x for x in data.catalog_rows("rs23") if x["key"] == self.key)
@@ -232,16 +235,32 @@ class LinkedViewTest(DiaRUGATestCase):
         self.assertNotIn("view", r)
         self.assertNotIn("linked_n", r)
 
-    def test_프레임이_더_크면_그것을_그린다(self):
-        self.link((30, 30), (90, 90))
+    def test_대표가_프레임이면_그것을_그린다(self):
+        """**카드가 그리는 것은 대표다** (152 · 사용자 방침 2026-08-25).
+
+        묶기 패널이 *사람이 묶기를 누른 판*을 대표로 세우므로(`repKey = curKey`),
+        이것은 **사람이 고른 판을 그대로 그린다**는 말이다.
+        """
+        self.link((30, 30), (90, 90), rep=1)
         r = self.row()
         self.assertEqual(r["view"]["rel"], self.frame_img.path)
         self.assertEqual(r["linked_n"], 2)
 
+    def test_크기는_이제_안_고른다(self):
+        """**예전에는 가장 큰 멤버를 그렸다** (2026-08-10 ~ 2026-08-25).
+
+        대표가 이미 따로 있었고, 그래서 **같은 개체를 카드와 학습 자료가 다른
+        판으로 말하고 있었다** — 실측으로 묶음 680개 중 410개가 그랬다.
+        여기서는 프레임이 세 배 큰데도 대표(합성본)를 그려야 한다.
+        """
+        self.link((30, 30), (90, 90), rep=0)
+        self.assertNotIn("view", self.row(),
+                         "크기가 대표를 이겼다 — 152 이전으로 돌아갔다")
+
     def test_보여줄_상자가_그_멤버의_것이다(self):
         """**상자가 비면 예외가 안 나고 원래 상자로 되돌아간다** — 운영에서
         그랬다. 그러면 다른 판의 그림을 이 개체의 옛 자리로 잘라 낸다."""
-        self.link((30, 30), (90, 90))
+        self.link((30, 30), (90, 90), rep=1)
         self.assertEqual(self.row()["view"]["bbox_xywh"], [20, 20, 90, 90])
 
     def test_두_기하_모양을_다_읽는다(self):
@@ -249,12 +268,12 @@ class LinkedViewTest(DiaRUGATestCase):
         for key in ("bbox_xywh", "bbox"):
             with self.subTest(키=key):
                 ObjectReview.objects.all().delete(); DiatomObject.objects.all().delete()
-                self.link((30, 30), (90, 90), box_key=key)
+                self.link((30, 30), (90, 90), box_key=key, rep=1)
                 self.assertEqual(self.row()["view"]["bbox_xywh"],
                                  [20, 20, 90, 90])
 
-    def test_합성본이_더_크면_안_바꾼다(self):
-        self.link((90, 90), (30, 30))
+    def test_대표가_합성본이면_안_바꾼다(self):
+        self.link((90, 90), (30, 30), rep=0)
         r = self.row()
         self.assertNotIn("view", r)
         self.assertEqual(r["linked_n"], 2)
