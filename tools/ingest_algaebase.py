@@ -110,14 +110,26 @@ def better(a: dict, b: dict) -> dict:
     return a if la >= lb else b
 
 
-def read_batches() -> tuple[dict[str, dict], list[str], list[tuple]]:
-    """`algaebase_day*.md` 를 전부 읽는다. 값은 이름 → {번호·판정·비고·출처파일}."""
+def read_batches() -> tuple[dict[str, dict], list[str], list[tuple], list[str]]:
+    """`algaebase_day*.md` 를 전부 읽는다. 값은 이름 → {번호·판정·비고·출처파일}.
+
+    **못 읽은 꾸러미는 세어서 돌려준다.** NAS 가 파일마다 권한을 따로 걸어
+    읽기가 막히는 일이 있는데(08-25 에 27~29 일차 셋이 그랬다), 조용히 건너뛰면
+    **그 회차가 안 들어온 것이 아니라 판정이 달라진다** — 같은 이름을 두 표가
+    말했을 때 RANK 로 갈리던 것이 "읽힌 쪽" 으로 갈리기 때문이다. 부르는 쪽이
+    멈출 수 있게 목록을 낸다.
+    """
     out: dict[str, dict] = {}
     files = sorted(BATCHES.glob("algaebase_day*.md"))
     warn: list[str] = []
     clash: list[tuple] = []
+    unread: list[tuple[str, str]] = []
     for path in files:
-        text = path.read_text(encoding="utf-8")
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError as e:
+            unread.append((path.name, e.strerror or str(e)))
+            continue
         for num, name, verdict, note in ROW.findall(text):
             name, verdict, note = clean(name), clean(verdict), clean(note)
             if not name:
@@ -179,7 +191,7 @@ def read_batches() -> tuple[dict[str, dict], list[str], list[tuple]]:
         r["닫힘"] = why
         out[name] = r
     print(f"표 {len(files)}벌 · 항목 {len(out):,}개")
-    return out, warn, clash
+    return out, warn, clash, unread
 
 
 def species_order() -> list[str]:
@@ -239,9 +251,20 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--force", action="store_true",
                     help="번호 검산이 어긋나도 진행한다")
+    ap.add_argument("--skip-unreadable", action="store_true",
+                    help="못 읽은 꾸러미가 있어도 진행한다 (무엇이 빠졌는지 보고 나서)")
     args = ap.parse_args()
 
-    recs, warn, dupes = read_batches()
+    recs, warn, dupes, unread = read_batches()
+    if unread:
+        print(f"**꾸러미 {len(unread)}개를 못 읽었다:**")
+        for name, why in unread:
+            print(f"  ! {name}: {why}")
+        if not args.skip_unreadable:
+            print("\n**멈춘다.** 빠진 회차의 이름이 다른 회차에도 있으면 "
+                  "판정이 달라진다 — 확인하고 --skip-unreadable")
+            return 1
+        print("  (--skip-unreadable · 빠진 회차의 줄은 대조표의 지금 값 그대로 둔다)")
     for w in warn:
         print(f"  ! {w}")
     if dupes:
@@ -282,6 +305,8 @@ def main() -> int:
     a, b = head.index("AlgaeBase"), head.index("AlgaeBase비고")
 
     rows, filled, unseen = [], 0, dict(recs)
+    unread_files = {n for n, _ in unread}
+    kept: list[tuple] = []
     tally = collections.Counter()
     clash = []
     for line in lines[1:]:
@@ -290,6 +315,16 @@ def main() -> int:
         cells = line.split("\t")
         cells += [""] * (len(head) - len(cells))
         r = unseen.pop(cells[0], None)
+        if r and any(f in cells[b] for f in unread_files):
+            # **못 읽은 회차가 이겨 놓은 줄이다.** 그 회차가 이번엔 안 돌아서
+            # RANK 가 아니라 "읽힌 쪽" 이 이기게 되는 자리 — 지금 값이 더 많이
+            # 알아낸 것이면 그대로 둔다. 안 그러면 `그대로 유효` 가 `없다` 로
+            # 뒤로 간다 (08-25 에 둘이 그랬다)
+            cur = cells[b].split(" · ")[0]
+            if RANK.get(cur, 0) > RANK.get(r["상태"], 0):
+                kept.append((cells[0], cur, r["상태"], r["출처"]))
+                rows.append(cells)
+                continue
         if r:
             filled += 1
             tally[r["상태"]] += 1
@@ -308,6 +343,11 @@ def main() -> int:
         rows.append(cells)
 
     print(f"\n대조표 {len(rows):,}줄 중 {filled:,}줄에 채웠다")
+    if kept:
+        print(f"\n**못 읽은 회차가 이겨 둔 {len(kept)}줄은 그대로 뒀다** "
+              f"(읽힌 표가 덜 알아냈다):")
+        for name, cur, new_state, src in kept:
+            print(f"  {name:30s} 지킨 값 {cur:14s} ← {src} 은 {new_state}")
     for k, n in tally.most_common():
         print(f"  {k:16s} {n:,}")
     if unseen:
