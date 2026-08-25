@@ -1,0 +1,133 @@
+/* Diadiction 오프라인 꾸러미 — 화면.
+   뷰어(`web/viewer/templates/viewer/base.html`)의 토큰 이름을 그대로 빌린다.
+   **색을 박지 않는다** — 테마가 둘이다 (CLAUDE.md · 107). */
+:root {
+  --bg: #f7f7f8; --fg: #1b1c1e; --panel: #fff; --line: #d8dade;
+  --dim: #6a6f76; --accent: #2f6fb2; --chip: #eef1f5;
+  --warn-bg: #fdecea; --warn-fg: #a3301f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181b; --fg: #e6e8ea; --panel: #1e2126; --line: #333940;
+    --dim: #9aa1a9; --accent: #79b0e8; --chip: #262b31;
+    --warn-bg: #3a221f; --warn-fg: #f0a99c;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+       font: 15px/1.55 -apple-system, "Segoe UI", "Noto Sans KR", sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+b { font-weight: 600; }
+.dim { color: var(--dim); }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px 60px; }
+
+header.top { position: sticky; top: 0; z-index: 30; background: var(--panel);
+             border-bottom: 1px solid var(--line); }
+header.top .inner { max-width: 1080px; margin: 0 auto; padding: 9px 16px;
+                    display: flex; gap: 14px; align-items: baseline;
+                    flex-wrap: wrap; }
+header.top .brand { font-weight: 700; letter-spacing: .2px; }
+header.top nav { display: flex; gap: 10px; flex: 1 1 auto; }
+header.top .ver { font-size: .8rem; color: var(--dim);
+                  font-variant-numeric: tabular-nums; }
+
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px;
+        border: 1px solid var(--line); border-radius: 999px; background: var(--chip);
+        color: inherit; font-size: .86rem; cursor: pointer; }
+a.chip:hover { text-decoration: none; border-color: var(--accent); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip.warnchip { background: var(--warn-bg); color: var(--warn-fg);
+                 border-color: transparent; }
+button { font: inherit; color: inherit; background: var(--chip);
+         border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px;
+         cursor: pointer; }
+button:hover { border-color: var(--accent); }
+
+h1 { font-size: 1.25rem; margin: 18px 0 10px; }
+h2 { font-size: 1.05rem; margin: 0 0 6px; }
+
+/* 검색 */
+.q { display: flex; gap: 8px; margin: 16px 0 12px; }
+.q input { flex: 1 1 auto; padding: 9px 11px; font-size: 1rem; color: inherit;
+           border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+         margin-bottom: 10px; }
+.pager { display: flex; gap: 8px; margin: 12px 0; align-items: center; }
+
+.entry { border-bottom: 1px solid var(--line); padding: 9px 2px; }
+.ename { display: flex; flex-wrap: wrap; gap: 7px; align-items: baseline; }
+.ename i { font-size: 1.02rem; }
+.places { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px;
+          font-size: .88rem; }
+.place { display: inline-flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.pnote { font-size: .82rem; color: var(--warn-fg); }
+.entryextra { margin-top: 4px; font-size: .86rem; }
+
+/* 도감 카드 */
+.bookrow { display: flex; gap: 16px; align-items: flex-start; padding: 14px;
+           border: 1px solid var(--line); border-radius: 8px; margin-bottom: 14px;
+           background: var(--panel); }
+.bookrow .cover { flex: 0 0 132px; }
+.bookrow .cover img { width: 132px; display: block; border-radius: 4px;
+                      background: var(--chip); }
+.bookrow .body { flex: 1 1 auto; min-width: 0; }
+.vols { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* 쪽 격자 */
+.grid { display: grid; gap: 10px; margin: 12px 0;
+        grid-template-columns: repeat(auto-fill, minmax(122px, 1fr)); }
+.gcell { display: block; text-align: center; font-size: .8rem; color: var(--dim); }
+.gcell img { width: 100%; display: block; border: 1px solid var(--line);
+             border-radius: 3px; background: #fff; }
+.gcell:hover img { border-color: var(--accent); }
+
+/* 쪽 보기 */
+.abar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+        margin: 12px 0 8px; }
+.azoom { display: inline-flex; gap: 6px; align-items: center; margin-left: auto; }
+.azoom .lv { font-variant-numeric: tabular-nums; color: var(--dim);
+             min-width: 3.6em; text-align: center; }
+.akeys { font-size: .8rem; color: var(--dim); }
+.aview { position: relative; overflow: hidden; background: var(--panel);
+         border: 1px solid var(--line); border-radius: 6px;
+         height: calc(100vh - 190px); min-height: 320px; cursor: grab; }
+.aview.grabbing { cursor: grabbing; }
+#acanvas { position: absolute; left: 0; top: 0; transform-origin: 0 0;
+           display: flex; gap: 8px; align-items: flex-start; }
+#acanvas img { display: block; background: #fff; max-width: none; }
+.aview.zoomed #acanvas img { image-rendering: -webkit-optimize-contrast; }
+.ajump { display: inline-flex; gap: 6px; align-items: center; }
+.ajump input { width: 5.5em; padding: 4px 7px; color: inherit; background: var(--panel);
+               border: 1px solid var(--line); border-radius: 6px; }
+
+/* 미리보기 — **`display` 를 안 준다**: 주면 브라우저 기본 `[hidden]` 을
+   특이도에서 이겨 감추라고 해 놓고 그대로 보인다 (CLAUDE.md, 세 번 당한 자리) */
+.apreview { position: fixed; z-index: 40; width: 320px; padding: 6px;
+            pointer-events: none; background: var(--panel);
+            border: 1px solid var(--line); border-radius: 6px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+.apreview img { width: 100%; display: block; background: #fff; border-radius: 3px;
+                min-height: 40px; }
+.apreview.failed img { display: none; }
+.apreview .cap { font-size: .78rem; color: var(--dim); padding: 4px 2px 0; }
+.apreview.failed .cap { color: var(--warn-fg); }
+
+/* 학명 대조표 */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table.names { border-collapse: collapse; width: 100%; font-size: .86rem;
+              background: var(--panel); }
+table.names th, table.names td { padding: 5px 8px; border-bottom: 1px solid var(--line);
+                                 text-align: left; vertical-align: top;
+                                 white-space: nowrap; }
+table.names th { position: sticky; top: 0; background: var(--panel); z-index: 2; }
+table.names td.wrap { white-space: normal; min-width: 18em; }
+table.names tr:hover td { background: var(--chip); }
+
+.warn { background: var(--warn-bg); color: var(--warn-fg); padding: 10px 12px;
+        border-radius: 6px; }
+.note { color: var(--dim); font-size: .9rem; }
+.help dt { font-weight: 600; margin-top: 10px; }
+.help dd { margin: 2px 0 0 0; color: var(--dim); }
+kbd { font: inherit; font-size: .82rem; padding: 1px 5px; border-radius: 4px;
+      border: 1px solid var(--line); background: var(--chip); }

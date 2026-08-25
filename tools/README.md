@@ -70,3 +70,26 @@ python3 tools/test_parse_atlas.py        # NAS 없이 도는 시험 (합성 색�
   아무 `〔…〕` 나 걷으면 그것이 조용히 사라진다
 - **검산이 어긋나면 아무것도 안 쓴다.** 파일에서 직접 센 것 · 색인 머리말이
   적어 둔 수 · 속별 목록 셋을 본다
+
+## 도감 오프라인 꾸러미 (`build_offline_atlas.py` · `offline_assets/`)
+
+색인 셋·도판·학명 대조표를 **서버도 인터넷도 없이** 볼 수 있게 굽는다
+(devlog 156). `index.html` 하나가 옆의 `data/`·`pages/`·`thumbs/` 를 참조한다.
+
+```bash
+python tools/build_offline_atlas.py --version 1.0.0             # 완전판 (1.1 GB · 3분)
+python tools/build_offline_atlas.py --version 1.0.0 --limit 8   # 눌러 볼 때 (권마다 8쪽)
+python tools/build_offline_atlas.py --version 1.0.0 --no-images # 글자만
+```
+
+- **`fetch` 를 안 쓴다.** `file://` 에서는 로컬 JSON 이 CORS 로 막힌다 —
+  자료가 `data/*.js` 로 나가 전역에 값을 놓는다
+- **한 파일에 다 못 담는다.** 도판 1.1 GB 를 base64 로 넣으면 1.5 GB 문서가
+  되어 브라우저가 죽는다. 진짜 단일 파일이 필요하면 같이 나오는
+  `diadiction-index-v*.html`(글자만 2.4 MB)을 쓴다
+- **쪽 이름·권 코드 규칙은 `web/viewer/atlas.py` 를 임포트해서 쓴다.** 여기서
+  다시 만들면 넷째 도감에서 갈린다
+- **꾸러미에 안 실린 쪽은 링크를 안 낸다** — 뷰어와 갈리는 자리다(뷰어는
+  링크마다 디스크를 안 짚는다). 번호는 남긴다: 안 실린 것과 색인이 안 적은
+  것은 다른 말이다
+- 다시 돌리면 **이미 구운 쪽은 건너뛴다**(`--force` 로만 다시 굽는다)
