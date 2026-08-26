@@ -1,0 +1,9329 @@
+{
+ "source": {
+  "atlas": "korean",
+  "pdf": "origin/korean_flora_diatom.pdf",
+  "text_layer_pages": [
+   1,
+   190
+  ]
+ },
+ "references": [
+  {
+   "ref": "정 영호 외",
+   "year": "1967",
+   "records": 248
+  },
+  {
+   "ref": "최 상",
+   "year": "1967",
+   "records": 142
+  },
+  {
+   "ref": "정 영호 외",
+   "year": "1965",
+   "records": 109
+  },
+  {
+   "ref": "이 민재 외",
+   "year": "1967",
+   "records": 109
+  },
+  {
+   "ref": "Skvortzow",
+   "year": "1931",
+   "records": 56
+  },
+  {
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "records": 54
+  },
+  {
+   "ref": "최 상",
+   "year": "1966",
+   "records": 47
+  },
+  {
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "records": 38
+  },
+  {
+   "ref": "Skvortzow",
+   "year": "1936",
+   "records": 36
+  },
+  {
+   "ref": "Skvortzow",
+   "year": "1929",
+   "records": 29
+  },
+  {
+   "ref": "박 태수",
+   "year": "1956",
+   "records": 19
+  },
+  {
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "records": 13
+  },
+  {
+   "ref": "奧野春雄",
+   "year": "1948",
+   "records": 12
+  },
+  {
+   "ref": "Skvortzow",
+   "year": "1932",
+   "records": 11
+  },
+  {
+   "ref": "羽田良禾",
+   "year": "1936",
+   "records": 1
+  }
+ ],
+ "occurrences": [
+  {
+   "item_no": "169",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Melosira ambigua"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "함북 나남",
+   "region": "함북 나남",
+   "ref_raw": "國, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "강원도 춘천",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "소 양",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "170",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "171",
+   "region_raw": "함북 나남",
+   "region": "함북 나남",
+   "ref_raw": "로, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Melosira distans"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "東野, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "경기 도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "강원도 춘천",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "172",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira granulata"
+  },
+  {
+   "item_no": "174",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira islandica"
+  },
+  {
+   "item_no": "174",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira islandica"
+  },
+  {
+   "item_no": "174",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira islandica"
+  },
+  {
+   "item_no": "174",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira islandica"
+  },
+  {
+   "item_no": "174",
+   "region_raw": "강원도 춘천",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira islandica"
+  },
+  {
+   "item_no": "174",
+   "region_raw": "소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira islandica"
+  },
+  {
+   "item_no": "175",
+   "region_raw": "강원도 춘천",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira islandica"
+  },
+  {
+   "item_no": "175",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira islandica"
+  },
+  {
+   "item_no": "176",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "176",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "176",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "176",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "176",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "176",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "176",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "176",
+   "region_raw": "강원도 춘천",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "178",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "178",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "178",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira italica"
+  },
+  {
+   "item_no": "179",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira nummuloides"
+  },
+  {
+   "item_no": "180",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Melosira roeseana"
+  },
+  {
+   "item_no": "181",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira sulcata"
+  },
+  {
+   "item_no": "181",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira sulcata"
+  },
+  {
+   "item_no": "182",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira undulata"
+  },
+  {
+   "item_no": "182",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira undulata"
+  },
+  {
+   "item_no": "182",
+   "region_raw": "강원도 소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira undulata"
+  },
+  {
+   "item_no": "182",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira undulata"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "전남 보성강",
+   "region": "전남 보성강",
+   "ref_raw": "三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "서울 노량 진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "강원도 소 양",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "183",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Melosira varians"
+  },
+  {
+   "item_no": "184",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": ", 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Stephanopyxis palmeriana"
+  },
+  {
+   "item_no": "184",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Stephanopyxis palmeriana"
+  },
+  {
+   "item_no": "184",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Stephanopyxis palmeriana"
+  },
+  {
+   "item_no": "184",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Stephanopyxis palmeriana"
+  },
+  {
+   "item_no": "185",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Stephanopyxis palmeriana"
+  },
+  {
+   "item_no": "186",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Stephanopyxis turris"
+  },
+  {
+   "item_no": "186",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Stephanopyxis turris"
+  },
+  {
+   "item_no": "187",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiosira baltica"
+  },
+  {
+   "item_no": "188",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiosira condensata"
+  },
+  {
+   "item_no": "189",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Thalassiosira decipiens"
+  },
+  {
+   "item_no": "190",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Thalassiosira hyalina"
+  },
+  {
+   "item_no": "191",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "故英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Thalassiosira nordenskiöldii"
+  },
+  {
+   "item_no": "192",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Thalassiosira pacifica"
+  },
+  {
+   "item_no": "193",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiosira rotula"
+  },
+  {
+   "item_no": "194",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Thalassiosira subtilis"
+  },
+  {
+   "item_no": "194",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiosira subtilis"
+  },
+  {
+   "item_no": "194",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiosira subtilis"
+  },
+  {
+   "item_no": "195",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "英K , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Skeletonema costatum"
+  },
+  {
+   "item_no": "195",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Skeletonema costatum"
+  },
+  {
+   "item_no": "195",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Skeletonema costatum"
+  },
+  {
+   "item_no": "195",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Skeletonema costatum"
+  },
+  {
+   "item_no": "195",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Skeletonema costatum"
+  },
+  {
+   "item_no": "195",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Skeletonema costatum"
+  },
+  {
+   "item_no": "196",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus anguste-lineatus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "동 해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "197",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus asteromphalus"
+  },
+  {
+   "item_no": "198",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus centralis"
+  },
+  {
+   "item_no": "198",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus centralis"
+  },
+  {
+   "item_no": "198",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus centralis"
+  },
+  {
+   "item_no": "198",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus centralis"
+  },
+  {
+   "item_no": "199",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Coscinodiscus concinnus"
+  },
+  {
+   "item_no": "200",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Coscinodiscus curvatulus"
+  },
+  {
+   "item_no": "201",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOW, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Coscinodiscus excentricus"
+  },
+  {
+   "item_no": "201",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Coscinodiscus excentricus"
+  },
+  {
+   "item_no": "201",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus excentricus"
+  },
+  {
+   "item_no": "201",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus excentricus"
+  },
+  {
+   "item_no": "201",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus excentricus"
+  },
+  {
+   "item_no": "201",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus excentricus"
+  },
+  {
+   "item_no": "202",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Coscinodiscus gigas"
+  },
+  {
+   "item_no": "202",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Coscinodiscus gigas"
+  },
+  {
+   "item_no": "202",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus gigas"
+  },
+  {
+   "item_no": "202",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus gigas"
+  },
+  {
+   "item_no": "202",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus gigas"
+  },
+  {
+   "item_no": "202",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus gigas"
+  },
+  {
+   "item_no": "202",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus gigas"
+  },
+  {
+   "item_no": "203",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "故英 物, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Coscinodiscus granii"
+  },
+  {
+   "item_no": "203",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Coscinodiscus granii"
+  },
+  {
+   "item_no": "203",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus granii"
+  },
+  {
+   "item_no": "203",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus granii"
+  },
+  {
+   "item_no": "203",
+   "region_raw": "서 해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus granii"
+  },
+  {
+   "item_no": "204",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus janischii"
+  },
+  {
+   "item_no": "205",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Coscinodiscus jonesianus"
+  },
+  {
+   "item_no": "205",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus jonesianus"
+  },
+  {
+   "item_no": "205",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus jonesianus"
+  },
+  {
+   "item_no": "205",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus jonesianus"
+  },
+  {
+   "item_no": "206",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "法 水 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Coscinodiscus lineatus"
+  },
+  {
+   "item_no": "206",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "法 水 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Coscinodiscus lineatus"
+  },
+  {
+   "item_no": "206",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus lineatus"
+  },
+  {
+   "item_no": "206",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus lineatus"
+  },
+  {
+   "item_no": "206",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus lineatus"
+  },
+  {
+   "item_no": "207",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Coscinodiscus marginatus"
+  },
+  {
+   "item_no": "207",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus marginatus"
+  },
+  {
+   "item_no": "207",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus marginatus"
+  },
+  {
+   "item_no": "208",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus megalomma"
+  },
+  {
+   "item_no": "209",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus nitidus"
+  },
+  {
+   "item_no": "209",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus nitidus"
+  },
+  {
+   "item_no": "210",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus nodulifer"
+  },
+  {
+   "item_no": "210",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus nodulifer"
+  },
+  {
+   "item_no": "211",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus perforatues"
+  },
+  {
+   "item_no": "211",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus perforatues"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "우리 나라에서는 부산",
+   "region": "부산",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "倉茂英次郎, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "倉茂英次郎, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최 상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "212",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus radiatus"
+  },
+  {
+   "item_no": "213",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus rothii"
+  },
+  {
+   "item_no": "213",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus rothii"
+  },
+  {
+   "item_no": "213",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus rothii"
+  },
+  {
+   "item_no": "213",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus rothii"
+  },
+  {
+   "item_no": "214",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus stellaris"
+  },
+  {
+   "item_no": "215",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus subconcavus"
+  },
+  {
+   "item_no": "215",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus subconcavus"
+  },
+  {
+   "item_no": "216",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus subtilis"
+  },
+  {
+   "item_no": "217",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Coscinodiscus wailesii"
+  },
+  {
+   "item_no": "217",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus wailesii"
+  },
+  {
+   "item_no": "217",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus wailesii"
+  },
+  {
+   "item_no": "217",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus wailesii"
+  },
+  {
+   "item_no": "217",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinodiscus wailesii"
+  },
+  {
+   "item_no": "218",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Stephanodiscus astraea"
+  },
+  {
+   "item_no": "220",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Cyclotella bodanica"
+  },
+  {
+   "item_no": "220",
+   "region_raw": "강원도 신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella bodanica"
+  },
+  {
+   "item_no": "221",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "221",
+   "region_raw": "함북 나남",
+   "region": "함북 나남",
+   "ref_raw": "無, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "221",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "221",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "221",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "221",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "221",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "221",
+   "region_raw": "강원도 춘천",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "222",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella comta"
+  },
+  {
+   "item_no": "223",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella kützingiana"
+  },
+  {
+   "item_no": "224",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Cyclotella meneghiniana"
+  },
+  {
+   "item_no": "224",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella meneghiniana"
+  },
+  {
+   "item_no": "224",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella meneghiniana"
+  },
+  {
+   "item_no": "225",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Cyclotella operculata"
+  },
+  {
+   "item_no": "225",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella operculata"
+  },
+  {
+   "item_no": "225",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella operculata"
+  },
+  {
+   "item_no": "225",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella operculata"
+  },
+  {
+   "item_no": "225",
+   "region_raw": "강원도 춘천",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella operculata"
+  },
+  {
+   "item_no": "225",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella operculata"
+  },
+  {
+   "item_no": "226",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOw, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Cyclotella striata"
+  },
+  {
+   "item_no": "226",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Cyclotella striata"
+  },
+  {
+   "item_no": "226",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Cyclotella striata"
+  },
+  {
+   "item_no": "226",
+   "region_raw": "서 해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cyclotella striata"
+  },
+  {
+   "item_no": "227",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Coscinosira oestrupii"
+  },
+  {
+   "item_no": "228",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Schröderella delicatula"
+  },
+  {
+   "item_no": "228",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Schröderella delicatula"
+  },
+  {
+   "item_no": "228",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Schröderella delicatula"
+  },
+  {
+   "item_no": "228",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민 재외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Schröderella delicatula"
+  },
+  {
+   "item_no": "228",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Schröderella delicatula"
+  },
+  {
+   "item_no": "228",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Schröderella delicatula"
+  },
+  {
+   "item_no": "229",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Schröderella schröderi"
+  },
+  {
+   "item_no": "230",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Arachnoidiscus ehrenbergii"
+  },
+  {
+   "item_no": "231",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Arachnoidiscus ornatus"
+  },
+  {
+   "item_no": "232",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Planktoniella sol"
+  },
+  {
+   "item_no": "233",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Actinoptychus splendens"
+  },
+  {
+   "item_no": "233",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Actinoptychus splendens"
+  },
+  {
+   "item_no": "234",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOW, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Actinoptychus undulatus"
+  },
+  {
+   "item_no": "234",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Actinoptychus undulatus"
+  },
+  {
+   "item_no": "234",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Actinoptychus undulatus"
+  },
+  {
+   "item_no": "234",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Actinoptychus undulatus"
+  },
+  {
+   "item_no": "234",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Actinoptychus undulatus"
+  },
+  {
+   "item_no": "234",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Actinoptychus undulatus"
+  },
+  {
+   "item_no": "235",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Asterolampra grevillei"
+  },
+  {
+   "item_no": "236",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Asteromphalus cleveanus"
+  },
+  {
+   "item_no": "236",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Asteromphalus cleveanus"
+  },
+  {
+   "item_no": "236",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asteromphalus cleveanus"
+  },
+  {
+   "item_no": "237",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asteromphalus flabellatus"
+  },
+  {
+   "item_no": "238",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Asteromphalus hepaticus"
+  },
+  {
+   "item_no": "238",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asteromphalus hepaticus"
+  },
+  {
+   "item_no": "239",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Gossleriella tropica"
+  },
+  {
+   "item_no": "240",
+   "region_raw": "우리 나라에서는 경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Actinocyclus ehrenbergii"
+  },
+  {
+   "item_no": "241",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Actinocyclus moniliformis"
+  },
+  {
+   "item_no": "242",
+   "region_raw": "경기도 청평",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Actinocyclus niagarae"
+  },
+  {
+   "item_no": "242",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Actinocyclus niagarae"
+  },
+  {
+   "item_no": "243",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "白英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Corethron hystrix"
+  },
+  {
+   "item_no": "243",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "白英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Corethron hystrix"
+  },
+  {
+   "item_no": "244",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Corethron pelagicum"
+  },
+  {
+   "item_no": "244",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Corethron pelagicum"
+  },
+  {
+   "item_no": "245",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Lauderia borealis"
+  },
+  {
+   "item_no": "245",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "族 文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Lauderia borealis"
+  },
+  {
+   "item_no": "245",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "族 文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Lauderia borealis"
+  },
+  {
+   "item_no": "246",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia acuminata"
+  },
+  {
+   "item_no": "247",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "247",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "247",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "247",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "248",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "248",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "249",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "249",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "249",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "250",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia alata"
+  },
+  {
+   "item_no": "251",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Rhizosolenia calcar-avis"
+  },
+  {
+   "item_no": "251",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia calcar-avis"
+  },
+  {
+   "item_no": "251",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia calcar-avis"
+  },
+  {
+   "item_no": "251",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia calcar-avis"
+  },
+  {
+   "item_no": "252",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Rhizosolenia clevei"
+  },
+  {
+   "item_no": "253",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia cylindrus"
+  },
+  {
+   "item_no": "253",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia cylindrus"
+  },
+  {
+   "item_no": "253",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia cylindrus"
+  },
+  {
+   "item_no": "254",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Rhizosolenia delicatula"
+  },
+  {
+   "item_no": "255",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "文 文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Rhizosolenia fragilissima"
+  },
+  {
+   "item_no": "255",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia fragilissima"
+  },
+  {
+   "item_no": "256",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최 상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia hebetata"
+  },
+  {
+   "item_no": "257",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia hebetata"
+  },
+  {
+   "item_no": "257",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia hebetata"
+  },
+  {
+   "item_no": "257",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia hebetata"
+  },
+  {
+   "item_no": "257",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia hebetata"
+  },
+  {
+   "item_no": "257",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia hebetata"
+  },
+  {
+   "item_no": "258",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Rhizosolenia hyalina"
+  },
+  {
+   "item_no": "259",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia imbricata"
+  },
+  {
+   "item_no": "260",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Rhizosolenia robusta"
+  },
+  {
+   "item_no": "260",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia robusta"
+  },
+  {
+   "item_no": "260",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia robusta"
+  },
+  {
+   "item_no": "260",
+   "region_raw": "서해 안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia robusta"
+  },
+  {
+   "item_no": "261",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Rhizosolenia setigera"
+  },
+  {
+   "item_no": "261",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia setigera"
+  },
+  {
+   "item_no": "261",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "文 X , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Rhizosolenia setigera"
+  },
+  {
+   "item_no": "261",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "文 X , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Rhizosolenia setigera"
+  },
+  {
+   "item_no": "261",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia setigera"
+  },
+  {
+   "item_no": "261",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia setigera"
+  },
+  {
+   "item_no": "262",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "倉茂英次郎, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Rhizosolenia stoltherfothii"
+  },
+  {
+   "item_no": "262",
+   "region_raw": "경북 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "倉茂英次郎, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Rhizosolenia stoltherfothii"
+  },
+  {
+   "item_no": "262",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최 상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia stoltherfothii"
+  },
+  {
+   "item_no": "263",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Rhizosolenia styliformis"
+  },
+  {
+   "item_no": "263",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Rhizosolenia styliformis"
+  },
+  {
+   "item_no": "263",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia styliformis"
+  },
+  {
+   "item_no": "263",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia styliformis"
+  },
+  {
+   "item_no": "263",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhizosolenia styliformis"
+  },
+  {
+   "item_no": "264",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Guinardia flaccida"
+  },
+  {
+   "item_no": "264",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Guinardia flaccida"
+  },
+  {
+   "item_no": "265",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Dactyliosolen antarcticus"
+  },
+  {
+   "item_no": "265",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Dactyliosolen antarcticus"
+  },
+  {
+   "item_no": "265",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Dactyliosolen antarcticus"
+  },
+  {
+   "item_no": "266",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Dactyliosolen mediteraneus"
+  },
+  {
+   "item_no": "266",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Dactyliosolen mediteraneus"
+  },
+  {
+   "item_no": "267",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1965",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "원문 오식 — 1965 로 찍혀 있다",
+   "binomial": "Leptocylindrus adriaticus"
+  },
+  {
+   "item_no": "268",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Leptocylindrus curvatus"
+  },
+  {
+   "item_no": "269",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Leptocylindrus danicus"
+  },
+  {
+   "item_no": "269",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Leptocylindrus danicus"
+  },
+  {
+   "item_no": "270",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Leptocylindrus minimus"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "271",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros affinis"
+  },
+  {
+   "item_no": "272",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros affine"
+  },
+  {
+   "item_no": "273",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros anastomosans"
+  },
+  {
+   "item_no": "274",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros atlanticus"
+  },
+  {
+   "item_no": "274",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros atlanticus"
+  },
+  {
+   "item_no": "274",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros atlanticus"
+  },
+  {
+   "item_no": "274",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros atlanticus"
+  },
+  {
+   "item_no": "275",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros borealis"
+  },
+  {
+   "item_no": "275",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros borealis"
+  },
+  {
+   "item_no": "275",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros borealis"
+  },
+  {
+   "item_no": "275",
+   "region_raw": "남 해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros borealis"
+  },
+  {
+   "item_no": "276",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros brevis"
+  },
+  {
+   "item_no": "276",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros brevis"
+  },
+  {
+   "item_no": "276",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros brevis"
+  },
+  {
+   "item_no": "276",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros brevis"
+  },
+  {
+   "item_no": "277",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Chaetoceros coarctatum"
+  },
+  {
+   "item_no": "277",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros coarctatum"
+  },
+  {
+   "item_no": "277",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros coarctatum"
+  },
+  {
+   "item_no": "278",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros compactum"
+  },
+  {
+   "item_no": "279",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros compressus"
+  },
+  {
+   "item_no": "279",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros compressus"
+  },
+  {
+   "item_no": "279",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros compressus"
+  },
+  {
+   "item_no": "279",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros compressus"
+  },
+  {
+   "item_no": "279",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros compressus"
+  },
+  {
+   "item_no": "279",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros compressus"
+  },
+  {
+   "item_no": "279",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros compressus"
+  },
+  {
+   "item_no": "280",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros constrictus"
+  },
+  {
+   "item_no": "280",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros constrictus"
+  },
+  {
+   "item_no": "281",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "文 物, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros convoltus"
+  },
+  {
+   "item_no": "281",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros convoltus"
+  },
+  {
+   "item_no": "281",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros convoltus"
+  },
+  {
+   "item_no": "281",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros convoltus"
+  },
+  {
+   "item_no": "281",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros convoltus"
+  },
+  {
+   "item_no": "282",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros costatus"
+  },
+  {
+   "item_no": "282",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros costatus"
+  },
+  {
+   "item_no": "282",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros costatus"
+  },
+  {
+   "item_no": "284",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros dadayi"
+  },
+  {
+   "item_no": "285",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Chaetoceros danicus"
+  },
+  {
+   "item_no": "285",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros danicus"
+  },
+  {
+   "item_no": "286",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "英 物, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros debilis"
+  },
+  {
+   "item_no": "286",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros debilis"
+  },
+  {
+   "item_no": "286",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros debilis"
+  },
+  {
+   "item_no": "286",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros debilis"
+  },
+  {
+   "item_no": "287",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros decipiens"
+  },
+  {
+   "item_no": "287",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "白故英文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros decipiens"
+  },
+  {
+   "item_no": "287",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros decipiens"
+  },
+  {
+   "item_no": "287",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros decipiens"
+  },
+  {
+   "item_no": "287",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros decipiens"
+  },
+  {
+   "item_no": "287",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros decipiens"
+  },
+  {
+   "item_no": "288",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros decipiens"
+  },
+  {
+   "item_no": "288",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros decipiens"
+  },
+  {
+   "item_no": "289",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros densus"
+  },
+  {
+   "item_no": "289",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros densus"
+  },
+  {
+   "item_no": "290",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros denticulatum"
+  },
+  {
+   "item_no": "290",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros denticulatum"
+  },
+  {
+   "item_no": "290",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros denticulatum"
+  },
+  {
+   "item_no": "291",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros didymus"
+  },
+  {
+   "item_no": "291",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros didymus"
+  },
+  {
+   "item_no": "291",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymus"
+  },
+  {
+   "item_no": "291",
+   "region_raw": "남 해",
+   "region": "남해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymus"
+  },
+  {
+   "item_no": "291",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymus"
+  },
+  {
+   "item_no": "291",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymus"
+  },
+  {
+   "item_no": "292",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros didymum"
+  },
+  {
+   "item_no": "292",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros didymum"
+  },
+  {
+   "item_no": "292",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymum"
+  },
+  {
+   "item_no": "292",
+   "region_raw": "남 해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymum"
+  },
+  {
+   "item_no": "294",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymum"
+  },
+  {
+   "item_no": "294",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymum"
+  },
+  {
+   "item_no": "294",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros didymum"
+  },
+  {
+   "item_no": "295",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros distans"
+  },
+  {
+   "item_no": "295",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros distans"
+  },
+  {
+   "item_no": "295",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros distans"
+  },
+  {
+   "item_no": "295",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros distans"
+  },
+  {
+   "item_no": "295",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros distans"
+  },
+  {
+   "item_no": "296",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros diversus"
+  },
+  {
+   "item_no": "296",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros diversus"
+  },
+  {
+   "item_no": "296",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros diversus"
+  },
+  {
+   "item_no": "297",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Chaetoceros hispidum"
+  },
+  {
+   "item_no": "298",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros holsaticus"
+  },
+  {
+   "item_no": "298",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros holsaticus"
+  },
+  {
+   "item_no": "299",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros ikari"
+  },
+  {
+   "item_no": "300",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros laciniosum"
+  },
+  {
+   "item_no": "300",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros laciniosum"
+  },
+  {
+   "item_no": "300",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros laciniosum"
+  },
+  {
+   "item_no": "301",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros lauderi"
+  },
+  {
+   "item_no": "301",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros lauderi"
+  },
+  {
+   "item_no": "302",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros lorenzianum"
+  },
+  {
+   "item_no": "302",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros lorenzianum"
+  },
+  {
+   "item_no": "302",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros lorenzianum"
+  },
+  {
+   "item_no": "302",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros lorenzianum"
+  },
+  {
+   "item_no": "302",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros lorenzianum"
+  },
+  {
+   "item_no": "302",
+   "region_raw": "서 해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros lorenzianum"
+  },
+  {
+   "item_no": "303",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros messanensis"
+  },
+  {
+   "item_no": "303",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros messanensis"
+  },
+  {
+   "item_no": "303",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros messanensis"
+  },
+  {
+   "item_no": "303",
+   "region_raw": "남해 안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros messanensis"
+  },
+  {
+   "item_no": "304",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros mitra"
+  },
+  {
+   "item_no": "305",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Chaetoceros mülleri"
+  },
+  {
+   "item_no": "306",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros paradoxum"
+  },
+  {
+   "item_no": "306",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros paradoxum"
+  },
+  {
+   "item_no": "306",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros paradoxum"
+  },
+  {
+   "item_no": "306",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros paradoxum"
+  },
+  {
+   "item_no": "306",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros paradoxum"
+  },
+  {
+   "item_no": "307",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Chaetoceros pelagicus"
+  },
+  {
+   "item_no": "307",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros pelagicus"
+  },
+  {
+   "item_no": "308",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros pendulus"
+  },
+  {
+   "item_no": "308",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros pendulus"
+  },
+  {
+   "item_no": "308",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros pendulus"
+  },
+  {
+   "item_no": "308",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros pendulus"
+  },
+  {
+   "item_no": "308",
+   "region_raw": "남 해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros pendulus"
+  },
+  {
+   "item_no": "309",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros peruvianus"
+  },
+  {
+   "item_no": "309",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros peruvianus"
+  },
+  {
+   "item_no": "309",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros peruvianus"
+  },
+  {
+   "item_no": "309",
+   "region_raw": "남해 안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros peruvianus"
+  },
+  {
+   "item_no": "310",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros protuberans"
+  },
+  {
+   "item_no": "311",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Chaetoceros pseudodichaeta"
+  },
+  {
+   "item_no": "312",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros pseudocrinitus"
+  },
+  {
+   "item_no": "312",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros pseudocrinitus"
+  },
+  {
+   "item_no": "312",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros pseudocrinitus"
+  },
+  {
+   "item_no": "313",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros radians"
+  },
+  {
+   "item_no": "314",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros reichelti"
+  },
+  {
+   "item_no": "315",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros rostratus"
+  },
+  {
+   "item_no": "315",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros rostratus"
+  },
+  {
+   "item_no": "315",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros rostratus"
+  },
+  {
+   "item_no": "316",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros saltans"
+  },
+  {
+   "item_no": "317",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros seiracanthus"
+  },
+  {
+   "item_no": "318",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros setoensis"
+  },
+  {
+   "item_no": "319",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros siamense"
+  },
+  {
+   "item_no": "319",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros siamense"
+  },
+  {
+   "item_no": "320",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Chaetoceros sociale"
+  },
+  {
+   "item_no": "320",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros sociale"
+  },
+  {
+   "item_no": "321",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Chaetoceros subsecundus"
+  },
+  {
+   "item_no": "321",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros subsecundus"
+  },
+  {
+   "item_no": "321",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros subsecundus"
+  },
+  {
+   "item_no": "322",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros teres"
+  },
+  {
+   "item_no": "322",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros teres"
+  },
+  {
+   "item_no": "323",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros tetrastichon"
+  },
+  {
+   "item_no": "324",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros tortissimum"
+  },
+  {
+   "item_no": "324",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros tortissimum"
+  },
+  {
+   "item_no": "325",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Chaetoceros weisflogii"
+  },
+  {
+   "item_no": "325",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros weisflogii"
+  },
+  {
+   "item_no": "325",
+   "region_raw": "난해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros weisflogii"
+  },
+  {
+   "item_no": "325",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Chaetoceros weisflogii"
+  },
+  {
+   "item_no": "326",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Bacteriastrum comosum"
+  },
+  {
+   "item_no": "326",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum comosum"
+  },
+  {
+   "item_no": "327",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum delicatulum"
+  },
+  {
+   "item_no": "327",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum delicatulum"
+  },
+  {
+   "item_no": "327",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum delicatulum"
+  },
+  {
+   "item_no": "327",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum delicatulum"
+  },
+  {
+   "item_no": "328",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Bacteriastrum hyalinum"
+  },
+  {
+   "item_no": "328",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Bacteriastrum hyalinum"
+  },
+  {
+   "item_no": "328",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum hyalinum"
+  },
+  {
+   "item_no": "328",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英 X , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Bacteriastrum hyalinum"
+  },
+  {
+   "item_no": "328",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum hyalinum"
+  },
+  {
+   "item_no": "328",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum hyalinum"
+  },
+  {
+   "item_no": "328",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum hyalinum"
+  },
+  {
+   "item_no": "328",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum hyalinum"
+  },
+  {
+   "item_no": "329",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Bacteriastrum minus"
+  },
+  {
+   "item_no": "329",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum minus"
+  },
+  {
+   "item_no": "329",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum minus"
+  },
+  {
+   "item_no": "330",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Bacteriastrum varians"
+  },
+  {
+   "item_no": "330",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum varians"
+  },
+  {
+   "item_no": "330",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOW, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Bacteriastrum varians"
+  },
+  {
+   "item_no": "330",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 재민 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum varians"
+  },
+  {
+   "item_no": "330",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 재민 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum varians"
+  },
+  {
+   "item_no": "330",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum varians"
+  },
+  {
+   "item_no": "330",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum varians"
+  },
+  {
+   "item_no": "330",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bacteriastrum varians"
+  },
+  {
+   "item_no": "331",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Eucampia biconcava"
+  },
+  {
+   "item_no": "332",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Eucampia cornuta"
+  },
+  {
+   "item_no": "333",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Eucampia zodiacus"
+  },
+  {
+   "item_no": "333",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "食英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Eucampia zodiacus"
+  },
+  {
+   "item_no": "333",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민 재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eucampia zodiacus"
+  },
+  {
+   "item_no": "333",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eucampia zodiacus"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZow, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": ", 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외. 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "남해 안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "334",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium brightwellii"
+  },
+  {
+   "item_no": "335",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium sol"
+  },
+  {
+   "item_no": "335",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium sol"
+  },
+  {
+   "item_no": "335",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium sol"
+  },
+  {
+   "item_no": "335",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ditylium sol"
+  },
+  {
+   "item_no": "336",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "法 X , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Triceratium favus"
+  },
+  {
+   "item_no": "336",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Triceratium favus"
+  },
+  {
+   "item_no": "336",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "야 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Triceratium favus"
+  },
+  {
+   "item_no": "336",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Triceratium favus"
+  },
+  {
+   "item_no": "336",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Triceratium favus"
+  },
+  {
+   "item_no": "337",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Triceratium reticulum"
+  },
+  {
+   "item_no": "338",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOW, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Biddulphia aurita"
+  },
+  {
+   "item_no": "338",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "英X , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Biddulphia aurita"
+  },
+  {
+   "item_no": "338",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英X , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Biddulphia aurita"
+  },
+  {
+   "item_no": "338",
+   "region_raw": "경 기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Biddulphia aurita"
+  },
+  {
+   "item_no": "338",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia aurita"
+  },
+  {
+   "item_no": "339",
+   "region_raw": "대한해협 (",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Biddulphia aurita"
+  },
+  {
+   "item_no": "340",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Biddulphia longicruris"
+  },
+  {
+   "item_no": "340",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia longicruris"
+  },
+  {
+   "item_no": "340",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia longicruris"
+  },
+  {
+   "item_no": "340",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia longicruris"
+  },
+  {
+   "item_no": "340",
+   "region_raw": "서 해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia longicruris"
+  },
+  {
+   "item_no": "341",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Biddulphia pulchella"
+  },
+  {
+   "item_no": "341",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia pulchella"
+  },
+  {
+   "item_no": "341",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia pulchella"
+  },
+  {
+   "item_no": "341",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia pulchella"
+  },
+  {
+   "item_no": "342",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia regia"
+  },
+  {
+   "item_no": "342",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia regia"
+  },
+  {
+   "item_no": "342",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia regia"
+  },
+  {
+   "item_no": "342",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia regia"
+  },
+  {
+   "item_no": "343",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOW, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Biddulphia reticulate"
+  },
+  {
+   "item_no": "343",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Biddulphia reticulate"
+  },
+  {
+   "item_no": "344",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Biddulphia rhombus"
+  },
+  {
+   "item_no": "345",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Biddulphia sinensis"
+  },
+  {
+   "item_no": "345",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Biddulphia sinensis"
+  },
+  {
+   "item_no": "345",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Biddulphia sinensis"
+  },
+  {
+   "item_no": "345",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia sinensis"
+  },
+  {
+   "item_no": "345",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia sinensis"
+  },
+  {
+   "item_no": "345",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia sinensis"
+  },
+  {
+   "item_no": "345",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia sinensis"
+  },
+  {
+   "item_no": "345",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Biddulphia sinensis"
+  },
+  {
+   "item_no": "346",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Bellerochea malleus"
+  },
+  {
+   "item_no": "347",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "故 文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Climacodium biconcavum"
+  },
+  {
+   "item_no": "347",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Climacodium biconcavum"
+  },
+  {
+   "item_no": "348",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Climacodium frauenfeldianum"
+  },
+  {
+   "item_no": "348",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Climacodium frauenfeldianum"
+  },
+  {
+   "item_no": "348",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Climacodium frauenfeldianum"
+  },
+  {
+   "item_no": "349",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박 태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Streptotheca thamensis"
+  },
+  {
+   "item_no": "350",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Hemiaulus hauckii"
+  },
+  {
+   "item_no": "350",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Hemiaulus hauckii"
+  },
+  {
+   "item_no": "350",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Hemiaulus hauckii"
+  },
+  {
+   "item_no": "351",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Hemiaulus sinensis"
+  },
+  {
+   "item_no": "351",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최 상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Hemiaulus sinensis"
+  },
+  {
+   "item_no": "352",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Gramatophora japonica"
+  },
+  {
+   "item_no": "352",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOW, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Gramatophora japonica"
+  },
+  {
+   "item_no": "353",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Gramatophora marina"
+  },
+  {
+   "item_no": "354",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Rhabdonema adriaticum"
+  },
+  {
+   "item_no": "355",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Tetracyclus emarginatus"
+  },
+  {
+   "item_no": "355",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "無野進, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Tetracyclus emarginatus"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "羽田良禾, 1936",
+   "ref": "羽田良禾",
+   "year": "1936",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "356",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "357",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "357",
+   "region_raw": "소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "357",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria fenestrata"
+  },
+  {
+   "item_no": "358",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW. 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Tabellaria flocculosa"
+  },
+  {
+   "item_no": "358",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTzow, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Tabellaria flocculosa"
+  },
+  {
+   "item_no": "358",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTzow, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Tabellaria flocculosa"
+  },
+  {
+   "item_no": "358",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Tabellaria flocculosa"
+  },
+  {
+   "item_no": "358",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호와 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria flocculosa"
+  },
+  {
+   "item_no": "358",
+   "region_raw": "강원도 소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호와 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria flocculosa"
+  },
+  {
+   "item_no": "358",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호와 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Tabellaria flocculosa"
+  },
+  {
+   "item_no": "359",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "有 英文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Licmophora abbreviata"
+  },
+  {
+   "item_no": "359",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "有 英文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Licmophora abbreviata"
+  },
+  {
+   "item_no": "359",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Licmophora abbreviata"
+  },
+  {
+   "item_no": "360",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Diatoma anceps"
+  },
+  {
+   "item_no": "361",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Diatoma elongatum"
+  },
+  {
+   "item_no": "361",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Diatoma elongatum"
+  },
+  {
+   "item_no": "361",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma elongatum"
+  },
+  {
+   "item_no": "361",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma elongatum"
+  },
+  {
+   "item_no": "361",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma elongatum"
+  },
+  {
+   "item_no": "361",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma elongatum"
+  },
+  {
+   "item_no": "362",
+   "region_raw": "강원도 소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma hiemale"
+  },
+  {
+   "item_no": "362",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma hiemale"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "363",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "364",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "364",
+   "region_raw": "강원도 소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diatoma vulgare"
+  },
+  {
+   "item_no": "365",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Meridion circulare"
+  },
+  {
+   "item_no": "365",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Meridion circulare"
+  },
+  {
+   "item_no": "365",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Meridion circulare"
+  },
+  {
+   "item_no": "366",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정영호 의, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Meridion circulare"
+  },
+  {
+   "item_no": "366",
+   "region_raw": "강원도 소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Meridion circulare"
+  },
+  {
+   "item_no": "367",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Fragilaria brevistriata"
+  },
+  {
+   "item_no": "368",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria capucina"
+  },
+  {
+   "item_no": "368",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria capucina"
+  },
+  {
+   "item_no": "368",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria capucina"
+  },
+  {
+   "item_no": "368",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria capucina"
+  },
+  {
+   "item_no": "368",
+   "region_raw": "강원도 소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria capucina"
+  },
+  {
+   "item_no": "368",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria capucina"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野春, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "광 장",
+   "region": "서울 광장",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "강원도 춘 천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "369",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "370",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野春, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "371",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "371",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "371",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "371",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "371",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "371",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "371",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria construens"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "서을 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "양 수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "372",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria crotonensis"
+  },
+  {
+   "item_no": "373",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria cylindrus"
+  },
+  {
+   "item_no": "374",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Fragilaria harissonii"
+  },
+  {
+   "item_no": "375",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Fragilaria harissonii"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "376",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria intermedia"
+  },
+  {
+   "item_no": "377",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria oceanica"
+  },
+  {
+   "item_no": "378",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Fragilaria pinnata"
+  },
+  {
+   "item_no": "379",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria striatula"
+  },
+  {
+   "item_no": "379",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria striatula"
+  },
+  {
+   "item_no": "380",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Fragilaria virescens"
+  },
+  {
+   "item_no": "380",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野春族, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Fragilaria virescens"
+  },
+  {
+   "item_no": "380",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria virescens"
+  },
+  {
+   "item_no": "380",
+   "region_raw": "서 울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Fragilaria virescens"
+  },
+  {
+   "item_no": "380",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 ·영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria virescens"
+  },
+  {
+   "item_no": "380",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 ·영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria virescens"
+  },
+  {
+   "item_no": "380",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 ·영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria virescens"
+  },
+  {
+   "item_no": "380",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 ·영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Fragilaria virescens"
+  },
+  {
+   "item_no": "381",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhaphoneis amphiceros"
+  },
+  {
+   "item_no": "382",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "382",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "382",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "382",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "383",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "383",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "384",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "384",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "384",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "384",
+   "region_raw": "강원도 춘천 저 수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "384",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "384",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "384",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "384",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra acus"
+  },
+  {
+   "item_no": "385",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra affinis"
+  },
+  {
+   "item_no": "385",
+   "region_raw": "경기도 기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra affinis"
+  },
+  {
+   "item_no": "386",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra affinis"
+  },
+  {
+   "item_no": "387",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Synedra auriculata"
+  },
+  {
+   "item_no": "387",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra auriculata"
+  },
+  {
+   "item_no": "388",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Synedra capitata"
+  },
+  {
+   "item_no": "389",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra cyclopиm BRUTSCHY"
+  },
+  {
+   "item_no": "389",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra cyclopиm BRUTSCHY"
+  },
+  {
+   "item_no": "389",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 의, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra cyclopиm BRUTSCHY"
+  },
+  {
+   "item_no": "390",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Synedra familiaris"
+  },
+  {
+   "item_no": "391",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra fulgens"
+  },
+  {
+   "item_no": "392",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra gaillonii"
+  },
+  {
+   "item_no": "393",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Synedra koreana"
+  },
+  {
+   "item_no": "394",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Synedra pulchella"
+  },
+  {
+   "item_no": "394",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra pulchella"
+  },
+  {
+   "item_no": "394",
+   "region_raw": "경기도 양 수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra pulchella"
+  },
+  {
+   "item_no": "394",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra pulchella"
+  },
+  {
+   "item_no": "394",
+   "region_raw": "강원도 소양",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra pulchella"
+  },
+  {
+   "item_no": "395",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra pulchella"
+  },
+  {
+   "item_no": "396",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra pulchella"
+  },
+  {
+   "item_no": "397",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra tabulata"
+  },
+  {
+   "item_no": "397",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra tabulata"
+  },
+  {
+   "item_no": "397",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra tabulata"
+  },
+  {
+   "item_no": "397",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra tabulata"
+  },
+  {
+   "item_no": "397",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra tabulata"
+  },
+  {
+   "item_no": "397",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra tabulata"
+  },
+  {
+   "item_no": "398",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra tabulata"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "전남 보성강",
+   "region": "전남 보성강",
+   "ref_raw": "三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "평남 청천강",
+   "region": "평남 청천강",
+   "ref_raw": "三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "오십천",
+   "region": "강원도 오십천",
+   "ref_raw": "三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "경남 밀양강",
+   "region": "경남 밀양강",
+   "ref_raw": "三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "전남 섬진강",
+   "region": "전남 섬진강",
+   "ref_raw": "三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "전두계",
+   "region": "전두계",
+   "ref_raw": "三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野春, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "399",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "400",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZow, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "400",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "400",
+   "region_raw": "경기도 청 평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "400",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "400",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "400",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "400",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "401",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "402",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "402",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "402",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "402",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "402",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "403",
+   "region_raw": "청천강",
+   "region": "평남 청천강",
+   "ref_raw": "出三의, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "403",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "403",
+   "region_raw": "경기도 청평 저 수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "403",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "403",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "403",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "403",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "404",
+   "region_raw": "청천강",
+   "region": "평남 청천강",
+   "ref_raw": "三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "404",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Synedra ulna"
+  },
+  {
+   "item_no": "405",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Synedra vaucheriae"
+  },
+  {
+   "item_no": "406",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Thalassiothrix antarctica"
+  },
+  {
+   "item_no": "407",
+   "region_raw": "대마도 연안",
+   "region": "대마도 연안",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Thalassiothrix frauenfeldii"
+  },
+  {
+   "item_no": "407",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Thalassiothrix frauenfeldii"
+  },
+  {
+   "item_no": "407",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Thalassiothrix frauenfeldii"
+  },
+  {
+   "item_no": "407",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Thalassiothrix frauenfeldii"
+  },
+  {
+   "item_no": "407",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiothrix frauenfeldii"
+  },
+  {
+   "item_no": "407",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiothrix frauenfeldii"
+  },
+  {
+   "item_no": "407",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiothrix frauenfeldii"
+  },
+  {
+   "item_no": "408",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "食 英 物, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Thalassiothrix longissima"
+  },
+  {
+   "item_no": "408",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Thalassiothrix longissima"
+  },
+  {
+   "item_no": "408",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Thalassiothrix longissima"
+  },
+  {
+   "item_no": "408",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiothrix longissima"
+  },
+  {
+   "item_no": "409",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Thalassiothrix nitzschioides"
+  },
+  {
+   "item_no": "409",
+   "region_raw": "대마도 연안",
+   "region": "대마도 연안",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Thalassiothrix nitzschioides"
+  },
+  {
+   "item_no": "409",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOW, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Thalassiothrix nitzschioides"
+  },
+  {
+   "item_no": "409",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Thalassiothrix nitzschioides"
+  },
+  {
+   "item_no": "409",
+   "region_raw": "동해안",
+   "region": "동해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiothrix nitzschioides"
+  },
+  {
+   "item_no": "409",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiothrix nitzschioides"
+  },
+  {
+   "item_no": "409",
+   "region_raw": "서해안",
+   "region": "서해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Thalassiothrix nitzschioides"
+  },
+  {
+   "item_no": "410",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Thalassiothrix nitzschioides"
+  },
+  {
+   "item_no": "411",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Asterionella formosa"
+  },
+  {
+   "item_no": "411",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Asterionella formosa"
+  },
+  {
+   "item_no": "411",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정, 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella formosa"
+  },
+  {
+   "item_no": "411",
+   "region_raw": "강원도 춘 천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정, 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella formosa"
+  },
+  {
+   "item_no": "411",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정, 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella formosa"
+  },
+  {
+   "item_no": "411",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정, 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella formosa"
+  },
+  {
+   "item_no": "411",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정, 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella formosa"
+  },
+  {
+   "item_no": "411",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정, 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella formosa"
+  },
+  {
+   "item_no": "412",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella gracillima"
+  },
+  {
+   "item_no": "412",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella gracillima"
+  },
+  {
+   "item_no": "413",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Asterionella japonica"
+  },
+  {
+   "item_no": "413",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "英 物, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Asterionella japonica"
+  },
+  {
+   "item_no": "413",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英 物, 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Asterionella japonica"
+  },
+  {
+   "item_no": "413",
+   "region_raw": "남해안",
+   "region": "남해안",
+   "ref_raw": "최상, 1967",
+   "ref": "최 상",
+   "year": "1967",
+   "note": "",
+   "binomial": "Asterionella japonica"
+  },
+  {
+   "item_no": "414",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Eunotia arcus"
+  },
+  {
+   "item_no": "414",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영 호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia arcus"
+  },
+  {
+   "item_no": "414",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영 호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia arcus"
+  },
+  {
+   "item_no": "414",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영 호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia arcus"
+  },
+  {
+   "item_no": "415",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia arcus"
+  },
+  {
+   "item_no": "416",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia bicapitata"
+  },
+  {
+   "item_no": "417",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia flexuosa"
+  },
+  {
+   "item_no": "418",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia gracillis"
+  },
+  {
+   "item_no": "418",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia gracillis"
+  },
+  {
+   "item_no": "418",
+   "region_raw": "경기도 양 수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia gracillis"
+  },
+  {
+   "item_no": "418",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia gracillis"
+  },
+  {
+   "item_no": "419",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia holoturia"
+  },
+  {
+   "item_no": "420",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia kocheliensis"
+  },
+  {
+   "item_no": "421",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZow, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia lunaris"
+  },
+  {
+   "item_no": "421",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZow, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia lunaris"
+  },
+  {
+   "item_no": "421",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia lunaris"
+  },
+  {
+   "item_no": "421",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia lunaris"
+  },
+  {
+   "item_no": "421",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia lunaris"
+  },
+  {
+   "item_no": "422",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia monodon"
+  },
+  {
+   "item_no": "423",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia monodon"
+  },
+  {
+   "item_no": "424",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia monodon"
+  },
+  {
+   "item_no": "425",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia monodon"
+  },
+  {
+   "item_no": "426",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia monodon"
+  },
+  {
+   "item_no": "427",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia pectinalis"
+  },
+  {
+   "item_no": "427",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野春, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Eunotia pectinalis"
+  },
+  {
+   "item_no": "428",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia pectinalis"
+  },
+  {
+   "item_no": "429",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVROTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia praerupta"
+  },
+  {
+   "item_no": "429",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia praerupta"
+  },
+  {
+   "item_no": "430",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia praerupta"
+  },
+  {
+   "item_no": "430",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia praerupta"
+  },
+  {
+   "item_no": "430",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野春族, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Eunotia praerupta"
+  },
+  {
+   "item_no": "430",
+   "region_raw": "강원도 천춘 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Eunotia praerupta"
+  },
+  {
+   "item_no": "431",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia praerupta"
+  },
+  {
+   "item_no": "432",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野 族, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Eunotia praerupta"
+  },
+  {
+   "item_no": "433",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Eunotia robusta"
+  },
+  {
+   "item_no": "434",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Eunotia tropica"
+  },
+  {
+   "item_no": "435",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Eunotia varida"
+  },
+  {
+   "item_no": "436",
+   "region_raw": "평남 청천강",
+   "region": "평남 청천강",
+   "ref_raw": "出三 외, 1935",
+   "ref": "殖田三郎 외",
+   "year": "1935",
+   "note": "",
+   "binomial": "Ceratoneis arcus"
+  },
+  {
+   "item_no": "436",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Ceratoneis arcus"
+  },
+  {
+   "item_no": "436",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Ceratoneis arcus"
+  },
+  {
+   "item_no": "436",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ceratoneis arcus"
+  },
+  {
+   "item_no": "436",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ceratoneis arcus"
+  },
+  {
+   "item_no": "436",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ceratoneis arcus"
+  },
+  {
+   "item_no": "436",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ceratoneis arcus"
+  },
+  {
+   "item_no": "436",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Ceratoneis arcus"
+  },
+  {
+   "item_no": "437",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZow, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Actinella brasiliensis"
+  },
+  {
+   "item_no": "437",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZow, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Actinella brasiliensis"
+  },
+  {
+   "item_no": "437",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "東野春, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Actinella brasiliensis"
+  },
+  {
+   "item_no": "438",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Actinella brasiliensis"
+  },
+  {
+   "item_no": "439",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Desmogonium rabenhorstianum"
+  },
+  {
+   "item_no": "440",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis diminuta"
+  },
+  {
+   "item_no": "440",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis diminuta"
+  },
+  {
+   "item_no": "441",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis pediculus"
+  },
+  {
+   "item_no": "442",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "442",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "442",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "442",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "442",
+   "region_raw": "강 원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "442",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "443",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "443",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "443",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "443",
+   "region_raw": "강원도 춘천 저수 지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "443",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "443",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "444",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "444",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "444",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "444",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "444",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "445",
+   "region_raw": "함북 청진",
+   "region": "함북 청진",
+   "ref_raw": "野 族, 1948",
+   "ref": "奧野春雄",
+   "year": "1948",
+   "note": "",
+   "binomial": "Cocconeis placentula"
+  },
+  {
+   "item_no": "446",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Cocconeis scutellum"
+  },
+  {
+   "item_no": "447",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Achnanthes exigua"
+  },
+  {
+   "item_no": "447",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes exigua"
+  },
+  {
+   "item_no": "447",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes exigua"
+  },
+  {
+   "item_no": "447",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes exigua"
+  },
+  {
+   "item_no": "447",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes exigua"
+  },
+  {
+   "item_no": "447",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes exigua"
+  },
+  {
+   "item_no": "448",
+   "region_raw": "서울 청량리 (",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Achnanthes hungarica"
+  },
+  {
+   "item_no": "448",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Achnanthes hungarica"
+  },
+  {
+   "item_no": "448",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes hungarica"
+  },
+  {
+   "item_no": "448",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes hungarica"
+  },
+  {
+   "item_no": "448",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes hungarica"
+  },
+  {
+   "item_no": "448",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes hungarica"
+  },
+  {
+   "item_no": "448",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes hungarica"
+  },
+  {
+   "item_no": "449",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Achnanthes inflata"
+  },
+  {
+   "item_no": "449",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes inflata"
+  },
+  {
+   "item_no": "450",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Achnanthes koreana"
+  },
+  {
+   "item_no": "451",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Achnanthes linearis"
+  },
+  {
+   "item_no": "451",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes linearis"
+  },
+  {
+   "item_no": "451",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes linearis"
+  },
+  {
+   "item_no": "451",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes linearis"
+  },
+  {
+   "item_no": "451",
+   "region_raw": "강원 도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes linearis"
+  },
+  {
+   "item_no": "451",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes linearis"
+  },
+  {
+   "item_no": "451",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes linearis"
+  },
+  {
+   "item_no": "452",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Achnanthes linearis"
+  },
+  {
+   "item_no": "453",
+   "region_raw": "서울 광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Achnanthes microcephala"
+  },
+  {
+   "item_no": "453",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes microcephala"
+  },
+  {
+   "item_no": "453",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes microcephala"
+  },
+  {
+   "item_no": "453",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes microcephala"
+  },
+  {
+   "item_no": "453",
+   "region_raw": "강원도 춘 천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes microcephala"
+  },
+  {
+   "item_no": "453",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes microcephala"
+  },
+  {
+   "item_no": "453",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes microcephala"
+  },
+  {
+   "item_no": "454",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes minutissima"
+  },
+  {
+   "item_no": "454",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes minutissima"
+  },
+  {
+   "item_no": "454",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes minutissima"
+  },
+  {
+   "item_no": "454",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes minutissima"
+  },
+  {
+   "item_no": "455",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes trinodis"
+  },
+  {
+   "item_no": "455",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes trinodis"
+  },
+  {
+   "item_no": "455",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes trinodis"
+  },
+  {
+   "item_no": "455",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Achnanthes trinodis"
+  },
+  {
+   "item_no": "456",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Rhoicosphenia curvata"
+  },
+  {
+   "item_no": "456",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영 호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhoicosphenia curvata"
+  },
+  {
+   "item_no": "456",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영 호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhoicosphenia curvata"
+  },
+  {
+   "item_no": "456",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영 호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Rhoicosphenia curvata"
+  },
+  {
+   "item_no": "457",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Campyloneis grevillei"
+  },
+  {
+   "item_no": "458",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Diploneis ovalis"
+  },
+  {
+   "item_no": "458",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diploneis ovalis"
+  },
+  {
+   "item_no": "459",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diploneis ovalis"
+  },
+  {
+   "item_no": "459",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diploneis ovalis"
+  },
+  {
+   "item_no": "460",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "白 英文 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Diploneis pandula"
+  },
+  {
+   "item_no": "461",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Diploneis puella"
+  },
+  {
+   "item_no": "461",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정 영호외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diploneis puella"
+  },
+  {
+   "item_no": "461",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diploneis puella"
+  },
+  {
+   "item_no": "462",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZOW, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Diploneis smithii"
+  },
+  {
+   "item_no": "462",
+   "region_raw": "함남 안변",
+   "region": "함남 안변",
+   "ref_raw": "SKVORTZOW, 1936",
+   "ref": "Skvortzow",
+   "year": "1936",
+   "note": "",
+   "binomial": "Diploneis smithii"
+  },
+  {
+   "item_no": "463",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diploneis splendida"
+  },
+  {
+   "item_no": "463",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Diploneis splendida"
+  },
+  {
+   "item_no": "464",
+   "region_raw": "서울 청량리",
+   "region": "서울 청량리",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Frustulia rohmboides"
+  },
+  {
+   "item_no": "464",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia rohmboides"
+  },
+  {
+   "item_no": "465",
+   "region_raw": "경기도 서호",
+   "region": "경기도 서호",
+   "ref_raw": "SKVORTZOW, 1929",
+   "ref": "Skvortzow",
+   "year": "1929",
+   "note": "",
+   "binomial": "Frustulia rhomboides"
+  },
+  {
+   "item_no": "465",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Frustulia rhomboides"
+  },
+  {
+   "item_no": "465",
+   "region_raw": "경기도 양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia rhomboides"
+  },
+  {
+   "item_no": "465",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia rhomboides"
+  },
+  {
+   "item_no": "465",
+   "region_raw": "강원도 춘천 저수지",
+   "region": "강원도 춘천 저수지",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia rhomboides"
+  },
+  {
+   "item_no": "465",
+   "region_raw": "소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정 영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia rhomboides"
+  },
+  {
+   "item_no": "466",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia vulgaris"
+  },
+  {
+   "item_no": "466",
+   "region_raw": "양수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia vulgaris"
+  },
+  {
+   "item_no": "466",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia vulgaris"
+  },
+  {
+   "item_no": "466",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Frustulia vulgaris"
+  },
+  {
+   "item_no": "467",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Pleurosigma affine"
+  },
+  {
+   "item_no": "467",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Pleurosigma affine"
+  },
+  {
+   "item_no": "467",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "엄 규백 외, 1967",
+   "ref": "엄 규백 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Pleurosigma affine"
+  },
+  {
+   "item_no": "468",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Pleurosigma angulatum"
+  },
+  {
+   "item_no": "469",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "SKVORTZow, 1932",
+   "ref": "Skvortzow",
+   "year": "1932",
+   "note": "",
+   "binomial": "Pleurosigma elongatum"
+  },
+  {
+   "item_no": "469",
+   "region_raw": "충남 대야도",
+   "region": "충남 대야도",
+   "ref_raw": "英 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Pleurosigma elongatum"
+  },
+  {
+   "item_no": "469",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": "英 , 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Pleurosigma elongatum"
+  },
+  {
+   "item_no": "469",
+   "region_raw": "경 기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정호영 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Pleurosigma elongatum"
+  },
+  {
+   "item_no": "470",
+   "region_raw": "경기도 행주",
+   "region": "경기도 행주",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Pleurosigma fasciola"
+  },
+  {
+   "item_no": "470",
+   "region_raw": "팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Pleurosigma fasciola"
+  },
+  {
+   "item_no": "471",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Pleurosigma longum"
+  },
+  {
+   "item_no": "472",
+   "region_raw": "남해",
+   "region": "남해",
+   "ref_raw": "박태수, 1956",
+   "ref": "박 태수",
+   "year": "1956",
+   "note": "",
+   "binomial": "Pleurosigma navuiculaceum"
+  },
+  {
+   "item_no": "473",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "최상, 1966",
+   "ref": "최 상",
+   "year": "1966",
+   "note": "",
+   "binomial": "Pleurosigma normanii"
+  },
+  {
+   "item_no": "473",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Pleurosigma normanii"
+  },
+  {
+   "item_no": "474",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Pleurosigma pelagicum"
+  },
+  {
+   "item_no": "475",
+   "region_raw": "경남 다대포",
+   "region": "경남 다대포",
+   "ref_raw": ", 1943",
+   "ref": "倉茂英次郎",
+   "year": "1943",
+   "note": "",
+   "binomial": "Pleurosigma rectum"
+  },
+  {
+   "item_no": "476",
+   "region_raw": "서해",
+   "region": "서해",
+   "ref_raw": "이 민재 외, 1967",
+   "ref": "이 민재 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Pleurosigma rigidum"
+  },
+  {
+   "item_no": "477",
+   "region_raw": "대한해협",
+   "region": "대한해협",
+   "ref_raw": "SKVORTZOW, 1931",
+   "ref": "Skvortzow",
+   "year": "1931",
+   "note": "",
+   "binomial": "Pleurosigma wansbeckii"
+  },
+  {
+   "item_no": "479",
+   "region_raw": "서울 노량진",
+   "region": "서울 노량진",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Gyrosigma acuminata"
+  },
+  {
+   "item_no": "479",
+   "region_raw": "광장",
+   "region": "서울 광장",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Gyrosigma acuminata"
+  },
+  {
+   "item_no": "479",
+   "region_raw": "경기도 팔당",
+   "region": "경기도 팔당",
+   "ref_raw": "정 영호 외, 1965",
+   "ref": "정 영호 외",
+   "year": "1965",
+   "note": "",
+   "binomial": "Gyrosigma acuminata"
+  },
+  {
+   "item_no": "479",
+   "region_raw": "경기도 청평 저수지",
+   "region": "경기도 청평 저수지",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Gyrosigma acuminata"
+  },
+  {
+   "item_no": "479",
+   "region_raw": "양 수리",
+   "region": "경기도 양수리",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Gyrosigma acuminata"
+  },
+  {
+   "item_no": "479",
+   "region_raw": "기두원",
+   "region": "경기도 기두원",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Gyrosigma acuminata"
+  },
+  {
+   "item_no": "479",
+   "region_raw": "강원도 소양강",
+   "region": "강원도 소양강",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Gyrosigma acuminata"
+  },
+  {
+   "item_no": "479",
+   "region_raw": "신연",
+   "region": "강원도 신연",
+   "ref_raw": "정영호 외, 1967",
+   "ref": "정 영호 외",
+   "year": "1967",
+   "note": "",
+   "binomial": "Gyrosigma acuminata"
+  }
+ ]
+}
