@@ -143,9 +143,9 @@ class AtlasImportTest(DiaRUGATestCase):
             total_p += np_
         self.assertEqual(AtlasEntry.objects.count(), total_e)
         self.assertEqual(AtlasPlacement.objects.count(), total_p)
-        # 도감 셋 · 표제어 2,059 가 P15 2절의 수다
-        self.assertEqual(Atlas.objects.count(), 3)
-        self.assertEqual(total_e, 2059)
+        # 도감 셋(P15 2절 · 2,059) + 도판 있는 논문 넷(P20 3단계 · 218) = 일곱
+        self.assertEqual(Atlas.objects.count(), 7)
+        self.assertEqual(total_e, 2277)
 
 
 class CheckAtlasTest(DiaRUGATestCase):

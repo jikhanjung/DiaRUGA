@@ -1,0 +1,982 @@
+{
+ "atlas": {
+  "key": "1993_lee_chaetoceros_yeonil",
+  "title": "Lee, Y.G. (1993) 포항 연일층군 Chaetoceros (J. Paleont. Soc. Korea 9(1):24–52)",
+  "short": "1993 Lee Chaetoceros",
+  "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",
+  "source_sha256": "b0c1f8e6162d4464542fb5a3db483104c3972e425e2b4f20d26762e9e0ea35f4",
+  "note": "도판 3장 · 그림 59개 · 종 항목 34개"
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Chaetoceros lauderi Ralfs in Lauder, 1864",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros lauderi",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "4, 7",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "Chaetoceros subsecundus (Grunow) Hustedt, 1930",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros subsecundus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "2-4",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Chaetoceros compressus Lauder, 1864",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros compressus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Chaetoceros coronatus Gran., 1897",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros coronatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "Chaetoceros amanita Cleve-Euler, 1915",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros amanita",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "7, 9",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Chaetoceros costatus Pavillard, 1911",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros costatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "8, 12",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Chaetoceros sp. B",
+   "genus": "Chaetoceros",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "Chaetoceros furcellatus Bail., 1873",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros furcellatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "Chaetoceros cinctus Gran, 1897",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros cinctus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Dossetia sp.",
+   "genus": "Dossetia",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Stephanopyxis lineata (Ehrenberg) Forti, 1912",
+   "genus": "Stephanopyxis",
+   "binomial": "Stephanopyxis lineata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Pterotheca carinifera (Grunow) Forti, 1909",
+   "genus": "Pterotheca",
+   "binomial": "Pterotheca carinifera",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Chaetoceros sp. A",
+   "genus": "Chaetoceros",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 14,
+   "item_no": null,
+   "name": "Xanthiopyxis acrolopha Forti, 1912",
+   "genus": "Xanthiopyxis",
+   "binomial": "Xanthiopyxis acrolopha",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "24",
+     "book_page": null,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 15,
+   "item_no": null,
+   "name": "Goniothecium rogersii Ehrenberg, 1843",
+   "genus": "Goniothecium",
+   "binomial": "Goniothecium rogersii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 16,
+   "item_no": null,
+   "name": "Stephanogonia hanzawae Kanaya, 1959",
+   "genus": "Stephanogonia",
+   "binomial": "Stephanogonia hanzawae",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "2, 3, 8",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 17,
+   "item_no": null,
+   "name": "Chaetoceros dicladia Castracane, 1886",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros dicladia",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "5, 6, 27",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "29",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 18,
+   "item_no": null,
+   "name": "Pseudopyxilla americana (Ehr.) Forti, 1909",
+   "genus": "Pseudopyxilla",
+   "binomial": "Pseudopyxilla americana",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 19,
+   "item_no": null,
+   "name": "Liradiscus asperulus Andrews, 1976",
+   "genus": "Liradiscus",
+   "binomial": "Liradiscus asperulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 20,
+   "item_no": null,
+   "name": "Xanthiopyxis ovalis Lohman, 1938",
+   "genus": "Xanthiopyxis",
+   "binomial": "Xanthiopyxis ovalis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 21,
+   "item_no": null,
+   "name": "Liradiscus bipolaris Lohman, 1948",
+   "genus": "Liradiscus",
+   "binomial": "Liradiscus bipolaris",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 22,
+   "item_no": null,
+   "name": "Xanthiopyxis sp. A",
+   "genus": "Xanthiopyxis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 23,
+   "item_no": null,
+   "name": "Goniothecium tenue Brun, 1894",
+   "genus": "Goniothecium",
+   "binomial": "Goniothecium tenue",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "16, 24",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 24,
+   "item_no": null,
+   "name": "Cladogramma californicium Ehrenberg, 1854",
+   "genus": "Cladogramma",
+   "binomial": "Cladogramma californicium",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 25,
+   "item_no": null,
+   "name": "Stephanopyxis corona (Ehrenberg) Grunow, 1882",
+   "genus": "Stephanopyxis",
+   "binomial": "Stephanopyxis corona",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 26,
+   "item_no": null,
+   "name": "Liradiscus ovalis Greville, 1865a",
+   "genus": "Liradiscus",
+   "binomial": "Liradiscus ovalis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "23, 25",
+     "book_page": null,
+     "pdf_page": 16,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 27,
+   "item_no": null,
+   "name": "Stephanogonia actinoptychus (Ehr.) Grunow, 1882",
+   "genus": "Stephanogonia",
+   "binomial": "Stephanogonia actinoptychus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 28,
+   "item_no": null,
+   "name": "Goniothecium odontella Ehrenberg, 1854",
+   "genus": "Goniothecium",
+   "binomial": "Goniothecium odontella",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "2, 26",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 29,
+   "item_no": null,
+   "name": "Pterotheca danica Grunow",
+   "genus": "Pterotheca",
+   "binomial": "Pterotheca danica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 30,
+   "item_no": null,
+   "name": "Chaetoceros sp. C",
+   "genus": "Chaetoceros",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "5, 6",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 31,
+   "item_no": null,
+   "name": "Chaetoceros vanheurecki Gran, 1897",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros vanheurecki",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 32,
+   "item_no": null,
+   "name": "Chaetoceros seiracanthus Gran, 1897",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros seiracanthus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 33,
+   "item_no": null,
+   "name": "Xanthiopyxis globosa Ehrenberg, 1845",
+   "genus": "Xanthiopyxis",
+   "binomial": "Xanthiopyxis globosa",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 34,
+   "item_no": null,
+   "name": "Chaetoceros lorenzianus Grunow, 1863",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros lorenzianus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "28",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  }
+ ]
+}

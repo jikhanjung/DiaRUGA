@@ -1,0 +1,1872 @@
+{
+ "atlas": {
+  "key": "1992_lee_galmal_quaternary_flora",
+  "title": "Lee, Y.G. (1992) 철원 갈말면 제4기 규조토 (J. Paleont. Soc. Korea 8(1):1–23)",
+  "short": "1992 Lee 갈말",
+  "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",
+  "source_sha256": "e8a10f76794094ab2afce6fffe35791db8718b2d32047074bf2a4a7c196f7d19",
+  "note": "도판 4장 · 그림 79개 · 종 항목 74개"
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Achnanthes lanceolata (Breb.) Grun. var. dibia Grunow",
+   "genus": "Achnanthes",
+   "binomial": "Achnanthes lanceolata",
+   "rank": "infraspecies",
+   "infra": "var. dibia Grunow",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "Achnanthes lanceolata (Breb.) Grun. var. omissa Reimer",
+   "genus": "Achnanthes",
+   "binomial": "Achnanthes lanceolata",
+   "rank": "infraspecies",
+   "infra": "var. omissa Reimer",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Cyclotella meneghiniana Kutzing",
+   "genus": "Cyclotella",
+   "binomial": "Cyclotella meneghiniana",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Cyclotella stelligrta Cleve and Grunow",
+   "genus": "Cyclotella",
+   "binomial": "Cyclotella stelligrta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "Cocconeis plancentula (Ehr.) var. euglypta (Ehr.) Cleve",
+   "genus": "Cocconeis",
+   "binomial": "Cocconeis plancentula",
+   "rank": "infraspecies",
+   "infra": "var. euglypta (Ehr.) Cleve",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Coscinodiscus lacustris Geunow",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus lacustris",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Cocconeis fluviatillis Wallace",
+   "genus": "Cocconeis",
+   "binomial": "Cocconeis fluviatillis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "Amphora pediculus (Kutz.) Grunow",
+   "genus": "Amphora",
+   "binomial": "Amphora pediculus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "Cyclotella sp.",
+   "genus": "Cyclotella",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Cyclotella comta (Ehr.) Kutzing",
+   "genus": "Cyclotella",
+   "binomial": "Cyclotella comta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Cymbella sp. A",
+   "genus": "Cymbella",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Cymbella minuta Hilse ex Rabh.",
+   "genus": "Cymbella",
+   "binomial": "Cymbella minuta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Cymbella sinuata Gregory",
+   "genus": "Cymbella",
+   "binomial": "Cymbella sinuata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 14,
+   "item_no": null,
+   "name": "Caloneis sp.",
+   "genus": "Caloneis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 15,
+   "item_no": null,
+   "name": "Diploneis ovalis (Hilse) Cleve",
+   "genus": "Diploneis",
+   "binomial": "Diploneis ovalis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 16,
+   "item_no": null,
+   "name": "Cymbella sp. B",
+   "genus": "Cymbella",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 17,
+   "item_no": null,
+   "name": "Cymbella hebridica Grunow ex Cleve",
+   "genus": "Cymbella",
+   "binomial": "Cymbella hebridica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 18,
+   "item_no": null,
+   "name": "Cymbella sp. C",
+   "genus": "Cymbella",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 19,
+   "item_no": null,
+   "name": "Cymbella cymbiformis var. nonpunctata Font.",
+   "genus": "Cymbella",
+   "binomial": "Cymbella cymbiformis",
+   "rank": "infraspecies",
+   "infra": "var. nonpunctata Font.",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 20,
+   "item_no": null,
+   "name": "Cymbella leptoceros (Ehr.) Grunow",
+   "genus": "Cymbella",
+   "binomial": "Cymbella leptoceros",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 21,
+   "item_no": null,
+   "name": "Diploneis oblongella (Naeg. ex Kutzing) Ross",
+   "genus": "Diploneis",
+   "binomial": "Diploneis oblongella",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 22,
+   "item_no": null,
+   "name": "Diploneis elliptica (Kutz.) Cleve",
+   "genus": "Diploneis",
+   "binomial": "Diploneis elliptica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 23,
+   "item_no": null,
+   "name": "Cymbella turmida (Breb.) Van Heurck",
+   "genus": "Cymbella",
+   "binomial": "Cymbella turmida",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "23",
+     "book_page": 8,
+     "pdf_page": 9,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 24,
+   "item_no": null,
+   "name": "Diploneis sp.",
+   "genus": "Diploneis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 25,
+   "item_no": null,
+   "name": "Fragilaria construens var. binodis (Ehr.) Grunow",
+   "genus": "Fragilaria",
+   "binomial": "Fragilaria construens",
+   "rank": "infraspecies",
+   "infra": "var. binodis (Ehr.) Grunow",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 26,
+   "item_no": null,
+   "name": "Fragilaria construens (Ehr.) Grunow",
+   "genus": "Fragilaria",
+   "binomial": "Fragilaria construens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 27,
+   "item_no": null,
+   "name": "Fragilaria construens var. venter (Ehr.) Grunow",
+   "genus": "Fragilaria",
+   "binomial": "Fragilaria construens",
+   "rank": "infraspecies",
+   "infra": "var. venter (Ehr.) Grunow",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 28,
+   "item_no": null,
+   "name": "Fragilaria pinnate var. elliptical Schumann",
+   "genus": "Fragilaria",
+   "binomial": "Fragilaria pinnate",
+   "rank": "infraspecies",
+   "infra": "var. elliptical Schumann",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 29,
+   "item_no": null,
+   "name": "Fragilaria pinnate var. minutissima Grunow",
+   "genus": "Fragilaria",
+   "binomial": "Fragilaria pinnate",
+   "rank": "infraspecies",
+   "infra": "var. minutissima Grunow",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 30,
+   "item_no": null,
+   "name": "Fragilaria sp. A",
+   "genus": "Fragilaria",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 31,
+   "item_no": null,
+   "name": "Eunotia monodon var. koreana Skvortzov",
+   "genus": "Eunotia",
+   "binomial": "Eunotia monodon",
+   "rank": "infraspecies",
+   "infra": "var. koreana Skvortzov",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 32,
+   "item_no": null,
+   "name": "Fragilaria pinnate var. parallel Mayer",
+   "genus": "Fragilaria",
+   "binomial": "Fragilaria pinnate",
+   "rank": "infraspecies",
+   "infra": "var. parallel Mayer",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "9, 11",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 33,
+   "item_no": null,
+   "name": "Gomphonema acuminatum var. coronata (Ehr.) W. Smith",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema acuminatum",
+   "rank": "infraspecies",
+   "infra": "var. coronata (Ehr.) W. Smith",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 34,
+   "item_no": null,
+   "name": "Fragilaria striatula Lyngbye",
+   "genus": "Fragilaria",
+   "binomial": "Fragilaria striatula",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 35,
+   "item_no": null,
+   "name": "Gomphonema brasiliense Grunow",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema brasiliense",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 36,
+   "item_no": null,
+   "name": "Epithemia sorex Kutzing",
+   "genus": "Epithemia",
+   "binomial": "Epithemia sorex",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 37,
+   "item_no": null,
+   "name": "Gomphonema truncatum Ehrenberg",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema truncatum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 38,
+   "item_no": null,
+   "name": "Gomphonema parvulum Kutzing",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema parvulum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "16, 19",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 39,
+   "item_no": null,
+   "name": "Cocconeis sp. aff. Cocconeis costata Gregory",
+   "genus": "Cocconeis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 40,
+   "item_no": null,
+   "name": "Feagilaria sp. B",
+   "genus": "Feagilaria",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 41,
+   "item_no": null,
+   "name": "Gomphonema clevei Fricke",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema clevei",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 42,
+   "item_no": null,
+   "name": "Gomphonema acuminatum var. pusilla Grunow",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema acuminatum",
+   "rank": "infraspecies",
+   "infra": "var. pusilla Grunow",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 43,
+   "item_no": null,
+   "name": "Gomphonema sphaerophorum Ehrenberg",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema sphaerophorum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 44,
+   "item_no": null,
+   "name": "Gomphonema subtile var. sagitta (Schum.) Cleve",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema subtile",
+   "rank": "infraspecies",
+   "infra": "var. sagitta (Schum.) Cleve",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "23",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 45,
+   "item_no": null,
+   "name": "Fragilaria vaucheria var. capitellata Peters",
+   "genus": "Fragilaria",
+   "binomial": "Fragilaria vaucheria",
+   "rank": "infraspecies",
+   "infra": "var. capitellata Peters",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "24",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 46,
+   "item_no": null,
+   "name": "Melosira granulata (Ehr.) Ralfs",
+   "genus": "Melosira",
+   "binomial": "Melosira granulata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 47,
+   "item_no": null,
+   "name": "Melosira granulata var. angustissima Muller",
+   "genus": "Melosira",
+   "binomial": "Melosira granulata",
+   "rank": "infraspecies",
+   "infra": "var. angustissima Muller",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 48,
+   "item_no": null,
+   "name": "Melosira varians Agadh",
+   "genus": "Melosira",
+   "binomial": "Melosira varians",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 49,
+   "item_no": null,
+   "name": "Navicula sp. B",
+   "genus": "Navicula",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 50,
+   "item_no": null,
+   "name": "Navicula latens Krasske",
+   "genus": "Navicula",
+   "binomial": "Navicula latens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 51,
+   "item_no": null,
+   "name": "Navicula mourneis Patrick",
+   "genus": "Navicula",
+   "binomial": "Navicula mourneis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 52,
+   "item_no": null,
+   "name": "Nitzschia amphibia Grunow",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia amphibia",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "7, 9, 15",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 53,
+   "item_no": null,
+   "name": "Navicula gottlandica Grunow",
+   "genus": "Navicula",
+   "binomial": "Navicula gottlandica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 54,
+   "item_no": null,
+   "name": "Navicula amohibole Cleve",
+   "genus": "Navicula",
+   "binomial": "Navicula amohibole",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 55,
+   "item_no": null,
+   "name": "Navicula psedoscutiformis Hustedt",
+   "genus": "Navicula",
+   "binomial": "Navicula psedoscutiformis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 56,
+   "item_no": null,
+   "name": "Synedra parastica (W. Smith) Hustedt",
+   "genus": "Synedra",
+   "binomial": "Synedra parastica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 57,
+   "item_no": null,
+   "name": "Nitzschia frustulum (Kutz.) Grunow",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia frustulum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 58,
+   "item_no": null,
+   "name": "Nitzschia palea (Kutz.) W. Smith",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia palea",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 59,
+   "item_no": null,
+   "name": "Gomphonema sp.",
+   "genus": "Gomphonema",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 60,
+   "item_no": null,
+   "name": "Navivla radiosa var. tenella (Breb. ex Kutzing) Grunow",
+   "genus": "Navivla",
+   "binomial": "Navivla radiosa",
+   "rank": "infraspecies",
+   "infra": "var. tenella (Breb. ex Kutzing) Grunow",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 61,
+   "item_no": null,
+   "name": "Pinnularia sp. A",
+   "genus": "Pinnularia",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 62,
+   "item_no": null,
+   "name": "Synedra sp. B",
+   "genus": "Synedra",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 63,
+   "item_no": null,
+   "name": "Pinnularia sp. B",
+   "genus": "Pinnularia",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 64,
+   "item_no": null,
+   "name": "Surirella sp.",
+   "genus": "Surirella",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 65,
+   "item_no": null,
+   "name": "Navicula laterostrata Hustedt",
+   "genus": "Navicula",
+   "binomial": "Navicula laterostrata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 66,
+   "item_no": null,
+   "name": "Navicula pupula fo. rectangularis (Greg.) Grunow",
+   "genus": "Navicula",
+   "binomial": "Navicula pupula",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "23",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 67,
+   "item_no": null,
+   "name": "Synedra arcus Kutzing",
+   "genus": "Synedra",
+   "binomial": "Synedra arcus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 68,
+   "item_no": null,
+   "name": "Tabularia fenestrata (Lynb.) Kutzing",
+   "genus": "Tabularia",
+   "binomial": "Tabularia fenestrata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 69,
+   "item_no": null,
+   "name": "Stauroneis sp.",
+   "genus": "Stauroneis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 70,
+   "item_no": null,
+   "name": "Synedra sp. A",
+   "genus": "Synedra",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 71,
+   "item_no": null,
+   "name": "Nitzschia sp.",
+   "genus": "Nitzschia",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 72,
+   "item_no": null,
+   "name": "Pleurosigma salinarum Grunow",
+   "genus": "Pleurosigma",
+   "binomial": "Pleurosigma salinarum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 73,
+   "item_no": null,
+   "name": "Gomphonema affine var. insigne (Greg.) Andrew",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema affine",
+   "rank": "infraspecies",
+   "infra": "var. insigne (Greg.) Andrew",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 74,
+   "item_no": null,
+   "name": "Navicula sp. A",
+   "genus": "Navicula",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 4
+  }
+ ]
+}

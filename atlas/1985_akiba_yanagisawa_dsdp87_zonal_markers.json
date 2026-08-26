@@ -1,0 +1,1827 @@
+{
+ "atlas": {
+  "key": "1985_akiba_yanagisawa_dsdp87_zonal_markers",
+  "title": "Akiba, F. & Yanagisawa, Y. (1985) 북태평양 신생대 분대 표준종 (DSDP Init. Repts. Leg 87, ch.7)",
+  "short": "1985 Akiba & Yanagisawa",
+  "source": "tools/data/ak85_captions.json (자동 파싱, parse_dsdp87_captions.py)",
+  "source_sha256": "0d7afc54dc80bf7f42ffc9b65c2a215f18cd9302d88f1f0465d0f3a3bad10334",
+  "note": "도판 53장 · 그림 651개 · 종 항목 61개"
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Crucidenticula ikebei Akiba and Yanagisawa n. sp",
+   "genus": "Crucidenticula",
+   "binomial": "Crucidenticula ikebei",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "1, 2",
+     "book_page": null,
+     "pdf_page": 20,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "Crucidenticula kanayae Akiba and Yanagisawa n. sp",
+   "genus": "Crucidenticula",
+   "binomial": "Crucidenticula kanayae",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "3-8",
+     "book_page": null,
+     "pdf_page": 20,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "1-6, 9-11",
+     "book_page": null,
+     "pdf_page": 22,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Crucidenticula nicobarica (Grunow) Akiba and Yanagisawa n. comb",
+   "genus": "Crucidenticula",
+   "binomial": "Crucidenticula nicobarica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": null,
+     "pdf_page": 20,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "1-7",
+     "book_page": null,
+     "pdf_page": 21,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": null,
+     "pdf_page": 22,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B, 6-9",
+     "book_page": null,
+     "pdf_page": 24,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Crucidenticula punctata (Schrader) Akiba and Yanagisawa n. comb",
+   "genus": "Crucidenticula",
+   "binomial": "Crucidenticula punctata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "10-12",
+     "book_page": null,
+     "pdf_page": 20,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": null,
+     "pdf_page": 22,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "1A, 1B, 2-9",
+     "book_page": null,
+     "pdf_page": 23,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "Crucidenticula paranicobarica Akiba and Yanagisawa n. sp",
+   "genus": "Crucidenticula",
+   "binomial": "Crucidenticula paranicobarica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "8-14",
+     "book_page": null,
+     "pdf_page": 21,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Denticula norwegica Schrader",
+   "genus": "Denticula",
+   "binomial": "Denticula norwegica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "15-21",
+     "book_page": null,
+     "pdf_page": 21,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 6,
+     "plate_label": null,
+     "figures": "1-9",
+     "book_page": null,
+     "pdf_page": 25,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Denticulopsis praelauta Akiba and Koizumi",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis praelauta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 7,
+     "plate_label": null,
+     "figures": "1-15",
+     "book_page": null,
+     "pdf_page": 26,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 8,
+     "plate_label": null,
+     "figures": "1, 2A, 2B, 3A, 3B, 4-9",
+     "book_page": null,
+     "pdf_page": 27,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 7
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "Denticulopsis lauta (Bailey) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis lauta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 7,
+     "plate_label": null,
+     "figures": "16-29",
+     "book_page": null,
+     "pdf_page": 26,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 9,
+     "plate_label": null,
+     "figures": "1-3, 4A, 4B, 5-9",
+     "book_page": null,
+     "pdf_page": 28,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 7
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "Denticulopsis hyalina (Schrader) Simonsen, (1-3) girdle view of a frustule, (4) girdle view of a theca, (5) girdle view of a valve, (6) girdle view of part of colony, (12) inner valve view, (13-16) isolated copulae",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis hyalina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 10,
+     "plate_label": null,
+     "figures": "1-16",
+     "book_page": null,
+     "pdf_page": 29,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 10
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Denticulopsis miocaenica (Schrader) Simonsen, (17) isolated copula, (18) girdle view of a valve, (20-21) \"Katahiraia\"-type valve",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis miocaenica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 10,
+     "plate_label": null,
+     "figures": "17-23",
+     "book_page": null,
+     "pdf_page": 29,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 10
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Denticulopsis hyalina (Schrader) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis hyalina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 11,
+     "plate_label": null,
+     "figures": "1-10",
+     "book_page": null,
+     "pdf_page": 30,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 12,
+     "plate_label": null,
+     "figures": "1-5",
+     "book_page": null,
+     "pdf_page": 31,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 11
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Denticulopsis miocaenica (Schrader) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis miocaenica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 12,
+     "plate_label": null,
+     "figures": "6-9",
+     "book_page": null,
+     "pdf_page": 31,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 12
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Denticulopsis praedimorpha Barron ex Akiba",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis praedimorpha",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 13,
+     "plate_label": null,
+     "figures": "1-28",
+     "book_page": null,
+     "pdf_page": 32,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 14,
+     "plate_label": null,
+     "figures": "1-12",
+     "book_page": null,
+     "pdf_page": 33,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 13
+  },
+  {
+   "seq": 14,
+   "item_no": null,
+   "name": "Denticulopsis dimorpha (Schrader) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis dimorpha",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 15,
+     "plate_label": null,
+     "figures": "1-11, 13, 16, 18-23",
+     "book_page": null,
+     "pdf_page": 34,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 16,
+     "plate_label": null,
+     "figures": "1-11",
+     "book_page": null,
+     "pdf_page": 35,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 15
+  },
+  {
+   "seq": 15,
+   "item_no": null,
+   "name": "Denticulopsis katayamae Maruyama",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis katayamae",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 17,
+     "plate_label": null,
+     "figures": "1-3, 6",
+     "book_page": null,
+     "pdf_page": 36,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 19,
+     "plate_label": null,
+     "figures": "6-9",
+     "book_page": null,
+     "pdf_page": 38,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 20,
+     "plate_label": null,
+     "figures": "1A, 1B, 2-7",
+     "book_page": null,
+     "pdf_page": 39,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 17
+  },
+  {
+   "seq": 16,
+   "item_no": null,
+   "name": "Denticulopsis hustedtii (Simonsen and Kanaya) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis hustedtii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 17,
+     "plate_label": null,
+     "figures": "4, 5, 7-23",
+     "book_page": null,
+     "pdf_page": 36,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 18,
+     "plate_label": null,
+     "figures": "1-3, 4A, 4B, 5-10",
+     "book_page": null,
+     "pdf_page": 37,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 19,
+     "plate_label": null,
+     "figures": "1-5",
+     "book_page": null,
+     "pdf_page": 38,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 17
+  },
+  {
+   "seq": 17,
+   "item_no": null,
+   "name": "Nitzschia rolandii Schrader emend. Koizumi",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia rolandii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 21,
+     "plate_label": null,
+     "figures": "1-6",
+     "book_page": null,
+     "pdf_page": 40,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 21
+  },
+  {
+   "seq": 18,
+   "item_no": null,
+   "name": "Neodenticula kamtschatica (Zabelina) Akiba and Yanagisawa n. comb",
+   "genus": "Neodenticula",
+   "binomial": "Neodenticula kamtschatica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 21,
+     "plate_label": null,
+     "figures": "7-21",
+     "book_page": null,
+     "pdf_page": 40,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 21
+  },
+  {
+   "seq": 19,
+   "item_no": null,
+   "name": "Neodenticula koizumii Akiba and Yanagisawa stat., nom. et comb, n",
+   "genus": "Neodenticula",
+   "binomial": "Neodenticula koizumii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 21,
+     "plate_label": null,
+     "figures": "22-28",
+     "book_page": null,
+     "pdf_page": 40,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 21
+  },
+  {
+   "seq": 20,
+   "item_no": null,
+   "name": "Neodenticula sp. A",
+   "genus": "Neodenticula",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 21,
+     "plate_label": null,
+     "figures": "29-31",
+     "book_page": null,
+     "pdf_page": 40,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 24,
+     "plate_label": null,
+     "figures": "12-18",
+     "book_page": null,
+     "pdf_page": 43,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 25,
+     "plate_label": null,
+     "figures": "1A, 1B, 2A, 2B, 3-7",
+     "book_page": null,
+     "pdf_page": 44,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 21
+  },
+  {
+   "seq": 21,
+   "item_no": null,
+   "name": "Neodenticula kamtschatica (Zabelina) Akiba and Yanagisawa n. comb. 1-2, 5A-B, 8",
+   "genus": "Neodenticula",
+   "binomial": "Neodenticula kamtschatica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 22,
+     "plate_label": null,
+     "figures": "3, 4, 6, 7, 9-12",
+     "book_page": null,
+     "pdf_page": 41,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 22
+  },
+  {
+   "seq": 22,
+   "item_no": null,
+   "name": "Neodenticula koizumii Akiba and Yanagisawa stat., nom. et comb. no",
+   "genus": "Neodenticula",
+   "binomial": "Neodenticula koizumii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 23,
+     "plate_label": null,
+     "figures": "1-3, 4A, 4B, 5-12",
+     "book_page": null,
+     "pdf_page": 42,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 23
+  },
+  {
+   "seq": 23,
+   "item_no": null,
+   "name": "Neodenticula seminae (Simonsen and Kanaya) Akiba and Yanagisawa n. comb",
+   "genus": "Neodenticula",
+   "binomial": "Neodenticula seminae",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 24,
+     "plate_label": null,
+     "figures": "1-11",
+     "book_page": null,
+     "pdf_page": 43,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 26,
+     "plate_label": null,
+     "figures": "1A, 1B, 2-6, 7A, 7B, 8-10",
+     "book_page": null,
+     "pdf_page": 45,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 24
+  },
+  {
+   "seq": 24,
+   "item_no": null,
+   "name": "Neodenticula koizumii Akiba and Yanagisawa stat. nom. et comb, n",
+   "genus": "Neodenticula",
+   "binomial": "Neodenticula koizumii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 24,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": null,
+     "pdf_page": 43,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 24
+  },
+  {
+   "seq": 25,
+   "item_no": null,
+   "name": "Thalassiosira yabei (Kanaya) Akiba and Yanagisawa n. comb",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira yabei",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 27,
+     "plate_label": null,
+     "figures": "1, 2",
+     "book_page": null,
+     "pdf_page": 46,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 28,
+     "plate_label": null,
+     "figures": "1-9",
+     "book_page": null,
+     "pdf_page": 47,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 27
+  },
+  {
+   "seq": 26,
+   "item_no": null,
+   "name": "Thalassiosira cf. yabei (Kanaya) Akiba and Yanagisawa",
+   "genus": "Thalassiosira",
+   "binomial": null,
+   "rank": "unreadable",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 27,
+     "plate_label": null,
+     "figures": "3, 4, 6",
+     "book_page": null,
+     "pdf_page": 46,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 27
+  },
+  {
+   "seq": 27,
+   "item_no": null,
+   "name": "Thalassiosira grunowii Akiba and Yanagisawa comb, et nom. n",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira grunowii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 27,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": null,
+     "pdf_page": 46,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 29,
+     "plate_label": null,
+     "figures": "1-7, 8A, 8B",
+     "book_page": null,
+     "pdf_page": 48,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 27
+  },
+  {
+   "seq": 28,
+   "item_no": null,
+   "name": "Thalassiosira grunowii Akiba and Yanagisawa comb, et nom n",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira grunowii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 30,
+     "plate_label": null,
+     "figures": "1-10",
+     "book_page": null,
+     "pdf_page": 49,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 30
+  },
+  {
+   "seq": 29,
+   "item_no": null,
+   "name": "Thalassiosira temperei (Brun) Akiba and Yanagisawa n. comb",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira temperei",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 31,
+     "plate_label": null,
+     "figures": "1-7",
+     "book_page": null,
+     "pdf_page": 50,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 31
+  },
+  {
+   "seq": 30,
+   "item_no": null,
+   "name": "Thalassiosira brunii Akiba and Yanagisawa comb, et nom. n",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira brunii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 31,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": null,
+     "pdf_page": 50,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 31
+  },
+  {
+   "seq": 31,
+   "item_no": null,
+   "name": "Thalassiosira cf. brunii Akiba and Yanagisawa comb, et nom. n",
+   "genus": "Thalassiosira",
+   "binomial": null,
+   "rank": "unreadable",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 32,
+     "plate_label": null,
+     "figures": "1, 2, 3A, 3B, 4-7, 9, 10",
+     "book_page": null,
+     "pdf_page": 51,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 33,
+     "plate_label": null,
+     "figures": "1-6",
+     "book_page": null,
+     "pdf_page": 52,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 32
+  },
+  {
+   "seq": 32,
+   "item_no": null,
+   "name": "Actinocyclus ingens Rattray",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ingens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 34,
+     "plate_label": null,
+     "figures": "1-7",
+     "book_page": null,
+     "pdf_page": 53,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 35,
+     "plate_label": null,
+     "figures": "1-9",
+     "book_page": null,
+     "pdf_page": 54,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 34
+  },
+  {
+   "seq": 33,
+   "item_no": null,
+   "name": "Actinocyclus ingens var. nodus Baldauf",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ingens",
+   "rank": "infraspecies",
+   "infra": "var. nodus Baldauf",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 34,
+     "plate_label": null,
+     "figures": "8, 9",
+     "book_page": null,
+     "pdf_page": 53,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 34
+  },
+  {
+   "seq": 34,
+   "item_no": null,
+   "name": "Kisseleviella carina Sheshukova-Poretzkaya",
+   "genus": "Kisseleviella",
+   "binomial": "Kisseleviella carina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 36,
+     "plate_label": null,
+     "figures": "1-13",
+     "book_page": null,
+     "pdf_page": 55,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 36
+  },
+  {
+   "seq": 35,
+   "item_no": null,
+   "name": "Kisseleviella carina Sheshukova-Poretskaya",
+   "genus": "Kisseleviella",
+   "binomial": "Kisseleviella carina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 37,
+     "plate_label": null,
+     "figures": "1-9",
+     "book_page": null,
+     "pdf_page": 56,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 37
+  },
+  {
+   "seq": 36,
+   "item_no": null,
+   "name": "Kisseleviella ezoensis Akiba",
+   "genus": "Kisseleviella",
+   "binomial": "Kisseleviella ezoensis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 38,
+     "plate_label": null,
+     "figures": "1-9",
+     "book_page": null,
+     "pdf_page": 57,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 38
+  },
+  {
+   "seq": 37,
+   "item_no": null,
+   "name": "Kisseleviella magnaareolata Akiba and Yanagisawa n. sp",
+   "genus": "Kisseleviella",
+   "binomial": "Kisseleviella magnaareolata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 38,
+     "plate_label": null,
+     "figures": "10-18",
+     "book_page": null,
+     "pdf_page": 57,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 38
+  },
+  {
+   "seq": 38,
+   "item_no": null,
+   "name": "Nitzschia jouseae Burckle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia jouseae",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 39,
+     "plate_label": null,
+     "figures": "1-6",
+     "book_page": null,
+     "pdf_page": 58,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 39
+  },
+  {
+   "seq": 39,
+   "item_no": null,
+   "name": "Nitzschia miocenica Burckle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia miocenica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 39,
+     "plate_label": null,
+     "figures": "7-15",
+     "book_page": null,
+     "pdf_page": 58,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 39
+  },
+  {
+   "seq": 40,
+   "item_no": null,
+   "name": "Nitzschia pliocena (Brun) Mertz",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia pliocena",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 40,
+     "plate_label": null,
+     "figures": "1-7",
+     "book_page": null,
+     "pdf_page": 59,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 40
+  },
+  {
+   "seq": 41,
+   "item_no": null,
+   "name": "Nitzschia reinholdii Kanaya ex Schrader",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia reinholdii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 40,
+     "plate_label": null,
+     "figures": "8, 9",
+     "book_page": null,
+     "pdf_page": 59,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 40
+  },
+  {
+   "seq": 42,
+   "item_no": null,
+   "name": "Nitzschia miocenica Burckle, (1) oblique view of valve exterior, (2) oblique view of valve interior, note a row of large foramina and chamber structure",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia miocenica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 41,
+     "plate_label": null,
+     "figures": "1, 2",
+     "book_page": null,
+     "pdf_page": 60,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 41
+  },
+  {
+   "seq": 43,
+   "item_no": null,
+   "name": "Nitzschia reinholdii Kanaya ex Schrader, (3) oblique view of valve exterior, (4) oblique view of valve interior, note two rows of inner pores near margins",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia reinholdii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 41,
+     "plate_label": null,
+     "figures": "3, 4",
+     "book_page": null,
+     "pdf_page": 60,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 41
+  },
+  {
+   "seq": 44,
+   "item_no": null,
+   "name": "Nitzschia marina Grunow, (5) oblique view of valve exterior, (6) enlarged view of cross section of valve, note two rows of inner pores near margins and chamber structure with raphe canal (bar = 1 µm)",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia marina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 41,
+     "plate_label": null,
+     "figures": "5, 6",
+     "book_page": null,
+     "pdf_page": 60,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 41
+  },
+  {
+   "seq": 45,
+   "item_no": null,
+   "name": "Rhizosolenia curvirostris Jousé",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia curvirostris",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 42,
+     "plate_label": null,
+     "figures": "1, 2",
+     "book_page": null,
+     "pdf_page": 61,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 45,
+     "plate_label": null,
+     "figures": "1-6",
+     "book_page": null,
+     "pdf_page": 64,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 42
+  },
+  {
+   "seq": 46,
+   "item_no": null,
+   "name": "Rhizosolenia barboi (Brun) Tempère and Peragallo",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia barboi",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 42,
+     "plate_label": null,
+     "figures": "3-5, 7, 10, 11",
+     "book_page": null,
+     "pdf_page": 61,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 42
+  },
+  {
+   "seq": 47,
+   "item_no": null,
+   "name": "Rhizosolenia interposita Hajós",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia interposita",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 42,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": null,
+     "pdf_page": 61,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 42
+  },
+  {
+   "seq": 48,
+   "item_no": null,
+   "name": "Rhizosolenia praebarboi Schrader",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia praebarboi",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 42,
+     "plate_label": null,
+     "figures": "8, 9",
+     "book_page": null,
+     "pdf_page": 61,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 43,
+     "plate_label": null,
+     "figures": "1-9",
+     "book_page": null,
+     "pdf_page": 62,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 42
+  },
+  {
+   "seq": 49,
+   "item_no": null,
+   "name": "Rhizosolenia barboi Brun",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia barboi",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 44,
+     "plate_label": null,
+     "figures": "2-9",
+     "book_page": null,
+     "pdf_page": 63,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 44
+  },
+  {
+   "seq": 50,
+   "item_no": null,
+   "name": "Rouxia californica M. Peragallo",
+   "genus": "Rouxia",
+   "binomial": "Rouxia californica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 46,
+     "plate_label": null,
+     "figures": "1-5, 11",
+     "book_page": null,
+     "pdf_page": 65,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 47,
+     "plate_label": null,
+     "figures": "1-11",
+     "book_page": null,
+     "pdf_page": 66,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 46
+  },
+  {
+   "seq": 51,
+   "item_no": null,
+   "name": "Rouxia cf. peragalli Brun and Héribaud",
+   "genus": "Rouxia",
+   "binomial": null,
+   "rank": "unreadable",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 46,
+     "plate_label": null,
+     "figures": "6-8, 12",
+     "book_page": null,
+     "pdf_page": 65,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 46
+  },
+  {
+   "seq": 52,
+   "item_no": null,
+   "name": "Rouxia cf. californica M. Peragallo",
+   "genus": "Rouxia",
+   "binomial": null,
+   "rank": "unreadable",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 46,
+     "plate_label": null,
+     "figures": "9, 10",
+     "book_page": null,
+     "pdf_page": 65,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 46
+  },
+  {
+   "seq": 53,
+   "item_no": null,
+   "name": "Actinocyclus oculatus Jousé",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus oculatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 46,
+     "plate_label": null,
+     "figures": "13, 15, 16",
+     "book_page": null,
+     "pdf_page": 65,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 46
+  },
+  {
+   "seq": 54,
+   "item_no": null,
+   "name": "Actinocyclus ochotensis Jousé",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ochotensis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 46,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": null,
+     "pdf_page": 65,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 46
+  },
+  {
+   "seq": 55,
+   "item_no": null,
+   "name": "Thalassionema schraderi Akiba",
+   "genus": "Thalassionema",
+   "binomial": "Thalassionema schraderi",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 48,
+     "plate_label": null,
+     "figures": "1-5, 10-12",
+     "book_page": null,
+     "pdf_page": 67,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 50,
+     "plate_label": null,
+     "figures": "1-10",
+     "book_page": null,
+     "pdf_page": 69,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 48
+  },
+  {
+   "seq": 56,
+   "item_no": null,
+   "name": "Thalassionema hirosakiensis (Kanaya) Schrader",
+   "genus": "Thalassionema",
+   "binomial": "Thalassionema hirosakiensis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 48,
+     "plate_label": null,
+     "figures": "6-9, 13, 14",
+     "book_page": null,
+     "pdf_page": 67,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 49,
+     "plate_label": null,
+     "figures": "1-8",
+     "book_page": null,
+     "pdf_page": 68,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 48
+  },
+  {
+   "seq": 57,
+   "item_no": null,
+   "name": "Thalassionema nitzschioides (Grunow) H. and M. Peragallo",
+   "genus": "Thalassionema",
+   "binomial": "Thalassionema nitzschioides",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 48,
+     "plate_label": null,
+     "figures": "15, 16",
+     "book_page": null,
+     "pdf_page": 67,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 48
+  },
+  {
+   "seq": 58,
+   "item_no": null,
+   "name": "Thalassiosira antiqua (Grunow) Cleve-Euler",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira antiqua",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 51,
+     "plate_label": null,
+     "figures": "1, 2, 4",
+     "book_page": null,
+     "pdf_page": 70,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 51
+  },
+  {
+   "seq": 59,
+   "item_no": null,
+   "name": "Thalassiosira burckliana Schrader",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira burckliana",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 51,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": null,
+     "pdf_page": 70,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 51
+  },
+  {
+   "seq": 60,
+   "item_no": null,
+   "name": "Thalassiosira fraga Schrader",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira fraga",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 51,
+     "plate_label": null,
+     "figures": "5-10",
+     "book_page": null,
+     "pdf_page": 70,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    },
+    {
+     "plate": 53,
+     "plate_label": null,
+     "figures": "1A, 1B, 2-8",
+     "book_page": null,
+     "pdf_page": 72,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 51
+  },
+  {
+   "seq": 61,
+   "item_no": null,
+   "name": "Thalassiosira antiqua (Grunow) Cleve",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira antiqua",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 52,
+     "plate_label": null,
+     "figures": "1-9",
+     "book_page": null,
+     "pdf_page": 71,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null
+    }
+   ],
+   "extra": {},
+   "line": 52
+  }
+ ]
+}
