@@ -55,7 +55,7 @@ import judge                                                        # noqa: E402
 from viewer.models import (Atlas, AtlasEntry, AtlasPlacement,
                            Candidate, ClassDef, Detection, DiatomObject,
                            Frame,    # noqa: E402
-                           Locality, ObjectReview,
+                           Locality, Occurrence, ObjectReview, Reference,
                            RunBatch, Sample, Slide, Stack, Viewpoint,
                            ViewpointReview)
 # **번호 규칙은 뷰어 코드에 있다** (`web/viewer/catalog.py`). 그래서 이 검사만
@@ -815,6 +815,47 @@ def check_atlas(slug=None):
         print("   개체에 적힌 종명이 아직 없다 (자유 입력 · P15 3절)")
 
 
+def check_occurrence(slug=None):
+    """출현 기록이 가리키는 자리가 성립하는가 (P20).
+
+    `Occurrence.source`·`reference` 는 FK 로 안 묶은 것도 있고(`source`),
+    FK 로 묶은 것도 있다(`reference`) — 전자는 반입이 통째로 갈아치우는
+    `Atlas`/`Reference` 를 가리킬 수 있어 문자열로 두었고(P20), 후자는 같은
+    반입 안에서 `Reference` 와 함께 다시 만들어지므로 CASCADE 가 안전하다.
+    문자열 쪽은 예외 없이 조용히 틀릴 수 있으니 여기서 짚는다.
+
+    이 검사는 슬라이드와 무관하다 — 도감·논문 자료 전체를 본다.
+    """
+    # **`Occurrence` 만 보고 건너뛰면 안 된다** — `Reference` 만 남고
+    # `Occurrence` 가 전부 사라진 상태(반입이 반쪽만 됐거나 지워진 것)가
+    # 바로 아래에서 잡으려는 자리인데, `Occurrence` 가 없다고 여기서
+    # 먼저 돌아가면 그 상태를 못 본다
+    if not Occurrence.objects.exists() and not Reference.objects.exists():
+        print("   출현 기록이 안 들어와 있다 — `import_occurrence.py` 로 넣는다 (건너뛴다)")
+        return
+
+    n = Occurrence.objects.count()
+    refs = Reference.objects.count()
+    print(f"   출현 기록 {n} · 문헌 {refs}")
+
+    known = set(Atlas.objects.values_list("key", flat=True)) | \
+        set(Reference.objects.values_list("key", flat=True))
+    sources = set(Occurrence.objects.values_list("source", flat=True))
+    unknown = sources - known
+    report("출현 기록의 source 가 도감·문헌 어디도 아니다", len(unknown), len(sources),
+           "Atlas.key 나 Reference.key 오타다", sorted(unknown)[:5])
+
+    # 인용됐는데 출현 기록이 하나도 안 붙은 문헌 — 반입이 반쪽만 됐다는 뜻
+    unused = Reference.objects.filter(occurrences__isnull=True)
+    report("출현 기록이 하나도 없는 문헌", unused.count(), refs,
+           "1단계 파서나 반입기가 그 문헌을 놓쳤다",
+           [f"{r.key} ({r.authors} {r.year})" for r in unused[:5]])
+
+    empty = Occurrence.objects.filter(binomial="").count()
+    report("종명이 빈 출현 기록", empty, n,
+           "1단계 파서가 이름을 못 뽑은 자리다 — 있으면 안 된다", [])
+
+
 def main():
     global VERBOSE
     ap = argparse.ArgumentParser()
@@ -849,6 +890,8 @@ def main():
     check_grade_pose(args.slide)
     print("\n=== 11. 도감 (P15) ===")
     check_atlas(args.slide)
+    print("\n=== 12. 출현 기록 (P20) ===")
+    check_occurrence(args.slide)
 
     print()
     if problems:

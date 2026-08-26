@@ -1455,6 +1455,83 @@ class AtlasPlacement(models.Model):
         return f"{where} p.{self.pdf_page}"
 
 
+# ─────────────────────────────────────────────────── 출현 기록 (P20)
+
+REFERENCE_KIND = [("atlas", "도감"), ("paper", "논문")]
+
+
+class Reference(models.Model):
+    """문헌 하나 — 도감의 "분포" 줄이 인용하는 논문·학위논문 (P20).
+
+    **지금은 전부 기계가 뽑은 것이라 재생성 가능하다** — `Atlas` 와 같이
+    `ops/import_occurrence.py` 가 통째로 지우고 다시 만든다(`key` 로
+    upsert). **논문에서 사람이 손으로 넣는 것이 섞이는 순간 그 전제가
+    깨진다** — 그때는 사람이 채운 행을 따로 갈라야 한다.
+
+    `key` 는 저자·연도로 만든 표기다(`jung1967`·`kurashige1943`). **정확한
+    로마자 표기를 보증하지 않는다** — 성씨만 짚는 내부 열쇠이고, 실제
+    저자 표기는 `authors` 가 원문 그대로 든다. 한자 인명 중 확실한 훈독을
+    모르는 것(殖田三郎·奧野春雄·羽田良禾)도 있다 — `authors` 를 믿는다.
+
+    **한 인용에 실제 논문이 둘인 자리가 있다** (`Skvortzow 1929`·`박태수 1956`
+    — 도감이 그 해의 논문 둘을 구별 없이 인용한다). 갈라 볼 근거가 없어 **한
+    행으로 두고 `note` 에 적는다** — 없는 구별을 만들어 내지 않는다.
+    """
+
+    key = models.CharField(max_length=40, unique=True)
+    # 인용에 적힌 그대로 (`정 영호 외` · `倉茂英次郎`). 로마자로 안 고친다
+    authors = models.CharField(max_length=64)
+    year = models.PositiveIntegerField()
+    kind = models.CharField(max_length=8, choices=REFERENCE_KIND,
+                            default="paper", db_default="paper")
+    # 참고문헌 절·논문에서 채운다. 지금은 도감이 인용하며 붙인 서지뿐이라
+    # 서지가 없는 둘(殖田三郎 외 1935 · 奧野春雄 1948)은 비어 있다
+    title = models.TextField(blank=True, default="", db_default="")
+    journal = models.CharField(max_length=200, blank=True, default="", db_default="")
+    note = models.TextField(blank=True, default="", db_default="")
+
+    class Meta:
+        ordering = ["-year", "authors"]
+
+    def __str__(self):
+        return f"{self.authors} {self.year}"
+
+
+class Occurrence(models.Model):
+    """출현 기록 하나 — 종 하나가 지역 하나에서 문헌 하나로 보고됐다는 것.
+
+    **`AtlasEntry` 에 FK 를 매달지 않는다.** 도감 반입(`ops/import_atlas.py`)이
+    통째로 갈아치우므로 FK 를 매면 반입이 도는 날 CASCADE 로 사라진다 —
+    교정이 `Candidate` 가 아니라 `mask_key` 에 붙는 것과 같은 소유 방향의
+    선택이다(P20). `item_no`·`binomial` 을 문자열로 들고, 맞추는 것은
+    질의가 한다.
+
+    **`source` 도 FK 가 아니다.** `Atlas.key`(지금은 `korean` 하나) 또는
+    앞으로 올 논문의 `Reference.key` 를 담는 문자열이다 — 이 출현 기록을
+    **어디서 읽었는가**(원본 문서)이고, 그 문장 안에서 **인용하는 문헌**은
+    따로 `reference` 가 FK 로 든다. 둘은 다른 것이다: 한국 도감(`source`)이
+    `정 영호 외, 1967`(`reference`)를 인용해 이 종의 출현을 말한다.
+    """
+
+    source = models.CharField(max_length=40)
+    item_no = models.CharField(max_length=16, blank=True, default="", db_default="")
+    binomial = models.CharField(max_length=120)
+    region_raw = models.CharField(max_length=64, blank=True, default="", db_default="")
+    region = models.CharField(max_length=64, blank=True, default="", db_default="")
+    reference = models.ForeignKey(Reference, on_delete=models.CASCADE,
+                                  related_name="occurrences")
+    note = models.TextField(blank=True, default="", db_default="")
+
+    class Meta:
+        ordering = ["source", "binomial"]
+        indexes = [models.Index(fields=["source"]),
+                   models.Index(fields=["binomial"]),
+                   models.Index(fields=["region"])]
+
+    def __str__(self):
+        return f"{self.binomial} @ {self.region} ({self.reference_id})"
+
+
 # --- 코어 자료 (P17) --------------------------------------------------------
 #
 # 지점 하나의 **깊이별 측정 항목**. MS(자기감수율) · 함수율 · Opal · TOC 가
