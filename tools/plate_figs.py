@@ -28,6 +28,10 @@ def _load_ak85_captions():
             (int(fig) if fig.isdigit() else fig): name
             for fig, name in figs.items()
         }
+    # Plate 46 는 "6-8, 12. Rouxia cf. peragalli Brun and Héribaud" 구간을
+    # 파서가 놓쳤다 — `peragalli` 앞의 "cf." 뒤 저자 인용이 규칙과 안 맞아서다.
+    # 부록에 없는 비교종이라 검산에 안 걸려 나중에야 눈에 띄었다. 손으로 채운다
+    out[46].update({k: "Rouxia cf. peragalli Brun and Héribaud" for k in (6, 7, 8, 12)})
     return out
 
 
@@ -49,8 +53,11 @@ SOURCE = {
     # **캡션이 쪽이 아니라 절이다** — "Explanation of Plates" 가 본문 뒤에
     # 문장으로 붙어 있다(`parse_dsdp87_captions.py`). PDF 쪽 = 도판 번호 + 19
     # (Plate 1 = PDF p.20 … Plate 52 = PDF p.71, 직접 재서 확인했다)
+    # **도판이 52장이 아니라 53장이다** — 원문이 "Plate 44" 뒤에 마침표를
+    # 빠뜨려 한동안 못 읽었다(캡션 파서 쪽에서 고쳤다). 쪽 옵셋(도판번호+19)은
+    # 44번을 포함해 끝까지 그대로 간다 — 53번이 이 논문의 마지막 쪽(72)이다
     "1985_akiba_yanagisawa_dsdp87_zonal_markers": {
-        n: (None, n + 19) for n in range(1, 53)
+        n: (None, n + 19) for n in range(1, 54)
     },
 }
 
@@ -444,13 +451,13 @@ ASSIGN = {
    1, 2, 3, 4, "6p1", "6p2", "6p3", "6p4",
    "6p5", 5, "6p6", "6p7"],
  # Plate 20(p39) katayamae 하나
- ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 39): [f"1p{i:02d}" for i in range(1, 10)],
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 39): [f"2p{i:02d}" for i in range(1, 10)],
  # Plate 22(p41) kamtschatica 하나
- ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 41): [f"1p{i:02d}" for i in range(1, 17)],
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 41): [f"3p{i:02d}" for i in range(1, 17)],
  # Plate 23(p42) koizumii 하나
  ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 42): [f"1p{i:02d}" for i in range(1, 14)],
  # Plate 25(p44) Neodenticula sp. A 하나
- ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 44): [f"1p{i:02d}" for i in range(1, 11)],
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 44): [f"3p{i:02d}" for i in range(1, 11)],
  # Plate 21(p40). 44상자 · 종 넷(rolandii 1-6·kamtschatica 7-21·koizumii 22-28·
  # sp.A 29-31) — 경계를 상자수 비례로 추정하고 경계만 확인한다
  ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 40): (
@@ -464,7 +471,7 @@ ASSIGN = {
    [f"1p{i:02d}" for i in range(1, 22)] + [f"12p{i:02d}" for i in range(1, 9)]
    + [f"19p{i:02d}" for i in range(1, 4)]),
  # Plate 26(p45) seminae 하나
- ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 45): [f"1p{i:02d}" for i in range(1, 13)],
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 45): [f"2p{i:02d}" for i in range(1, 13)],
  # Plate 28(p47) yabei 하나
  ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 47): [f"1p{i:02d}" for i in range(1, 10)],
  # Plate 29(p48) grunowii 하나
@@ -475,6 +482,64 @@ ASSIGN = {
  ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 46): [1, 2, 3, 4, 5, 6],
  # Plate 31(p50). 상자 8개 = 그림 8개
  ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 50): [1, 2, 3, 4, 5, 6, 7, 8],
+ # Plate 32(p51) cf. brunii 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 51): [f"1p{i:02d}" for i in range(1, 12)],
+ # Plate 33(p52) cf. brunii 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 52): [f"1p{i:02d}" for i in range(1, 8)],
+ # Plate 35(p54) ingens 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 54): [f"1p{i:02d}" for i in range(1, 11)],
+ # Plate 36(p55) carina 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 55): [f"1p{i:02d}" for i in range(1, 18)],
+ # Plate 37(p56) carina 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 56): [f"1p{i:02d}" for i in range(1, 19)],
+ # Plate 34(p53). ingens(1-7)/var.nodus(8-9) — 상자수 비례로 추정
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 53): (
+   [f"1p{i:02d}" for i in range(1, 7)] + [f"8p{i:02d}" for i in range(1, 5)]),
+ # Plate 43(p62) praebarboi 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 62): [f"1p{i:02d}" for i in range(1, 10)],
+ # Plate 38(p57). ezoensis(1-9)/magnaareolata(10-18) — 상자수 비례 추정
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 57): (
+   [f"1p{i:02d}" for i in range(1, 13)] + [f"10p{i:02d}" for i in range(1, 15)]),
+ # Plate 39(p58). jouseae(1-6)/miocenica(7-15)
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 58): (
+   [f"1p{i:02d}" for i in range(1, 12)] + [f"7p{i:02d}" for i in range(1, 19)]),
+ # Plate 40(p59). pliocena(1-7)/reinholdii(8-9)
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 59): (
+   [f"1p{i:02d}" for i in range(1, 11)] + [f"8p{i:02d}" for i in range(1, 5)]),
+ # Plate 41(p60). 상자 6개 = 그림 6개
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 60): [1, 2, 3, 4, 5, 6],
+ # Plate 42(p61). **길쭉한 표본들이 서로 겹쳐 있어** 상자 하나가 표본 여럿을
+ # 삼켰다(9상자로 11그림). 종만 위치로 근사했다 — curvirostris(1,2) ·
+ # barboi(3,4,5,7,10,11 중 다수) · interposita(6) · praebarboi(8,9).
+ # **이 도판은 종 배정도 확신이 낮다** — 겹친 표본 사진이라 자리를 못 가른다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 61): [
+   1, 2, 3, 6, 5, 4, 7, 8, 9],
+ # Plate 44(p63) barboi 하나 — "Plate 44" 뒤 마침표 누락으로 처음엔 통째로
+ # 안 잡히던 도판이다(파서 쪽에서 고쳤다)
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 63): [f"2p{i:02d}" for i in range(1, 10)],
+ # Plate 45(p64) curvirostris 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 64): [f"1p{i:02d}" for i in range(1, 8)],
+ # Plate 47(p66) Rouxia californica 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 66): [f"1p{i:02d}" for i in range(1, 16)],
+ # Plate 49(p68) hirosakiensis 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 68): [f"1p{i:02d}" for i in range(1, 10)],
+ # Plate 50(p69) schraderi 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 69): [f"1p{i:02d}" for i in range(1, 12)],
+ # Plate 52(p71) antiqua 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 71): [f"1p{i:02d}" for i in range(1, 11)],
+ # Plate 53(p72) fraga 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 72): [f"2p{i:02d}" for i in range(1, 10)],
+ # Plate 46(p65). 캡션에 6,7,8,12(Rouxia cf. peragalli)가 빠져 있어 위
+ # `_load_ak85_captions` 에서 손으로 채웠다. 17번은 캡션에 아예 없다 —
+ # 근처 16(Actinocyclus oculatus)의 동반 사진으로 본다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 65): [
+   1, 2, 3, 4, 13, 5, 14, 15, 9, 10, 11, 16, 8, 6, 7, "12a", "12b"],
+ # Plate 48(p67). 종이 여러 번 뒤섞인다(schraderi/hirosakiensis 를 오간다) —
+ # 상자 순서를 그대로 그림 번호로 쓰고 경계만 확인한다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 67): [
+   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, "16b"],
+ # Plate 51(p70). 상자 10개 = 그림 10개
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 70): [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로

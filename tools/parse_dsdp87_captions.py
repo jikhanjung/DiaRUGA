@@ -109,6 +109,8 @@ FIXUPS = [
     ("Thαlαssiosirα", "Thalassiosira"),
     ("Rhizosoleniapraebarboi", "Rhizosolenia praebarboi"),
     ("Rouxia California", "Rouxia californica"),
+    ("Rhizosólenia", "Rhizosolenia"),          # Plate 44 머리말의 글리프 문제
+    ("6, ».\n   Apical tube.", "6, 8. Apical tube."),  # 같은 도판의 OCR 깨짐
 ]
 
 RANGE = re.compile(
@@ -140,7 +142,10 @@ def read_text() -> str:
 
 def split_plates(text: str) -> dict[int, str]:
     lines = text.splitlines()
-    starts = [i for i, l in enumerate(lines) if re.match(r'^Plate \d+\.', l)]
+    # **"Plate 44" 는 뒤에 마침표가 없다** — 원문 조판 오식이다. 그 한 곳
+    # 때문에 44번 통째로 못 읽고 지나갔다(45~53번은 자기 번호를 그대로 들고
+    # 있어 안 밀렸지만, 44번 자체가 빈 채로 남았었다)
+    starts = [i for i, l in enumerate(lines) if re.match(r'^Plate \d+[.\s]', l)]
     plates = {}
     for k, i in enumerate(starts):
         j = starts[k + 1] if k + 1 < len(starts) else min(i + 40, len(lines))
@@ -158,13 +163,13 @@ def split_plates(text: str) -> dict[int, str]:
             else:
                 blanks = 0
         para = dehyphenate(" ".join(l.strip() for l in chunk[:stop] if l.strip()))
-        num = int(re.match(r'^Plate (\d+)\.', para).group(1))
+        num = int(re.match(r'^Plate (\d+)[.\s]', para).group(1))
         plates[num] = para
     return plates
 
 
 def strip_lead(p: str, num: int) -> str:
-    p = re.sub(rf'^Plate {num}\.\s*', '', p)
+    p = re.sub(rf'^Plate {num}[.\s]\s*', '', p)
     while True:
         m = re.match(r'^\(([^()]|\([^()]*\))*\)\.?\s*', p)
         if not m:
@@ -247,7 +252,7 @@ def main() -> int:
 
     out, warn = parse()
     total = sum(len(d) for d in out.values())
-    print(f"도판 {len(out)}개(52 기대) · 그림 {total}개 · 이름 못 뽑은 자리 {len(warn)}")
+    print(f"도판 {len(out)}개(53 기대 — 44번이 빠지고 53번이 더 있다) · 그림 {total}개 · 이름 못 뽑은 자리 {len(warn)}")
     for w in warn:
         print("   ", w)
 
