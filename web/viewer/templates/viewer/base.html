@@ -1740,6 +1740,20 @@
     display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
     margin: 9px 0 2px; font-size: 12.5px;
   }
+  /* 검토 화면의 띠 둘 — 저장 실패(`savefail`)와 앉히기 알림(`spreadok`).
+     **색을 박지 않는다** (107) — 이미 갈려 있는 토큰을 빌린다. 어두운 쪽에서
+     흰 덩어리가 되는 자리다. `errbar` 는 여기 스타일이 없어 맨 글자로 떴다. */
+  .detview ~ .errbar, .detrow ~ .errbar, .errbar.savefail, .errbar.spreadok {
+    padding: 7px 10px; border-radius: 6px; margin: 8px 0; font-size: 12.5px;
+  }
+  .errbar.savefail {
+    background: var(--err-bg); color: var(--err-fg);
+    border: 1px solid var(--err-line);
+  }
+  .errbar.spreadok {
+    background: var(--ok-bg); color: var(--ok-fg);
+    border: 1px solid var(--ok-line);
+  }
   .detbar .hint { color: var(--dim); font-size: 11.5px; }
   .detbar button {
     font: inherit; font-size: 12px; padding: 3px 10px; cursor: pointer;

@@ -98,6 +98,10 @@ urlpatterns = [
     # views.save_object_link 머리말에 있다.
     path("d/<slug:slug>/g/<int:gid>/link", views.save_object_link,
          name="save_link"),
+    # 검출 마스크를 다른 판에도 앉힌다 (P19). **`/review` 에 안 싣는 이유**는
+    # views.spread_detection 머리말에 있다 — `/link` 와 같은 자리다.
+    path("d/<slug:slug>/g/<int:gid>/spread", views.spread_detection,
+         name="spread_detection"),
     # 시야 가르기. POST 전용이고 confirm=1 인 두 번째 POST 만 실제로 고친다.
     path("d/<slug:slug>/g/<int:gid>/split", views.split_group,
          name="split_group"),

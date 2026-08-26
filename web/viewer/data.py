@@ -12,6 +12,7 @@
 import json
 import math
 import re
+import secrets
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -3920,6 +3921,85 @@ def _save_drawn(vp: Viewpoint, image, drawn, size=(0, 0),
     return len(keep), spread, bool(spread or orphaned)
 
 
+def spread_targets(vp: Viewpoint, src_id: int, batch_id) -> list:
+    """**어느 판에 앉히는가** — 이 회차에 현재 검출이 있는 판, 자기 빼고 (106).
+
+    **부르는 자리가 둘이다** — 그린 마스크가 번질 때(`_spread_drawn`)와 사람이
+    검출 마스크를 앉힐 때(`spread_detection` · P19). 둘이 대상을 따로 고르면
+    **규칙이 둘이 된다**(104·105 가 그렇게 당했다).
+
+    **복제할 판을 엔진 이름으로 고르지 않는다.** *이 회차에 현재 검출이 있는
+    판*으로 잡으면 SAM(시야당 판 하나)과 단독 프레임 시야는 앉힐 곳이 없어
+    **자동으로 지나간다.**
+
+    검출이 없는 판에는 **넣으면 안 된다.** 그 판의 화면은 마스크를 안 그리고
+    저장도 못 받아(`save_review` 가 거절한다) **손댈 수 없는 유령**이 된다.
+    """
+    if batch_id is None:
+        return []
+    return list(Image.objects.filter(
+        viewpoint=vp, detections__is_current=True,
+        detections__run__batch_id=batch_id).exclude(pk=src_id).distinct())
+
+
+def spread_rep_image_id(targets, src_id: int) -> int:
+    """**얼굴이 될 판** — 대상 중 합성본, 없으면 `src` (106 · 116).
+
+    `src` 는 *그린 판*이 아니라 **저장할 때 열려 있던 판**이라 그것으로 정하면
+    판을 옮겨 다닐 때마다 대표가 따라다닌다. `is_rep` 은 "학습 자료로 뽑을 때,
+    목록에 보일 때 이 판을 쓴다" 이므로 고를 기준은 *어디서 눌렀나* 가 아니라
+    **어느 판이 이 규조각을 가장 잘 보여주나** 다 — 합성본이 그것이다.
+    """
+    return next((t.pk for t in targets if t.kind == "stack"), src_id)
+
+
+def new_manual_key() -> str:
+    """손그림 키를 하나 만든다 — `MANUAL_KEY` 를 만족하는 `m########`.
+
+    **화면이 만들던 것을 서버도 만든다** (P19 4.1). 검출 마스크를 다른 판에
+    앉힐 때 원본 키(`736_615_189_258`)를 그대로 쓰면 `_save_drawn` 이
+    `ValueError` 를 던져 **그 판의 다음 저장이 통째로 거절된다** — 앉힌 마스크
+    하나 때문에 그 판의 교정 전부가 안 들어간다.
+
+    같은 규조각이므로 **판마다 다른 키를 주지 않는다.** 유일 제약은
+    `(image, mask_key)` 라 같은 키가 여러 판에 앉는 것이 정상이고,
+    `_spread_drawn` 이 그린 마스크를 번지게 할 때와 같은 모양이다.
+    """
+    while True:
+        key = "m%08x" % secrets.randbelow(1 << 32)
+        # **부딪히면 다시 뽑는다.** 32비트라 부딪힐 일이 드물지만, 부딪히면
+        # 남의 마스크에 얹혀 그 판의 교정이 뒤바뀐다 — 드문 것과 안 나는 것은
+        # 다르다.
+        if not ObjectReview.objects.filter(mask_key=key).exists():
+            return key
+
+
+def spread_free_targets(obj, targets, key):
+    """이 개체가 **이미 멤버를 둔 판은 건너뛴다** (P11 약속 1 · P19 4.3).
+
+    `(diatom_object, image)` 에 유일 제약이 있다 — *한 이미지에서 하나*. 안
+    거르고 앉히면 `IntegrityError` 로 **저장이 500 이 된다.**
+
+    **다만 그 멤버가 바로 우리가 앉히려는 그 행이면 그대로 쓴다.** 그린 마스크가
+    저장할 때마다 다시 번지는 길(`_spread_drawn`)이 그 자리다 — 이미 있는 행을
+    `judgement_for` 가 그대로 돌려주므로 옮길 것이 없다.
+
+    **P19 전에는 이 갈래가 안 났다.** 그린 마스크만 번질 때는 개체의 멤버가 곧
+    번진 판들이라 늘 "그 행" 이었다. 검출 마스크를 앉히면서 **판정 하나(원본
+    회차) + 그린 마스크 여럿(복제본)** 인 섞인 개체가 생겼고, 그 개체의 복제본이
+    있는 판에서 저장하면 옛 번지기가 **원본이 앉아 있는 판으로 되번진다.**
+    브라우저 시험이 그것을 500 으로 잡았다 (157).
+    """
+    have = {m.image_id: m for m in
+            ObjectReview.objects.filter(diatom_object=obj)}
+    out = []
+    for t in targets:
+        m = have.get(t.pk)
+        if m is None or (m.batch_id is None and m.mask_key == key):
+            out.append(t)
+    return out
+
+
 def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
     """그린 마스크를 **같은 시야의 다른 판에도 앉히고 한 개체로 묶는다** (106).
 
@@ -3982,25 +4062,20 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
     batch_id = getattr(batch, "pk", batch)
     if not keep or batch_id is None:
         return {}
-    targets = list(Image.objects.filter(
-        viewpoint=vp, detections__is_current=True,
-        detections__run__batch_id=batch_id).exclude(pk=src_id).distinct())
+    targets = spread_targets(vp, src_id, batch_id)
     if not targets:
         return {}
-
-    # **얼굴이 될 판을 먼저 정한다** (머리말 "대표는 합성본이다"). `src` 는
-    # 저장할 때 열려 있던 판일 뿐이라 그것으로 정하면 판을 옮겨 다닐 때마다
-    # 대표가 따라다닌다. 합성본이 없으면 `src` 가 그대로 대표다.
-    rep_image_id = next((t.pk for t in targets if t.kind == "stack"), None)
-    if rep_image_id is None:
-        rep_image_id = src_id
+    rep_image_id = spread_rep_image_id(targets, src_id)
 
     out = {}
     for key, geom, cls in keep:
         src = ObjectReview.objects.select_related("diatom_object").get(
             image_id=src_id, batch__isnull=True, mask_key=key)
+        # **이 개체가 이미 멤버를 둔 판은 건너뛴다** — 그 판에 원본 판정이
+        # 앉아 있으면 유일 제약에 걸려 저장이 500 이 된다 (157).
+        free = spread_free_targets(src.diatom_object, targets, key)
         rows = [(src, src_id == rep_image_id)]
-        for tgt in targets:
+        for tgt in free:
             row = judgement_for(vp, tgt, None, key)
             row.source = "manual"
             row.bind_method = "manual"
@@ -4013,6 +4088,100 @@ def _spread_drawn(vp: Viewpoint, image, batch, keep) -> dict:
         # 그대로 돌려주고, 이미 이 개체에 속한 행은 옮길 것이 없다.
         merge_into_object(src.diatom_object, rows)
     return out
+
+
+def spread_detection(vp: Viewpoint, image, batch, key, geom, cand=None) -> dict:
+    """**검출 마스크를 같은 시야의 다른 판에도 앉히고 한 개체로 묶는다** (P19).
+
+    돌려주는 것은 `{"spread": {이미지 id: [{key, cls, geom}]}, "n": 앉힌 판 수,
+    "key": 복제본의 키}` — **화면이 `spread` 를 자기 상태에 얹어야 한다**
+    (`_spread_drawn` 머리말 "반쪽으로 넣으면 잃는다").
+
+    ## 왜 있나
+
+    검출이 **한두 판에서만 훌륭하게 잡히는** 일이 있다. P18 로 카드 하나가 개체
+    하나가 되면서 프레임에서만 잡힌 규조각도 카탈로그에 나오는데, 멤버가
+    하나뿐이면 **그 흐린 프레임이 곧 얼굴이다** — 152 가 얼굴을 사람 손에
+    돌려놨어도 고를 것이 없다. 잘 잡힌 마스크를 합성본에 앉히고 묶으면 얼굴이
+    선다.
+
+    되는 근거는 `_spread_drawn` 과 같다 — **같은 시야는 스테이지가 안 움직인다.**
+    그 근거는 마스크가 사람 손에서 나왔든 검출기에서 나왔든 똑같이 성립한다.
+
+    ## 복제본은 **사람이 그린 마스크**다 (`batch=None`)
+
+    회차에 붙은 판정으로 앉히면 안 된다 (P19 3.1).
+
+    - `check_db` 554번의 *"멤버의 마스크가 실재한다"* 는 회차 붙은 멤버에
+      `Candidate` 행을 요구한다 — 검출기가 안 낸 마스크라 후보가 없어 앉히는
+      족족 dangling 으로 걸린다
+    - `_with_reviews` 가 교정을 `(image, batch)` 로 거르는데 **`batch=None` 만
+      늘 보여준다** — SAM/YOLO 라디오를 돌려도 남아야 하는 것이 맞다
+    - 뜻이 그렇다: *"이 판에도 이 규조각이 여기 있다"* 는 **엔진에 대한 판단이
+      아니라 이미지에 대한 사실**이다
+
+    **원본은 안 건드린다.** 잘 잡힌 그 판의 판정은 회차에 붙은 채 그대로 있고,
+    개체는 **판정 하나(원본) + 그린 마스크 여럿(복제본)** 이 된다.
+
+    ## 얼굴은 혼자일 때만 옮긴다
+
+    대상 중에 합성본이 있으면 그것이 대표다 — **이 기능의 목적이 그것이다.**
+    **다만 이미 묶여 있는 개체이면 안 옮긴다**: 멤버가 둘 이상이라는 것은
+    사람이 ★ 로 골랐다는 뜻이고, **사람이 고른 것을 기계가 다시 고르지 않는다**
+    (152 · 사용자 방침 2026-08-25).
+
+    ## 겹치는 검출은 안 본다 (사용자 방침 2026-08-25)
+
+    검출이 있는 판이면 겹치는 것이 있든 없든 앉힌다. **사람이 누르기 전에 이미
+    고른 것**이기 때문이다 — 겹치는 마스크를 묶는 게 낫겠으면 묶기로 가고,
+    아니면 이 문으로 온다. 되물으려면 IoU 문턱을 정해야 하는데 그것이 곧
+    "이 둘이 같은 개체 같다" 는 판정이고, **기계가 정체를 판정하지 않는다**(P11).
+
+    **건너뛰는 것이 딱 하나 있다 — 이미 이 개체의 멤버가 있는 판이다.** 그것은
+    짐작이 아니라 사실이고(`ObjectReview.diatom_object`), 안 거르면 **한 판에
+    같은 개체의 마스크가 둘** 선다.
+    """
+    src_id = getattr(image, "pk", image)
+    batch_id = getattr(batch, "pk", batch)
+
+    # 원본 판정을 확보한다 — **회차에 붙은 채로 둔다**(머리말).
+    src = judgement_for(vp, src_id, batch_id, key, cand)
+    if not src.geom and geom:
+        src.geom = geom
+        src.save(update_fields=["geom"])
+    obj = src.diatom_object
+    geom = src.geom or geom
+
+    members = list(ObjectReview.objects.filter(diatom_object=obj))
+    new_key = new_manual_key()
+    targets = spread_free_targets(obj, spread_targets(vp, src_id, batch_id),
+                                  new_key)
+    if not targets:
+        return {"spread": {}, "n": 0, "key": ""}
+
+    # **얼굴은 혼자일 때만 옮긴다**(머리말). 이미 묶여 있으면 지금 대표를 그대로
+    # 둔다 — `merge_into_object` 가 그릇의 `is_rep` 를 전부 내리므로, 지킬
+    # 대표는 `rows` 에 함께 실어야 살아남는다.
+    alone = len(members) <= 1
+    if alone:
+        rep_image_id = spread_rep_image_id(targets, src_id)
+        rows = [(src, src_id == rep_image_id)]
+    else:
+        rep_image_id = None
+        rows = [(m, bool(m.is_rep)) for m in members]
+
+    cls = obj.label or ""
+    out = {}
+    for tgt in targets:
+        row = judgement_for(vp, tgt, None, new_key)
+        row.source = "manual"
+        row.bind_method = "manual"
+        row.geom = geom
+        row.save()
+        rows.append((row, tgt.pk == rep_image_id))
+        out[str(tgt.pk)] = [{"key": new_key, "cls": cls, "geom": geom}]
+    merge_into_object(obj, rows)
+    return {"spread": out, "n": len(targets), "key": new_key}
 
 
 def reanchor(ids) -> int:

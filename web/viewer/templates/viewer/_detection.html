@@ -1694,6 +1694,68 @@
     if (touchedCur) { build(); redraw(); }  // 지금 보는 판이면 그 자리에서 놓인다
   }
 
+  // **검출 마스크를 다른 판에도 앉힌다** (P19). 화면 쪽 절반이다.
+  //
+  // 서버가 복제본을 만들고 묶어 준 뒤 `spread` 로 돌려주면, 그것을 **자기 상태에
+  // 얹는다**(`spreadDrawn`). 안 얹으면 그 판으로 넘어가 저장하는 순간 `/review`
+  // 가 "표시가 사라진 그린 개체" 로 보고 지운다 — 111 이 이미 당한 자리다.
+  //
+  // **되돌리기가 다른 판을 모른다** (P19 4.4). `Ctrl+Z` 는 지금 판의 편집
+  // 이력만 되돌리는데 앉히기는 다른 판에 행을 만든다. 그 비대칭을 띠에 적는다.
+  function spreadOne(idx) {
+    closeMenu();
+    var c = cands[idx];
+    if (!c || readOnly) return;
+    var key = keyOf(c);
+    var n = spreadTargets(key).length;
+    if (!n) return;
+
+    // **지연 저장보다 늦게 보낸다** (P19 4.5 · 묶기와 같은 문). 400ms 지연
+    // 저장에 실린 것을 서버가 아직 모르면 앉히기가 헛돈다.
+    (flushSave() || Promise.resolve()).then(function () {
+      if (savePending) {
+        throw new Error('앞선 교정이 저장되지 않았습니다 — 그 상태로 앉히면 ' +
+                        '한쪽만 남습니다. 저장 오류를 먼저 볼 것');
+      }
+      return fetch(location.pathname.replace(/\/?$/, '/') + 'spread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: curImage === '' ? null : Number(curImage),
+                               mask_key: key })
+      });
+    }).then(function (r) {
+      return r.json().then(function (j) { return { s: r.status, j: j }; });
+    }).then(function (r) {
+      if (!r.j.ok) {
+        saveFailed(true, (r.j.error || ('앉히기 실패 (' + r.s + ')')) +
+                   ' — 앉히지 않았습니다');
+        return;
+      }
+      saveFailed(false);
+      spreadDrawn(r.j.spread);
+      links = r.j.links || [];
+      build(); redraw();
+      flashDrawnLinked(r.j.spread);
+      spreadSaid(r.j.n);
+    }).catch(function (e) {
+      saveFailed(true, (e && e.message) || '서버에 닿지 못했습니다');
+    });
+  }
+
+  // 띠는 한 줄이면 된다 (P19 4.3). **되돌리는 길의 비대칭을 함께 적는다** —
+  // 풀기는 묶음만 풀고 복제본은 남으므로, 그것을 모르면 "풀었는데 왜 마스크가
+  // 남아 있나" 가 된다.
+  function spreadSaid(n) {
+    var el = document.createElement('div');
+    el.className = 'errbar spreadok';
+    el.textContent = '판 ' + n + '곳에 앉혔습니다 — 되돌리려면 묶음을 풀고 ' +
+                     '판마다 지웁니다 (Ctrl+Z 는 이 판만 되돌립니다)';
+    var bar = saveState ? saveState.parentNode : null;
+    if (bar && bar.parentNode) bar.parentNode.insertBefore(el, bar.nextSibling);
+    else view.parentNode.insertBefore(el, view);
+    setTimeout(function () { el.remove(); }, 6000);
+  }
+
   // 방금 그려서 묶인 마스크를 잠깐 밝힌다 (사용자, 2026-08-12).
   //
   // **구분을 배지 색으로 하지 않는다.** 사슬은 컬러 이모지라 `color` 가 안 먹고
@@ -2178,6 +2240,23 @@
   // 묶기가 성립하는 화면인가 — 판이 둘 이상이어야 묶을 상대가 있다
   function canLink() {
     return !readOnly && shotDets && Object.keys(shotDets).length > 1;
+  }
+
+  // **앉힐 판이 몇 곳인가** (P19). 검출이 있는 판에서 지금 판과 **이미 이 개체의
+  // 멤버가 있는 판**을 뺀 수다 — 서버가 거르는 것과 같은 규칙이라야 괄호 안의
+  // 수와 실제로 앉는 수가 안 어긋난다.
+  //
+  // **겹치는 검출은 안 센다** (사용자 방침 2026-08-25). 겹치면 묶는 게 나을지는
+  // 사람이 보고 정하는 자리이고, 화면이 세면 그 판단을 되묻는 꼴이 된다.
+  function spreadTargets(key) {
+    if (!canLink()) return [];
+    var lk = linkOf(curImage, key);
+    var taken = {};
+    if (lk) lk.members.forEach(function (m) { taken[String(m.image)] = 1; });
+    taken[String(curImage)] = 1;
+    return Object.keys(shotDets).filter(function (k) {
+      return !taken[String(shotDets[k].image)];
+    });
   }
 
   var linkPanel = null;
@@ -2735,6 +2814,20 @@
           items.push({ label: lk0 ? '⛓ 묶음 열기 (' + lk0.members.length + '장)'
                                   : '⛓ 동일 개체 묶기',
                        run: function () { openLinkPanel(one); } });
+        }
+        // **다른 판에도 앉히기** (P19) — 검출이 한두 판에서만 잘 잡혔을 때
+        // 그 마스크를 나머지 판에 앉히고 한 개체로 묶는다. 얼굴이 목적이다.
+        //
+        // **괄호 안이 앉힐 판 수이고, 0이면 항목을 안 낸다** — "눌렀는데 아무
+        // 일도 안 나는" 자리를 만들지 않는다(싱글턴 시야가 그 자리다).
+        //
+        // **사람이 그린 마스크에는 안 낸다** — 그쪽은 저장할 때
+        // `_spread_drawn` 이 이미 번지게 한다. 두 문이 같은 일을 하면 규칙이
+        // 둘이 된다.
+        var spTargets = cands[one].manual ? [] : spreadTargets(keyOf(cands[one]));
+        if (spTargets.length) {
+          items.push({ label: '⧸ 다른 판에도 앉히기 (' + spTargets.length + ')',
+                       run: function () { spreadOne(one); } });
         }
         {% comment %}
           **카드로 가는 항목은 여기 없다** (150). 149 에서 묶기 바로 아래

@@ -2260,6 +2260,76 @@ def save_object_link(request, slug, gid):
                          "links": data.object_links_of(vp)})
 
 
+@require_POST
+def spread_detection(request, slug, gid):
+    """검출 마스크 하나를 **같은 시야의 다른 판에도 앉힌다** (P19).
+
+        {"image": 12, "mask_key": "736_615_189_258"}
+
+    **`/review` 에 안 싣는다.** 그 길은 *"그 (이미지, 묶음)의 교정 전체를
+    갈아치운다"* 는 전제 위에 있고, 116 이 층이 다른 것을 한 payload 에 실었다가
+    갈래 둘을 냈다 — 여기는 마스크 하나 단위다. `/link` 와 같은 자리다.
+
+    **서버가 다시 검사한다** (화면에서 막는 것은 막는 것이 아니다): 이미지가 그
+    시야의 것인가 · 그 마스크가 **검토 대상 묶음의 살아 있는 통과 후보**인가 ·
+    오검출로 지운 것이 아닌가. 겹침은 **안 본다**(P19 4.3 · 사용자 방침).
+
+    **읽기 전용 묶음은 여기 못 온다** — `review_batch_id()` 의 묶음에만 앉히기
+    때문이다. 그 라디오로 다른 회차를 보고 있으면 화면이 항목을 안 낸다(051).
+    """
+    vp = (Viewpoint.objects.filter(slide__slug=slug, idx=gid)
+          .select_related("slide").first())
+    if vp is None:
+        raise Http404(f"unknown viewpoint: {slug}/g{gid}")
+
+    def bad(msg, status=400):
+        return JsonResponse({"ok": False, "error": msg}, status=status)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return bad("JSON 이 아니다")
+
+    rb = data.review_batch_id()
+    if rb is None:
+        return bad("검토 대상 묶음이 정해져 있지 않다")
+
+    img = ImageModel.objects.filter(pk=payload.get("image")).first()
+    if img is None or img.viewpoint_id != vp.pk:
+        return bad(f"이미지 {payload.get('image')} 가 이 시야의 것이 아니다")
+
+    key = payload.get("mask_key") or ""
+    # **검출 마스크만 앉힌다.** 사람이 그린 것은 `_spread_drawn` 이 저장할 때
+    # 이미 번지게 한다 — 여기로 오면 같은 일을 두 문이 하게 된다.
+    cand = (Candidate.objects
+            .filter(detection__image=img, detection__is_current=True,
+                    detection__run__batch_id=rb, mask_key=key)
+            .first())
+    if cand is None:
+        return bad(f"{key} 는 이 화면의 검출 마스크가 아니다")
+    gone = ObjectReview.objects.filter(
+        image=img, batch_id=rb, mask_key=key, removed=True).exists()
+    if gone:
+        return bad(f"{key} 는 오검출로 지운 마스크다")
+
+    # 기하는 **서버가 스스로 뜬다** — 화면이 보낸 것을 믿지 않는다(`/link` 와
+    # 같은 줄).
+    geom = {"bbox_xywh": [cand.bbox_x, cand.bbox_y, cand.bbox_w, cand.bbox_h],
+            "polygon": cand.polygon}
+
+    try:
+        with transaction.atomic():
+            out = data.spread_detection(vp, img, rb, key, geom, cand)
+    except IntegrityError:
+        return bad("멤버 중 하나가 이미 다른 묶음에 속해 있다", 409)
+
+    if not out["n"]:
+        return bad("앉힐 판이 없다")
+    return JsonResponse({"ok": True, "n": out["n"], "key": out["key"],
+                         "spread": out["spread"],
+                         "links": data.object_links_of(vp)})
+
+
 class _Reject(Exception):
     """묶기를 거절한다 — **`atomic()` 안에서는 예외로만 물러난다.**
 
