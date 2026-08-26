@@ -38,7 +38,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harvest_worms import DIADICTION  # noqa: E402
-from plate_figs import ASSIGN, CAPTIONS, PARAMS, SOURCE, UNCROPPED  # noqa: E402
+from plate_figs import (ASSIGN, CAPTIONS, MANUAL_BOXES, PARAMS, SOURCE,  # noqa: E402
+                        UNCROPPED)
 
 PAPERS = DIADICTION / "papers"
 PLATE_OUT = DIADICTION / "plate"
@@ -191,6 +192,18 @@ def cut_plate(im, bs, paper, page, pad, outdir):
         f = outdir / f"plate_{tag}_pl{plate}_fig{fig:02d}_{slug(name)}.png"
         im.crop(b).save(f)
         made += 1
+    # **닿아서 자동으로 못 가른 자리는 사람이 잰 사각형을 쓴다.** `ASSIGN` 은
+    # 그 상자를 이미 `None` 으로 걷어 뒀다 — 여기서 덧붙인다
+    for fig, box in MANUAL_BOXES.get((paper, page), {}).items():
+        x0, y0, x1, y1 = box
+        b = (max(0, x0 - pad), max(0, y0 - pad), min(w, x1 + pad), min(h, y1 + pad))
+        name = caps.get(fig, "__unnamed")
+        tag = f"{paper.split('_')[0]}{paper.split('_')[1][:3]}"
+        f = outdir / f"plate_{tag}_pl{plate}_fig{fig:02d}_{slug(name)}.png"
+        im.crop(b).save(f)
+        made += 1
+        a = a + [fig]   # UNCROPPED 계산에서 "이미 있다" 로 세이지 위해
+
     got = {f for f in a if f is not None}
     unnamed = sorted(got - set(caps))
     if unnamed:
@@ -245,6 +258,8 @@ def main() -> int:
     ap.add_argument("--probe", action="store_true", help="대조 시트만 낸다")
     ap.add_argument("--cut", action="store_true", help="ASSIGN 대로 자른다")
     ap.add_argument("--pad", type=int, default=40, help="번호 라벨이 잘리지 않게")
+    # 짚기 시트만 좁게 볼 때. **이웃의 번호가 같이 들어와 헷갈릴 때 줄인다**
+    ap.add_argument("--grid-pad", type=int, default=30)
     # **감싸인 상자를 걷는 것이 쪽마다 다르게 문다.** 사진 타일은 안쪽이
     # 갈라져 조각이 생기므로 걷어야 하고(1993 PLATE 1 의 fig 2), 선그림은
     # 큰 그림의 상자가 이웃을 통째로 감싸서 걷으면 이웃이 사라진다(1936 fig 13)
@@ -274,7 +289,7 @@ def main() -> int:
     sheet = args.out / f"probe_{args.paper}_p{args.page}.png"
     contact(im, bs, sheet)
     gsheet = args.out / f"grid_{args.paper}_p{args.page}.png"
-    grid(im, bs, gsheet)
+    grid(im, bs, gsheet, pad=args.grid_pad)
     print(f"\n→ {sheet}\n→ {gsheet}  ← **짚기는 이걸 본다**")
     (args.out / f"boxes_{args.paper}_p{args.page}.json").write_text(
         json.dumps({"paper": args.paper, "page": args.page, "dpi": args.dpi,

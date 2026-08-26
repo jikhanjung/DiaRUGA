@@ -21,6 +21,11 @@ SOURCE = {
     "1993_lee_chaetoceros_yeonil": {
         1: (None, 12), 2: (None, 16), 3: (None, 24),
     },
+    # **캡션 목록이 도판 바로 앞 쪽 아래에 있다** — 기재문의 `[Plate 2, Fig. 7]`
+    # 을 긁을 필요가 없었다. 목록 쪽을 먼저 찾을 것
+    "1992_lee_galmal_quaternary_flora": {
+        1: (8, 9), 2: (12, 13), 3: (16, 17), 4: (18, 19),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -185,12 +190,116 @@ CAPTIONS = {
    29: "Chaetoceros dicladia Castracane, 1886",
   },
  },
+ # 1992 철원 갈말면 제4기 규조토 — 도판 앞 쪽의 `Plate N` 목록에서 옮겼다.
+ # **A-I ~ A-V 는 시료 이름이다**(그 그림이 어느 시료에서 나왔나) — 여기서는
+ # 이름만 든다. 출현 기록 층으로 갈 값이라 도판 표에 섞지 않는다
+ "1992_lee_galmal_quaternary_flora": {
+  1: {
+   1: "Achnanthes lanceolata (Breb.) Grun. var. dibia Grunow",
+   2: "Achnanthes lanceolata (Breb.) Grun. var. omissa Reimer",
+   3: "Cyclotella meneghiniana Kutzing",
+   4: "Cyclotella stelligrta Cleve and Grunow",
+   5: "Cocconeis plancentula (Ehr.) var. euglypta (Ehr.) Cleve",
+   6: "Coscinodiscus lacustris Geunow",
+   7: "Cocconeis fluviatillis Wallace",
+   8: "Amphora pediculus (Kutz.) Grunow",
+   9: "Cyclotella sp.",
+   10: "Cyclotella comta (Ehr.) Kutzing",
+   11: "Cymbella sp. A",
+   12: "Cymbella minuta Hilse ex Rabh.",
+   13: "Cymbella sinuata Gregory",
+   14: "Caloneis sp.",
+   15: "Diploneis ovalis (Hilse) Cleve",
+   16: "Cymbella sp. B",
+   17: "Cymbella hebridica Grunow ex Cleve",
+   18: "Cymbella sp. C",
+   19: "Cymbella cymbiformis var. nonpunctata Font.",
+   20: "Cymbella leptoceros (Ehr.) Grunow",
+   21: "Diploneis oblongella (Naeg. ex Kutzing) Ross",
+   22: "Diploneis elliptica (Kutz.) Cleve",
+   23: "Cymbella turmida (Breb.) Van Heurck",
+  },
+  2: {
+   1: "Diploneis sp.",
+   2: "Fragilaria construens var. binodis (Ehr.) Grunow",
+   3: "Fragilaria construens (Ehr.) Grunow",
+   4: "Fragilaria construens var. venter (Ehr.) Grunow",
+   5: "Fragilaria pinnate var. elliptical Schumann",
+   6: "Fragilaria pinnate var. minutissima Grunow",
+   7: "Fragilaria sp. A",
+   8: "Eunotia monodon var. koreana Skvortzov",
+   9: "Fragilaria pinnate var. parallel Mayer",
+   10: "Gomphonema acuminatum var. coronata (Ehr.) W. Smith",
+   11: "Fragilaria pinnate var. parallel Mayer",
+   12: "Fragilaria striatula Lyngbye",
+   13: "Gomphonema brasiliense Grunow",
+   14: "Epithemia sorex Kutzing",
+   15: "Gomphonema truncatum Ehrenberg",
+   16: "Gomphonema parvulum Kutzing",
+   17: "Cocconeis sp. aff. Cocconeis costata Gregory",
+   18: "Feagilaria sp. B",
+   19: "Gomphonema parvulum Kutzing",
+   20: "Gomphonema clevei Fricke",
+   21: "Gomphonema acuminatum var. pusilla Grunow",
+   22: "Gomphonema sphaerophorum Ehrenberg",
+   23: "Gomphonema subtile var. sagitta (Schum.) Cleve",
+   24: "Fragilaria vaucheria var. capitellata Peters",
+  },
+  3: {
+   1: "Melosira granulata (Ehr.) Ralfs",
+   2: "Melosira granulata var. angustissima Muller",
+   3: "Melosira varians Agadh",
+   4: "Navicula sp. B",
+   5: "Navicula latens Krasske",
+   6: "Navicula mourneis Patrick",
+   7: "Nitzschia amphibia Grunow",
+   8: "Navicula gottlandica Grunow",
+   9: "Nitzschia amphibia Grunow",
+   10: "Navicula amohibole Cleve",
+   11: "Navicula psedoscutiformis Hustedt",
+   12: "Synedra parastica (W. Smith) Hustedt",
+   13: "Nitzschia frustulum (Kutz.) Grunow",
+   14: "Nitzschia palea (Kutz.) W. Smith",
+   15: "Nitzschia amphibia Grunow",
+   16: "Gomphonema sp.",
+   17: "Navivla radiosa var. tenella (Breb. ex Kutzing) Grunow",
+   18: "Pinnularia sp. A",
+   19: "Synedra sp. B",
+   20: "Pinnularia sp. B",
+   21: "Surirella sp.",
+   22: "Navicula laterostrata Hustedt",
+   23: "Navicula pupula fo. rectangularis (Greg.) Grunow",
+  },
+  4: {
+   1: "Synedra arcus Kutzing",
+   2: "Tabularia fenestrata (Lynb.) Kutzing",
+   3: "Stauroneis sp.",
+   4: "Synedra sp. A",
+   5: "Nitzschia sp.",
+   6: "Pleurosigma salinarum Grunow",
+   7: "Fragilaria vaucheria var. capitellata Peters",
+   8: "Gomphonema affine var. insigne (Greg.) Andrew",
+   9: "Navicula sp. A",
+  },
+ },
 }
 
 
 # **상자 순서 → Fig 번호.** `crop_plates.py --probe` 가 낸 대조 시트를 사람이
 # 보고 적는다. `None` 은 그림이 아니다(제본 그림자·맞은편 쪽 글자).
 # **기계가 번호를 읽게 하지 않는다** — 틀리면 예외가 안 나고 다른 종의 도판이 된다.
+# **한 상자에 그림 둘이 닿아 있으면 자동 검출이 하나로 묶는다.** 그 자리는
+# 자동 상자를 걷고(ASSIGN 에서 None) 사람이 잰 사각형을 따로 쓴다.
+# 좌표는 `boxes()` 와 같은 자리(트림된 150dpi 이미지)다.
+MANUAL_BOXES = {
+    ("1992_lee_galmal_quaternary_flora", 9): {
+        # PLATE 1 의 fig 12(사방으로 뻗은 것)와 fig 19(길쭉한 것)가 닿아서
+        # grow=7 에서 한 상자가 됐다. grow=5 로 갈랐을 때의 상자를 그대로 썼다
+        12: (116, 635, 224, 838),
+        19: (118, 836, 244, 1335),
+    },
+}
+
 ASSIGN = {
  ("1936_skvortzov_ampen_neogene", 41): [
    None, 1, 2, 3, 5, 6, 4, 7, 8, 10, 11, 9, 14, 15, 13, 17, 18, 16, 20, 19,
@@ -209,6 +318,25 @@ ASSIGN = {
  ("1993_lee_chaetoceros_yeonil", 24): [
    1, 2, 3, 10, 7, 4, 5, 9, 8, 6, 11, 12, 13, 14, 15, 16, 17, 20, 21, 18,
    19, 25, 22, 23, 24, 26, 27, 28, 29],
+ # 1992 철원 — PLATE 1(p9). **fig 12·19 는 여기 없다** — 상자가 닿아서
+ # `MANUAL_BOXES` 로 따로 잘랐다. 상자 17(가느다란 조각)은 어느 번호인지
+ # 원문만으로 못 정해 `UNCROPPED` 로 넘긴다
+ ("1992_lee_galmal_quaternary_flora", 9): [
+   None, 1, 2, 3, 5, 6, 7, 14, 4, 8, 11, 9, 10, None, 13, 16, None, 17, 18,
+   23, 15, 20, 21, 22],
+ # PLATE 2(p13). **title 상자가 없다** — 목록이 1번 그림부터 시작한다.
+ # idx11·25 는 그림이 아니다(fig10 목 부분의 조각 · 눈금자)
+ ("1992_lee_galmal_quaternary_flora", 13): [
+   1, 2, 3, 4, 5, 6, 7, 18, 9, 10, None, 8, 11, 12, 13, 14, 17, 15, 21, 16,
+   23, 24, 22, 19, None, 20],
+ # PLATE 3(p17). idx7 은 눈금자(폭 10px) — 그림이 아니다
+ ("1992_lee_galmal_quaternary_flora", 17): [
+   1, 2, 3, 4, 5, 6, None, 8, 10, 7, 11, 12, 23, 9, 17, 18, 19, 15, 14, 20,
+   13, 21, 22, 16],
+ # PLATE 4(p19) — 그림이 9개뿐이라 한 장씩 크다. idx10 은 눈금자, idx11·12 는
+ # fig6·1 의 인쇄 번호 잉크가 valve 와 안 붙어서 따로 상자가 됐다 — 그림이 아니다
+ ("1992_lee_galmal_quaternary_flora", 19): [
+   1, 2, 5, 3, 4, 6, 7, 8, 9, None, None, None],
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -226,6 +354,12 @@ PARAMS = {
     ("1993_lee_chaetoceros_yeonil", 12): dict(grow=3, min_area=2500, min_side=40),
     ("1993_lee_chaetoceros_yeonil", 16): dict(grow=3, min_area=2500, min_side=40),
     ("1993_lee_chaetoceros_yeonil", 24): dict(grow=3, min_area=2500, min_side=40),
+    ("1992_lee_galmal_quaternary_flora", 9): dict(grow=7, min_area=2500, min_side=40),
+    # min_area/min_side 를 낮추면 title 상자가 안 잡히고(1번부터 시작),
+    # fig15·20 이 자동으로 갈린다 — 9쪽과 달리 여기는 손대지 않아도 됐다
+    ("1992_lee_galmal_quaternary_flora", 13): dict(grow=3, min_area=1200, min_side=30),
+    ("1992_lee_galmal_quaternary_flora", 17): dict(grow=3, min_area=1200, min_side=30),
+    ("1992_lee_galmal_quaternary_flora", 19): dict(grow=5, min_area=2500, min_side=40),
 }
 
 # **자동으로는 못 갈린 그림.** 이웃과 붙어 한 상자가 됐다 — 손으로 잘라야 한다.
@@ -235,4 +369,7 @@ UNCROPPED = {
         "Fig 7(큰 원반)과 한 덩어리가 됐다 — 둘이 닿아 있다",
     ("1993_lee_chaetoceros_yeonil", 16, 6):
         "검출이 못 잡았다 — 타일이 흐려 문턱을 넘지 못했다",
+    ("1992_lee_galmal_quaternary_flora", 9, "box17"):
+        "fig 16 과 17 사이의 가느다란 조각 — 원문에 번호가 없다. "
+        "fig 16 의 둘째 그림(옆면)일 수 있으나 확정 못 해 건너뛴다",
 }
