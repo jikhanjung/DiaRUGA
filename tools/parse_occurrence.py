@@ -113,7 +113,7 @@ REGION = {
     "강원도소양": "강원도 소양강", "소양": "강원도 소양강",
     "강원도신연": "강원도 신연", "신연": "강원도 신연",
     "충남대야도": "충남 대야도",
-    "경남다대포": "경남 다대포", "경북다대포": "경남 다대포",   # OCR
+    "경남다대포": "경남 다대포",
     "경남밀양강": "경남 밀양강",
     "전남보성강": "전남 보성강", "전남섬진강": "전남 섬진강",
     "평남청천강": "평남 청천강", "청천강": "평남 청천강",
@@ -177,6 +177,84 @@ YEAR_TYPO = {("박 태수", "1965"): "1956"}   # #267 (PDF p.90) — 1956 의 �
 # 한자 이름이 OCR 로 뭉개진 자리. **연도가 그 해에 하나뿐일 때만 쓴다** —
 # 1936 은 둘이라 여기 없고, 못 읽으면 실패로 센다
 HANJA_YEAR = {"1935": "殖田三郎 외", "1943": "倉茂英次郎", "1948": "奧野春雄"}
+
+
+# --- 서지 --------------------------------------------------------------------
+#
+# **도감의 참고문헌 절에서 옮겼다** (원본 `한국동식물도감B5.pdf` PDF p.524–527 =
+# 책 p.529–532). **발췌본에는 이 절이 없다** — 발췌본은 책 p.369 에서 끝난다.
+#
+# 원본은 **쪽 옵셋이 다르다**: 책 = PDF + 5 (발췌본은 책 = PDF + 99).
+# 그리고 **원본에는 텍스트 레이어가 아예 없다** — 쪽을 떠서 눈으로 읽었다.
+BIBLIO = {
+    ("Skvortzow", "1929"): (
+        "SKVORTZOW, B.W. (1929): On some Diatoms from Seiko Lake of Chosen, Japan., "
+        "Journ. of Chosen. Nat. Hist. Soc., No. 8, p. 9–14, pl. 1. "
+        "／ (1929): Fresh-water Diatoms from Korea, Japan., Philip. Journ. of Sci., "
+        "Vol. 38, No. 3, p. 283–291, pl. 1.",
+        "**1929 가 두 편이다** — 도감이 둘을 구별하지 않고 인용한다"),
+    ("Skvortzow", "1931"): (
+        "SKVORTZOW, B.W. (1931): Pelagic Diatoms of Korea Strait of the Sea of Japan., "
+        "Philip. Journ. of Sci., Vol. 46, No. 1, p. 95–122, pl. 10.", ""),
+    ("Skvortzow", "1932"): (
+        "SKVORTZOW, B.W. (1932): Diatoms from the bottom of the Sea of Japan., "
+        "Philip. Journ. of Sci., Vol. 47, No. 2, p. 265–280, pl. 4.",
+        "같은 해에 Desmids·Flagellaten 논문이 둘 더 있으나 규조가 아니다"),
+    ("Skvortzow", "1936"): (
+        "SKVORTZOW, B.W. (1936): The Neogene Diatoms from the Ampen district, "
+        "S. Kankyo-do, Eastern coast of Tyosen., Bull. on the Geol. Survey of Tyosen, "
+        "Vol. 12, pp. 37, pl. 4.",
+        "**화석 규조다**(Neogene) · Ampen = 함남 안변. 이 목록에서 유일하게 "
+        "육상 노두 자료와 같은 성격이다"),
+    ("羽田良禾", "1936"): (
+        "羽田 良禾 (1936): 秋季西湖に於ける 水原西湖の プランクトン., "
+        "朝鮮博物學會雜誌, No. 21, p. 1–11, fig. 1.",
+        "水原西湖 = 경기도 서호. 인용이 한 건뿐이라 하마터면 놓칠 뻔했다"),
+    ("倉茂英次郎", "1943"): (
+        "倉茂 英次郎 (1943): 朝鮮海側及び南鮮に於ける浮游性珪藻の量的並びに質的特性 第一報, "
+        "昭和12年乃至16年 定量成績, 朝鮮總督府水産試驗場報告, No. 8, p. 1–114, pl. 2.",
+        "제2보(1944)는 도감이 인용하지 않는다"),
+    ("박 태수", "1956"): (
+        "朴泰銖 (1956): 韓國海峽에 있어서 Plankton의 季節的變化에 關하여., "
+        "釜山水産大學研究報告, Vol. 1, No. 1, p. 1–12. "
+        "／ (1956): 夏期南海岸에 있어서 Microplankton의 量 及 組成에 關한 研究., "
+        "같은 책 p. 13–20.",
+        "**1956 이 두 편이다** — 도감이 둘을 구별하지 않고 인용한다"),
+    ("정 영호 외", "1965"): (
+        "鄭英昊·沈載亨·李敏載 (1965): 漢江의 Microflora에 關한 研究(I) "
+        "漢江下流의 植物性 Plankton과 海水의 影響., 식물학회지, Vol. 8, No. 4, "
+        "p. 7–29, pl. 8.", ""),
+    ("최 상", "1966"): (
+        "崔 相 (1966): 韓國海峽의 植物 플랑크톤의 研究(I) 1965年 夏季의 韓國海峽 "
+        "表層水의 植物 플랑크톤의 量과 分布., 韓國海洋學會誌, Vol. 1, Nos. 1–2, p. 14–21.", ""),
+    ("최 상", "1967"): (
+        "崔 相 (1967): 韓國海域의 플랑크톤에 관한 研究(II) 韓國沿岸水域의 植物플랑크톤., "
+        "韓國海洋學會誌, Vol. 2, Nos. 1–2, p. 1–12.", ""),
+    ("엄 규백 외", "1967"): (
+        "UHM, KYU BAEK & KWANG IL YOO (1967): Diatomos in the Korea Strait., "
+        "Reports from The Inst. of Marine Biol., S.N.U., Vol. 1, No. 5, p. 1–6.", ""),
+    ("이 민재 외", "1967"): (
+        "LEE, MIN JAI, JAE HYUNG SHIM & CHONG KYUN KIM (1967): Studies on the plankton "
+        "of the neighboring seas of Korea. Part 1. On the Marine Conditions and "
+        "Phytoplankton of Yellow Sea in Summer., Reports from the Inst. of Marine Biol., "
+        "S.N.U., Vol. 1, No. 6, p. 1–4.", ""),
+    # **참고문헌의 어느 줄인지 확정 못 했다.** 절에 `鄭英昊 1967` 이 없다.
+    # 같은 시리즈의 서울대 석사논문 둘이 후보이고, **분포의 지역이 그 둘과
+    # 정확히 갈린다** — 청평·양수리·기두원은 朴德煥(清平貯水池),
+    # 춘천·소양강·신연은 桂應瑞(春川貯水池·昭陽江)다. 정영호가 지도교수다.
+    # **추정이지 확인이 아니다.**
+    ("정 영호 외", "1967"): (
+        "朴德煥 (1967): 漢江의 Microflora에 關한 研究(II) 清平貯水池를 中心으로 한 "
+        "北漢江 및 南漢江의 植物性 plankton…, 서울大 碩士學位論文, p. 1–39, pl. 1–5. "
+        "／ 桂應瑞 (1967): 같은 研究(III) 春川貯水池를 中心으로 한 北漢江 및 昭陽江…, "
+        "서울大 碩士學位論文, p. 1–36, pl. 1–4.",
+        "**추정이다** — 참고문헌에 `鄭英昊 1967` 이 없다. 지역이 두 논문과 "
+        "정확히 갈리는 것이 근거다"),
+    # **참고문헌 절에 아예 없다.** 절은 연대순인데(1932 → 1935~36 → 1936)
+    # 그 자리에 이 둘이 없다. 원본을 다 읽고 확인했다 — 서지는 밖에서 찾아야 한다
+    ("殖田三郎 외", "1935"): ("", "**도감 참고문헌에 없다** — 밖에서 찾아야 한다"),
+    ("奧野春雄", "1948"): ("", "**도감 참고문헌에 없다** — 밖에서 찾아야 한다"),
+}
 
 
 # --- 텍스트 레이어가 흘린 분포 문장 -------------------------------------------
@@ -365,7 +443,9 @@ def main() -> int:
     OUT_JSON.write_text(json.dumps({
         "source": {"atlas": "korean", "pdf": "origin/korean_flora_diatom.pdf",
                    "text_layer_pages": list(TEXT_LAYER)},
-        "references": [{"ref": a, "year": y, "records": n}
+        "references": [{"ref": a, "year": y, "records": n,
+                        "cite": BIBLIO.get((a, y), ("", ""))[0],
+                        "note": BIBLIO.get((a, y), ("", ""))[1]}
                        for (a, y), n in sorted(refs.items(), key=lambda x: -x[1])],
         "occurrences": recs,
     }, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
@@ -376,8 +456,13 @@ def main() -> int:
          f"**항목 {len(raws)}개**에서 나왔고, 텍스트 레이어가 있는 범위",
          f"(PDF {TEXT_LAYER[0]}–{TEXT_LAYER[1]} · 항목 {len(in_layer)}개)가 전부다 —",
          f"**나머지 {len(by_no) - len(in_layer)}개는 쪽을 렌더해야 읽힌다.**", "",
-         "## 문헌", "", "| 문헌 | 기록 |", "|---|---|"]
-    L += [f"| {a} {y} | {n} |" for (a, y), n in sorted(refs.items(), key=lambda x: -x[1])]
+         "## 문헌", "",
+         "서지는 도감의 참고문헌 절에서 옮겼다 — **원본** `한국동식물도감B5.pdf`",
+         "PDF p.524–527(책 p.529–532)이다. **발췌본에는 이 절이 없다.**", "",
+         "| 문헌 | 기록 | 서지 | 비고 |", "|---|---|---|---|"]
+    L += [f"| {a} {y} | {n} | {BIBLIO.get((a, y), ('', ''))[0] or '**서지 없음**'} "
+          f"| {BIBLIO.get((a, y), ('', ''))[1]} |"
+          for (a, y), n in sorted(refs.items(), key=lambda x: -x[1])]
     L += ["", "## 기록", "",
           "| # | 종 | 지역 | 원문 지역 | 문헌 |", "|---|---|---|---|---|"]
     for r in sorted(recs, key=lambda r: (int(r["item_no"]), r["region"])):

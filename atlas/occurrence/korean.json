@@ -11,77 +11,107 @@
   {
    "ref": "정 영호 외",
    "year": "1967",
-   "records": 248
+   "records": 248,
+   "cite": "朴德煥 (1967): 漢江의 Microflora에 關한 研究(II) 清平貯水池를 中心으로 한 北漢江 및 南漢江의 植物性 plankton…, 서울大 碩士學位論文, p. 1–39, pl. 1–5. ／ 桂應瑞 (1967): 같은 研究(III) 春川貯水池를 中心으로 한 北漢江 및 昭陽江…, 서울大 碩士學位論文, p. 1–36, pl. 1–4.",
+   "note": "**추정이다** — 참고문헌에 `鄭英昊 1967` 이 없다. 지역이 두 논문과 정확히 갈리는 것이 근거다"
   },
   {
    "ref": "최 상",
    "year": "1967",
-   "records": 142
+   "records": 142,
+   "cite": "崔 相 (1967): 韓國海域의 플랑크톤에 관한 研究(II) 韓國沿岸水域의 植物플랑크톤., 韓國海洋學會誌, Vol. 2, Nos. 1–2, p. 1–12.",
+   "note": ""
   },
   {
    "ref": "정 영호 외",
    "year": "1965",
-   "records": 109
+   "records": 109,
+   "cite": "鄭英昊·沈載亨·李敏載 (1965): 漢江의 Microflora에 關한 研究(I) 漢江下流의 植物性 Plankton과 海水의 影響., 식물학회지, Vol. 8, No. 4, p. 7–29, pl. 8.",
+   "note": ""
   },
   {
    "ref": "이 민재 외",
    "year": "1967",
-   "records": 109
+   "records": 109,
+   "cite": "LEE, MIN JAI, JAE HYUNG SHIM & CHONG KYUN KIM (1967): Studies on the plankton of the neighboring seas of Korea. Part 1. On the Marine Conditions and Phytoplankton of Yellow Sea in Summer., Reports from the Inst. of Marine Biol., S.N.U., Vol. 1, No. 6, p. 1–4.",
+   "note": ""
   },
   {
    "ref": "Skvortzow",
    "year": "1931",
-   "records": 56
+   "records": 56,
+   "cite": "SKVORTZOW, B.W. (1931): Pelagic Diatoms of Korea Strait of the Sea of Japan., Philip. Journ. of Sci., Vol. 46, No. 1, p. 95–122, pl. 10.",
+   "note": ""
   },
   {
    "ref": "倉茂英次郎",
    "year": "1943",
-   "records": 54
+   "records": 54,
+   "cite": "倉茂 英次郎 (1943): 朝鮮海側及び南鮮に於ける浮游性珪藻の量的並びに質的特性 第一報, 昭和12年乃至16年 定量成績, 朝鮮總督府水産試驗場報告, No. 8, p. 1–114, pl. 2.",
+   "note": "제2보(1944)는 도감이 인용하지 않는다"
   },
   {
    "ref": "최 상",
    "year": "1966",
-   "records": 47
+   "records": 47,
+   "cite": "崔 相 (1966): 韓國海峽의 植物 플랑크톤의 研究(I) 1965年 夏季의 韓國海峽 表層水의 植物 플랑크톤의 量과 分布., 韓國海洋學會誌, Vol. 1, Nos. 1–2, p. 14–21.",
+   "note": ""
   },
   {
    "ref": "엄 규백 외",
    "year": "1967",
-   "records": 38
+   "records": 38,
+   "cite": "UHM, KYU BAEK & KWANG IL YOO (1967): Diatomos in the Korea Strait., Reports from The Inst. of Marine Biol., S.N.U., Vol. 1, No. 5, p. 1–6.",
+   "note": ""
   },
   {
    "ref": "Skvortzow",
    "year": "1936",
-   "records": 36
+   "records": 36,
+   "cite": "SKVORTZOW, B.W. (1936): The Neogene Diatoms from the Ampen district, S. Kankyo-do, Eastern coast of Tyosen., Bull. on the Geol. Survey of Tyosen, Vol. 12, pp. 37, pl. 4.",
+   "note": "**화석 규조다**(Neogene) · Ampen = 함남 안변. 이 목록에서 유일하게 육상 노두 자료와 같은 성격이다"
   },
   {
    "ref": "Skvortzow",
    "year": "1929",
-   "records": 29
+   "records": 29,
+   "cite": "SKVORTZOW, B.W. (1929): On some Diatoms from Seiko Lake of Chosen, Japan., Journ. of Chosen. Nat. Hist. Soc., No. 8, p. 9–14, pl. 1. ／ (1929): Fresh-water Diatoms from Korea, Japan., Philip. Journ. of Sci., Vol. 38, No. 3, p. 283–291, pl. 1.",
+   "note": "**1929 가 두 편이다** — 도감이 둘을 구별하지 않고 인용한다"
   },
   {
    "ref": "박 태수",
    "year": "1956",
-   "records": 19
+   "records": 19,
+   "cite": "朴泰銖 (1956): 韓國海峽에 있어서 Plankton의 季節的變化에 關하여., 釜山水産大學研究報告, Vol. 1, No. 1, p. 1–12. ／ (1956): 夏期南海岸에 있어서 Microplankton의 量 及 組成에 關한 研究., 같은 책 p. 13–20.",
+   "note": "**1956 이 두 편이다** — 도감이 둘을 구별하지 않고 인용한다"
   },
   {
    "ref": "殖田三郎 외",
    "year": "1935",
-   "records": 13
+   "records": 13,
+   "cite": "",
+   "note": "**도감 참고문헌에 없다** — 밖에서 찾아야 한다"
   },
   {
    "ref": "奧野春雄",
    "year": "1948",
-   "records": 12
+   "records": 12,
+   "cite": "",
+   "note": "**도감 참고문헌에 없다** — 밖에서 찾아야 한다"
   },
   {
    "ref": "Skvortzow",
    "year": "1932",
-   "records": 11
+   "records": 11,
+   "cite": "SKVORTZOW, B.W. (1932): Diatoms from the bottom of the Sea of Japan., Philip. Journ. of Sci., Vol. 47, No. 2, p. 265–280, pl. 4.",
+   "note": "같은 해에 Desmids·Flagellaten 논문이 둘 더 있으나 규조가 아니다"
   },
   {
    "ref": "羽田良禾",
    "year": "1936",
-   "records": 1
+   "records": 1,
+   "cite": "羽田 良禾 (1936): 秋季西湖に於ける 水原西湖の プランクトン., 朝鮮博物學會雜誌, No. 21, p. 1–11, fig. 1.",
+   "note": "水原西湖 = 경기도 서호. 인용이 한 건뿐이라 하마터면 놓칠 뻔했다"
   }
  ],
  "occurrences": [
