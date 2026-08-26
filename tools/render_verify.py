@@ -168,6 +168,148 @@ VERIFIED = [
      "28—30. Cap d. g. H., C. citrina A. S."),
 ]
 
+# --- 2026-08-26 · 잔여 140건 중 "원문을 아직 안 봤다" 32건 -------------------
+#
+# **위 VERIFIED 와 성격이 같고 대상이 다르다.** 저기는 해설 OCR 로 안 갈리던
+# 자리였고, 여기는 **AlgaeBase 에 물어도 안 나온 채 남은 것**이다
+# (`algaebase_worklist.py --residual` 의 2층 31건 + 0층 #431).
+#
+# **도감이 셋이라 칸이 하나 늘었다** — `atlas` 가 `schmidt|korean|east-antarctic`.
+# Schmidt 는 `Tafel`, 한국은 `항목 #`, 동남극은 `Plate` 를 `where` 에 적는다.
+# 열쇠는 여전히 **쪽**이다(126) — `pdf` 가 색인이 들고 있던 해설 쪽이고,
+# 렌더한 쪽 머리에 찍힌 번호로 매번 대조했다.
+#
+# 칸: 이름 · 도감 · 어디 · PDF쪽 · 그림 · 판정 · 원문 구절
+RESIDUAL_VERIFIED = [
+    # 속명 약자를 그 쪽에 나온 **다른 속**으로 폈다 (119·149 와 같은 고장).
+    # 이것이 여덟으로 제일 많다 — 등록부에 물어서는 원리적으로 안 풀린다
+    ("Amphiprora complanata", "schmidt", "Tafel 26", 68, "45",
+     "속명이 잘못 펴졌다 → Amphora complanata Grunow",
+     "45. Adria, A. complanata Grunow. O. E."),
+    ("Amphiprora nana", "schmidt", "Tafel 26", 68, "67.68",
+     "속명이 잘못 펴졌다 → Amphora nana Gregory",
+     "67.68. Villesville, A. nana Gregory, forma parva."),
+    ("Cosmiodiscus fasciculatus", "schmidt", "Tafel 57", 130, "9.10",
+     "속명이 잘못 펴졌다 → Coscinodiscus fasciculatus A. S.",
+     "9.10. Cuxhaven, C. fasciculatus A. S., nach Grunow = Heterostephania Rothi"),
+    ("Cosmiodiscus marginulatus", "schmidt", "Tafel 57", 130, "5",
+     "속명이 잘못 펴졌다 → Coscinodiscus marginulatus var. curvato-striata Grunow",
+     "5. Camp. Bank, C. marginulatus var. curvato-striata Grunow."),
+    ("Cosmiodiscus senarius", "schmidt", "Tafel 57", 130, "24",
+     "속명이 잘못 펴졌다 → Coscinodiscus senarius A. S.",
+     "24. Barbadoes, Springf., C. senarius A. S."),
+    ("Cosmiodiscus subtilis", "schmidt", "Tafel 57", 130, "11.12",
+     "속명이 잘못 펴졌다 → Coscinodiscus subtilis E.",
+     "11. Yokohama … 13. Arica, 14. Peru Guano, C. subtilis E. / 12. Moron, C. subtilis ??"),
+    ("Cosmiodiscus symmetricus", "schmidt", "Tafel 57", 130, "26",
+     "속명이 잘못 펴졌다 → Coscinodiscus symmetricus Grev.",
+     "26. Golf v. Mexico, 27. Singapore, C. symmetricus Grev. t. Weissfl."),
+    ("Craspedodiscus minor", "schmidt", "Tafel 58", 132, "39",
+     "속명이 잘못 펴졌다 → Coscinodiscus minor E.",
+     "39. Tafelbai, C. minor E. / 40. … der echte C. minor E. Microg. XXII, 7, "
+     "denn kein anderer Coscinodiscus dieses Materials"),
+    ("Gomphonema herculeana", "schmidt", "Tafel 215", 146, "4·10·11·13",
+     "속명이 잘못 펴졌다 → Gomphoneis herculeana (Ehr.)",
+     "1. … Gomphoneis Mamilla (Ehr.) / 10. 12. … G. herculeana (Ehr.)"),
+
+    # 괄호 안 이명이라 그 쪽의 항목이 아니다 — 그래도 학명이기는 하다
+    ("Cosmiodiscus armatus", "schmidt", "Tafel 57", 130, "4",
+     "괄호 안 이명이다 — 원문 항목은 Coscinodiscus armatus Grev. var. 다",
+     "4. Richmond, Virgin. 990:1, Coscinodiscus armatus Grev. var. "
+     "(= Cosmiodiscus armatus Grev. 1866.)"),
+
+    # 학명이 아니다 — 물어봐야 "없다" 만 나온다
+    ("Fragilaria spec", "schmidt", "Tafel 297", 118, "77—78",
+     "원문이 산문이다 — 항목은 Navicula (Diadesmis) confervacea Kg. 이고 "
+     "`Fragilaria spec.` 은 그 뒤 설명 문장이다",
+     "77—78. Java, r. S. Navicula (Diadesmis) confervacea Kg. / "
+     "Von E. Thum als Fragilaria spec. ausgegeben."),
+
+    # 원문이 학명이라고 보증한다 — 등록부에만 없다.
+    # **저자·간행 사정을 원문이 함께 말해 주는 자리가 있다**(MS 명·nov. comb.)
+    ("Pseudauliscus udiensis", "schmidt", "Tafel 439", 190, "6",
+     "원문에 학명으로 있다 — 다만 Debes 의 원고명(MS. 1923)이라 "
+     "등록부에 없는 것이 맞다",
+     "6. (1000/1). Udi, Gouv. Charkow, Rußland, f. m. Pseudauliscus udiensis Debes, MS. 1923."),
+    ("Lepidodiscus sublimus", "schmidt", "Tafel 453", 218, "22, 23",
+     "원문에 학명으로 있다 — 같은 Debes 원고명이고 여기서 nov. spec. 으로 냈다",
+     "22, 23. Ananino, Simbirsk, f. m. Lepidodiscus sublimus Debes, nov. spec. (MS. 1923)."),
+    ("Stictodiscus compar", "schmidt", "Tafel 447", 206, "6",
+     "원문에 학명으로 있다 — Hustedt 가 이 쪽에서 낸 nov. comb. 다",
+     "6. Tamatave, Madagascar, r. m. Stictodiscus compar (A. S.) nov. comb. Vgl. T. 81, F. 11"),
+    ("Cyclotella hispalensis", "schmidt", "Tafel 222", 160, "33.34",
+     "원문에 학명으로 있다 — 이 쪽에서 세운 새 종이다(n. sp.)",
+     "33. 34. Sevilla, foss. S.: C. hispalensis n. sp."),
+    ("Hemiaulus amplectens", "schmidt", "Tafel 143", 304, "1—3",
+     "원문에 학명으로 있다 — 원문이 철자를 못 박는다(nicht amplectans!)",
+     "1—3. Oamaru (Weissfl.), Hemiaulus amplectens Gr. & St., nicht amplectans!"),
+    ("Asterolampra stellaris", "schmidt", "Tafel 202", 120, "13",
+     "원문에 학명으로 있다 — 저자가 Br. & T. 로 찍혀 있다",
+     "13. Sendai (Kinker), Asterolampra stellaris Br. & T."),
+    ("Coscinodiscus pilosus", "schmidt", "Tafel 148", 10, "8",
+     "원문에 학명으로 있다 — 저자가 A. S. 로 찍혀 있다",
+     "8. S. Monica (Weissfl.), Coscinodiscus pilosus A. S."),
+    ("Mastogloia bullata", "schmidt", "Tafel 186", 86, "36",
+     "원문에 학명으로 있다 — 저자가 A. S. 로 찍혀 있다. "
+     "색인의 그림 번호 86 은 36 의 오독이다(이 쪽은 44 에서 끝난다)",
+     "36. (unde?), M. bullata A. S."),
+    ("Mastogloia lineolata", "schmidt", "Tafel 186", 86, "33",
+     "원문에 학명으로 있다 — 저자가 A. S. 이고 원문이 이명까지 말한다(M. acuta Grunow)",
+     "33. Malabar (Weissfl.), M. lineolata A. S. Brun, Cleve und Grove ziehen diese Form "
+     "zu M. acuta Grunow."),
+    ("Navicula navigans", "schmidt", "Tafel 174", 62, "1",
+     "원문에 학명으로 있다 — 저자가 Brun 이고 원문이 Cleve 의 자리도 말한다",
+     "1. S. Monica, masse flottante (Brun), Navicula navigans Brun; "
+     "nach Cleve Diploneis Pandura var."),
+    ("Navicula rostochiensis", "schmidt", "Tafel 243", 8, "12",
+     "원문에 학명으로 있다 — 저자가 Heiden 이다(이 Tafel 을 낸 사람이다)",
+     "12. Rostock i. M., Moorerde: Navicula rostochiensis Heiden."),
+    ("Navicula scutelliformis", "schmidt", "Tafel 192", 98, "57",
+     "원문에 학명으로 있다 — Cleve 의 판정이고 원문은 f. minuta 까지 적는다",
+     "57. Loka, nach Cleve Navicula scutelliformis f. minuta."),
+    ("Rouxia leventerae", "east-antarctic", "Plate 8", 15, "6",
+     "원문에 학명으로 있다 — 저자가 Bohaty 다. 화석 규조라 등록부가 성글다",
+     "6. Rouxia leventerae Bohaty; sec.1-49, 54.9 cm / SEM 5. Rouxia leventerae Bohaty"),
+    ("Asteromphalus hepaticus", "korean", "#238", 76, "",
+     "원문에 학명으로 있다 — 저자가 (BRÉBISSON) RALFS 로 찍혀 있다",
+     "238. pl. 31 Asteromphalus hepaticus (BRÉBISSON) RALFS"),
+    ("Coscinodiscus anguste-lineatus", "korean", "#196", 56, "",
+     "원문에 학명으로 있다 — 저자가 A. SCHMIDT 이고 하이픈이 원문에 있다",
+     "196. pl. 26 Coscinodiscus anguste-lineatus A. SCHMIDT"),
+    ("Pinnularia moralis", "korean", "#528", 210, "",
+     "원문에 학명으로 있다 — 저자가 GRUNOW 로 찍혀 있다",
+     "528. pl. 61 Pinnularia moralis GRUNOW"),
+    ("Neidium preschevalski", "korean", "#493", 195, "",
+     "원문에 학명으로 있다 — SKVORTZOW 의 1929 년 서울 채집종이고 "
+     "원문은 var. koreana 까지다(색인이 변종을 흘렸다)",
+     "493. pl. 58 Neidium Preschevalski SKVORTZOW var. koreana SKVORTZOW"),
+
+    # 원문 자체의 오식 — 고쳐 쓰지 않는다. 바른 이름은 표시가 말한다
+    ("Diploneis pandula", "korean", "#460", 184, "",
+     "원문 자체의 오식 — 도감이 표제어와 이명 줄에 두 번 pandula 로 찍었다. "
+     "바른 이름은 Diploneis pandura (Bréb.) Cleve 이고 "
+     "Schmidt Tafel 174 fig 1 이 Diploneis Pandura 로 확인해 준다",
+     "460. pl. 55 Diploneis pandula BRÉBISSON / Syn. Navicula pandula BRÉBISSON"),
+    ("Frustulia rohmboides", "korean", "#464", 185, "",
+     "원문 자체의 오식 — 바른 이름은 Frustulia rhomboides (Ehrenb.) De Toni 이고 "
+     "바로 아래 465 번이 같은 쪽에서 rhomboides 로 찍혀 있다",
+     "464. pl. 55 Frustulia rohmboides (EHRENB.) DE TONY / "
+     "465. pl. 55 Frustulia rhomboides (EHRENB.) DE TONY var. saxonica"),
+
+    # 색인이 원문 표기를 지켰는데 **열쇠를 만드는 자리가 속을 폈다**.
+    # `harvest_worms.GENUS_FIX` 가 Chaetoceras→Chaetoceros 로 고치는데
+    # 종소명은 원문 그대로라, 나온 열쇠가 **원문도 유효명도 아닌 것**이 된다
+    ("Chaetoceros denticulatum", "korean", "#290", 103, "",
+     "열쇠가 원문과 다르다 — 원문은 Chaetoceras denticulatum LAUDER 인데 속만 펴서 "
+     "만든 열쇠라 등록부에 없다. 바른 이름은 Chaetoceros denticulatus Lauder",
+     "290. pl. 38 Chaetoceras denticulatum LAUDER"),
+    ("Chaetoceros paradoxum", "korean", "#306", 112, "",
+     "열쇠가 원문과 다르다 — 원문은 Chaetoceras paradoxum PAVILLARD 다. 126 의 HOLD "
+     "근거를 원본에서 다시 확인했다(새 사실은 없다). Pavillard 판으로 물어야 한다",
+     "306. pl. 40 Chaetoceras paradoxum PAVILLARD"),
+]
+
+
 # 렌더한 쪽에 찍혀 있던 Tafel 번호와, 해설 OCR 이 그 쪽에 달아 놓은 번호.
 # **다르면 OCR 이 틀린 것이다** — 쪽은 색인이 들고 있던 값이라 맞았다.
 MISLABELED = [
@@ -215,6 +357,75 @@ def report() -> str:
           "들어갑니다. `Cymbella amphi` 가 그래서 *Tafel 373* 의 `amphioxys` 로 갈렸습니다.",
           "**해설 OCR 로 낸 판정은 쪽으로 짚어 확인하고 쓰세요.**", ""]
     return "\n".join(L) + "\n"
+
+
+RESIDUAL_OUT = DIADICTION / "names/worms/render_verify_20260826.md"
+RESIDUAL_STAMP = "20260826"
+
+# 도감마다 원본 PDF 가 다르다. 쪽을 다시 뜰 때 쓰는 자리 (render_atlas_pages 와 같은 원본)
+RESIDUAL_PDF = {"schmidt": "origin/Band{band}.pdf",
+                "korean": "origin/korean_flora_diatom.pdf",
+                "east-antarctic": "origin/pleistocene_east_antarctic_plates.pdf"}
+
+
+def residual_report() -> str:
+    pages = {(a, w.split()[0] if a == "schmidt" else a, pg)
+             for _, a, w, pg, _, _, _ in RESIDUAL_VERIFIED}
+    L = [f"# 잔여 32건 — 도감 원문을 렌더해 확인 "
+         f"({RESIDUAL_STAMP[:4]}-{RESIDUAL_STAMP[4:6]}-{RESIDUAL_STAMP[6:]})", "",
+         f"`algaebase_worklist.py --residual` 의 **2층 31건**(원문을 아직 안 봤다)과",
+         f"**0층 #431**을 합한 32건입니다. 도감 원본 **27쪽**을 200 dpi 로 떠서",
+         f"눈으로 읽었습니다 — 아래 표가 짚는 것은 {len(pages)}쪽이고, 나머지 둘은",
+         "교차 확인만 한 쪽입니다(Band2 p.60 = Tafel 173 의 Hemiaulus 인용,",
+         "동남극 p.19 = SEM 도판의 같은 이름).", "",
+         "**등록부에 다시 묻는 것으로는 안 풀리는 자리가 절반이었습니다** — 아래 판정",
+         "표의 첫 두 갈래가 그것입니다. 물어서 \"없다\" 가 나온 것이 맞았고, 이유가",
+         "이름 쪽에 있었습니다.", ""]
+
+    tally = collections.Counter(bucket(v) for *_, v, _ in RESIDUAL_VERIFIED)
+    L += ["| 판정 | 수 |", "|---|---|"]
+    L += [f"| {k} | {n} |" for k, n in tally.most_common()]
+    L += ["", "| 도감 | 자리 | 색인의 이름 | PDF | 그림 | 판정 | 원문 |",
+          "|---|---|---|---|---|---|---|"]
+    for name, atlas, where, page, fig, v, src in RESIDUAL_VERIFIED:
+        L.append(f"| {atlas} | {where} | *{name}* | p.{page} | {fig or '—'} | "
+                 f"**{v}** | `{src}` |")
+    L += ["", "## 다시 뜨려면", "",
+          "```bash",
+          "pdftoppm -f <쪽> -l <쪽> -r 200 -png -gray \\",
+          "  \"$DIADICTION/origin/<원본>.pdf\" /tmp/p",
+          "```", "",
+          "`PDF` 칸이 색인이 들고 있던 **해설 쪽**입니다 — 렌더한 쪽 머리에 찍힌",
+          "Tafel·항목 번호로 매번 대조했습니다(126 이 정한 대로 **번호가 아니라 쪽으로**",
+          "짚습니다). 한국 도감은 PDF 190 쪽까지 텍스트 레이어가 있어 `pdftotext -layout`",
+          "으로도 같은 값이 나옵니다 — 여섯은 그렇게 교차 확인했습니다.", ""]
+    return "\n".join(L) + "\n"
+
+
+def residual_check() -> int:
+    """**작업지에 있던 32건과 같은가.** 이름이 하나라도 어긋나면 대조표에 못 적는다 —
+    열쇠가 표제어라 철자가 한 글자만 달라도 조용히 안 붙는다."""
+    import re
+    sheet = DIADICTION / f"temp/algaebase_ask_{RESIDUAL_STAMP}.md"
+    if not sheet.exists():
+        print(f"작업지가 없다 — 검산을 건너뛴다 ({sheet.name})")
+        return 0
+    want = set()
+    text = sheet.read_text(encoding="utf-8")
+    for head in ("## 원문을 아직 안 봤다", "## 원문 재판독"):
+        if head not in text:
+            continue
+        for line in text.split(head)[1].split("\n---\n")[0].splitlines():
+            if re.match(r"\| \d+ \|", line):
+                want.add(line.split("|")[2].strip())
+    have = {n for n, *_ in RESIDUAL_VERIFIED}
+    miss, extra = sorted(want - have), sorted(have - want)
+    print(f"작업지 {len(want)}건 · 확인한 것 {len(have)}건")
+    if miss:
+        print(f"  아직 안 본 것 {len(miss)}: {miss}")
+    if extra:
+        print(f"  작업지에 없는 것 {len(extra)}: {extra}")
+    return len(miss) + len(extra)
 
 
 def apply_master() -> int:
@@ -287,11 +498,18 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--apply", action="store_true", help="대조표에 적는다")
     ap.add_argument("--strip", action="store_true", help="색인 머리말을 걷는다")
+    ap.add_argument("--residual", action="store_true",
+                    help="2026-08-26 잔여 32건 쪽 보고서를 낸다 (대조표는 안 만진다)")
     args = ap.parse_args()
 
     if args.strip:
         apply_index(strip=True)
         return 0
+
+    if args.residual:
+        RESIDUAL_OUT.write_text(residual_report(), encoding="utf-8")
+        print(f"확인한 것 {len(RESIDUAL_VERIFIED)}건 → {RESIDUAL_OUT}")
+        return residual_check()
 
     args.out.write_text(report(), encoding="utf-8")
     print(f"확인한 것 {len(VERIFIED)}건 · 렌더한 쪽 "
