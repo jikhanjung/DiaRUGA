@@ -39,6 +39,7 @@ sys.path.append(str(APP))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "diarugaweb.settings")
 django.setup()
 
+import batch_scope                                                   # noqa: E402
 from viewer import data                                              # noqa: E402
 
 # 조리법 열쇠 → `segment_diatoms.py` 의 인자. 없는 열쇠는 그냥 건너뛴다 —
@@ -88,6 +89,12 @@ def main():
         state = "OK" if r["ready"] else "못 돌림"
         print(f"{i:<4} {mark} {r['batch'].label:<14} {state:<6} "
               f"{shlex.join(argv_for(r['recipe']))}")
+        # **권역은 인자로 안 나간다** — `segment_diatoms.py` 가 슬라이드마다
+        # 보는 규칙이라(`batch_scope.py`) 조리법 인자에 실을 것이 없다. 그래도
+        # 사람이 읽는 표에는 적는다: 안 보이면 "왜 이 슬라이드만 비었나" 가 된다.
+        scope = batch_scope.allowed_areas(r["recipe"])
+        if scope is not None:
+            print(f"       └─ {batch_scope.label_for_plan(r['recipe'])} 만 돈다")
         if not r["ready"]:
             print(f"       └─ {r['why']}")
         if r["recipe"].get("weights_guessed"):

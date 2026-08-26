@@ -67,6 +67,7 @@ from django.conf import settings                                    # noqa: E402
 from django.db import transaction                                   # noqa: E402
 from django.utils import timezone                                   # noqa: E402
 
+import batch_scope                                                  # noqa: E402
 import rebind                                                       # noqa: E402
 import runlog                                                       # noqa: E402
 from viewer.images import ensure_image
@@ -949,6 +950,19 @@ def process(img_path: Path, gen, args, out_dir: Path, scale_log=None):
     return payload
 
 
+def slide_area(slide) -> str:
+    """이 슬라이드의 **권역**(`Site.area`). 소속이 끊겨 있으면 빈 문자열.
+
+    소속은 `Slide` 에 없다 — `sample → locality → site` 로 올라간다
+    (CLAUDE.md · `slide.locality` 는 지름길 property 다). 중간이 비어 있는
+    행이 실제로 생긴다(`check_db.py` 7번이 세는 그 상태), 그래서 예외로
+    죽지 않고 **빈 값으로 말한다** — 무엇을 할지는 `batch_scope` 가 정한다.
+    """
+    site = getattr(getattr(getattr(slide, "sample", None),
+                           "locality", None), "site", None)
+    return getattr(site, "area", "") or ""
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("input", nargs="?", help="이미지 파일 또는 디렉토리")
@@ -1059,6 +1073,26 @@ def main():
             slide = Slide.objects.get(slug=args.slide)
         except Slide.DoesNotExist:
             raise SystemExit(f"그런 슬라이드가 없다: {args.slide}")
+
+        # **이 묶음이 이 권역을 보는가** (2026-08-26 · `batch_scope.py`).
+        #
+        # GPU 를 돌리기 전에, `runlog.start` 가 실행 행을 만들기도 전에 본다 —
+        # 안 돌 일이면 실행 기록도 남지 않아야 한다. 폴러가 부르든 사람이
+        # 부르든 같은 문을 지난다.
+        #
+        # **실패가 아니라 건너뛰기다**(0 으로 끝낸다). 폴러는 0이 아니면
+        # "검출 실패" 를 로그에 적는데, 방침대로 안 돈 것은 실패가 아니다.
+        if args.batch:
+            from viewer.models import RunBatch                      # noqa: PLC0415
+            b = RunBatch.objects.filter(kind="detect",
+                                        label=args.batch).first()
+            # 아직 없는 묶음은 조리법도 없다 — 막지 않는다(전부 본다).
+            area = slide_area(slide)
+            if b is not None and not batch_scope.allows(b.recipe, area):
+                print(f"{slide.slug}: {batch_scope.why(b.recipe, area, b.label)}",
+                      file=sys.stderr)
+                return 0
+
         # 슬라이드에 배율이 못 박혀 있으면 그것을 쓴다. CLI 로 준 값이 우선한다 —
         # 사람이 그 자리에서 내린 지시가 더 최근이다.
         if slide.um_per_pixel_override and not args.um_per_pixel:
