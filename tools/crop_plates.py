@@ -62,7 +62,7 @@ def trim(im: Image.Image, margin: tuple[float, float, float, float]) -> tuple[Im
 
 
 def boxes(im: Image.Image, thr: int, grow: int, min_area: int,
-          min_side: int) -> list[tuple[int, int, int, int]]:
+          min_side: int, drop_nested: bool = True) -> list[tuple[int, int, int, int]]:
     """짙은 화소를 이어 붙여 상자를 찾는다.
 
     **선그림은 속이 비어 있다** — 윤곽선만 짙다. `grow`(팽창)로 striae 사이를
@@ -118,6 +118,21 @@ def boxes(im: Image.Image, thr: int, grow: int, min_area: int,
         if bw * bh < min_area or max(bw, bh) < min_side:
             continue
         out.append((int(x0), int(y0), int(x1), int(y1)))
+    # **다른 상자 안에 통째로 들어간 것은 그림이 아니다** — 사진 타일 안쪽의
+    # 밝은 자리가 덩어리를 갈라 놓아 생긴 조각이다(1993 PLATE 1 의 fig 2 가
+    # 셋으로 갈렸다). 감싸는 상자가 이미 그 그림을 다 담고 있다
+    keep = []
+    for i, b in enumerate(out):
+        if not drop_nested:
+            keep.append(b); continue
+        t = 4   # 스캔 잡티로 한두 화소 삐져나오는 것을 봐준다
+        inside = any(i != j and c[0] <= b[0]+t and c[1] <= b[1]+t
+                     and c[2] >= b[2]-t and c[3] >= b[3]-t
+                     and (c[2]-c[0])*(c[3]-c[1]) > (b[2]-b[0])*(b[3]-b[1])
+                     for j, c in enumerate(out))
+        if not inside:
+            keep.append(b)
+    out = keep
     # 위에서 아래로, 왼쪽에서 오른쪽으로 (사람이 시트를 읽는 순서)
     out.sort(key=lambda b: (b[1] // 50, b[0]))
     return out
@@ -166,16 +181,21 @@ def cut_plate(im, bs, paper, page, pad, outdir):
     for box, fig in zip(bs, a):
         if fig is None:
             continue
-        if fig not in caps:
-            print(f"  !! Fig {fig} 가 캡션에 없다"); continue
+        # **이름이 없어도 자른다.** 그림을 버리면 나중에 이름을 알아도 다시
+        # 도판을 떠야 한다 — 빠진 것은 파일 이름에 드러나게 둔다
+        name = caps.get(fig, "__unnamed")
         x0, y0, x1, y1 = box
         # **번호 라벨이 잘리면 안 된다**(Diadiction README 의 작업 순서) — 여유를 둔다
         b = (max(0, x0 - pad), max(0, y0 - pad), min(w, x1 + pad), min(h, y1 + pad))
         tag = f"{paper.split('_')[0]}{paper.split('_')[1][:3]}"
-        f = outdir / f"plate_{tag}_pl{plate}_fig{fig:02d}_{slug(caps[fig])}.png"
+        f = outdir / f"plate_{tag}_pl{plate}_fig{fig:02d}_{slug(name)}.png"
         im.crop(b).save(f)
         made += 1
     got = {f for f in a if f is not None}
+    unnamed = sorted(got - set(caps))
+    if unnamed:
+        print(f"   **이름이 아직 없는 그림 {len(unnamed)}: {unnamed}** "
+              f"(`__unnamed` 로 잘라 뒀다)")
     miss = sorted(set(caps) - got)
     print(f"\n{made}장을 잘랐다 → {outdir}")
     if miss:
@@ -225,6 +245,11 @@ def main() -> int:
     ap.add_argument("--probe", action="store_true", help="대조 시트만 낸다")
     ap.add_argument("--cut", action="store_true", help="ASSIGN 대로 자른다")
     ap.add_argument("--pad", type=int, default=40, help="번호 라벨이 잘리지 않게")
+    # **감싸인 상자를 걷는 것이 쪽마다 다르게 문다.** 사진 타일은 안쪽이
+    # 갈라져 조각이 생기므로 걷어야 하고(1993 PLATE 1 의 fig 2), 선그림은
+    # 큰 그림의 상자가 이웃을 통째로 감싸서 걷으면 이웃이 사라진다(1936 fig 13)
+    ap.add_argument("--no-drop-nested", dest="drop_nested",
+                    action="store_false", default=True)
     ap.add_argument("--out", type=Path,
                     default=Path("/tmp/claude-1006/-home-sclee-projects-DiaRUGA/"
                                  "71c428bd-2503-422e-8032-e047be395e81/scratchpad/plates"))
@@ -238,7 +263,8 @@ def main() -> int:
     im = render(pdf, args.page, args.dpi)
     m = tuple(float(x) for x in args.margin.split(","))
     im, off = trim(im, m)
-    bs = boxes(im, args.thr, args.grow, args.min_area, args.min_side)
+    bs = boxes(im, args.thr, args.grow, args.min_area, args.min_side,
+               args.drop_nested)
     if pr:
         print(f'   설정: {pr}')
     print(f"{args.paper} p.{args.page} · {im.size[0]}x{im.size[1]} · 상자 {len(bs)}개")

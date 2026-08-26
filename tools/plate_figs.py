@@ -16,6 +16,11 @@ SOURCE = {
     "1936_skvortzov_ampen_neogene": {
         1: (40, 41), 2: (43, 44), 3: (46, 47), 4: (49, 50),
     },
+    # **캡션 쪽이 없다** — 기재문 안의 `Pl. 1, fig. 1 ; Pl. 2, fig. 4, 7` 줄이
+    # 자리를 말한다. 그래서 캡션 쪽 자리를 `None` 으로 둔다
+    "1993_lee_chaetoceros_yeonil": {
+        1: (None, 12), 2: (None, 16), 3: (None, 24),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -109,7 +114,79 @@ CAPTIONS = {
    11: "Pinnularia episcopalis Cleve fo. neogena fo. nov.",
   },
  },
+ # 1993 Chaetoceros — **기재문에서 모았다**(pdf 9~23의 가운데 정렬 줄).
+ # 캡션 쪽이 없어서 `종명 줄 + 바로 아래 Pl. 줄` 을 짝지었다.
+ # **한 종이 도판 여럿에 나오고 한 도판에 그림 여럿을 갖는다.**
+ # `?` 가 붙은 것은 원문이 동정을 의심한 자리다(fig 12·22·24).
+ "1993_lee_chaetoceros_yeonil": {
+  1: {
+   1: "Chaetoceros lauderi Ralfs in Lauder, 1864",
+   2: "Chaetoceros subsecundus (Grunow) Hustedt, 1930",
+   3: "Chaetoceros subsecundus (Grunow) Hustedt, 1930",
+   4: "Chaetoceros subsecundus (Grunow) Hustedt, 1930",
+   5: "Chaetoceros compressus Lauder, 1864",
+   7: "Chaetoceros amanita Cleve-Euler, 1915",
+   9: "Chaetoceros amanita Cleve-Euler, 1915",
+   10: "Chaetoceros sp. B",
+   6: "Chaetoceros coronatus Gran., 1897",
+   8: "Chaetoceros costatus Pavillard, 1911",
+   11: "Chaetoceros furcellatus Bail., 1873",
+   12: "Chaetoceros costatus Pavillard, 1911",
+   13: "Chaetoceros cinctus Gran, 1897",
+   15: "Dossetia sp.",
+   16: "Stephanopyxis lineata (Ehrenberg) Forti, 1912",
+   19: "Pterotheca carinifera (Grunow) Forti, 1909",
+   21: "Chaetoceros sp. A",
+   24: "Xanthiopyxis acrolopha Forti, 1912",
+  },
+  2: {
+   1: "Goniothecium rogersii Ehrenberg, 1843",
+   2: "Stephanogonia hanzawae Kanaya, 1959",
+   5: "Chaetoceros dicladia Castracane, 1886",
+   6: "Chaetoceros dicladia Castracane, 1886",
+   10: "Liradiscus asperulus Andrews, 1976",
+   13: "Liradiscus bipolaris Lohman, 1948",
+   18: "Cladogramma californicium Ehrenberg, 1854",
+   19: "Dossetia sp.",
+   27: "Chaetoceros dicladia Castracane, 1886",
+   3: "Stephanogonia hanzawae Kanaya, 1959",
+   4: "Chaetoceros lauderi Ralfs in Lauder, 1864",
+   7: "Chaetoceros lauderi Ralfs in Lauder, 1864",
+   8: "Stephanogonia hanzawae Kanaya, 1959",
+   9: "Pseudopyxilla americana (Ehr.) Forti, 1909",
+   12: "Xanthiopyxis ovalis Lohman, 1938",
+   14: "Xanthiopyxis sp. A",
+   16: "Goniothecium tenue Brun, 1894",
+   17: "Pterotheca carinifera (Grunow) Forti, 1909",
+   20: "Stephanopyxis corona (Ehrenberg) Grunow, 1882",
+   23: "Liradiscus ovalis Greville, 1865a",
+   24: "Goniothecium tenue Brun, 1894",
+   25: "Liradiscus ovalis Greville, 1865a",
+  },
+  3: {
+   1: "Stephanogonia actinoptychus (Ehr.) Grunow, 1882",
+   2: "Goniothecium odontella Ehrenberg, 1854",
+   3: "Stephanopyxis corona (Ehrenberg) Grunow, 1882",
+   4: "Pterotheca danica Grunow",
+   5: "Chaetoceros sp. C",
+   6: "Chaetoceros sp. C",
+   8: "Chaetoceros compressus Lauder, 1864",
+   9: "Goniothecium rogersii Ehrenberg, 1843",
+   10: "Pterotheca carinifera (Grunow) Forti, 1909",
+   11: "Chaetoceros vanheurecki Gran, 1897",
+   12: "Chaetoceros seiracanthus Gran, 1897",
+   15: "Chaetoceros coronatus Gran., 1897",
+   16: "Liradiscus bipolaris Lohman, 1948",
+   18: "Chaetoceros subsecundus (Grunow) Hustedt, 1930",
+   19: "Dossetia sp.",
+   22: "Xanthiopyxis globosa Ehrenberg, 1845",
+   26: "Goniothecium odontella Ehrenberg, 1854",
+   28: "Chaetoceros lorenzianus Grunow, 1863",
+   29: "Chaetoceros dicladia Castracane, 1886",
+  },
+ },
 }
+
 
 # **상자 순서 → Fig 번호.** `crop_plates.py --probe` 가 낸 대조 시트를 사람이
 # 보고 적는다. `None` 은 그림이 아니다(제본 그림자·맞은편 쪽 글자).
@@ -122,6 +199,16 @@ ASSIGN = {
    None, 1, 2, 3, 4, 5, 9, 10, 11, 6, 8, 7, 12, 13, 18, 15, 14, 17, 19, 16, None],
  ("1936_skvortzov_ampen_neogene", 47): [1, 2, 3, 4, 5, 8, 6, 7, 10, 11, 12, 9, None],
  ("1936_skvortzov_ampen_neogene", 50): [2, 4, 5, 1, 3, 9, 8, 6, 7, 11, 10, None],
+ # 1993 — 사진 타일이라 상자가 깨끗하다. 셋 다 그림 수와 상자 수가 맞았다
+ ("1993_lee_chaetoceros_yeonil", 12): [
+   1, 2, 3, 4, 6, 7, 8, 9, 5, 13, 11, 12, 10, 15, 14, 20, 16, 17, 18, 19,
+   22, 21, 23, 24],
+ ("1993_lee_chaetoceros_yeonil", 16): [
+   1, 2, 3, 4, 5, 7, 8, 12, 9, 10, 11, 17, 13, 14, 15, 16, 18, 19, 20, 24,
+   21, 22, 23, 28, 26, 27, 25],
+ ("1993_lee_chaetoceros_yeonil", 24): [
+   1, 2, 3, 10, 7, 4, 5, 9, 8, 6, 11, 12, 13, 14, 15, 16, 17, 20, 21, 18,
+   19, 25, 22, 23, 24, 26, 27, 28, 29],
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -129,10 +216,16 @@ ASSIGN = {
 # `min_area` 를 안 낮추면 작은 그림 둘(6·28)을 놓친다.
 # **`--probe` 로 상자 수를 캡션의 그림 수와 맞춰 놓고 짚는다.**
 PARAMS = {
-    ("1936_skvortzov_ampen_neogene", 41): dict(grow=3, min_area=1200, min_side=30),
+    # **감싸인 상자를 걷으면 Fig 13 이 사라진다** — Fig 7(큰 원반)의 상자가
+    # 12·13 을 통째로 감싼다. 여기서는 걷지 않는다
+    ("1936_skvortzov_ampen_neogene", 41):
+        dict(grow=3, min_area=1200, min_side=30, drop_nested=False),
     ("1936_skvortzov_ampen_neogene", 44): dict(grow=5, min_area=1200, min_side=30),
     ("1936_skvortzov_ampen_neogene", 47): dict(grow=9, min_area=4000, min_side=60),
     ("1936_skvortzov_ampen_neogene", 50): dict(grow=5, min_area=4000, min_side=60),
+    ("1993_lee_chaetoceros_yeonil", 12): dict(grow=3, min_area=2500, min_side=40),
+    ("1993_lee_chaetoceros_yeonil", 16): dict(grow=3, min_area=2500, min_side=40),
+    ("1993_lee_chaetoceros_yeonil", 24): dict(grow=3, min_area=2500, min_side=40),
 }
 
 # **자동으로는 못 갈린 그림.** 이웃과 붙어 한 상자가 됐다 — 손으로 잘라야 한다.
@@ -140,4 +233,6 @@ PARAMS = {
 UNCROPPED = {
     ("1936_skvortzov_ampen_neogene", 41, 12):
         "Fig 7(큰 원반)과 한 덩어리가 됐다 — 둘이 닿아 있다",
+    ("1993_lee_chaetoceros_yeonil", 16, 6):
+        "검출이 못 잡았다 — 타일이 흐려 문턱을 넘지 못했다",
 }
