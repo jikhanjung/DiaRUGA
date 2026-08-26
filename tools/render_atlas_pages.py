@@ -60,6 +60,13 @@ from pathlib import Path
 # `volume` 은 PDF 하나다 — 색인이 `Band4 PDF p.174` 처럼 **권마다 따로** 센다.
 NAS = Path("/nfs/temp-share/DiaRUGA/Diadiction/origin")
 
+# 논문 도판(161·162·163)은 `papers/` 에 산다 — `origin/` 과 자리가 다르다
+# (`Diadiction/papers/README.md`). **파일 이름은 그대로 밑줄을 쓴다** —
+# `plate_figs.py`·`parse_paper_atlas.py` 를 잇는 내부 열쇠와 같아야 어느
+# 논문인지 한눈에 짚이기 때문이다. `Atlas.key`(URL 코드, 밑줄 금지·32자
+# 이하 — 165)와는 다른 것이니 섞으면 안 된다
+PAPERS_NAS = Path("/nfs/temp-share/DiaRUGA/Diadiction/papers")
+
 # **펼침에서 어느 쪽이 왼쪽인가** — 도감마다 다르다 (131). 자료로 갈랐다:
 #
 # | 도감 | 근거 | 왼쪽 |
@@ -73,26 +80,47 @@ NAS = Path("/nfs/temp-share/DiaRUGA/Diadiction/origin")
 #
 # 넷째 도감을 더할 때 **이 값을 안 정하면 짝이 한 칸 밀린다.** 눈에 잘 안 띄는
 # 고장이라(그림은 나온다) 기본값을 두지 않고 표에 적게 했다.
+#
+# **논문 넷은 펼침에 진짜 근거가 없다.** 책으로 제본돼 좌우가 짝지어 인쇄된
+# 것이 아니라 저널 낱장을 이어 스캔한 것이라 "이 쪽의 짝은 원래 어느 쪽인가"
+# 를 잴 도리가 없다 — `spread()` 가 안 죽게 아무 쪽이나 못 박는다(`"odd"`,
+# `left_parity()` 의 "모르면 odd로 본다" 는 기본값과 같다). **도판을 읽을
+# 때는 격자(`volume()`, 쪽 하나씩)를 쓴다** — 펼침은 장식이지 근거가 아니다.
 LEFT_PARITY = {
     "korean": "odd",
     "schmidt": "even",
     "east-antarctic": "odd",
+    "1936-skvortzov": "odd",
+    "1992-lee-galmal": "odd",
+    "1993-lee-chaetoceros": "odd",
+    "1985-akiba-yanagisawa": "odd",
 }
 
 SOURCES = [
-    # (도감 코드, 도감 이름, 권 코드, 권 이름, PDF)
+    # (도감 코드, 도감 이름, 권 코드, 권 이름, 원본이 있는 뿌리, PDF)
     ("korean", "한국동식물도감 제9권 (담수조류)", "main", "본권",
-     "korean_flora_diatom.pdf"),
+     NAS, "korean_flora_diatom.pdf"),
     ("schmidt", "A. Schmidt, Atlas der Diatomaceenkunde", "band1", "Band 1",
-     "Band1.pdf"),
+     NAS, "Band1.pdf"),
     ("schmidt", "A. Schmidt, Atlas der Diatomaceenkunde", "band2", "Band 2",
-     "Band2.pdf"),
+     NAS, "Band2.pdf"),
     ("schmidt", "A. Schmidt, Atlas der Diatomaceenkunde", "band3", "Band 3",
-     "Band3.pdf"),
+     NAS, "Band3.pdf"),
     ("schmidt", "A. Schmidt, Atlas der Diatomaceenkunde", "band4", "Band 4",
-     "Band4.pdf"),
+     NAS, "Band4.pdf"),
     ("east-antarctic", "플라이스토세 중기 이후 동남극 규조 (도판집)", "main", "본권",
-     "pleistocene_east_antarctic_plates.pdf"),
+     NAS, "pleistocene_east_antarctic_plates.pdf"),
+    # 논문 넷 (161·162·163). `atlas` 코드는 `parse_paper_atlas.py` 의
+    # `PAPER_META[...]["atlas_key"]` 와 같아야 한다 — DB 의 `Atlas.key` 와
+    # 어긋나면 항목은 들어와도 도판 이미지가 안 열린다(165)
+    ("1936-skvortzov", "1936 Skvortzov 안변", "main", "본문",
+     PAPERS_NAS, "1936_skvortzov_ampen_neogene.pdf"),
+    ("1992-lee-galmal", "1992 Lee 갈말", "main", "본문",
+     PAPERS_NAS, "1992_lee_galmal_quaternary_flora.pdf"),
+    ("1993-lee-chaetoceros", "1993 Lee Chaetoceros", "main", "본문",
+     PAPERS_NAS, "1993_lee_chaetoceros_yeonil.pdf"),
+    ("1985-akiba-yanagisawa", "1985 Akiba & Yanagisawa", "main", "본문",
+     PAPERS_NAS, "1985_akiba_yanagisawa_dsdp87_zonal_markers.pdf"),
 ]
 
 OUT = Path(os.environ.get("DIARUGA_ATLAS_ROOT", "/data3/DiaRUGA/atlas"))
@@ -194,10 +222,10 @@ def main() -> int:
         return 2
 
     todo, plan = [], []
-    for atlas, atlas_name, vol, vol_name, fname in SOURCES:
+    for atlas, atlas_name, vol, vol_name, root, fname in SOURCES:
         if a.only and atlas != a.only:
             continue
-        pdf = NAS / fname
+        pdf = root / fname
         if not pdf.exists():
             print(f"!! 원본이 없다: {pdf}", file=sys.stderr)
             return 2
