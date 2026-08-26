@@ -818,6 +818,18 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
 
 ## 당면 과제
 
+- [ ] **논문 도감 넷을 운영 DB 에 반입한다** (2026-08-26, 163·164·165·166) —
+      도판 이미지는 `/data3/DiaRUGA/atlas/` 에 이미 구워 뷰어에서 넘겨볼 수
+      있지만(166), 종명 색인(`AtlasEntry`)은 저장소의 `atlas/*.json` 까지만
+      있고 **운영 DB 에는 아직 없다.** 종명 검색이 안 되는 이유가 이것이다 —
+      예: `Cladogramma californicium`(1993-lee-chaetoceros #24)가 캡션엔
+      있는데 검색엔 안 걸린다.
+
+      `dbrun.sh backup_db.py --note before-import-papers` → `dbsync.sh
+      import_atlas.py`(처음 한 번) → `dbrun.sh import_atlas.py`. 원하면
+      `import_occurrence.py`(한국 도감 출현 기록 924건, 164)도 같이 반입한다.
+      **둘 다 멱등이고 검산까지 한다** — 도감 넷(2,277 항목)만 새로 걸리고
+      기존 도감 셋은 그대로다.
 - [ ] **이미 검출한 마스크를 다른 판에도 번지게 한다** (2026-08-14, 사용자 요청) —
       111 이 **사람이 그린** 마스크를 같은 시야의 모든 판에 앉히고 한 개체로
       묶는다(`data._spread_drawn`). 같은 것을 **엔진이 잡아 놓은 개체**에도 하고
