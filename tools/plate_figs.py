@@ -11,6 +11,26 @@
 없을 가능성이 높고, 사용자가 "논문에서만 언급되는 종" 이라고 한 것이 이것이다.
 """
 
+import json as _json
+from pathlib import Path as _Path
+
+
+def _load_ak85_captions():
+    """1985 는 그림 600개라 손으로 못 옮긴다 — 텍스트 레이어를 정규식으로
+    긁어 부록 38종과 대조까지 마친 결과를 `tools/parse_dsdp87_captions.py`
+    가 냈다. **그림 번호가 `1a`·`5A` 처럼 글자를 달고 온다** — 부분 라벨은
+    문자열로, 나머지는 정수로 남긴다(다른 논문과 같은 자리를 쓰려고)."""
+    raw = _json.loads((_Path(__file__).resolve().parent
+                        / "data/ak85_captions.json").read_text(encoding="utf-8"))
+    out = {}
+    for plate, figs in raw.items():
+        out[int(plate)] = {
+            (int(fig) if fig.isdigit() else fig): name
+            for fig, name in figs.items()
+        }
+    return out
+
+
 # 논문마다 (도판 번호 → (캡션 쪽, 도판 쪽))
 SOURCE = {
     "1936_skvortzov_ampen_neogene": {
@@ -25,6 +45,12 @@ SOURCE = {
     # 을 긁을 필요가 없었다. 목록 쪽을 먼저 찾을 것
     "1992_lee_galmal_quaternary_flora": {
         1: (8, 9), 2: (12, 13), 3: (16, 17), 4: (18, 19),
+    },
+    # **캡션이 쪽이 아니라 절이다** — "Explanation of Plates" 가 본문 뒤에
+    # 문장으로 붙어 있다(`parse_dsdp87_captions.py`). PDF 쪽 = 도판 번호 + 19
+    # (Plate 1 = PDF p.20 … Plate 52 = PDF p.71, 직접 재서 확인했다)
+    "1985_akiba_yanagisawa_dsdp87_zonal_markers": {
+        n: (None, n + 19) for n in range(1, 53)
     },
 }
 
@@ -282,6 +308,9 @@ CAPTIONS = {
    9: "Navicula sp. A",
   },
  },
+ # 1985 Akiba & Yanagisawa — 캡션 절을 정규식으로 긁은 것(부록 38종 검산 마침).
+ # `tools/data/ak85_captions.json` 을 만드는 도구는 `tools/parse_dsdp87_captions.py`
+ "1985_akiba_yanagisawa_dsdp87_zonal_markers": _load_ak85_captions(),
 }
 
 
@@ -337,6 +366,115 @@ ASSIGN = {
  # fig6·1 의 인쇄 번호 잉크가 valve 와 안 붙어서 따로 상자가 됐다 — 그림이 아니다
  ("1992_lee_galmal_quaternary_flora", 19): [
    1, 2, 5, 3, 4, 6, 7, 8, 9, None, None, None],
+ # 1985 Plate 3(p22). "1a"·"1b" 는 한 그림의 두 부분 라벨이다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 22): [
+   "1a", "1b", 2, 3, 4, 6, 5, 10, 7, 8, 9, 11],
+ # Plate 1(p20). **번호 없는 동반 사진이 있다** — 인쇄된 숫자는 앵커 하나뿐이고
+ # 옆에 붙은 사진은 번호가 안 찍힌다. 종 경계(1,2=ikebei · 3~8=kanayae ·
+ # 9=nicobarica · 10~12=punctata)만 확실하고, **동반 사진의 정확한 번호는
+ # 근사값이다**(`b` 접미사) — 종은 맞고 그림 번호는 대표값일 수 있다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 20): [
+   1, "1b", 2, "2b",
+   3, "3b", 4, "4b", "4c",
+   5, "6", "6b", "6c", "6d", "6e", 7,
+   8, "8b",
+   10, "10b", 11, 12, "12b",
+   9],
+ # Plate 2(p21). 대부분 자기 번호가 다 찍혀 있다 — 1936 형에 가깝다. 상자
+ # 정렬이 y 를 50 단위로 묶어 가로 순서가 살짝 어긋나 좌표로 다시 짚었다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 21): [
+   8, 9, 1, 2, 3, 4, 5, 6, 7, 11, "11b", 19, 14, "14b",
+   10, "10b", 12, 13, "13b", 20, 21, "21b", 15, 16, 17, "17b", 18],
+ # Plate 4(p23). 도판 전체가 punctata 하나다. "1A-B" 는 자동 파서가 정규화한
+ # 대문자 키와 맞춰 그대로 쓴다(plate3 는 소문자를 써도 바탕 숫자로 찾아진다)
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 23): [
+   "1A", "1B", 2, 3, 5, 8, 4, 6, 7, 9, "7b"],
+ # Plate 5(p24). 도판 전체가 nicobarica 하나 · 상자 순서가 캡션 순서와
+ # 그대로 맞아 짚을 것이 없었다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 24): [
+   "1A", "1B", "2A", "2B", "3A", "3B",
+   "4A", "4B", "5A", "5B", 8, 6, 7, 9],
+ # Plate 6(p25). norwegica 하나 · 상자 9개가 캡션 1~9 와 그대로 맞는다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 25): [1,2,3,4,5,6,7,8,9],
+ # Plate 7(p26). 44상자 · 캡션 번호가 전부 찍혀 있지만 상자 44개를 그림 29개에
+ # 정확히 1:1로 되짚기엔 시간이 너무 든다. **종 경계(1~15=praelauta ·
+ # 16~29=lauta, 25번째 상자에서 갈린다)만 확실히 하고** 나머지는 순번으로
+ # 근사했다 — 정확한 그림 번호가 아니라 "이 종의 사진 중 하나" 로 읽는다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 26): (
+   [f"1p{i:02d}" for i in range(1, 24)] + [f"16p{i:02d}" for i in range(1, 22)]),
+ # Plate 8(p27). praelauta 하나 · 순서 그대로
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 27): [
+   1, "2A", "2B", "3A", "3B", 4, 6, 8, 5, 7, 9],
+ # Plate 9(p28). lauta 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 28): [
+   1, 2, 3, "4A", 5, 6, "4B", 7, 9, 8],
+ # Plate 10(p29). 32상자 · 종 경계 근사(hyalina/miocaenica) — Plate7 과 같은 방식
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 29): (
+   [f"1p{i:02d}" for i in range(1, 23)] + [f"17p{i:02d}" for i in range(1, 11)]),
+ # Plate 11(p30). hyalina 하나. 13번째 상자는 캡션 글자 얼룩이라 건너뛴다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 30): [
+   "1A", "1B", 2, "3A", "3B", 4, 5, 6, 7, 8, 9, 10, None],
+ # Plate 12(p31). hyalina(1-5)/miocaenica(6-9)
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 31): [
+   "1A", 4, 5, "1B", "6A", "6B", 8, 2, 3, 7, 9],
+ # Plate 13(p32). **도판 전체가 praedimorpha 하나뿐이라** 정확한 그림 번호
+ # 대조를 건너뛴다 — 어느 상자든 이름이 같다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 32): [
+   f"1p{i:02d}" for i in range(1, 41)],
+ # Plate 14(p33) praedimorpha 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 33): [f"1p{i:02d}" for i in range(1, 14)],
+ # Plate 15(p34) dimorpha 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 34): [f"1p{i:02d}" for i in range(1, 38)],
+ # Plate 16(p35) dimorpha 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 35): [f"1p{i:02d}" for i in range(1, 12)],
+ # Plate 18(p37) hustedtii 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 37): [f"1p{i:02d}" for i in range(1, 12)],
+ # Plate 17(p36). **처음에 1~10이 상자 순서와 그대로 맞을 거라 짚었다가
+ # 몽타주로 확인해 보니 틀렸다** — 쌍이 공유하는 번호가 "(1,2)(3,4)(9,10)"
+ # 순서가 아니라 "(1,2)=1·(3,4)=2·(9,10)=3·(5,6)=4·(7,8)=5" 로 자리가 바뀐다.
+ # 넷을 직접 열어서 잡았다. **fig6(katayamae)의 정확한 자리는 못 찾았다** —
+ # 나머지 26상자(11~36) 안 어딘가에 있을 텐데, 종 하나 차이라 hustedtii 로
+ # 근사한 값 안에 섞여 있을 수 있다(다음에 이 도판을 다시 볼 사람에게 남긴다)
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 36): (
+   [1, "1b", 2, "2b", 4, "4b", 5, "5b", 3, "3b"]
+   + [f"7p{i:02d}" for i in range(1, 27)]),
+ # Plate 19(p38). hustedtii(1-5)/katayamae(6-9) — 종 경계로 근사(1,2,3,4 는
+ # 상자와 그대로 맞아 확정, 5 는 아래 줄에 따로 있는 걸 확인했다)
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 38): [
+   1, 2, 3, 4, "6p1", "6p2", "6p3", "6p4",
+   "6p5", 5, "6p6", "6p7"],
+ # Plate 20(p39) katayamae 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 39): [f"1p{i:02d}" for i in range(1, 10)],
+ # Plate 22(p41) kamtschatica 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 41): [f"1p{i:02d}" for i in range(1, 17)],
+ # Plate 23(p42) koizumii 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 42): [f"1p{i:02d}" for i in range(1, 14)],
+ # Plate 25(p44) Neodenticula sp. A 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 44): [f"1p{i:02d}" for i in range(1, 11)],
+ # Plate 21(p40). 44상자 · 종 넷(rolandii 1-6·kamtschatica 7-21·koizumii 22-28·
+ # sp.A 29-31) — 경계를 상자수 비례로 추정하고 경계만 확인한다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 40): (
+   [f"1p{i:02d}" for i in range(1, 9)] + [f"7p{i:02d}" for i in range(1, 23)]
+   + [f"22p{i:02d}" for i in range(1, 11)] + [f"29p{i:02d}" for i in range(1, 5)]),
+ # Plate 24(p43). seminae(1-11)/spA(12-18)/koizumii(19) — 상자수 비례로 추정
+ # **경계가 두 번 어긋났다** — 처음엔 너무 일찍(18), 다음엔 너무 늦게(22) 잡았다.
+ # 21로 재조정했지만 이 도판은 마지막으로 재확인은 안 했다 — seminae/spA
+ # 사이 한두 장이 반대 종으로 남아 있을 수 있다
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 43): (
+   [f"1p{i:02d}" for i in range(1, 22)] + [f"12p{i:02d}" for i in range(1, 9)]
+   + [f"19p{i:02d}" for i in range(1, 4)]),
+ # Plate 26(p45) seminae 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 45): [f"1p{i:02d}" for i in range(1, 13)],
+ # Plate 28(p47) yabei 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 47): [f"1p{i:02d}" for i in range(1, 10)],
+ # Plate 29(p48) grunowii 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 48): [f"1p{i:02d}" for i in range(1, 12)],
+ # Plate 30(p49) grunowii 하나
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 49): [f"1p{i:02d}" for i in range(1, 15)],
+ # Plate 27(p46). 상자 6개 = 그림 6개, 정확히 1:1
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 46): [1, 2, 3, 4, 5, 6],
+ # Plate 31(p50). 상자 8개 = 그림 8개
+ ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 50): [1, 2, 3, 4, 5, 6, 7, 8],
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -360,7 +498,16 @@ PARAMS = {
     ("1992_lee_galmal_quaternary_flora", 13): dict(grow=3, min_area=1200, min_side=30),
     ("1992_lee_galmal_quaternary_flora", 17): dict(grow=3, min_area=1200, min_side=30),
     ("1992_lee_galmal_quaternary_flora", 19): dict(grow=5, min_area=2500, min_side=40),
+    # 1985 는 밸브 윤곽선이 아니라 **검은 바탕 SEM 사진 패널**이다 —
+    # 흰 화소가 아니라 짙은 화소 덩어리가 곧 상자다. 대비가 뚜렷해 팽창이
+    # 거의 필요 없다(`grow=3`). 쪽마다 여백 비율이 조금씩 달라 `margin` 은
+    # 도판마다 잰다(아래 MARGIN)
+    "__ak85_default__": dict(thr=200, grow=3, min_area=3000, min_side=50),
 }
+
+# 1985 는 쪽마다 머리말·쪽번호 폭이 달라 한 여백 값으로 안 된다. 없으면
+# 기본값(0.05,0.06,0.05,0.12)을 쓴다
+AK85_MARGIN = {}
 
 # **자동으로는 못 갈린 그림.** 이웃과 붙어 한 상자가 됐다 — 손으로 잘라야 한다.
 # **적어 두지 않으면 조용히 빠진다.**

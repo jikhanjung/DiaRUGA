@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -150,6 +151,29 @@ def contact(im: Image.Image, bs: list, path: Path) -> None:
 
 
 
+def caption_lookup(caps: dict, fig) -> str | None:
+    """캡션에서 그림 이름을 찾는다. **`1a`·`1b` 처럼 글자가 붙은 자리는
+    바탕 숫자(`1`)로도 찾아본다** — 1985 가 "(1A-B) 는 같은 그림의 두 장"
+    이라고 캡션 머리에 못 박아 뒀다(부분 라벨은 캡션에 따로 안 적는다).
+    **`1p03` 같은 합성 태그는 앞자리 숫자로 찾는다** — 상자 수가 너무 많아
+    정확한 그림 번호 대신 "이 종의 사진 중 하나" 로 근사한 자리다(Plate 7)."""
+    if fig in caps:
+        return caps[fig]
+    if isinstance(fig, str):
+        if fig[:-1].isdigit() and fig[-1].isalpha():
+            return caps.get(int(fig[:-1]))
+        m = re.match(r'^(\d+)p\d+$', fig)
+        if m:
+            return caps.get(int(m.group(1)))
+    return None
+
+
+def figtag(fig) -> str:
+    """파일 이름에 쓸 그림 번호. **정수는 두 자리로, `1a`·`5A` 같은 글자
+    딸린 라벨은 그대로 쓴다** — 1985(도판 52장)부터 그런 라벨이 나온다."""
+    return f"{fig:02d}" if isinstance(fig, int) else str(fig)
+
+
 def slug(name: str) -> str:
     """파일 이름에 쓸 ASCII. **학명의 표기는 지키되 기호만 걷는다.**"""
     import re
@@ -184,12 +208,12 @@ def cut_plate(im, bs, paper, page, pad, outdir):
             continue
         # **이름이 없어도 자른다.** 그림을 버리면 나중에 이름을 알아도 다시
         # 도판을 떠야 한다 — 빠진 것은 파일 이름에 드러나게 둔다
-        name = caps.get(fig, "__unnamed")
+        name = caption_lookup(caps, fig) or "__unnamed"
         x0, y0, x1, y1 = box
         # **번호 라벨이 잘리면 안 된다**(Diadiction README 의 작업 순서) — 여유를 둔다
         b = (max(0, x0 - pad), max(0, y0 - pad), min(w, x1 + pad), min(h, y1 + pad))
         tag = f"{paper.split('_')[0]}{paper.split('_')[1][:3]}"
-        f = outdir / f"plate_{tag}_pl{plate}_fig{fig:02d}_{slug(name)}.png"
+        f = outdir / f"plate_{tag}_pl{plate}_fig{figtag(fig)}_{slug(name)}.png"
         im.crop(b).save(f)
         made += 1
     # **닿아서 자동으로 못 가른 자리는 사람이 잰 사각형을 쓴다.** `ASSIGN` 은
@@ -197,19 +221,24 @@ def cut_plate(im, bs, paper, page, pad, outdir):
     for fig, box in MANUAL_BOXES.get((paper, page), {}).items():
         x0, y0, x1, y1 = box
         b = (max(0, x0 - pad), max(0, y0 - pad), min(w, x1 + pad), min(h, y1 + pad))
-        name = caps.get(fig, "__unnamed")
+        name = caption_lookup(caps, fig) or "__unnamed"
         tag = f"{paper.split('_')[0]}{paper.split('_')[1][:3]}"
-        f = outdir / f"plate_{tag}_pl{plate}_fig{fig:02d}_{slug(name)}.png"
+        f = outdir / f"plate_{tag}_pl{plate}_fig{figtag(fig)}_{slug(name)}.png"
         im.crop(b).save(f)
         made += 1
         a = a + [fig]   # UNCROPPED 계산에서 "이미 있다" 로 세이지 위해
 
     got = {f for f in a if f is not None}
-    unnamed = sorted(got - set(caps))
+    unnamed = sorted(f for f in got if caption_lookup(caps, f) is None)
     if unnamed:
         print(f"   **이름이 아직 없는 그림 {len(unnamed)}: {unnamed}** "
               f"(`__unnamed` 로 잘라 뒀다)")
-    miss = sorted(set(caps) - got)
+    covered = set()
+    for f in got:
+        covered.add(f)
+        if isinstance(f, str) and f[:-1].isdigit() and f[-1].isalpha():
+            covered.add(int(f[:-1]))
+    miss = sorted(set(caps) - covered, key=str)
     print(f"\n{made}장을 잘랐다 → {outdir}")
     if miss:
         print(f"**캡션에 있는데 안 잘린 그림 {len(miss)}: {miss}**")
@@ -270,10 +299,16 @@ def main() -> int:
                                  "71c428bd-2503-422e-8032-e047be395e81/scratchpad/plates"))
     args = ap.parse_args()
 
-    pr = PARAMS.get((args.paper, args.page), {})
-    for k, v in pr.items():
+    AK85 = "1985_akiba_yanagisawa_dsdp87_zonal_markers"
+    pr = PARAMS.get((args.paper, args.page))
+    if pr is None and args.paper == AK85:
+        pr = PARAMS.get("__ak85_default__", {})
+    for k, v in (pr or {}).items():
         if getattr(args, k) == ap.get_default(k):
             setattr(args, k, v)
+    if args.margin == ap.get_default("margin") and args.paper == AK85:
+        from plate_figs import AK85_MARGIN
+        args.margin = AK85_MARGIN.get(args.page, "0.05,0.06,0.05,0.12")
     pdf = PAPERS / f"{args.paper}.pdf"
     im = render(pdf, args.page, args.dpi)
     m = tuple(float(x) for x in args.margin.split(","))
