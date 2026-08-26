@@ -1,6 +1,6 @@
 {
  "atlas": {
-  "key": "1985_akiba_yanagisawa_dsdp87_zonal_markers",
+  "key": "1985-akiba-yanagisawa",
   "title": "Akiba, F. & Yanagisawa, Y. (1985) 북태평양 신생대 분대 표준종 (DSDP Init. Repts. Leg 87, ch.7)",
   "short": "1985 Akiba & Yanagisawa",
   "source": "tools/data/ak85_captions.json (자동 파싱, parse_dsdp87_captions.py)",

@@ -1,6 +1,6 @@
 {
  "atlas": {
-  "key": "1992_lee_galmal_quaternary_flora",
+  "key": "1992-lee-galmal",
   "title": "Lee, Y.G. (1992) 철원 갈말면 제4기 규조토 (J. Paleont. Soc. Korea 8(1):1–23)",
   "short": "1992 Lee 갈말",
   "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",

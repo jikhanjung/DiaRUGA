@@ -1,6 +1,6 @@
 {
  "atlas": {
-  "key": "1936_skvortzov_ampen_neogene",
+  "key": "1936-skvortzov",
   "title": "Skvortzov, B.V. (1936) 함남 안변의 신생대 화석 규조 (Bull. Geol. Surv. Tyosen 12, Harbin)",
   "short": "1936 Skvortzov 안변",
   "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",

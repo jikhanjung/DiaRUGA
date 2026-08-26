@@ -39,23 +39,35 @@ OUT = Path(__file__).resolve().parent.parent / "atlas"
 
 # 도판이 있는 넷 (161·162). 나머지 열한 편은 도판이 없거나(분포표만·초록만)
 # 아직 안 땄다 — `Diadiction/papers/README.md` 의 "자료의 모양" 표를 볼 것
+#
+# **딕셔너리 키(파일 스템)와 `atlas_key` 는 다른 것이다.** 앞엣것은
+# `plate_figs.py` 의 `SOURCE`·`CAPTIONS`·`ASSIGN` 을 잇는 내부 열쇠라 밑줄이
+# 섞여 있고(크롭 파일 이름과도 물려 있다), **`atlas_key` 는 `Atlas.key` 로
+# 나가는 공개 코드다.** `web/viewer/atlas.py` 의 `CODE` 정규식
+# (`^[a-z0-9][a-z0-9-]{0,31}$`)이 도판 이미지 경로를 그 값으로 짓기 때문에
+# **밑줄도, 32자를 넘는 것도 안 된다** — 이대로 두면 `Atlas` 행은 들어가도
+# 도판 이미지는 영영 못 연다(`_ok()` 가 조용히 `None` 을 낸다).
 PAPER_META = {
     "1936_skvortzov_ampen_neogene": dict(
+        atlas_key="1936-skvortzov",
         title="Skvortzov, B.V. (1936) 함남 안변의 신생대 화석 규조 "
               "(Bull. Geol. Surv. Tyosen 12, Harbin)",
         short="1936 Skvortzov 안변",
     ),
     "1992_lee_galmal_quaternary_flora": dict(
+        atlas_key="1992-lee-galmal",
         title="Lee, Y.G. (1992) 철원 갈말면 제4기 규조토 "
               "(J. Paleont. Soc. Korea 8(1):1–23)",
         short="1992 Lee 갈말",
     ),
     "1993_lee_chaetoceros_yeonil": dict(
+        atlas_key="1993-lee-chaetoceros",
         title="Lee, Y.G. (1993) 포항 연일층군 Chaetoceros "
               "(J. Paleont. Soc. Korea 9(1):24–52)",
         short="1993 Lee Chaetoceros",
     ),
     "1985_akiba_yanagisawa_dsdp87_zonal_markers": dict(
+        atlas_key="1985-akiba-yanagisawa",
         title="Akiba, F. & Yanagisawa, Y. (1985) 북태평양 신생대 분대 표준종 "
               "(DSDP Init. Repts. Leg 87, ch.7)",
         short="1985 Akiba & Yanagisawa",
@@ -161,7 +173,7 @@ def build(paper: str) -> dict:
     unnamed = total_figs - sum(len(v) for v in occurrences.values())
     return {
         "atlas": {
-            "key": paper,
+            "key": meta["atlas_key"],
             "title": meta["title"],
             "short": meta["short"],
             "source": source_note,
@@ -191,7 +203,7 @@ def main() -> int:
         n_p = sum(len(e["placements"]) for e in doc["entries"])
         print(f"{doc['atlas']['short']} — 항목 {n_e} · 자리 {n_p}")
         if not args.dry_run:
-            out = OUT / f"{paper}.json"
+            out = OUT / f"{PAPER_META[paper]['atlas_key']}.json"
             out.write_text(
                 json.dumps(doc, ensure_ascii=False, indent=1) + "\n",
                 encoding="utf-8")

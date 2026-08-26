@@ -1,6 +1,6 @@
 {
  "atlas": {
-  "key": "1993_lee_chaetoceros_yeonil",
+  "key": "1993-lee-chaetoceros",
   "title": "Lee, Y.G. (1993) 포항 연일층군 Chaetoceros (J. Paleont. Soc. Korea 9(1):24–52)",
   "short": "1993 Lee Chaetoceros",
   "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",
