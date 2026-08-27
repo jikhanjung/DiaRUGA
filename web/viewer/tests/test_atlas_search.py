@@ -24,7 +24,7 @@ from django.test import Client
 from django.urls import reverse
 
 from .base import DiaRUGATestCase
-from ..models import Atlas, AtlasEntry, AtlasPlacement
+from ..models import Atlas, AtlasEntry, AtlasPlacement, Occurrence, Reference
 
 
 class AtlasSearchTests(DiaRUGATestCase):
@@ -64,6 +64,13 @@ class AtlasSearchTests(DiaRUGATestCase):
             atlas=a, seq=3, name="Synedra cyclopиm", genus="Synedra",
             binomial="Synedra", rank="unreadable")
         AtlasPlacement.objects.create(entry=e4, seq=0, plate=9, pdf_page=17)
+
+        # 출현 기록 (P20 · 164) — e1 과 이명법이 정확히 같아야 걸린다
+        ref = Reference.objects.create(key="jung1965", authors="정 영호 외",
+                                       year=1965, kind="atlas")
+        Occurrence.objects.create(
+            source="korean", binomial="Skeletonema costatum",
+            region_raw="경기도행주", region="경기도 행주", reference=ref)
 
     def get(self, **q):
         return self.c.get(reverse("atlas"), q).content.decode()
@@ -166,3 +173,25 @@ class AtlasSearchTests(DiaRUGATestCase):
     def test_preview_attribute_on_chip(self):
         html = self.get(q="Navicula abrupta")
         self.assertIn('data-prev="atlas/schmidt/band1/p0023.png"', html)
+
+    # --- P20·164 — 출현 기록 -------------------------------------------------
+
+    # 13) 이명법이 맞는 항목에 지역·문헌이 붙는다
+    def test_occurrence_shows_region_and_reference(self):
+        html = self.get(q="Sceletonema")
+        self.assertIn("경기도 행주", html)
+        self.assertIn("정 영호 외, 1965", html)
+
+    # 14) 출현 기록이 없는 항목은 "출현" 줄 자체가 안 뜬다 — 조용히 비면
+    # 되는데 빈 줄을 내면 "이 종은 어디서도 안 보고됐다" 로 읽힌다
+    def test_no_occurrence_section_without_records(self):
+        html = self.get(q="Navicula abrupta")
+        self.assertNotIn("경기도 행주", html)
+        self.assertNotIn('class="entryextra occurrences"', html)
+
+    # 15) `binomial__icontains` 였다면 `Sceletonema` 검색이 `Navicula`(무관한
+    # 이명법)에도 출현을 붙일 수 있다 — 정확 일치인지는 여기서 갈린다
+    def test_occurrence_matches_binomial_exactly(self):
+        from viewer import data
+        rows = data.atlas_search(q="Sceletonema")["rows"]
+        self.assertEqual(len(rows[0]["occurrences"]), 1)
