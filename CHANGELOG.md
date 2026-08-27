@@ -23,6 +23,28 @@
 
 ## 뷰어
 
+### `v0.20.0` — 08-27 (마이그레이션 0041 · `Reference`·`Occurrence`)
+
+**논문 도감 넷을 도감(Atlas) 표에 얹는다** (163~166)
+
+한국 규조 논문 넷(1936 Skvortzov·1985 Akiba·Yanagisawa·1992 이·1993 이)의
+도판 1,078장을 기존 도감 셋(한국·Schmidt·동남극)과 같은 `Atlas`/
+`AtlasEntry`/`AtlasPlacement` 표로 옮겼다 — 도감·논문이 뷰어에서 한 갈래로
+열린다. 도판 이미지도 같은 자리(`/data3/DiaRUGA/atlas/<code>/`)에 구웠다(166).
+
+- **출현 기록 층을 새로 만들었다** (164, 0041) — `Reference`(문헌)·
+  `Occurrence`(도감·논문의 분포 문장, 한국 도감 924건). `AtlasEntry` 에
+  FK 를 매달지 않는다 — `source`·`binomial` 문자열로 도감과 느슨하게 맞춘다
+- **`Atlas.key` 를 내부 파일-스템과 갈랐다** (165) — 밑줄 있는 내부 키는
+  URL 조각으로 못 쓴다. 논문 넷의 공개 키를 `1936-skvortzov` 모양으로 새로
+  정했다(반입 전에 잡아 DB 마이그레이션은 필요 없었다)
+- 논문은 펼침(spread)의 근거가 없어(저널 낱장을 이은 스캔) 도판을 격자로만
+  본다 — `LEFT_PARITY` 는 죽지 않게 `"odd"` 로만 채웠다
+
+**운영 반입은 이 판에서 한다** — 이미지에 논문 도감 JSON 이 처음 실리므로
+`import_atlas.py` 가 이제야 넷을 잡는다(`ops/import_atlas.py`·
+`ops/import_occurrence.py`, `check_db.py` 11·12번).
+
 ### `v0.19.0` — 08-26 (마이그레이션 없음)
 
 **검출 마스크를 같은 시야의 다른 판에도 앉힌다** (P19 · 157)
