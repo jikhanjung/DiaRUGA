@@ -117,7 +117,7 @@ nginx 가 80 에서 `/DiaRUGA/` 을 떼고 `127.0.0.1:8090` 의 컨테이너로 
                /system-settings/ops/      운영 — 검토할 묶음 · 조리법 · 새 묶음
                /system-settings/dataset/  학습 자료 — 검토에서 정답을 얼마나 뽑나
                /system-settings/pipeline/ 파이프라인 — 폴러가 살아 있는가 (098)
-도감 목록      /atlas/                    도감 셋 — 표지·권·쪽 수 (129)
+도감 목록      /atlas/                    도감 일곱(도감 셋 + 논문 넷, 167) — 표지·권·쪽 수 (129)
 도감 검색      /atlas/?q=<이름>            표제어·이명법·속 (131) — 여기만 DB 를 본다
 도감 쪽 격자   /atlas/<도감>/<권>/         ?n=<쪽> 으로 곧장 간다
 도감 쪽 한 장  /atlas/<도감>/<권>/<쪽>/    번호가 곧 `PDF p.N` 이다
@@ -714,6 +714,13 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
     docker compose -f /srv/DiaRUGA/docker-compose.yml run --rm --entrypoint python web \
         -c "import json;print(json.load(open('/app/atlas/korean.json'))['atlas']['source_sha256'][:12])"
     ```
+
+  **`v0.20.0` 배포 뒤에 다시 돌렸다** (08-27 · 167) — 논문 도감 넷(163~166)이
+  이미지에 처음 실려 도감 3 → **7**, 항목 2,059 → **2,277**, 자리 2,480 →
+  **2,746** 이 됐다. **`ops/import_occurrence.py` 도 이 배포에서 처음
+  돌렸다**(한국 도감 출현 기록, 164 · P20) — 문헌 15 · 출현 기록 924.
+  `check_db` 11·12번 OK. `Cladogramma californicium`(1993-lee-chaetoceros)이
+  이제 `/atlas/?q=` 에 걸린다.
 
 - **도감 축소본 — 08-18 배포 직후에 구웠다** (5,344자리 · 9분 · 미생성 0 ·
   캐시 1.5 GB). 안 구우면 처음 여는 사람이 다 문다 — `views._thumbnail` 이 캐시가 있으면
