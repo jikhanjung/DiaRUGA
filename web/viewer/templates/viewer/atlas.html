@@ -163,6 +163,23 @@
           {% if r.extra.distribution %}<div><span class="dim">분포</span> {{ r.extra.distribution }}</div>{% endif %}
         </div>
       {% endif %}
+      {% if r.occurrences %}
+        {% comment %}
+          출현 기록 (P20 · 164) — 도감의 "분포" 문장이 낳은 종 × 지역 × 문헌.
+          **`r.extra.distribution` 과 다른 자리다** — 저것은 도감 원문 문장을
+          그대로 두는 칸이고 이것은 문장을 갈라 지역·문헌으로 맞춘 값이다.
+          둘 다 있으면 원문과 맞춰 읽을 수 있어 나란히 낸다.
+        {% endcomment %}
+        <div class="entryextra occurrences">
+          <span class="dim">출현</span>
+          {% for o in r.occurrences %}
+            <span class="occ">{{ o.region }}
+              <span class="dim">({{ o.authors }}, {{ o.year }})</span
+              >{% if o.note %} <span class="pnote">{{ o.note }}</span>{% endif %}</span
+            >{% if not forloop.last %} · {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
   {% empty %}
     {% comment %}

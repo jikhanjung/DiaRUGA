@@ -4783,6 +4783,35 @@ def _atlas_rel(key: str, volume, pdf_page) -> str:
     return atlas_mod.rel_of(key, atlas_mod.vol_code(volume), n)
 
 
+def _occurrences_by_binomial(binomials) -> dict[str, list[dict]]:
+    """이명법 집합에 대한 출현 기록 — 지역 × 문헌 (P20 · 164).
+
+    **한 번에 묻는다.** 행마다 되물으면 105 의 "카드마다 되묻기" 가
+    되풀이된다 — 한 판에 50행이라 안 가르면 50번 나간다.
+
+    `binomial` 은 정확 일치로 짚는다 — `Occurrence.binomial` 이 `AtlasEntry`
+    를 낳은 같은 색인에서 왔으므로(`tools/parse_occurrence.py`) 표기가
+    갈릴 일이 없다. `icontains` 를 쓰면 `Melosira`가 `Melosira ambigua`
+    까지 물어 온다.
+    """
+    from .models import Occurrence
+    binomials = {b for b in binomials if b}
+    if not binomials:
+        return {}
+    qs = (Occurrence.objects.filter(binomial__in=binomials)
+          .select_related("reference")
+          .order_by("region", "reference__year"))
+    out: dict[str, list[dict]] = {}
+    for o in qs:
+        out.setdefault(o.binomial, []).append({
+            "region": o.region or o.region_raw,
+            "authors": o.reference.authors,
+            "year": o.reference.year,
+            "note": o.note,
+        })
+    return out
+
+
 def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
                  offset: int = 0) -> dict:
     """도감 항목 검색.
@@ -4815,8 +4844,10 @@ def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
 
     total = qs.count()
     offset = max(0, min(offset, max(0, total - 1)))
+    page = list(qs[offset:offset + ATLAS_PER_PAGE])
+    occs = _occurrences_by_binomial(e.binomial for e in page)
     rows = []
-    for e in qs[offset:offset + ATLAS_PER_PAGE]:
+    for e in page:
         rows.append({
             "name": e.name, "binomial": e.binomial, "genus": e.genus,
             "authority": e.authority, "infra": e.infra, "item_no": e.item_no,
@@ -4829,6 +4860,7 @@ def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
                       "title": e.atlas.title},
             "extra": e.extra or {},
             "places": [_placement_dict(p) for p in e.placements.all()],
+            "occurrences": occs.get(e.binomial, []),
         })
     return {
         "q": q, "atlas_key": atlas_key, "genus": genus,
