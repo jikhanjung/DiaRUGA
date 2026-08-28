@@ -87,6 +87,11 @@ SOURCE = {
     "1975_lee_pohang_gampo_neogene": {
         1: (11, 13), 2: (11, 14),
     },
+    # 목록형 캡션이 각자 도판 바로 뒤 쪽에 있다(도판→캡션→3쪽 본문→도판…
+    # 이 세 번 반복). 셋 다 그림 수가 캡션 개수와 맞는다(27·22·18)
+    "1986_lee_se_korea_neogene": {
+        1: (11, 10), 2: (15, 14), 3: (19, 18),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -554,6 +559,83 @@ CAPTIONS = {
    17: "Coscinodiscus lineatus Ehr.",
   },
  },
+ # 1986 남한 신제3기(Lee) — 목록형 캡션, 세 판 각자 바로 뒤 쪽에서 옮겼다.
+ # 표본번호(RC12-381/383, 피스톤코어)·지름·배율이 함께 있지만 이름만 든다
+ "1986_lee_se_korea_neogene": {
+  1: {
+   1: "Coscinodiscus oculus-iridis Ehrenberg",
+   2: "Coscinodiscus marginatus var. fossilis Jouse",
+   3: "Coscinodiscus marginatus Ehrenberg",
+   4: "Coscinodiscus obscurus Schmidt",
+   5: "Thalassiosira antiqua (Grun.) Cleve-Euler",
+   6: "Actinocyclus curvatulus Janish in Schmidt",
+   7: "Coscinodiscus pilicatus Grunow",
+   8: "Thalassiosira eccentricus var. leasareolatus Kanaya",
+   9: "Thalassiosira convexa Mukhina",
+   10: "Coscinodiscus temperei Brun.",
+   11: "Caldogramma california Ehrenberg",
+   12: "Coscinodiscus tabularis? Grunow",
+   13: "Thalassiosira oestrupii (Osterfeld) Proskina-Lavrenko",
+   14: "Stephanopyxis schenckii Kayna",
+   15: "Stephanopyxis horridus Koizumi",
+   16: "Thalassiosira plicata Schrader",
+   17: "Xanthiopyxis ovalis Lohman",
+   18: "Hemidiscus simplicissimus Hanna and Grant",
+   19: "Coscinodiscus endoi Kanaya",
+   20: "Triceratium condercorum Brig.",
+   21: "Goniothecium odontella Ehrenberg",
+   22: "Nitzschia porteri Frenguelli",
+   23: "Denticulopsis kamtschatica (Zabelina) Simonsen",
+   24: "Denticulopsis hustedtii (Simonsen and Kanaya) Simonsen",
+   25: "Denticulopsis hustedtii (Simonsen and Kanaya) Simonsen",
+   26: "Goniothecium tenue Brun.",
+   27: "Thalassiothrix longissima Cleve and Grunow",
+  },
+  2: {
+   1: "Actinocylcus ingens (undulated type) Rattray",
+   2: "Actinocyclus ingens (flaty type) Rattray",
+   3: "Coscinodiscus vetustissima Pantocsek",
+   4: "Coscinodiscus lineatus Ehrenberg",
+   5: "Actinoptychus undulatus (Bail.) Ralfs",
+   6: "Actinocyclus ehrenbergi Ralfs in Pritchard",
+   7: "Stephanopyxis corona (Ehr.) Grunow",
+   8: "Actinocyclus ehrenbergi var. tenella (Breb.) Hustedt",
+   9: "Coscinodiscus stellaris Roper",
+   10: "Melosira clavigera Grunow",
+   11: "Stephanopyxis lineatus (Ehr.) Forti",
+   12: "Melosira sulcata Kutzing",
+   13: "Stephanogonia hanzawae Kanaya",
+   14: "Coscinodiscus nodulifer Schmidt",
+   15: "Coscinodiscus perferatus Ehrenberg",
+   16: "Stephanopyxis turris Ralfs",
+   17: "Liradiscus asperalus Andrew",
+   18: "Denticulopsis praedimorpha Akiba",
+   19: "Coscinodiscus lewisianus Greville",
+   20: "Liradiscus biopolaris Lohman",
+   21: "Denticulopsis hustedtii (Kanaya and Simonsen) Simonsen",
+   22: "Denticulopsis lauta (Bailey) Simonsen",
+  },
+  3: {
+   1: "Mastogloria splendida (Gregory) Cleve",
+   2: "Craspedodiscus rhombicus Grunow",
+   3: "Asteromphalus hungarica Pantocsek",
+   4: "Thalassiosira nordenskioeldii Cleve",
+   5: "Rhaphoneis amphiceros (Ehr.) Ehrenberg",
+   6: "Mediaria splendida Sheshukova-Poretskaya",
+   7: "Biddulphia areolata Hajos",
+   8: "Goniothecium odontella Ehrenberg",
+   9: "Diploneis major Cleve",
+   10: "Diploneis crabro Ehrenberg",
+   11: "Denticulopsis lauta (Bailey) Simonsen",
+   12: "Nitzschia porteri Frenguelli",
+   13: "Endictya oceanica Ehrenberg",
+   14: "Rhizosolenia miocenica Schrader",
+   15: "Nitzschia evenscene Schrader",
+   16: "Synedra jouseana Sheshukova-Poretzkaya",
+   17: "Grammatophora marina (Lynabye) Kutzing",
+   18: "Entopya australis var. gigantea Greville",
+  },
+ },
 }
 
 
@@ -680,6 +762,50 @@ MANUAL_BOXES = {
         13: (775, 1055, 870, 1370), 14: (940, 1065, 1040, 1350),
         15: (535, 1415, 820, 1540), 16: (535, 1575, 830, 1680),
         17: (890, 1395, 1160, 1680),
+    },
+    # 1986 남한 신제3기 — 세 판 다 자동 검출이 안 먹혔다(그림 27·22·18개가
+    # 44개 이상으로 쪼개졌다). 4사분면으로 나눠 격자 사본에 대고 잰 뒤
+    # 겹침 검사(모든 쌍의 상자 겹침 넓이)로 전사 실수를 걸렀다 — 172·173
+    # 에서 당한 것과 같은 실수를 이번엔 짚기 전에 코드로 잡았다
+    ("1986_lee_se_korea_neogene", 10): {
+        1: (130, 215, 500, 605), 2: (730, 215, 960, 600),
+        3: (985, 225, 1365, 600), 4: (95, 655, 455, 1005),
+        5: (490, 625, 710, 830), 6: (795, 640, 990, 830),
+        7: (1020, 620, 1365, 950), 8: (140, 1050, 440, 1310),
+        9: (425, 950, 635, 1110), 10: (650, 950, 865, 1140),
+        11: (880, 890, 1045, 1055), 12: (160, 1390, 380, 1590),
+        13: (400, 1300, 570, 1445), 14: (570, 1165, 780, 1400),
+        15: (835, 1095, 1060, 1300), 16: (1075, 1030, 1325, 1245),
+        17: (565, 1445, 780, 1590), 18: (835, 1390, 1030, 1540),
+        19: (1055, 1320, 1220, 1505), 20: (150, 1610, 420, 1850),
+        21: (405, 1500, 570, 1850), 22: (630, 1630, 710, 1850),
+        23: (730, 1600, 820, 1850), 24: (860, 1575, 925, 1850),
+        25: (980, 1565, 1050, 1850), 26: (1095, 1530, 1185, 1850),
+        27: (1250, 1275, 1295, 1850),
+    },
+    ("1986_lee_se_korea_neogene", 14): {
+        1: (115, 240, 490, 600), 2: (510, 260, 760, 495),
+        3: (795, 240, 1080, 545), 4: (1110, 255, 1340, 480),
+        5: (200, 640, 460, 950), 6: (470, 550, 760, 810),
+        7: (795, 610, 1010, 810), 8: (1035, 540, 1365, 880),
+        9: (145, 1000, 475, 1340), 10: (450, 910, 780, 1210),
+        11: (810, 895, 1030, 1110), 12: (1065, 950, 1360, 1220),
+        13: (175, 1400, 410, 1610), 14: (470, 1275, 700, 1470),
+        15: (700, 1240, 1070, 1510), 16: (1095, 1215, 1360, 1510),
+        17: (480, 1520, 740, 1650), 18: (875, 1525, 955, 1660),
+        19: (165, 1685, 570, 1850), 20: (730, 1685, 945, 1850),
+        21: (1030, 1530, 1110, 1850), 22: (1195, 1570, 1275, 1800),
+    },
+    ("1986_lee_se_korea_neogene", 18): {
+        1: (145, 240, 525, 770), 2: (605, 295, 780, 710),
+        3: (925, 240, 1225, 610), 4: (150, 820, 470, 1090),
+        5: (480, 680, 685, 1020), 6: (730, 700, 870, 1100),
+        7: (875, 725, 1325, 860), 8: (940, 920, 1290, 1100),
+        9: (225, 1180, 370, 1460), 10: (445, 1095, 590, 1485),
+        11: (640, 1140, 775, 1430), 12: (820, 1165, 890, 1365),
+        13: (225, 1520, 445, 1800), 14: (530, 1515, 620, 1830),
+        15: (730, 1390, 800, 1850), 16: (890, 1390, 965, 1850),
+        17: (1025, 1320, 1115, 1820), 18: (1175, 1260, 1280, 1820),
     },
 }
 
@@ -906,6 +1032,10 @@ ASSIGN = {
  # 1975 포항·감포 — 마찬가지로 자동 검출 결과를 안 쓴다
  ("1975_lee_pohang_gampo_neogene", 13): [None] * 13,
  ("1975_lee_pohang_gampo_neogene", 14): [None] * 22,
+ # 1986 남한 신제3기 — 세 판 다 자동 검출 결과를 안 쓴다
+ ("1986_lee_se_korea_neogene", 10): [None] * 44,
+ ("1986_lee_se_korea_neogene", 14): [None] * 65,
+ ("1986_lee_se_korea_neogene", 18): [None] * 39,
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -955,6 +1085,14 @@ PARAMS = {
     # 그림 17개가 22개로 쪼개졌다
     ("1975_lee_pohang_gampo_neogene", 14):
         dict(grow=3, min_area=2000, min_side=30),
+    # 값 자체는 안 쓴다(전부 `MANUAL_BOXES`) — 그림 27·22·18개가
+    # 44·65·39개로 쪼개졌다(세 판 다 대비가 낮은 선그림이 많다)
+    ("1986_lee_se_korea_neogene", 10):
+        dict(grow=3, min_area=1500, min_side=25),
+    ("1986_lee_se_korea_neogene", 14):
+        dict(grow=3, min_area=1500, min_side=25),
+    ("1986_lee_se_korea_neogene", 18):
+        dict(grow=3, min_area=1500, min_side=25),
 }
 
 # 1985 는 쪽마다 머리말·쪽번호 폭이 달라 한 여백 값으로 안 된다. 없으면
