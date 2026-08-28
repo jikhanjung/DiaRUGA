@@ -77,6 +77,11 @@ SOURCE = {
     "1993_bae_lee_south_sea_surface": {
         1: (12, 13), 2: (14, 15),
     },
+    # 남극 · 텍스트 레이어 없음. 여기는 **캡션이 도판 뒤에 온다**(1993 남해와
+    # 반대 방향) — p10 도판1 → p11 캡션1 → p12 도판2 → p13 캡션2
+    "2001_park_bransfield_paleoenv": {
+        1: (11, 10), 2: (13, 12),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -452,6 +457,61 @@ CAPTIONS = {
    20: "Actinoptychus undulatus",
   },
  },
+ # 2001 브랜스필드(Bak/Park 외) — 남극, 도판 밑에 문장형이 아니라 번호
+ # 목록형 캡션이 붙는다(1936 류와 다르다). 원문에 시추공(GC98-08)·깊이·
+ # SEM 배율이 함께 있지만 이름에는 안 섞는다(devlog 170 의 1994 와 같은 자리
+ # — 나중에 Occurrence 로 갈 값이라 devlog 표로만 남긴다)
+ "2001_park_bransfield_paleoenv": {
+  1: {
+   1: "Actinocyclus actinochilus (Ehrenberg) Simonsen",
+   2: "Asterompharus hookeri Ehrenberg",
+   3: "Chaetoceros resting spores",
+   4: "Chaetoceros resting spores",
+   5: "Cocconeis costata Gregory",
+   6: "C. fasciolata (Ehrenberg) Brown",
+   7: "Actinocyclus ingens Rattray",
+   8: "Asterompharus palvulus Karsten",
+   9: "Coscinodiscus furcatus Karsten",
+   10: "Fragilariopsis seperanda Hustedt",
+   11: "Coscinodiscus asteromphalus Ehrenberg",
+   12: "Melosira sol (Ehrenberg) Kutzing",
+   13: "Thalassiosira elliptipora Donahue",
+   14: "Porosira gracilis (Grunow) Jorgensen",
+   15: "Eucampia antarctica (Castracane) Mangin",
+   16: "Thalassiosira lentignosa Karsten",
+   17: "T. eccentrica (Ehrenberg) Cleve",
+   18: "T. gracilis (Karsten) Hustedt",
+   19: "T. antarctica Comber",
+   20: "Actinocyclus actinochilus (Ehrenberg) Simonsen",
+   21: "Licomphora abbreviata Agardh",
+   22: "Odontella weissflogii (Janisch) Grunow",
+   23: "Dactyliosolen antarcticus Castracane",
+   24: "Actinocyclus curvatulus Janisch",
+   25: "Fragilariopsis ritscheri Hustedt",
+   26: "Rhizosolenia hebetata f. bidens Heiden",
+   27: "Fragilariopsis sublineata (Van Heurck) Hasle",
+   28: "F. obliquecostata (Van Heurck) Hasle",
+   29: "Thalassiothrix longissima Cleve and Grunow",
+   30: "Acanthes brevipes var. angustata (Cleve) Grunow",
+   31: "Gomphonema intricatum Kutzing",
+   32: "Cocconeis fasciolata (Ehrenberg) Brown",
+  },
+  2: {
+   1: "Thalassiosira antarctica Comber",
+   2: "Actinocyclus actinochilus (Ehrenberg) Simonsen",
+   3: "Thalassiosira eccentrica (Ehr.) Cleve",
+   4: "Actinocyclus octonarius",
+   5: "Porosira glacialis (Grunow) Jorgensen",
+   6: "Coscinodiscus furcatus Karsten",
+   7: "Fragilariopsis lineata Hasle",
+   8: "F. kerguelensis (O'Meara) Hustedt",
+   9: "F. cylindrus (Grunow) Krieger",
+   10: "F. curta (V. Heurck) Hasle",
+   11: "F. ritscheri Hustedt",
+   12: "Rhizosolenia styliformis Brightwell",
+   13: "Navicula directa Smith",
+  },
+ },
 }
 
 
@@ -523,6 +583,36 @@ MANUAL_BOXES = {
         15: (1015, 1160, 1240, 1360), 16: (975, 1400, 1240, 1560),
         17: (195, 1600, 465, 1815), 18: (500, 1600, 755, 1835),
         19: (780, 1615, 970, 1820), 20: (1000, 1600, 1235, 1825),
+    },
+    # 2001 브랜스필드 — **검은 바탕**이라 자동 검출과 아예 안 맞는다.
+    # `boxes()` 는 "짙은 화소 = 그림" 으로 본다(`thr` 아래가 그림) — 이
+    # 도판은 배경이 검고 그림이 밝아 반대다. 판마다 갈 것도 없이 손으로 쟀다
+    ("2001_park_bransfield_paleoenv", 10): {
+        1: (210, 315, 500, 630), 2: (550, 325, 810, 590),
+        3: (840, 335, 1055, 490), 4: (1065, 335, 1250, 610),
+        5: (235, 680, 410, 940), 6: (430, 625, 545, 870),
+        7: (585, 620, 810, 935), 8: (855, 535, 1000, 690),
+        9: (830, 740, 1055, 980), 10: (1130, 610, 1205, 840),
+        11: (1085, 900, 1300, 1015), 12: (240, 995, 445, 1230),
+        13: (420, 900, 610, 1040), 14: (640, 900, 810, 1060),
+        15: (865, 1015, 1040, 1190), 16: (1105, 1115, 1300, 1290),
+        17: (215, 1240, 450, 1450), 18: (510, 1090, 600, 1170),
+        19: (500, 1230, 610, 1360), 20: (445, 1365, 610, 1585),
+        21: (705, 1080, 770, 1410), 22: (805, 1360, 895, 1500),
+        23: (965, 1250, 1090, 1410), 24: (975, 1395, 1135, 1585),
+        25: (1150, 1295, 1300, 1610), 26: (245, 1500, 410, 1860),
+        27: (450, 1575, 560, 1860), 28: (600, 1515, 695, 1860),
+        29: (715, 1415, 770, 1860), 30: (805, 1500, 895, 1860),
+        31: (950, 1630, 1045, 1860), 32: (1110, 1615, 1280, 1860),
+    },
+    ("2001_park_bransfield_paleoenv", 12): {
+        1: (200, 315, 560, 675), 2: (590, 315, 930, 675),
+        3: (975, 325, 1290, 645), 4: (200, 730, 560, 1030),
+        5: (590, 725, 930, 1040), 6: (975, 725, 1290, 1085),
+        7: (245, 1125, 305, 1685), 8: (345, 1195, 440, 1670),
+        9: (545, 1220, 620, 1650), 10: (700, 1175, 770, 1680),
+        11: (840, 1210, 915, 1670), 12: (995, 1285, 1065, 1660),
+        13: (1120, 1120, 1255, 1685),
     },
 }
 
@@ -742,6 +832,10 @@ ASSIGN = {
  # 1993 남해 — 마찬가지로 자동 검출 결과를 안 쓴다
  ("1993_bae_lee_south_sea_surface", 13): [None] * 26,
  ("1993_bae_lee_south_sea_surface", 15): [None] * 37,
+ # 2001 브랜스필드 — 검은 바탕이라 기본값 그대로 도판 전체가 상자 하나로
+ # 잡힌다(그것도 안 쓴다. 전부 `MANUAL_BOXES`)
+ ("2001_park_bransfield_paleoenv", 10): [None] * 1,
+ ("2001_park_bransfield_paleoenv", 12): [None] * 1,
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
