@@ -1,6 +1,6 @@
 # 논문 도판 — 1993 남해 서부연안 (171)
 
-`tools/plate_figs.py` · `tools/crop_plates.py` · P21, 169·170 다음(셋째)
+`tools/plate_figs.py` · `tools/crop_plates.py` · P22, 169·170 다음(셋째)
 
 ## 결과
 
@@ -61,4 +61,4 @@ paper_plates_pending.md` 에 얹었다 — **조회는 안 한다**(7편이 다
 
 ## 다음
 
-**2001 브랜스필드 고환경**(Park 외, 남극, Plate 1·2) — P21 순서대로.
+**2001 브랜스필드 고환경**(Park 외, 남극, Plate 1·2) — P22 순서대로.

@@ -1,6 +1,6 @@
 # 논문 도판 — 2001 브랜스필드 고환경 (172)
 
-`tools/plate_figs.py` · `tools/crop_plates.py` · P21, 169~171 다음(넷째, 남극)
+`tools/plate_figs.py` · `tools/crop_plates.py` · P22, 169~171 다음(넷째, 남극)
 
 ## 결과
 
@@ -74,4 +74,4 @@
 
 ## 다음
 
-**1975 포항·감포**(Lee, Plate I·II) — P21 순서대로.
+**1975 포항·감포**(Lee, Plate I·II) — P22 순서대로.
