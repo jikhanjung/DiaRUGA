@@ -92,6 +92,11 @@ SOURCE = {
     "1986_lee_se_korea_neogene": {
         1: (11, 10), 2: (15, 14), 3: (19, 18),
     },
+    # **OCR 서버 초안 → 렌더 대조로 확정**(175 · P22 의 잔여 둘). 캡션이
+    # 도판 바로 뒤 쪽에 있다 — 1986 과 같은 배치, 다섯 판이 다 반복된다
+    "1996_lee_bransfield_cores": {
+        1: (10, 11), 2: (12, 13), 3: (14, 15), 4: (16, 17), 5: (18, 19),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -636,6 +641,116 @@ CAPTIONS = {
    18: "Entopya australis var. gigantea Greville",
   },
  },
+ # 1996 브랜스필드 코어(남극) — **OCR 서버(175)로 초안을 뽑고 렌더 대조로
+ # 고쳤다.** 문장형 캡션(`Fig. N. 학명, 시료-깊이`)이라 그대로 옮겼다.
+ # OCR 이 조용히 정상화한 자리 다섯을 원문대로 되돌렸다 — pl1 fig3
+ # `curvatus`→`curvatulus`, fig13 `Castracana`→`Castracane`, pl2 fig24
+ # `broken`→`brocken`(원문 오식, 다른 자리는 유지됨), pl4 fig16
+ # `Lyngby`→`Lyngbye`, pl5 fig3 `Castrcane`→`Castracane`·fig4
+ # `actinochilus`→`actinochillus`(같은 종의 pl1 fig4 표기와 맞춘다 —
+ # 원문이 실제로 그렇게 두 벌 다 찍혀 있다). 시료·깊이는 안 옮긴다
+ # (1994·2001 과 같은 방침 — devlog 176 표로 남긴다)
+ "1996_lee_bransfield_cores": {
+  1: {
+   1: "Thalassiosira lentiginosa (Janisch) Fryxell",
+   2: "Thalassiosira lineata Jouse",
+   3: "Actinocyclus curvatulus Jan. in A. Schmidt",
+   4: "Actinocyclus actinochillus (Ehr.) Simonsen",
+   5: "Schimperiella antarctica Karsten",
+   6: "Eucampia balaustium Castracana",
+   7: "Thalassiosira antarctica Comber",
+   8: "Thalassiosira antarctica Comber",
+   9: "Thalassiosira antarctica Comber",
+   10: "Rhizosolenia hebetata f. bidens Heiden",
+   11: "Asteromphalus palvulus Karsten",
+   12: "Cocconeis fasciolata (Ehr.) Brown",
+   13: "Corethron criophilum Castracane",
+   14: "Stellarima stellaris (Roper) Hasle",
+   15: "Cocconeis costata Gregory",
+  },
+  2: {
+   1: "Thalassiosira eccentrica (Ehr.) Cleve",
+   2: "Coscinodiscus tabularis ? Gran.",
+   3: "Asteromphalus palvulus Karsten",
+   4: "Amphora sp. (A. egregia ?)",
+   5: "Nitzschia kerguelensis (O' Meara) Hasle",
+   6: "Nitzschia kerguelensis (O'Meara) Hasle",
+   7: "Nitzschia ritscheri (Hust.) Hasle",
+   8: "Nitzschia obliquecostata (Van Heurck) Hasle",
+   9: "Nitzschia lineata (Castracane) Hasle",
+   10: "Nitzschia sublineata Hasle",
+   11: "Cocconeis costata Gregory",
+   12: "Nitzschia angulata (O'Meara) Hasle",
+   13: "Nitzschia sublineata Hasle",
+   14: "Nitzschia obliquecostata (Van Heurck) Hasle",
+   15: "Grammatophora serpentina (Ralfs) Ehrenberg",
+   16: "Nitzschia sublineata Hasle",
+   17: "Syndra sp.",
+   18: "Nitzschia separanda (Hust.) Hasle",
+   19: "Nitzschia curta (Van Heurck) Hasle",
+   20: "Nitzschia cylindrus (Grunow) Hasle",
+   21: "Nitzschia separanda (Hust.) Hasle",
+   22: "Nitzschia curta (Van Heurck) Hasle",
+   23: "Rhizosolenia styliformis Brightwell",
+   24: "Thalassiothrix longissima Cleve and Grunow",
+  },
+  3: {
+   1: "Coscinodiscus asteromphalus Ehrenberg",
+   2: "Actinocyclus octonarius Ehrenberg",
+   3: "Actinocyclus octonarius var. tenella (Breb.) Hendey",
+   4: "Thalassiosira gracilis (Karsten) Hustedt",
+   5: "Melosira sol (Ehr.) Kutzing",
+   6: "Fricker lewisiana ? (Grev.) Heiden in Schmidt",
+   7: "Thalassiosira tumida (Janisch) Hasle",
+   8: "Amphora ovalis (Kutz.) Kutzing",
+   9: "Chaetoceros bulbosum (Ehr.) Heiden",
+   10: "Actinocyclus ingens Rattray",
+   11: "Navicula directa (Wm. Smith) Ralfs in Pritchard",
+   12: "Nitzschia sp.",
+   13: "Navicula praetexta (Ehr.) Gregory",
+   14: "Rhizosolenia alata f. inermis (Castracane) Hustedt",
+  },
+  4: {
+   1: "Thalassiosira sp. A",
+   2: "Thalassiosira lentiginosa (Janisch) Fryxell",
+   3: "Roperia tesselata (Roper) Grunow",
+   4: "Coscinodiscus stellaris var. symbolophorus (Grun.) Jorgensen",
+   5: "Thalassiosira antarctica Comber",
+   6: "Dactyliosolen antarctica Castracane",
+   7: "Stephanopyxis turris (Grev. & Arnott) Ralfs",
+   8: "Actinocyclus karstenii Van Heurck",
+   9: "Navicula peregrina (Ehr.) Kutzing",
+   10: "Nitzschia barbieri M. Per.",
+   11: "Achnanthes brevipes var. angustata (Grev.) Cleve",
+   12: "Gomphonema intricatum Kutzing",
+   13: "Licmophora decora Heiden and Kolbe",
+   14: "Denticulopsis hustedtii ? Simonsen and Kanaya",
+   15: "Achnanthes sp. ?",
+   16: "Grammatophora marina (Lyngbye) Kutzing",
+   17: "Thalassiosira elliptipora Donahue",
+   18: "Nitzschia lineata (Castracane) Hasle",
+   19: "Nitzschia curta (Van Heurck) Hasle",
+   20: "Nitzschia cylindrus (Grunow) Hasle",
+   21: "Denticulopsis sp.",
+   22: "Nitzschia curta (Van Heurck) Hasle",
+   23: "Grammatophora arcuata Ehrenberg",
+   24: "Nitzschia angularis Smith",
+  },
+  5: {
+   1: "Asteromphalus parvulus Karsten",
+   2: "Cocconeis fasciolata (Ehr.) Brown",
+   3: "Corethron criophilum Castracane",
+   4: "Actinocyclus actinochillus (Ehr.) Simonsen",
+   5: "Chaetoceros bulbosum (Ehr.) Heiden",
+   6: "Cocconeis costata Gregory",
+   7: "Eucampia balaustium Castracane",
+   8: "Thalassiosira lentiginosa (Janisch) Fryxell",
+   9: "Nitzschia kerguelensis (O'Meara) Hasle",
+   10: "Nitzschia kerguelensis (O'Meara) Hasle",
+   11: "Nitzschia lineata (Castracane) Hasle",
+   12: "Nitzschia obliquecostata (Van Heurck) Hasle",
+  },
+ },
 }
 
 
@@ -806,6 +921,33 @@ MANUAL_BOXES = {
         13: (225, 1520, 445, 1800), 14: (530, 1515, 620, 1830),
         15: (730, 1390, 800, 1850), 16: (890, 1390, 965, 1850),
         17: (1025, 1320, 1115, 1820), 18: (1175, 1260, 1280, 1820),
+    },
+    # 1996 브랜스필드 Plate 4 — 24개 다 손으로 쟀다(자동은 24개가 28개로
+    # 쪼개졌다). fig7 을 처음에 fig13 자리까지 늘려 잡아 겹쳤었다 — 겹침
+    # 검사(174 의 방법)로 잡고 실제 크기(뭉친 성게가시 모양, 작다)로 고쳤다
+    ("1996_lee_bransfield_cores", 17): {
+        1: (205, 405, 505, 730), 2: (585, 395, 920, 720),
+        3: (950, 390, 1300, 710), 4: (195, 780, 470, 1040),
+        5: (510, 775, 740, 1015), 6: (765, 775, 950, 985),
+        7: (745, 1020, 920, 1205), 8: (980, 775, 1300, 1040),
+        9: (210, 1095, 270, 1425), 10: (320, 1095, 395, 1420),
+        11: (440, 1060, 540, 1425), 12: (610, 1045, 690, 1400),
+        13: (740, 1210, 810, 1425), 14: (885, 1175, 955, 1425),
+        15: (1025, 1130, 1115, 1425), 16: (1165, 1130, 1250, 1425),
+        17: (210, 1445, 600, 1860), 18: (630, 1540, 705, 1860),
+        19: (745, 1465, 835, 1660), 20: (875, 1445, 960, 1660),
+        21: (745, 1700, 835, 1860), 22: (875, 1690, 960, 1860),
+        23: (990, 1625, 1150, 1860), 24: (1170, 1400, 1250, 1860),
+    },
+    # Plate 5 — 검은 바탕 SEM(2001 과 같은 사정 — 자동 검출 전제가 안
+    # 맞는다). 여백이 넉넉해 12개를 손으로 재는 것이 더 빨랐다
+    ("1996_lee_bransfield_cores", 19): {
+        1: (210, 410, 570, 785), 2: (600, 410, 870, 785),
+        3: (900, 405, 1250, 695), 4: (210, 810, 570, 1190),
+        5: (600, 810, 920, 1125), 6: (980, 750, 1250, 1190),
+        7: (210, 1225, 600, 1450), 8: (210, 1475, 600, 1855),
+        9: (625, 1325, 800, 1855), 10: (825, 1325, 940, 1855),
+        11: (965, 1375, 1085, 1855), 12: (1140, 1220, 1250, 1855),
     },
 }
 
@@ -1036,6 +1178,22 @@ ASSIGN = {
  ("1986_lee_se_korea_neogene", 10): [None] * 44,
  ("1986_lee_se_korea_neogene", 14): [None] * 65,
  ("1986_lee_se_korea_neogene", 18): [None] * 39,
+ # 1996 브랜스필드 Plate 1 — 사진 격자라 자동 검출이 그림 수(15)를
+ # 정확히 맞혔다. 순서만 인쇄 번호와 다르다(사분면을 훑는 순서라서) —
+ # 상자마다 찍힌 숫자를 읽어 맞바꿨다
+ ("1996_lee_bransfield_cores", 11): [
+   1, 2, 3, 4, 5, 6, 10, 11, 7, 8, 9, 12, 15, 14, 13],
+ # Plate 2 — 24개가 25개로 잡혔다(상자 22 는 잡티). fig6·7 이 한 열에
+ # 위아래로 포개져 있어 처음엔 fig7 을 놓칠 뻔했다
+ ("1996_lee_bransfield_cores", 13): [
+   1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 7, 23, 18, 24, 16, 17, 13, 15,
+   14, 19, None, 20, 21, 22],
+ # Plate 3 — 14개가 15개로 잡혔다(상자 13 은 잡티, 스캔 얼룩 둘)
+ ("1996_lee_bransfield_cores", 15): [
+   1, 2, 3, 4, 7, 5, 6, 8, 9, 11, 12, 13, None, 14, 10],
+ # Plate 4·5 는 전부 손으로 쟀다(위 `MANUAL_BOXES`) — 상자 수만 맞춘다
+ ("1996_lee_bransfield_cores", 17): [None] * 28,
+ ("1996_lee_bransfield_cores", 19): [None] * 14,
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -1093,6 +1251,19 @@ PARAMS = {
         dict(grow=3, min_area=1500, min_side=25),
     ("1986_lee_se_korea_neogene", 18):
         dict(grow=3, min_area=1500, min_side=25),
+    # 1996 브랜스필드 — 사진 격자라 Plate 1 은 자동 검출이 그대로 맞았다
+    ("1996_lee_bransfield_cores", 11):
+        dict(grow=3, min_area=3000, min_side=40),
+    # Plate 2·3 은 상자가 하나씩 더 잡혀 25·15개 — 그래도 자동을 쓴다
+    ("1996_lee_bransfield_cores", 13):
+        dict(grow=3, min_area=3500, min_side=55),
+    ("1996_lee_bransfield_cores", 15):
+        dict(grow=3, min_area=3500, min_side=55),
+    # Plate 4·5 는 값을 안 쓴다(전부 `MANUAL_BOXES`) — 상자 수만 맞춘다
+    ("1996_lee_bransfield_cores", 17):
+        dict(grow=3, min_area=3500, min_side=55),
+    ("1996_lee_bransfield_cores", 19):
+        dict(grow=3, min_area=3500, min_side=55),
 }
 
 # 1985 는 쪽마다 머리말·쪽번호 폭이 달라 한 여백 값으로 안 된다. 없으면
