@@ -65,6 +65,12 @@ SOURCE = {
     "2017_yun_ulleung_basin": {
         1: (13, 13),
     },
+    # **캡션 쪽이 도판 쪽 바로 앞이다** — "PLATE 1" 목록이 p11(쪽번호 36)
+    # 뒤쪽 절반에 있고, 도판 자체는 p12(쪽번호 37)다. 텍스트 레이어가 없어
+    # (Diadiction README 의 "텍스트 레이어는 셋뿐" 표) 렌더해서 읽었다
+    "1994_lee_namyangman_tidal_flat": {
+        1: (11, 12),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -350,6 +356,45 @@ CAPTIONS = {
    "T": "Th. Nitzschioides",
   },
  },
+ # 1994 남양만 — "PLATE 1" 목록(p11)에서 그대로 옮겼다. 원문이 각주에
+ # 시료·깊이(VC-8/VC-10/VC-Y1, cm)를 함께 적어 뒀지만 그것은 출현 기록
+ # 쪽 일이라 여기 이름에는 안 섞는다(`devlog/20260828_170` 에 표로 남겼다).
+ # **Fig 7·27 은 원문 철자가 다르다**(weissflogii vs weissflogia) — 고치지 않았다
+ "1994_lee_namyangman_tidal_flat": {
+  1: {
+   1: "Cyclotella striata",
+   2: "Cyclotella striata",
+   3: "Podosira stelliger",
+   4: "Actinocyclus ehrenbergii",
+   5: "Coscinodiscus nitidus",
+   6: "Thalassiosira eccentrica",
+   7: "Diploneis weissflogii",
+   8: "Paralia sulcata",
+   9: "Paralia sulcata",
+   10: "Actinocyclus curvatulus",
+   11: "Actinoptychus undulatus (=A. senarius)",
+   12: "Triceratium dubium",
+   13: "Paralia sulcata (girdle view)",
+   14: "Thalassiosira oestrupii",
+   15: "Surirella fastuosa var. recedens",
+   16: "Tryblioptychus cocconeiformis",
+   17: "Actinoptychus splendens",
+   18: "Grammatophora marina",
+   19: "Thalassiosira lineata",
+   20: "Nitzschia sigmaformis",
+   21: "Trachyneis aspera",
+   22: "Thalassionema nitzschioides",
+   23: "Thalassionema nitzschioides",
+   24: "Nitzschia granulata",
+   25: "Delphineis surirella (=Rhaponeis surirella)",
+   26: "Rhaponeis amphiceros",
+   27: "Cymatotheca weissflogia",
+   28: "Actinocyclus ehrenbergii var. tenella",
+   29: "Thalassiosira decipiens",
+   30: "Nitzschia punctata",
+   31: "Epithemia turgida",
+  },
+ },
 }
 
 
@@ -370,6 +415,30 @@ MANUAL_BOXES = {
     # 둘로 쪼갰다(상자 15 = 몸통, 16 = 라벨). 둘을 합친 사각형을 손으로 썼다
     ("2017_yun_ulleung_basin", 13): {
         "O": (149, 913, 620, 1100),
+    },
+    # **31개 전부 손으로 쟀다** — 그림 크기가 30x150 부터 300x500 까지 널뛰고
+    # (원판 사진 + 선그림 혼재), 촘촘히 붙어 있어 한 팽창값으로는 어떤
+    # 그림은 안 갈리고 어떤 그림은 속의 성긴 무늬 때문에 조각나 버렸다
+    # (`--probe` 로 몇 번을 돌려도 31 과 안 맞았다). 자동 검출을 아예
+    # 안 쓰고(`ASSIGN` 을 전부 `None` 으로 둔다) 격자 눈금을 그은 사본에
+    # 대고 1489×2071 원본 좌표를 하나씩 읽었다.
+    ("1994_lee_namyangman_tidal_flat", 12): {
+        1: (225, 388, 427, 595), 2: (485, 388, 657, 595),
+        3: (730, 390, 940, 605), 4: (1000, 390, 1255, 645),
+        5: (210, 655, 443, 898), 6: (452, 685, 745, 898),
+        7: (760, 620, 900, 865), 8: (925, 675, 1080, 805),
+        9: (1105, 675, 1270, 805), 10: (218, 940, 388, 1108),
+        11: (420, 940, 600, 1108), 12: (628, 895, 898, 1108),
+        13: (928, 883, 1078, 1028), 14: (1095, 855, 1265, 1030),
+        15: (215, 1145, 365, 1395), 16: (420, 1125, 560, 1310),
+        17: (630, 1105, 895, 1370), 18: (915, 1050, 990, 1370),
+        19: (1010, 1065, 1255, 1315), 20: (215, 1395, 265, 1810),
+        21: (290, 1420, 365, 1810), 22: (425, 1265, 475, 1510),
+        23: (425, 1530, 475, 1810), 24: (525, 1365, 615, 1622),
+        25: (510, 1365, 610, 1622), 26: (635, 1395, 755, 1615),
+        27: (950, 1395, 1065, 1530), 28: (515, 1645, 675, 1815),
+        29: (730, 1655, 885, 1815), 30: (950, 1590, 1065, 1820),
+        31: (1065, 1350, 1250, 1840),
     },
 }
 
@@ -583,6 +652,9 @@ ASSIGN = {
  ("2017_yun_ulleung_basin", 13): [
    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N",
    None, None, "P", "Q", None, "R", "S", "T"],
+ # 1994 남양만 — 자동 검출을 안 쓴다(위 `MANUAL_BOXES` 설명 참고). `PARAMS`
+ # 값으로 상자가 몇 개 잡히든 전부 버리는 자리라 개수만 맞춰 `None` 을 채운다
+ ("1994_lee_namyangman_tidal_flat", 12): [None] * 6,
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -615,6 +687,10 @@ PARAMS = {
     # 있어 `margin` 으로 걷는다(위 11.1% · 아래 35.4% — 재서 넣었다)
     ("2017_yun_ulleung_basin", 13):
         dict(grow=3, min_area=3000, margin="0,0.111,0,0.354"),
+    # 값 자체는 안 쓴다(전부 `MANUAL_BOXES`) — `--probe` 가 상자 6개로
+    # 멈추게만 맞췄다(`ASSIGN` 길이와 맞아야 `--cut` 이 안 죽는다)
+    ("1994_lee_namyangman_tidal_flat", 12):
+        dict(grow=3, min_area=50000, min_side=30),
 }
 
 # 1985 는 쪽마다 머리말·쪽번호 폭이 달라 한 여백 값으로 안 된다. 없으면
