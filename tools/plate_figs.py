@@ -82,6 +82,11 @@ SOURCE = {
     "2001_park_bransfield_paleoenv": {
         1: (11, 10), 2: (13, 12),
     },
+    # 텍스트 레이어 없음. **두 판의 캡션이 한 쪽(p11)에 같이 있다** — Plate I·II
+    # 목록이 위아래로 이어 실렸다. 도판은 p13(Plate I)·p14(Plate II)
+    "1975_lee_pohang_gampo_neogene": {
+        1: (11, 13), 2: (11, 14),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -512,6 +517,43 @@ CAPTIONS = {
    13: "Navicula directa Smith",
   },
  },
+ # 1975 포항·감포(Lee) — 목록형 캡션(p11, 두 판이 한 쪽에 같이 있다).
+ # 표본번호(KUDG-…)·시료·지층·지름·배율이 함께 있지만 이름만 옮긴다
+ "1975_lee_pohang_gampo_neogene": {
+  1: {
+   1: "Actinocyclus ingens Rattray",
+   2: "Actinocyclus ingens Rattray",
+   3: "Coscinodiscus vetustissimus Pant.",
+   4: "Coscinodiscus oculus-iridis Ehr.",
+   5: "Coscinodiscus marginatus Ehr.",
+   6: "Actinocyclus curvatulus Jan.",
+   7: "Coscinodiscus curvatulus Grun.",
+   8: "Melosira sulcata (Ehr.) Kütz.",
+   9: "Coscinodiscus papillosus Hajós",
+   10: "Actinoptychus senarius Ehr.",
+   11: "Chaetoceros sp.",
+   12: "Coscinodiscus argus Ehr.",
+  },
+  2: {
+   1: "Xanthiopyxis ovalis Lohm.",
+   2: "Stephanopyxis turris Ralfs",
+   3: "Stephanopyxis cfr. ferox (Grev.) Ralfs",
+   4: "Melosira islandica O Müll.",
+   5: "Stephanogonia hanzawae Kanaya",
+   6: "Fragilaria bituminosa var. curta Pant.",
+   7: "Fragilaria bituminosa var. minor Pant.",
+   8: "Fragilaria bituminosa var. elongata Pant.",
+   9: "Thalassiothrix longissima Cleve & Grun.",
+   10: "Thalassionema nitzschioides Grun.",
+   11: "Grammatophora strict var. fossilis Grun.",
+   12: "Dictyocha crux Ehr.",
+   13: "Denticula lauta Bail.",
+   14: "Denticula hustedtii Simonsen & Kanaya",
+   15: "Biddulphia areolata Hajós",
+   16: "Liradiscus bipolaris Lohm.",
+   17: "Coscinodiscus lineatus Ehr.",
+  },
+ },
 }
 
 
@@ -613,6 +655,31 @@ MANUAL_BOXES = {
         9: (545, 1220, 620, 1650), 10: (700, 1175, 770, 1680),
         11: (840, 1210, 915, 1670), 12: (995, 1285, 1065, 1660),
         13: (1120, 1120, 1255, 1685),
+    },
+    # 1975 포항·감포 — 선그림이라 대비는 옅지만 도판마다 여백이 넉넉해
+    # 자동 검출을 먼저 시도했다. 그런데 흐린 그림(Fig 1·2·4·5) 속의
+    # 성긴 무늬가 조각나 13개(그림 12개인데)로 갈렸다 — 손으로 다시 쟀다
+    ("1975_lee_pohang_gampo_neogene", 13): {
+        1: (145, 300, 415, 595), 2: (480, 265, 800, 620),
+        3: (840, 295, 1175, 710), 4: (115, 640, 420, 945),
+        5: (400, 700, 890, 1230), 6: (925, 770, 1190, 1010),
+        7: (165, 1015, 430, 1270), 8: (600, 1270, 750, 1420),
+        9: (985, 1150, 1190, 1300), 10: (115, 1365, 495, 1680),
+        11: (590, 1525, 820, 1680), 12: (915, 1350, 1205, 1610),
+    },
+    # Plate II — 9·10·11 은 처음에 잘못 재서(옆 그림 자리를 베꼈다) 원본을
+    # 다시 대조해 바로잡았다 — 9(굵은 침상)·10(그 옆의 아주 흐린 침상,
+    # 거의 안 보인다)·11(원형 무늬 있는 타원)이 서로 다른 상자다
+    ("1975_lee_pohang_gampo_neogene", 14): {
+        1: (195, 305, 495, 485), 2: (590, 315, 820, 530),
+        3: (915, 315, 1185, 580), 4: (190, 565, 410, 1040),
+        5: (435, 590, 635, 795), 6: (480, 825, 600, 1060),
+        7: (665, 675, 855, 990), 8: (900, 690, 1170, 950),
+        9: (170, 1045, 295, 1670), 10: (370, 1480, 425, 1660),
+        11: (385, 1060, 470, 1395), 12: (565, 1090, 665, 1320),
+        13: (775, 1055, 870, 1370), 14: (940, 1065, 1040, 1350),
+        15: (535, 1415, 820, 1540), 16: (535, 1575, 830, 1680),
+        17: (890, 1395, 1160, 1680),
     },
 }
 
@@ -836,6 +903,9 @@ ASSIGN = {
  # 잡힌다(그것도 안 쓴다. 전부 `MANUAL_BOXES`)
  ("2001_park_bransfield_paleoenv", 10): [None] * 1,
  ("2001_park_bransfield_paleoenv", 12): [None] * 1,
+ # 1975 포항·감포 — 마찬가지로 자동 검출 결과를 안 쓴다
+ ("1975_lee_pohang_gampo_neogene", 13): [None] * 13,
+ ("1975_lee_pohang_gampo_neogene", 14): [None] * 22,
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -878,6 +948,12 @@ PARAMS = {
         dict(grow=3, min_area=2000, min_side=30),
     # PLATE 2 는 더 심하다 — 그림 20개가 37개로 쪼개졌다
     ("1993_bae_lee_south_sea_surface", 15):
+        dict(grow=3, min_area=2000, min_side=30),
+    # 값 자체는 안 쓴다(전부 `MANUAL_BOXES`) — 그림 12개가 13개로 쪼개졌다
+    ("1975_lee_pohang_gampo_neogene", 13):
+        dict(grow=3, min_area=2000, min_side=30),
+    # 그림 17개가 22개로 쪼개졌다
+    ("1975_lee_pohang_gampo_neogene", 14):
         dict(grow=3, min_area=2000, min_side=30),
 }
 
