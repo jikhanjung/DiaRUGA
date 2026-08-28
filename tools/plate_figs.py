@@ -59,6 +59,12 @@ SOURCE = {
     "1985_akiba_yanagisawa_dsdp87_zonal_markers": {
         n: (None, n + 19) for n in range(1, 54)
     },
+    # **캡션이 도판과 한 쪽에 있다** — 도판 자체가 마지막 쪽(PDF p.13, 본문
+    # 쪽번호 357) 아래에 붙어 있어 따로 캡션 쪽이 없다. 그림 번호도 숫자가
+    # 아니라 글자(A–T)다 — Fig 라벨이 도판 위에 이미 인쇄돼 있어 그대로 쓴다
+    "2017_yun_ulleung_basin": {
+        1: (13, 13),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -318,6 +324,32 @@ CAPTIONS = {
  # 1985 Akiba & Yanagisawa — 캡션 절을 정규식으로 긁은 것(부록 38종 검산 마침).
  # `tools/data/ak85_captions.json` 을 만드는 도구는 `tools/parse_dsdp87_captions.py`
  "1985_akiba_yanagisawa_dsdp87_zonal_markers": _load_ak85_captions(),
+ # 2017 울릉분지 — 도판 밑 문장형 캡션에서 그대로 옮겼다("Figs A-C. …").
+ # 그림 번호가 글자라 `figtag` 가 그대로 파일 이름에 쓴다
+ "2017_yun_ulleung_basin": {
+  1: {
+   "A": "Coscinodiscus asteromphalus",
+   "B": "Coscinodiscus asteromphalus",
+   "C": "Coscinodiscus asteromphalus",
+   "D": "C. centralis",
+   "E": "C. centralis",
+   "F": "Actinoptychus senarius",
+   "G": "Actinoptychus senarius",
+   "H": "Actinocyclus curvatulus",
+   "I": "A. octonarius",
+   "J": "A. octonarius",
+   "K": "Cyclotella sp.",
+   "L": "Thalassiosira curviseriata",
+   "M": "T. eccentrica",
+   "N": "T. mala",
+   "O": "Paralia sulcata",
+   "P": "Paralia sulcata",
+   "Q": "Paralia sulcata",
+   "R": "Navicula sp.",
+   "S": "Thalassionema faruenfeldii",
+   "T": "Th. Nitzschioides",
+  },
+ },
 }
 
 
@@ -333,6 +365,11 @@ MANUAL_BOXES = {
         # grow=7 에서 한 상자가 됐다. grow=5 로 갈랐을 때의 상자를 그대로 썼다
         12: (116, 635, 224, 838),
         19: (118, 836, 244, 1335),
+    },
+    # Fig O 의 라벨(검은 동그라미)이 몸통과 흰 틈으로 떨어져 있어 자동 검출이
+    # 둘로 쪼갰다(상자 15 = 몸통, 16 = 라벨). 둘을 합친 사각형을 손으로 썼다
+    ("2017_yun_ulleung_basin", 13): {
+        "O": (149, 913, 620, 1100),
     },
 }
 
@@ -540,6 +577,12 @@ ASSIGN = {
    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, "16b"],
  # Plate 51(p70). 상자 10개 = 그림 10개
  ("1985_akiba_yanagisawa_dsdp87_zonal_markers", 70): [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+ # 2017 울릉분지 Plate 1(p13). 상자 22개 — A-N·P·Q·R·S·T 는 자동으로 갈렸고,
+ # O(15·16번)는 몸통·라벨이 갈라져 `MANUAL_BOXES` 로 뺐다. 19번은 O·P 사이
+ # 여백에 낀 잡티(그림이 아니다)
+ ("2017_yun_ulleung_basin", 13): [
+   "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N",
+   None, None, "P", "Q", None, "R", "S", "T"],
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -568,6 +611,10 @@ PARAMS = {
     # 거의 필요 없다(`grow=3`). 쪽마다 여백 비율이 조금씩 달라 `margin` 은
     # 도판마다 잰다(아래 MARGIN)
     "__ak85_default__": dict(thr=200, grow=3, min_area=3000, min_side=50),
+    # 사진 격자라 대비가 뚜렷하고(`grow=3`), 위아래 여백에 머리말·캡션 문장이
+    # 있어 `margin` 으로 걷는다(위 11.1% · 아래 35.4% — 재서 넣었다)
+    ("2017_yun_ulleung_basin", 13):
+        dict(grow=3, min_area=3000, margin="0,0.111,0,0.354"),
 }
 
 # 1985 는 쪽마다 머리말·쪽번호 폭이 달라 한 여백 값으로 안 된다. 없으면
