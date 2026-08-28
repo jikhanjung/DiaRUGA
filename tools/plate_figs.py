@@ -71,6 +71,12 @@ SOURCE = {
     "1994_lee_namyangman_tidal_flat": {
         1: (11, 12),
     },
+    # 텍스트 레이어가 없다(1994 와 같은 사정). PLATE 1 캡션은 PLATE 1 도판
+    # 바로 앞 쪽(같은 인쇄 쪽 하단), PLATE 2 캡션도 마찬가지로 자기 도판
+    # 바로 앞 쪽에 있다 — 도판·캡션이 번갈아 온다(1994 와 다른 배치)
+    "1993_bae_lee_south_sea_surface": {
+        1: (12, 13), 2: (14, 15),
+    },
 }
 
 # 논문 → 도판 → {그림 번호: 캡션에 찍힌 학명}
@@ -395,6 +401,57 @@ CAPTIONS = {
    31: "Epithemia turgida",
   },
  },
+ # 1993 남해(Bae·Lee) — 두 판 다 자기 도판 바로 앞 쪽 캡션에서 그대로
+ # 옮겼다. **Fig2 는 `Actinocyclus splendens`, Fig19 는 `Actinoptychus
+ # splendens`다** — 같은 논문 안에서 속이 다르게 찍혔다(오식으로 보이나
+ # 원문 그대로 둘 다 남긴다). 괄호 앞 공백도 원문 그대로다(`Podosira`
+ # 는 공백 없이, `Delphineis`·`Coscinodiscus oculus - iridis` 는 있다)
+ "1993_bae_lee_south_sea_surface": {
+  1: {
+   1: "Coscinodiscus oculus - iridis",
+   2: "Thalassiosira eccentrica",
+   3: "Thalassiosira sp. A",
+   4: "Coscinodiscus nitidus",
+   5: "Cyclotella striata",
+   6: "Paralia sulcata",
+   7: "Podosira sp. A(= P. stelliger ?)",
+   8: "Aulidiscus caelatus",
+   9: "Thalassiosira oestrupii",
+   10: "Triceratium favus",
+   11: "Paralia sulcata(girdle view)",
+   12: "Biddulphia pulchella",
+   13: "Thalassiosira lineata",
+   14: "Paralia sulcata",
+   15: "Nitzschia cocconeiformis",
+   16: "Surirella fastuosa var. recedens",
+   17: "Cocconeis scutellum",
+   18: "Thalassionema nitzschioides",
+   19: "Trachyneis aspera",
+   20: "Nitzschia sigma",
+  },
+  2: {
+   1: "Actinoptychus undulatus",
+   2: "Actinocyclus splendens",
+   3: "Actinocyclus ehrenbergii",
+   4: "Diploneis bombus",
+   5: "Tryblioptychus cocconeiformis",
+   6: "Rhaphoneis amphiceros",
+   7: "Grammatophora marina",
+   8: "Actinocyclus ehrenbergii",
+   9: "Nitzschia granulata",
+   10: "Nitzschia granulata",
+   11: "Delphineis surirella (=Rhaphoneis surirella)",
+   12: "Arachnoidiscus ehrenbergii",
+   13: "Nitzschia cocconeiformis",
+   14: "Nitzschia granulata",
+   15: "Actinocyclus ehrenbergii",
+   16: "Actinocyclus ehrenbergii",
+   17: "Cyclotella striata",
+   18: "Coscinodiscus oculus - iridis",
+   19: "Actinoptychus splendens",
+   20: "Actinoptychus undulatus",
+  },
+ },
 }
 
 
@@ -439,6 +496,33 @@ MANUAL_BOXES = {
         27: (950, 1395, 1065, 1530), 28: (515, 1645, 675, 1815),
         29: (730, 1655, 885, 1815), 30: (950, 1590, 1065, 1820),
         31: (1065, 1350, 1250, 1840),
+    },
+    # 1993 남해 — 1994 만큼 빽빽하진 않지만 `--probe` 가 26개(그림 20개보다
+    # 많다 — 번호 활자·스캔 잡티가 조각으로 잡혔다)를 냈고 그마저 몇 개는
+    # 서로 다른 그림이 한 상자로 묶여 있었다. 손으로 재는 쪽이 더 빨랐다
+    ("1993_bae_lee_south_sea_surface", 13): {
+        1: (205, 440, 610, 810), 2: (640, 435, 1015, 805),
+        3: (1045, 445, 1270, 660), 4: (195, 860, 470, 1095),
+        5: (505, 820, 720, 1035), 6: (755, 840, 950, 1035),
+        7: (965, 720, 1270, 1020), 8: (225, 1140, 450, 1340),
+        9: (460, 1065, 710, 1310), 10: (725, 1060, 970, 1275),
+        11: (985, 1050, 1175, 1265), 12: (210, 1340, 420, 1610),
+        13: (460, 1315, 705, 1590), 14: (760, 1315, 950, 1520),
+        15: (210, 1615, 365, 1870), 16: (405, 1595, 615, 1870),
+        17: (660, 1575, 870, 1870), 18: (895, 1520, 980, 1800),
+        19: (1040, 1305, 1110, 1790), 20: (1175, 1045, 1240, 1795),
+    },
+    ("1993_bae_lee_south_sea_surface", 15): {
+        1: (210, 415, 490, 715), 2: (540, 400, 895, 750),
+        3: (915, 415, 1280, 755), 4: (220, 755, 370, 1015),
+        5: (410, 760, 590, 945), 6: (660, 800, 785, 1060),
+        7: (855, 770, 945, 1130), 8: (1000, 745, 1280, 1000),
+        9: (225, 1015, 365, 1215), 10: (410, 1100, 495, 1215),
+        11: (520, 1100, 620, 1200), 12: (195, 1270, 495, 1565),
+        13: (530, 1250, 710, 1550), 14: (755, 1195, 950, 1540),
+        15: (1015, 1160, 1240, 1360), 16: (975, 1400, 1240, 1560),
+        17: (195, 1600, 465, 1815), 18: (500, 1600, 755, 1835),
+        19: (780, 1615, 970, 1820), 20: (1000, 1600, 1235, 1825),
     },
 }
 
@@ -655,6 +739,9 @@ ASSIGN = {
  # 1994 남양만 — 자동 검출을 안 쓴다(위 `MANUAL_BOXES` 설명 참고). `PARAMS`
  # 값으로 상자가 몇 개 잡히든 전부 버리는 자리라 개수만 맞춰 `None` 을 채운다
  ("1994_lee_namyangman_tidal_flat", 12): [None] * 6,
+ # 1993 남해 — 마찬가지로 자동 검출 결과를 안 쓴다
+ ("1993_bae_lee_south_sea_surface", 13): [None] * 26,
+ ("1993_bae_lee_south_sea_surface", 15): [None] * 37,
 }
 
 # **검출 설정이 쪽마다 다르다.** 도판마다 그림이 붙은 정도가 달라서 한 값으로
@@ -691,6 +778,13 @@ PARAMS = {
     # 멈추게만 맞췄다(`ASSIGN` 길이와 맞아야 `--cut` 이 안 죽는다)
     ("1994_lee_namyangman_tidal_flat", 12):
         dict(grow=3, min_area=50000, min_side=30),
+    # 값 자체는 안 쓴다(전부 `MANUAL_BOXES`) — 그림 20개인데 26개로 쪼개져
+    # (번호 활자·스캔 잡티가 상자로 잡혔다) 손으로 재는 쪽이 더 빨랐다
+    ("1993_bae_lee_south_sea_surface", 13):
+        dict(grow=3, min_area=2000, min_side=30),
+    # PLATE 2 는 더 심하다 — 그림 20개가 37개로 쪼개졌다
+    ("1993_bae_lee_south_sea_surface", 15):
+        dict(grow=3, min_area=2000, min_side=30),
 }
 
 # 1985 는 쪽마다 머리말·쪽번호 폭이 달라 한 여백 값으로 안 된다. 없으면
