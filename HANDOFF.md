@@ -12,8 +12,15 @@
 아직 `diatom` 인 것은 **생물 이름**이다(`pipeline/segment_diatoms.py`·YOLO 클래스·
 NAS 의 `DiatomPhotos/`).
 
-**브랜치** main · 도는 판 `v0.20.0` (파이프라인 `v0.5.2`) — **배포를 기다리는
-판이 없다.** 08-27 에 `v0.20.0` 을 내보냈다(**논문 도감 넷을 도감 표에
+**브랜치** main · 도는 판 `v0.21.0` (파이프라인 `v0.5.2`) — **배포를 기다리는
+판이 없다.** 08-31 에 `v0.21.0` 을 내보냈다(**논문 도판 8편을 도감 표에
+더 얹고 개체 크롭을 화면에 낸다** · 마이그레이션 `0042`
+(`AtlasPlacement.crop_image`) ·
+[P22](devlog/20260827_P22_paper-plates-remaining.md)·
+[P23](devlog/20260831_P23_paper-plates-db.md) · 도판 그림 447개를
+`tools/parse_paper_atlas.py`/`ops/import_atlas.py` 기존 문으로 반입,
+크롭 447장은 `/data3/DiaRUGA/atlas/<key>/crops/` 에 미리 옮겨 뒀다.
+도감 검색에 출현 기록도 붙였다(168)). 08-27 에 `v0.20.0` 을 내보냈다(**논문 도감 넷을 도감 표에
 얹는다** · 마이그레이션 `0041`(`Reference`·`Occurrence`) ·
 [163](devlog/20260826_163_paper-atlas-converter.md)~
 [166](devlog/20260826_166_paper-plate-pages.md) · 운영에 처음 반입해 논문
@@ -69,7 +76,7 @@ NAS 의 `DiatomPhotos/`).
 
 | | 지금 |
 |---|---|
-| 뷰어 | **`v0.20.0`** (마이그레이션 `0041`) — 08-27 에 배포했다. 논문 도감 넷을 도감 표에 얹고 운영에 반입했다. 그 앞 `v0.19.0` 은 검출 마스크를 같은 시야의 다른 판에도 앉혀 개체로 묶는다(우클릭) |
+| 뷰어 | **`v0.21.0`** (마이그레이션 `0042`) — 08-31 에 배포했다. 논문 도판 8편을 도감 표에 더 얹고 개체 크롭을 검색 결과 칩으로 낸다. 그 앞 `v0.20.0` 은 논문 도감 넷을 도감 표에 처음 얹었다 |
 | 파이프라인 | `v0.5.2` |
 | **다음 판** | 없다 — 배포를 기다리는 것이 없다. 절차는 [릴리스 흐름](docs/20260813_release-flow.md) |
 | 검토 대상 묶음 | **`yolo-3차`** (`RunBatch.for_review`) — 08-13 에 옮겼다 |
@@ -646,6 +653,26 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
 일상이 되면 SQLite 를 다시 볼 문제다.**
 
 ### 3.8 아직 안 한 이전기·일회성
+
+- **`ops/import_atlas.py` — `v0.21.0` 배포 뒤에 돌린다** (P23, 08-31).
+  논문 여덟(2017·1994·1993남해·2001·1975·1986·1996·1991)의 `atlas/*.json`
+  이 이 이미지에 처음 실린다 — **판을 먼저 내야 하는 이유가 여기 있다**
+  (`atlas/*.json` 은 `COPY . .` 로 이미지에 실려 간다, 위 147 항목과 같은
+  사정). 크롭 PNG 447장은 **배포 전에 이미** `/data3/DiaRUGA/atlas/<key>/
+  crops/` 로 옮겨 뒀다(`tools/sync_paper_plate_images.py`, 08-31 확인) —
+  이 반입이 기다리는 것은 DB 행뿐이다.
+
+    ```bash
+    deploy/host/dbrun.sh backup_db.py --note before-P23
+    deploy/host/dbsync.sh import_atlas.py     # 스크립트가 바뀌었다 (crop_image)
+    deploy/host/dbrun.sh  import_atlas.py --dry-run
+    deploy/host/dbrun.sh  import_atlas.py
+    deploy/host/dbrun.sh  check_db.py
+    ```
+
+  **멱등이다**(도감마다 통째로 갈아치운다) — 다시 돌려도 안전하다. 반입
+  뒤 도감 수가 15 · 표제어 2,649 · 자리 3,186 이 되어야 한다(사본 실측,
+  08-31). 안 맞으면 컨테이너가 옛 이미지를 그대로 도는지부터 의심한다.
 
 - **코어 자료 반입 — `v0.15.0` 배포 뒤에 돌렸다** (08-19 18:41 · `RS14-GC04`
   42개 항목 88,658점 · `RS19-GC17` 27개 항목 10,795점 · 3.8초 ·
