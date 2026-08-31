@@ -12,8 +12,11 @@
 아직 `diatom` 인 것은 **생물 이름**이다(`pipeline/segment_diatoms.py`·YOLO 클래스·
 NAS 의 `DiatomPhotos/`).
 
-**브랜치** main · 도는 판 `v0.21.0` (파이프라인 `v0.5.2`) — **배포를 기다리는
-판이 없다.** 08-31 에 `v0.21.0` 을 내보냈다(**논문 도판 8편을 도감 표에
+**브랜치** main · 도는 판 `v0.22.0` (파이프라인 `v0.5.2`) — **배포를 기다리는
+판이 없다.** 08-31 에 `v0.22.0` 을 내보냈다(**학명 유효성 판정을 도감
+검색에 넣는다** · 마이그레이션 `0043`(`TaxonName`) · [P24](devlog/20260831_P24_taxon-name.md) ·
+도감 1,845종+논문 156종 합쳐 1,999건 반입, 도감 검색이 이명 양방향(옛
+표기↔현재 학명)을 다 찾는다). 그 앞 08-31 에 `v0.21.0` 을 내보냈다(**논문 도판 8편을 도감 표에
 더 얹고 개체 크롭을 화면에 낸다** · 마이그레이션 `0042`
 (`AtlasPlacement.crop_image`) ·
 [P22](devlog/20260827_P22_paper-plates-remaining.md)·
@@ -76,7 +79,7 @@ NAS 의 `DiatomPhotos/`).
 
 | | 지금 |
 |---|---|
-| 뷰어 | **`v0.21.0`** (마이그레이션 `0042`) — 08-31 에 배포했다. 논문 도판 8편을 도감 표에 더 얹고 개체 크롭을 검색 결과 칩으로 낸다. 그 앞 `v0.20.0` 은 논문 도감 넷을 도감 표에 처음 얹었다 |
+| 뷰어 | **`v0.22.0`** (마이그레이션 `0043`) — 08-31 에 배포했다. 학명 유효성 판정(`TaxonName`)을 도감 검색에 넣어 이명 양방향 검색이 된다. 그 앞 `v0.21.0` 은 논문 도판 8편을 도감 표에 더 얹고 개체 크롭을 검색 결과 칩으로 냈다 |
 | 파이프라인 | `v0.5.2` |
 | **다음 판** | 없다 — 배포를 기다리는 것이 없다. 절차는 [릴리스 흐름](docs/20260813_release-flow.md) |
 | 검토 대상 묶음 | **`yolo-3차`** (`RunBatch.for_review`) — 08-13 에 옮겼다 |
@@ -653,6 +656,22 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
 일상이 되면 SQLite 를 다시 볼 문제다.**
 
 ### 3.8 아직 안 한 이전기·일회성
+
+- **`ops/import_taxon_names.py` — `v0.22.0` 배포 뒤에 돌린다** (P24, 08-31).
+  `taxon_names.json` 이 이 이미지에 처음 실린다 — `import_atlas.py` 와
+  같은 사정(147·위 항목 참고). NAS 자료는 안 본다(1단계에서 이미 JSON으로
+  뽑아 저장소에 커밋했다).
+
+    ```bash
+    deploy/host/dbrun.sh backup_db.py --note before-P24
+    deploy/host/dbsync.sh import_taxon_names.py     # 처음 한 번, 새 스크립트
+    deploy/host/dbrun.sh  import_taxon_names.py --dry-run
+    deploy/host/dbrun.sh  import_taxon_names.py
+    deploy/host/dbrun.sh  check_db.py
+    ```
+
+  **멱등이다** — 다시 돌려도 안전하다. 반입 뒤 학명 1,999건(accepted 995·
+  synonym 740·unassessed 145·absent 119)이 되어야 한다(사본 실측, 08-31).
 
 - **`ops/import_atlas.py` — `v0.21.0` 배포 뒤에 돌렸다** (P23, 08-31 13:44 ·
   도감 15 · 항목 2,649 · 자리 3,186 · `check_db` 11·12번 OK). 논문 여덟

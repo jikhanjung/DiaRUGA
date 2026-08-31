@@ -23,6 +23,25 @@
 
 ## 뷰어
 
+### `v0.22.0` — 08-31 (마이그레이션 0043 · `TaxonName`)
+
+**학명 유효성 판정을 도감 검색에 넣는다** (P24)
+
+P15 §8.1 이 "방침이라 admin 이 정한다" 며 미뤄 둔 `TaxonName` 을 만든다.
+계기는 사용자가 `/atlas/` 에서 옛 이름(`Actinocyclus Ehrenbergii`)으로
+찾다가 빈 결과를 본 것 — 그 판정은 이미 `worms_master_20260814.tsv`
+(도감 1,845종 마스터 표, 08-14~08-26)에 있었다.
+
+- `worms_master_20260814.tsv`(도감 1,845종)와 논문 도판 156종의 AlgaeBase
+  조회 결과(사람이 철자를 먼저 교정하고 조회한 것)를 합쳐 반입 —
+  **1,999건**(accepted 995 · synonym 740 · unassessed 145 · absent 119)
+- **양방향 검색**: 옛 표기로 찾으면 결과 카드에 "→ 현재 통용 학명" 이
+  함께 뜨고, **현재 학명으로 찾아도 도감의 옛 표기 항목을 찾아낸다**
+  (`Actinocyclus octonarius` 로 찾으면 도감 3편·논문 5편의
+  `Actinocyclus Ehrenbergii` 항목이 걸린다 — 이게 사용자가 겪은 자리다)
+- `TaxonName` 은 `Atlas` 와 같은 자리다 — 원본은 NAS(md/tsv/json), DB 는
+  거기서 뽑은 사본. 화면에서 판정을 고치는 UI 는 없다
+
 ### `v0.21.0` — 08-31 (마이그레이션 0042 · `AtlasPlacement.crop_image`)
 
 **논문 도판 8편을 도감 표에 더 얹고, 개체 크롭을 화면에 낸다** (P22·P23)
