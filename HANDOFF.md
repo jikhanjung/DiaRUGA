@@ -657,21 +657,14 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
 
 ### 3.8 아직 안 한 이전기·일회성
 
-- **`ops/import_taxon_names.py` — `v0.22.0` 배포 뒤에 돌린다** (P24, 08-31).
-  `taxon_names.json` 이 이 이미지에 처음 실린다 — `import_atlas.py` 와
-  같은 사정(147·위 항목 참고). NAS 자료는 안 본다(1단계에서 이미 JSON으로
-  뽑아 저장소에 커밋했다).
-
-    ```bash
-    deploy/host/dbrun.sh backup_db.py --note before-P24
-    deploy/host/dbsync.sh import_taxon_names.py     # 처음 한 번, 새 스크립트
-    deploy/host/dbrun.sh  import_taxon_names.py --dry-run
-    deploy/host/dbrun.sh  import_taxon_names.py
-    deploy/host/dbrun.sh  check_db.py
-    ```
-
-  **멱등이다** — 다시 돌려도 안전하다. 반입 뒤 학명 1,999건(accepted 995·
-  synonym 740·unassessed 145·absent 119)이 되어야 한다(사본 실측, 08-31).
+- **`ops/import_taxon_names.py` — `v0.22.0` 배포 뒤에 돌렸다** (P24, 08-31
+  15:48 · 학명 1,999건 — accepted 995·synonym 740·unassessed 145·
+  absent 119 · `check_db` 11·12번 OK). `taxon_names.json` 이 이
+  이미지에 처음 실려(`import_atlas.py` 와 같은 사정, 147·위 항목 참고)
+  `deploy.sh` 가 배포하며 스크립트도 자동으로 `/srv` 에 맞췄다. **멱등이다.**
+  `/atlas/?q=Actinocyclus+octonarius` 로 실제 확인 — 도감·논문에 흩어진
+  옛 표기(`Ehrenbergii`·`moniliformis` 등) 항목이 전부 걸리고 "이명" 칩이
+  16곳에 뜬다. **원본이 고쳐지면 다시 돌린다.**
 
 - **`ops/import_atlas.py` — `v0.21.0` 배포 뒤에 돌렸다** (P23, 08-31 13:44 ·
   도감 15 · 항목 2,649 · 자리 3,186 · `check_db` 11·12번 OK). 논문 여덟
