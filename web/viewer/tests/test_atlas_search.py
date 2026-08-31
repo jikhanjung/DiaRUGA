@@ -24,7 +24,8 @@ from django.test import Client
 from django.urls import reverse
 
 from .base import DiaRUGATestCase
-from ..models import Atlas, AtlasEntry, AtlasPlacement, Occurrence, Reference
+from ..models import (Atlas, AtlasEntry, AtlasPlacement, Occurrence,
+                       Reference, TaxonName)
 
 
 class AtlasSearchTests(DiaRUGATestCase):
@@ -72,6 +73,18 @@ class AtlasSearchTests(DiaRUGATestCase):
         Occurrence.objects.create(
             source="korean", binomial="Skeletonema costatum",
             region_raw="경기도행주", region="경기도 행주", reference=ref)
+
+        # 학명 유효성 (P24) — 도감은 옛 표기(`Ehrenbergii`)를 그대로 쓰는데
+        # AlgaeBase 는 이명 처리했다. 실제로 사용자가 겪은 자리(2026-08-31)
+        e5 = AtlasEntry.objects.create(
+            atlas=k, seq=2, name="Actinocyclus Ehrenbergii RALFS",
+            genus="Actinocyclus", binomial="Actinocyclus ehrenbergii",
+            rank="species")
+        AtlasPlacement.objects.create(entry=e5, seq=0, plate=31, pdf_page=240)
+        TaxonName.objects.create(
+            binomial="Actinocyclus ehrenbergii", status="synonym",
+            valid_name="Actinocyclus octonarius", source="worms-master-20260814",
+            note="이명 → 갈아탄다")
 
     def get(self, **q):
         return self.c.get(reverse("atlas"), q).content.decode()
@@ -202,3 +215,26 @@ class AtlasSearchTests(DiaRUGATestCase):
         from viewer import data
         rows = data.atlas_search(q="Sceletonema")["rows"]
         self.assertEqual(len(rows[0]["occurrences"]), 1)
+
+    # --- P24 — 학명 유효성 ----------------------------------------------------
+
+    # 16) 옛 표기로 찾으면 결과에 현재 통용 학명이 함께 뜬다
+    def test_synonym_shows_current_name(self):
+        html = self.get(q="Actinocyclus Ehrenbergii")
+        self.assertIn("현재 통용 학명", html)
+        self.assertIn("Actinocyclus octonarius", html)
+
+    # 17) **핵심 시나리오** — 현재 학명으로 찾아도 도감의 옛 표기 항목이
+    # 걸린다. `Actinocyclus octonarius` 는 `AtlasEntry` 어디에도 문자 그대로
+    # 없다(도감은 `Ehrenbergii` 로만 적혀 있다) — `TaxonName` 을 거쳐야 찾는다
+    def test_search_by_valid_name_finds_synonym_entry(self):
+        html = self.get(q="Actinocyclus octonarius")
+        self.assertIn("Actinocyclus Ehrenbergii", html,
+                      "현재 학명으로 찾았는데 도감의 옛 표기 항목이 안 걸렸다")
+
+    # 18) 이명 판정이 없는 항목은 그 줄 자체가 안 뜬다 — `occurrences` 와
+    # 같은 원칙(14번)
+    def test_no_taxon_section_without_verdict(self):
+        html = self.get(q="Navicula abrupta")
+        self.assertNotIn("현재 통용 학명", html)
+        self.assertNotIn('class="entryextra taxon"', html)

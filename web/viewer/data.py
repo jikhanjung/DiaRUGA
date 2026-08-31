@@ -4816,6 +4816,38 @@ def _occurrences_by_binomial(binomials) -> dict[str, list[dict]]:
     return out
 
 
+def _taxon_names_by_binomial(binomials) -> dict[str, dict]:
+    """이명법 집합에 대한 학명 유효성 판정 (P24).
+
+    **한 번에 묻는다** — `_occurrences_by_binomial()` 과 같은 자리(105 의
+    "카드마다 되묻기" 를 반복하지 않는다).
+    """
+    from .models import TaxonName
+    binomials = {b for b in binomials if b}
+    if not binomials:
+        return {}
+    qs = TaxonName.objects.filter(binomial__in=binomials)
+    return {t.binomial: {"status": t.status, "valid_name": t.valid_name,
+                         "note": t.note}
+            for t in qs}
+
+
+def _synonym_binomials(q: str) -> set[str]:
+    """검색어가 어느 `TaxonName.valid_name`(현재 통용 학명)과 맞으면 그
+    옛 이름(binomial)들을 낸다 (P24).
+
+    **도감·논문은 옛 표기를 그대로 쓴다**(원문을 안 고친다는 규칙,
+    `AtlasEntry.name` 머리말) — `Actinocyclus octonarius`(현재 학명)로
+    찾아도 한국 도감은 `Actinocyclus Ehrenbergii`(이명)로만 있어 못
+    찾는다. 검색어를 옛 이름으로도 넓혀야 걸린다.
+    """
+    from .models import TaxonName
+    if not q:
+        return set()
+    return set(TaxonName.objects.filter(
+        status="synonym", valid_name__iexact=q).values_list("binomial", flat=True))
+
+
 def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
                  offset: int = 0) -> dict:
     """도감 항목 검색.
@@ -4839,8 +4871,14 @@ def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
     q = (q or "").strip()
     if q:
         from django.db.models import Q
-        qs = qs.filter(Q(name__icontains=q) | Q(binomial__icontains=q)
-                       | Q(genus__icontains=q))
+        cond = Q(name__icontains=q) | Q(binomial__icontains=q) | Q(genus__icontains=q)
+        # 검색어가 현재 통용 학명이면 도감이 쓰는 옛 이름(이명)도 함께 찾는다
+        # (P24) — `Actinocyclus octonarius` 로 찾아도 도감은 `Ehrenbergii` 로만
+        # 있다. `atlas_search` 자체의 icontains 필터는 안 건드린다
+        syn = _synonym_binomials(q)
+        if syn:
+            cond |= Q(binomial__in=syn)
+        qs = qs.filter(cond)
     if atlas_key:
         qs = qs.filter(atlas__key=atlas_key)
     if genus:
@@ -4850,6 +4888,7 @@ def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
     offset = max(0, min(offset, max(0, total - 1)))
     page = list(qs[offset:offset + ATLAS_PER_PAGE])
     occs = _occurrences_by_binomial(e.binomial for e in page)
+    taxa = _taxon_names_by_binomial(e.binomial for e in page)
     rows = []
     for e in page:
         rows.append({
@@ -4865,6 +4904,11 @@ def atlas_search(q: str = "", atlas_key: str = "", genus: str = "",
             "extra": e.extra or {},
             "places": [_placement_dict(p) for p in e.placements.all()],
             "occurrences": occs.get(e.binomial, []),
+            # 이명이면 현재 통용 학명을 함께 낸다 (P24). 유효/미확인이면
+            # 화면이 낼 것이 없으니 안 담는다 — `occurrences` 가 없을 때
+            # "출현" 줄을 안 내는 것과 같은 원칙
+            "taxon": (taxa[e.binomial] if taxa.get(e.binomial, {}).get("status") == "synonym"
+                      else None),
         })
     return {
         "q": q, "atlas_key": atlas_key, "genus": genus,

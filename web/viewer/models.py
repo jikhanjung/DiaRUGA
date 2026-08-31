@@ -1538,6 +1538,51 @@ class Occurrence(models.Model):
         return f"{self.binomial} @ {self.region} ({self.reference_id})"
 
 
+TAXON_STATUS = [
+    ("accepted", "유효"), ("synonym", "이명"),
+    ("absent", "AlgaeBase 에 없다"), ("unassessed", "확인 필요/미확인"),
+]
+
+
+class TaxonName(models.Model):
+    """학명 하나의 AlgaeBase 유효성 판정 (P15 §8.1 · P24).
+
+    **원본은 여기가 아니라 NAS 다** — `Diadiction/names/worms/
+    worms_master_20260814.tsv`(도감 1,845종)·`Diadiction/temp/
+    paper_plates_*_result.json`(논문 도판 캡션 학명) 류. 사람이 브라우저로
+    AlgaeBase 를 열어 내린 판단이라 재생성 불가지만, **그 판단 자체는
+    NAS 파일에 git 밖에서 영구히 남는다** — 이 표는 거기서 뽑은 사본이라
+    `Atlas` 처럼 통째로 지우고 다시 만들어도 안전하다.
+
+    **`AtlasEntry` 에 FK 를 매달지 않는다** — `Occurrence` 와 같은 이유다
+    (P20). 도감 반입이 `AtlasEntry` 를 통째로 갈아치우므로 FK 를 매면
+    반입이 도는 날 CASCADE 로 사라진다. `binomial` 문자열로 느슨하게
+    잇고, 맞추는 것은 질의가 한다(`data._taxon_names_by_binomial()`).
+
+    `binomial` 은 `tools/harvest_worms.binomial()` 이 뽑는 정규화된
+    이명법("Genus species")과 같은 모양이다 — `AtlasEntry.binomial` 과
+    바로 맞춰 쓰려는 것이다.
+    """
+
+    binomial = models.CharField(max_length=120, unique=True)
+    status = models.CharField(max_length=16, choices=TAXON_STATUS)
+    # synonym 일 때만 채운다 — 현재 통용 학명
+    valid_name = models.CharField(max_length=120, blank=True, default="", db_default="")
+    # 원본 NAS 파일 (예: 'worms-master-20260814' · 'paper-plates-20260831')
+    source = models.CharField(max_length=64, blank=True, default="", db_default="")
+    # AlgaeBase비고·근거 문헌. 두 소스가 엇갈리면 그 사실도 여기 남긴다
+    note = models.TextField(blank=True, default="", db_default="")
+    # 확인일/갱신일 원문 그대로 (파싱하지 않는다 — 두 소스의 날짜 표기가 다르다)
+    checked = models.CharField(max_length=32, blank=True, default="", db_default="")
+
+    class Meta:
+        ordering = ["binomial"]
+        verbose_name_plural = "taxon names"
+
+    def __str__(self):
+        return f"{self.binomial} ({self.status})"
+
+
 # --- 코어 자료 (P17) --------------------------------------------------------
 #
 # 지점 하나의 **깊이별 측정 항목**. MS(자기감수율) · 함수율 · Opal · TOC 가

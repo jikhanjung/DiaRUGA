@@ -170,6 +170,19 @@
           {% if r.extra.distribution %}<div><span class="dim">분포</span> {{ r.extra.distribution }}</div>{% endif %}
         </div>
       {% endif %}
+      {% if r.taxon %}
+        {% comment %}
+          학명 유효성 (P24) — 사람이 AlgaeBase 를 열어 확인한 이명 판정.
+          **원본은 이 화면이 아니라 NAS 다**(`TaxonName` 머리말) — 판정을
+          고치려면 그 자리를 고치고 다시 반입한다. 유효·미확인은 낼 것이
+          없어(`data.atlas_search` 가 이미 걸렀다) 여기 오지 않는다.
+        {% endcomment %}
+        <div class="entryextra taxon">
+          <span class="chip warnchip" title="AlgaeBase 확인 — 이 표기는 이명이다">이명</span>
+          현재 통용 학명 <i>{{ r.taxon.valid_name }}</i>
+          {% if r.taxon.note %}<span class="pnote">{{ r.taxon.note }}</span>{% endif %}
+        </div>
+      {% endif %}
       {% if r.occurrences %}
         {% comment %}
           출현 기록 (P20 · 164) — 도감의 "분포" 문장이 낳은 종 × 지역 × 문헌.
