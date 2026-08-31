@@ -654,21 +654,18 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
 
 ### 3.8 아직 안 한 이전기·일회성
 
-- **`ops/import_atlas.py` — `v0.21.0` 배포 뒤에 돌린다** (P23, 08-31).
-  논문 여덟(2017·1994·1993남해·2001·1975·1986·1996·1991)의 `atlas/*.json`
-  이 이 이미지에 처음 실린다 — **판을 먼저 내야 하는 이유가 여기 있다**
+- **`ops/import_atlas.py` — `v0.21.0` 배포 뒤에 돌렸다** (P23, 08-31 13:44 ·
+  도감 15 · 항목 2,649 · 자리 3,186 · `check_db` 11·12번 OK). 논문 여덟
+  (2017·1994·1993남해·2001·1975·1986·1996·1991)의 `atlas/*.json` 이 이
+  이미지에 처음 실려 도감 7 → **15**, 항목 2,277 → **2,649**, 자리
+  2,746 → **3,186** 이 됐다. **판을 먼저 내야 하는 이유가 여기 있다**
   (`atlas/*.json` 은 `COPY . .` 로 이미지에 실려 간다, 위 147 항목과 같은
-  사정). 크롭 PNG 447장은 **배포 전에 이미** `/data3/DiaRUGA/atlas/<key>/
-  crops/` 로 옮겨 뒀다(`tools/sync_paper_plate_images.py`, 08-31 확인) —
-  이 반입이 기다리는 것은 DB 행뿐이다.
-
-    ```bash
-    deploy/host/dbrun.sh backup_db.py --note before-P23
-    deploy/host/dbsync.sh import_atlas.py     # 스크립트가 바뀌었다 (crop_image)
-    deploy/host/dbrun.sh  import_atlas.py --dry-run
-    deploy/host/dbrun.sh  import_atlas.py
-    deploy/host/dbrun.sh  check_db.py
-    ```
+  사정) — `deploy.sh` 가 배포하며 `import_atlas.py` 스크립트도 자동으로
+  `/srv` 에 맞췄다(`crop_image` 칸이 바뀌어 있었다). 크롭 PNG 447장은
+  **배포 전에 이미** `/data3/DiaRUGA/atlas/<key>/crops/` 로 옮겨 뒀다
+  (`tools/sync_paper_plate_images.py`, 08-31 확인). `/atlas/?q=` 에서
+  "그림 보기" 칩·`/img?p=` 크롭 이미지 둘 다 200 으로 직접 확인했다.
+  **원본이 고쳐지면(캡션 대조가 더 나오면) 다시 돌린다** — 멱등이다.
 
   **멱등이다**(도감마다 통째로 갈아치운다) — 다시 돌려도 안전하다. 반입
   뒤 도감 수가 15 · 표제어 2,649 · 자리 3,186 이 되어야 한다(사본 실측,
