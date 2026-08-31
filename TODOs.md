@@ -923,8 +923,26 @@ DB 설계는 [devlog/20260730_P02_db-schema.md](devlog/20260730_P02_db-schema.md
       **없다 68개**를 얹었다(있다 26). 지금까지 2017 6개·1994 11개·
       1993 남해 9개·2001 16개·1975 12개·1986 32개·1996 28개·1991 68개가
       쌓였다(겹치는 것이 많다 — `Coscinodiscus oculus-iridis`·
-      `Thalassiosira eccentrica` 는 계속 없다). **다음 일은 이 표
-      전체를 `algaebase_worklist.py` 류의 배치 조회로 넘기는 것.**
+      `Thalassiosira eccentrica` 는 계속 없다). AlgaeBase 대조용으로
+      중복 없앤 156종 체크리스트를 `N:\DiaRUGA\Diadiction\temp\
+      algaebase_todo_paper_plates.md` 에 냈다(2026-08-31, 사람이 직접
+      조회). **`algaebase_worklist.py` 류의 배치 조회는 아직 안 했다.**
+
+- [x] **논문 도판 8편을 도감 DB 에 넣는다** (P23,
+      [devlog/20260831_P23_paper-plates-db.md](devlog/20260831_P23_paper-plates-db.md),
+      2026-08-31). `Atlas`/`AtlasEntry`/`AtlasPlacement`(P15)에 그대로
+      얹었다 — 논문 하나 = `Atlas` 행, 캡션 학명 하나 = `AtlasEntry`,
+      그림 하나 = `AtlasPlacement`. **`AtlasPlacement.crop_image` 칸을
+      새로 더해**(0042) 개체별 크롭을 `/data3/DiaRUGA/atlas/<key>/crops/`
+      로 옮기고(`tools/sync_paper_plate_images.py`), 화면은 141 의
+      `data-prev` 미리보기를 그대로 타는 칩 하나만 늘렸다(JS 안 고침).
+      `tools/parse_paper_atlas.py`·`ops/import_atlas.py` 를 확장했다 —
+      **이미 있던 파이프라인**(1936·1985·1992·1993 Chaetoceros 넷이
+      이 문으로 들어와 있었다)을 그대로 썼다, 새 임포터를 안 만들었다.
+      반입 실측: 도감 15개 · 표제어 2,649 · 자리 3,186, 멱등 확인.
+      **1936·1992·1993(Chaetoceros)·1985 넷은 크롭 접두사·개수가 안
+      맞아 이번에 안 붙였다** — 남은 일. `TaxonName`(유효명 칼럼)도
+      방침 대기라 안 넣었다(devlog 참고).
 
 - [ ] **이미 검출한 마스크를 다른 판에도 번지게 한다** (2026-08-14, 사용자 요청) —
       111 이 **사람이 그린** 마스크를 같은 시야의 모든 판에 앉히고 한 개체로
