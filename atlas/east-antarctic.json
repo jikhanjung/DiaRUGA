@@ -30,7 +30,8 @@
      "pdf_page": 7,
      "pdf_plate_page": 8,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -85,7 +86,8 @@
      "pdf_page": 5,
      "pdf_plate_page": 6,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -122,7 +124,8 @@
      "pdf_page": 7,
      "pdf_plate_page": 8,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -178,7 +181,8 @@
      "pdf_page": 11,
      "pdf_plate_page": 12,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -215,7 +219,8 @@
      "pdf_page": 9,
      "pdf_plate_page": 10,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -252,7 +257,8 @@
      "pdf_page": 9,
      "pdf_plate_page": 10,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 6,
@@ -262,7 +268,8 @@
      "pdf_page": 11,
      "pdf_plate_page": 12,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -272,7 +279,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -346,7 +354,8 @@
      "pdf_page": 5,
      "pdf_plate_page": 6,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -356,7 +365,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -420,7 +430,8 @@
      "pdf_page": 13,
      "pdf_plate_page": 14,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -457,7 +468,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -494,7 +506,8 @@
      "pdf_page": 17,
      "pdf_plate_page": 18,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -531,7 +544,8 @@
      "pdf_page": 17,
      "pdf_plate_page": 18,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -586,7 +600,8 @@
      "pdf_page": 17,
      "pdf_plate_page": 18,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -624,7 +639,8 @@
      "pdf_page": 17,
      "pdf_plate_page": 18,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -634,7 +650,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -689,7 +706,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -727,7 +745,8 @@
      "pdf_page": 13,
      "pdf_plate_page": 14,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -737,7 +756,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -819,7 +839,8 @@
      "pdf_page": 1,
      "pdf_plate_page": 2,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -865,7 +886,8 @@
      "pdf_page": 1,
      "pdf_plate_page": 2,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -875,7 +897,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -939,7 +962,8 @@
      "pdf_page": 1,
      "pdf_plate_page": 2,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -949,7 +973,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1043,7 +1068,8 @@
      "pdf_page": 1,
      "pdf_plate_page": 2,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1089,7 +1115,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1129,7 +1156,8 @@
      "pdf_page": 1,
      "pdf_plate_page": 2,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -1139,7 +1167,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1221,7 +1250,8 @@
      "pdf_page": 1,
      "pdf_plate_page": 2,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -1231,7 +1261,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1322,7 +1353,8 @@
      "pdf_page": 13,
      "pdf_plate_page": 14,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1360,7 +1392,8 @@
      "pdf_page": 13,
      "pdf_plate_page": 14,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1415,7 +1448,8 @@
      "pdf_page": 9,
      "pdf_plate_page": 10,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1452,7 +1486,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1489,7 +1524,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1526,7 +1562,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1566,7 +1603,8 @@
      "pdf_page": 9,
      "pdf_plate_page": 10,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1603,7 +1641,8 @@
      "pdf_page": 9,
      "pdf_plate_page": 10,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1640,7 +1679,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1680,7 +1720,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1765,7 +1806,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1802,7 +1844,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -1812,7 +1855,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1858,7 +1902,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1896,7 +1941,8 @@
      "pdf_page": 7,
      "pdf_plate_page": 8,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -1942,7 +1988,8 @@
      "pdf_page": 11,
      "pdf_plate_page": 12,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -2024,7 +2071,8 @@
      "pdf_page": 15,
      "pdf_plate_page": 16,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -2034,7 +2082,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -2108,7 +2157,8 @@
      "pdf_page": 5,
      "pdf_plate_page": 6,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -2172,7 +2222,8 @@
      "pdf_page": 7,
      "pdf_plate_page": 8,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -2209,7 +2260,8 @@
      "pdf_page": 3,
      "pdf_plate_page": 4,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -2219,7 +2271,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -2322,7 +2375,8 @@
      "pdf_page": 7,
      "pdf_plate_page": 8,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -2332,7 +2386,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {
@@ -2405,7 +2460,8 @@
      "pdf_page": 5,
      "pdf_plate_page": 6,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": null,
@@ -2415,7 +2471,8 @@
      "pdf_page": 19,
      "pdf_plate_page": 20,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {

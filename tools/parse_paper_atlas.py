@@ -32,10 +32,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harvest_worms import DIADICTION  # noqa: E402
 from parse_atlas import entry, place  # noqa: E402
 from plate_figs import CAPTIONS, SOURCE  # noqa: E402
 
 OUT = Path(__file__).resolve().parent.parent / "atlas"
+# 크롭 PNG 가 놓인 자리 (`crop_plates.py` 의 `PLATE_OUT` 과 같다). NAS 라
+# 이 스크립트도 호스트에서 돈다(`parse_atlas.py` 와 같은 사정)
+PLATE_DIR = DIADICTION / "plate"
 
 # 도판이 있는 넷 (161·162). 나머지 열한 편은 도판이 없거나(분포표만·초록만)
 # 아직 안 땄다 — `Diadiction/papers/README.md` 의 "자료의 모양" 표를 볼 것
@@ -71,6 +75,66 @@ PAPER_META = {
         title="Akiba, F. & Yanagisawa, Y. (1985) 북태평양 신생대 분대 표준종 "
               "(DSDP Init. Repts. Leg 87, ch.7)",
         short="1985 Akiba & Yanagisawa",
+    ),
+    # P22(169~177)가 도판을 딴 8편(2026-08-28~31) — 캡션 학명마다 크롭 PNG 가
+    # 있다(`Diadiction/plate/plate_<crop_prefix>_pl<N>_fig<NN 또는 글자>_*.png`).
+    # `crop_prefix` 가 있는 논문만 `build()` 가 그림 하나당 자리를 하나씩 내고
+    # `crop_image` 를 채운다 — 없는 넷(위)은 도판 쪽 단위 그대로 둔다
+    "2017_yun_ulleung_basin": dict(
+        atlas_key="2017-yun-ulleung",
+        title="Yun, S.M. 외 (2017) 울릉분지 코어 규조 "
+              "(Ocean Sci. J. 52(3):345–357)",
+        short="2017 Yun 울릉분지",
+        crop_prefix="2017yun",
+    ),
+    "1994_lee_namyangman_tidal_flat": dict(
+        atlas_key="1994-lee-namyangman",
+        title="이영길·박용안·최진용 (1994) 남양만 조간대 규조 "
+              "(J. Paleont. Soc. Korea 10(1):26–40)",
+        short="1994 Lee 남양만",
+        crop_prefix="1994lee",
+    ),
+    "1993_bae_lee_south_sea_surface": dict(
+        atlas_key="1993-bae-southsea",
+        title="배부영·이영길 (1993) 남해 서부연안 표층 규조 "
+              "(J. Paleont. Soc. Korea 9(2):115–130)",
+        short="1993 Bae 남해",
+        crop_prefix="1993bae",
+    ),
+    "2001_park_bransfield_paleoenv": dict(
+        atlas_key="2001-park-bransfield",
+        title="박영숙 외 (2001) 브랜스필드해협 고환경 규조 "
+              "(J. Paleont. Soc. Korea 17(2):99–111)",
+        short="2001 Park 브랜스필드",
+        crop_prefix="2001par",
+    ),
+    "1975_lee_pohang_gampo_neogene": dict(
+        atlas_key="1975-lee-pohang",
+        title="이영길 (1975) 포항·감포 신생대 규조 "
+              "(J. Geol. Soc. Korea 11(2):99–114)",
+        short="1975 Lee 포항·감포",
+        crop_prefix="1975lee",
+    ),
+    "1986_lee_se_korea_neogene": dict(
+        atlas_key="1986-lee-sekorea",
+        title="이영길 (1986) 한반도 동남부·동해저 신제3기 규조 "
+              "(J. Paleont. Soc. Korea 2:83–113)",
+        short="1986 Lee 남한 신제3기",
+        crop_prefix="1986lee",
+    ),
+    "1996_lee_bransfield_cores": dict(
+        atlas_key="1996-lee-bransfield",
+        title="이영길 (1996) 브랜스필드해협 피스톤코어 규조 "
+              "(J. Paleont. Soc. Korea 12(1):1–21)",
+        short="1996 Lee 브랜스필드",
+        crop_prefix="1996lee",
+    ),
+    "1991_lee_yeonil_biostratigraphy": dict(
+        atlas_key="1991-lee-yeonil",
+        title="이영길·류환용·고영구 (1991) 포항 연일층군 생층서·고환경 "
+              "(한국고생물학회지 7(1):32–62)",
+        short="1991 Lee 연일층군",
+        crop_prefix="1991lee",
     ),
 }
 
@@ -142,23 +206,57 @@ def build(paper: str) -> dict:
             if name not in order:
                 order.append(name)
 
+    meta = PAPER_META[paper]
+    crop_prefix = meta.get("crop_prefix")
+    missing_crops: list[str] = []
+
+    def crop_of(plate: int, fig) -> str | None:
+        """그림 하나의 크롭 상대경로 (`/img?p=` 가 먹는 `DATA_ROOT` 기준).
+
+        **NAS 원본 파일명은 학명이 붙어 흔들린다** — 학명 슬러그를 다시
+        만들지 않고 `pl<N>_fig<...>_` 접두사로 글롭해 하나를 찾는다.
+        서빙 경로는 이름을 뗀 고정 모양(`crops/pl<N>_fig<NN>.png`)으로
+        둔다 — DB 는 이미 `name` 을 들고 있어 파일명에 또 실을 이유가 없다.
+        """
+        fig_s = f"{fig:02d}" if isinstance(fig, int) else str(fig)
+        hits = sorted(PLATE_DIR.glob(f"plate_{crop_prefix}_pl{plate}_fig{fig_s}_*.png"))
+        if not hits:
+            missing_crops.append(f"pl{plate} fig{fig_s}")
+            return None
+        return f"atlas/{meta['atlas_key']}/crops/pl{plate}_fig{fig_s}.png"
+
     entries = []
     for seq, name in enumerate(order, start=1):
         by_plate: dict[int, list] = {}
         for plate, fig in occurrences[name]:
             by_plate.setdefault(plate, []).append(fig)
-        placements = [
-            place(plate=plate, figures=format_figs(by_plate[plate]),
-                  book_page=src[plate][0], pdf_page=src[plate][1])
-            for plate in sorted(by_plate)
-        ]
+        if crop_prefix:
+            # **그림 하나 = 자리 하나다.** 같은 종이 한 판 안에서 여러 번
+            # 나와도(예: 1993 남해 pl2 의 `Nitzschia granulata` fig9·10·14)
+            # 범위 문자열로 묶지 않는다 — 묶으면 크롭이 하나만 붙는다
+            placements = [
+                place(plate=plate, figures=str(fig),
+                      book_page=src[plate][0], pdf_page=src[plate][1],
+                      crop_image=crop_of(plate, fig))
+                for plate in sorted(by_plate)
+                for fig in sorted(by_plate[plate], key=fig_sort_key)
+            ]
+        else:
+            placements = [
+                place(plate=plate, figures=format_figs(by_plate[plate]),
+                      book_page=src[plate][0], pdf_page=src[plate][1])
+                for plate in sorted(by_plate)
+            ]
         first_plate = min(by_plate)
         e = entry(seq, first_plate, ACT_TAIL.sub("", name).strip(),
                    placements=placements)
         e["name"] = name          # 원문 그대로(n. sp./n. comb. 꼬리 포함) 되살린다
         entries.append(e)
 
-    meta = PAPER_META[paper]
+    if missing_crops:
+        print(f"  ! 크롭을 못 찾았다({len(missing_crops)}개): "
+              f"{', '.join(missing_crops[:10])}"
+              + (" …" if len(missing_crops) > 10 else ""), file=sys.stderr)
     source_note = ("tools/data/ak85_captions.json (자동 파싱, "
                     "parse_dsdp87_captions.py)" if "akiba" in paper
                     else "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)")

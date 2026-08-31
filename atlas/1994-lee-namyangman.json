@@ -1,0 +1,773 @@
+{
+ "atlas": {
+  "key": "1994-lee-namyangman",
+  "title": "이영길·박용안·최진용 (1994) 남양만 조간대 규조 (J. Paleont. Soc. Korea 10(1):26–40)",
+  "short": "1994 Lee 남양만",
+  "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",
+  "source_sha256": "87f295ce6e23ba0e088c5a0e40ef6dba916e4b4c7e1c2e91bb6bbe8669459011",
+  "note": "도판 1장 · 그림 31개 · 종 항목 28개"
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Cyclotella striata",
+   "genus": "Cyclotella",
+   "binomial": "Cyclotella striata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig01.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "Podosira stelliger",
+   "genus": "Podosira",
+   "binomial": "Podosira stelliger",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Actinocyclus ehrenbergii",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ehrenbergii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Coscinodiscus nitidus",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus nitidus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "Thalassiosira eccentrica",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira eccentrica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Diploneis weissflogii",
+   "genus": "Diploneis",
+   "binomial": "Diploneis weissflogii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Paralia sulcata",
+   "genus": "Paralia",
+   "binomial": "Paralia sulcata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig08.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig09.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "Actinocyclus curvatulus",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus curvatulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "Actinoptychus undulatus (=A. senarius)",
+   "genus": "Actinoptychus",
+   "binomial": "Actinoptychus undulatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Triceratium dubium",
+   "genus": "Triceratium",
+   "binomial": "Triceratium dubium",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Paralia sulcata (girdle view)",
+   "genus": "Paralia",
+   "binomial": "Paralia sulcata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig13.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Thalassiosira oestrupii",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira oestrupii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig14.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Surirella fastuosa var. recedens",
+   "genus": "Surirella",
+   "binomial": "Surirella fastuosa",
+   "rank": "infraspecies",
+   "infra": "var. recedens",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig15.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 14,
+   "item_no": null,
+   "name": "Tryblioptychus cocconeiformis",
+   "genus": "Tryblioptychus",
+   "binomial": "Tryblioptychus cocconeiformis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig16.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 15,
+   "item_no": null,
+   "name": "Actinoptychus splendens",
+   "genus": "Actinoptychus",
+   "binomial": "Actinoptychus splendens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig17.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 16,
+   "item_no": null,
+   "name": "Grammatophora marina",
+   "genus": "Grammatophora",
+   "binomial": "Grammatophora marina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig18.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 17,
+   "item_no": null,
+   "name": "Thalassiosira lineata",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira lineata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig19.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 18,
+   "item_no": null,
+   "name": "Nitzschia sigmaformis",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia sigmaformis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig20.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 19,
+   "item_no": null,
+   "name": "Trachyneis aspera",
+   "genus": "Trachyneis",
+   "binomial": "Trachyneis aspera",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig21.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 20,
+   "item_no": null,
+   "name": "Thalassionema nitzschioides",
+   "genus": "Thalassionema",
+   "binomial": "Thalassionema nitzschioides",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig22.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "23",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig23.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 21,
+   "item_no": null,
+   "name": "Nitzschia granulata",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia granulata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "24",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig24.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 22,
+   "item_no": null,
+   "name": "Delphineis surirella (=Rhaponeis surirella)",
+   "genus": "Delphineis",
+   "binomial": "Delphineis surirella",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "25",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig25.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 23,
+   "item_no": null,
+   "name": "Rhaponeis amphiceros",
+   "genus": "Rhaponeis",
+   "binomial": "Rhaponeis amphiceros",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "26",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig26.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 24,
+   "item_no": null,
+   "name": "Cymatotheca weissflogia",
+   "genus": "Cymatotheca",
+   "binomial": "Cymatotheca weissflogia",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "27",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig27.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 25,
+   "item_no": null,
+   "name": "Actinocyclus ehrenbergii var. tenella",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ehrenbergii",
+   "rank": "infraspecies",
+   "infra": "var. tenella",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "28",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig28.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 26,
+   "item_no": null,
+   "name": "Thalassiosira decipiens",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira decipiens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "29",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig29.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 27,
+   "item_no": null,
+   "name": "Nitzschia punctata",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia punctata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "30",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig30.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 28,
+   "item_no": null,
+   "name": "Epithemia turgida",
+   "genus": "Epithemia",
+   "binomial": "Epithemia turgida",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "31",
+     "book_page": 11,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1994-lee-namyangman/crops/pl1_fig31.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  }
+ ]
+}

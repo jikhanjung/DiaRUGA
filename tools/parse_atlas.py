@@ -142,16 +142,22 @@ def entry(seq: int, line_no: int, headword: str, **kw) -> dict:
 
 
 def place(plate=None, plate_label=None, figures=None, book_page=None,
-          pdf_page=None, pdf_plate_page=None, volume=None, note=None) -> dict:
+          pdf_page=None, pdf_plate_page=None, volume=None, note=None,
+          crop_image=None) -> dict:
     """자리 하나. **공통으로 뽑히는 것만 칸으로 둔다** (P15 4.1).
 
     `note` 는 색인이 그 자리에 달아 둔 주석이다 — Schmidt 21건의
     `〔Tafel 아님 · 권 뒤 Verzeichnis(색인) 쪽에서 왔다〕` 가 여기 온다.
     **`plate` 는 색인에 적힌 그대로 두고** 주석이 그것을 뒤집는다.
+
+    `crop_image` 는 개체 하나를 잘라낸 크롭이 있을 때만 채운다(P23,
+    `tools/parse_paper_atlas.py`) — 도감 셋은 도판 쪽 단위로만 있어
+    빈 채로 둔다.
     """
     return {"plate": plate, "plate_label": plate_label, "figures": figures,
             "book_page": book_page, "pdf_page": pdf_page,
-            "pdf_plate_page": pdf_plate_page, "volume": volume, "note": note}
+            "pdf_plate_page": pdf_plate_page, "volume": volume, "note": note,
+            "crop_image": crop_image}
 
 
 def num(s: str | None) -> int | None:

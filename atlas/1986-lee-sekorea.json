@@ -1,0 +1,1694 @@
+{
+ "atlas": {
+  "key": "1986-lee-sekorea",
+  "title": "이영길 (1986) 한반도 동남부·동해저 신제3기 규조 (J. Paleont. Soc. Korea 2:83–113)",
+  "short": "1986 Lee 남한 신제3기",
+  "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",
+  "source_sha256": "94b27cc3f9dda63e71a50f5956ebc2a00cab506dc67a9d30d0ed3a4263ff87c2",
+  "note": "도판 3장 · 그림 67개 · 종 항목 63개"
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Coscinodiscus oculus-iridis Ehrenberg",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus oculus-iridis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig01.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "Coscinodiscus marginatus var. fossilis Jouse",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus marginatus",
+   "rank": "infraspecies",
+   "infra": "var. fossilis Jouse",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Coscinodiscus marginatus Ehrenberg",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus marginatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Coscinodiscus obscurus Schmidt",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus obscurus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "Thalassiosira antiqua (Grun.) Cleve-Euler",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira antiqua",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Actinocyclus curvatulus Janish in Schmidt",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus curvatulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Coscinodiscus pilicatus Grunow",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus pilicatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "Thalassiosira eccentricus var. leasareolatus Kanaya",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira eccentricus",
+   "rank": "infraspecies",
+   "infra": "var. leasareolatus Kanaya",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig08.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "Thalassiosira convexa Mukhina",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira convexa",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig09.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Coscinodiscus temperei Brun.",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus temperei",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Caldogramma california Ehrenberg",
+   "genus": "Caldogramma",
+   "binomial": "Caldogramma california",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Coscinodiscus tabularis? Grunow",
+   "genus": "Coscinodiscus",
+   "binomial": null,
+   "rank": "unreadable",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Thalassiosira oestrupii (Osterfeld) Proskina-Lavrenko",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira oestrupii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig13.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 14,
+   "item_no": null,
+   "name": "Stephanopyxis schenckii Kayna",
+   "genus": "Stephanopyxis",
+   "binomial": "Stephanopyxis schenckii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig14.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 15,
+   "item_no": null,
+   "name": "Stephanopyxis horridus Koizumi",
+   "genus": "Stephanopyxis",
+   "binomial": "Stephanopyxis horridus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig15.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 16,
+   "item_no": null,
+   "name": "Thalassiosira plicata Schrader",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira plicata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig16.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 17,
+   "item_no": null,
+   "name": "Xanthiopyxis ovalis Lohman",
+   "genus": "Xanthiopyxis",
+   "binomial": "Xanthiopyxis ovalis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig17.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 18,
+   "item_no": null,
+   "name": "Hemidiscus simplicissimus Hanna and Grant",
+   "genus": "Hemidiscus",
+   "binomial": "Hemidiscus simplicissimus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig18.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 19,
+   "item_no": null,
+   "name": "Coscinodiscus endoi Kanaya",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus endoi",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig19.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 20,
+   "item_no": null,
+   "name": "Triceratium condercorum Brig.",
+   "genus": "Triceratium",
+   "binomial": "Triceratium condercorum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig20.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 21,
+   "item_no": null,
+   "name": "Goniothecium odontella Ehrenberg",
+   "genus": "Goniothecium",
+   "binomial": "Goniothecium odontella",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig21.png"
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig08.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 22,
+   "item_no": null,
+   "name": "Nitzschia porteri Frenguelli",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia porteri",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig22.png"
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 23,
+   "item_no": null,
+   "name": "Denticulopsis kamtschatica (Zabelina) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis kamtschatica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "23",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig23.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 24,
+   "item_no": null,
+   "name": "Denticulopsis hustedtii (Simonsen and Kanaya) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis hustedtii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "24",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig24.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "25",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig25.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 25,
+   "item_no": null,
+   "name": "Goniothecium tenue Brun.",
+   "genus": "Goniothecium",
+   "binomial": "Goniothecium tenue",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "26",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig26.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 26,
+   "item_no": null,
+   "name": "Thalassiothrix longissima Cleve and Grunow",
+   "genus": "Thalassiothrix",
+   "binomial": "Thalassiothrix longissima",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "27",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl1_fig27.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 27,
+   "item_no": null,
+   "name": "Actinocylcus ingens (undulated type) Rattray",
+   "genus": "Actinocylcus",
+   "binomial": "Actinocylcus ingens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig01.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 28,
+   "item_no": null,
+   "name": "Actinocyclus ingens (flaty type) Rattray",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ingens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 29,
+   "item_no": null,
+   "name": "Coscinodiscus vetustissima Pantocsek",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus vetustissima",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 30,
+   "item_no": null,
+   "name": "Coscinodiscus lineatus Ehrenberg",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus lineatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 31,
+   "item_no": null,
+   "name": "Actinoptychus undulatus (Bail.) Ralfs",
+   "genus": "Actinoptychus",
+   "binomial": "Actinoptychus undulatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 32,
+   "item_no": null,
+   "name": "Actinocyclus ehrenbergi Ralfs in Pritchard",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ehrenbergi",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 33,
+   "item_no": null,
+   "name": "Stephanopyxis corona (Ehr.) Grunow",
+   "genus": "Stephanopyxis",
+   "binomial": "Stephanopyxis corona",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 34,
+   "item_no": null,
+   "name": "Actinocyclus ehrenbergi var. tenella (Breb.) Hustedt",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ehrenbergi",
+   "rank": "infraspecies",
+   "infra": "var. tenella (Breb.) Hustedt",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig08.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 35,
+   "item_no": null,
+   "name": "Coscinodiscus stellaris Roper",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus stellaris",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig09.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 36,
+   "item_no": null,
+   "name": "Melosira clavigera Grunow",
+   "genus": "Melosira",
+   "binomial": "Melosira clavigera",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 37,
+   "item_no": null,
+   "name": "Stephanopyxis lineatus (Ehr.) Forti",
+   "genus": "Stephanopyxis",
+   "binomial": "Stephanopyxis lineatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 38,
+   "item_no": null,
+   "name": "Melosira sulcata Kutzing",
+   "genus": "Melosira",
+   "binomial": "Melosira sulcata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 39,
+   "item_no": null,
+   "name": "Stephanogonia hanzawae Kanaya",
+   "genus": "Stephanogonia",
+   "binomial": "Stephanogonia hanzawae",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig13.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 40,
+   "item_no": null,
+   "name": "Coscinodiscus nodulifer Schmidt",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus nodulifer",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig14.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 41,
+   "item_no": null,
+   "name": "Coscinodiscus perferatus Ehrenberg",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus perferatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig15.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 42,
+   "item_no": null,
+   "name": "Stephanopyxis turris Ralfs",
+   "genus": "Stephanopyxis",
+   "binomial": "Stephanopyxis turris",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig16.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 43,
+   "item_no": null,
+   "name": "Liradiscus asperalus Andrew",
+   "genus": "Liradiscus",
+   "binomial": "Liradiscus asperalus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig17.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 44,
+   "item_no": null,
+   "name": "Denticulopsis praedimorpha Akiba",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis praedimorpha",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig18.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 45,
+   "item_no": null,
+   "name": "Coscinodiscus lewisianus Greville",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus lewisianus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig19.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 46,
+   "item_no": null,
+   "name": "Liradiscus biopolaris Lohman",
+   "genus": "Liradiscus",
+   "binomial": "Liradiscus biopolaris",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig20.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 47,
+   "item_no": null,
+   "name": "Denticulopsis hustedtii (Kanaya and Simonsen) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis hustedtii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig21.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 48,
+   "item_no": null,
+   "name": "Denticulopsis lauta (Bailey) Simonsen",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis lauta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 15,
+     "pdf_page": 14,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl2_fig22.png"
+    },
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 49,
+   "item_no": null,
+   "name": "Mastogloria splendida (Gregory) Cleve",
+   "genus": "Mastogloria",
+   "binomial": "Mastogloria splendida",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig01.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 50,
+   "item_no": null,
+   "name": "Craspedodiscus rhombicus Grunow",
+   "genus": "Craspedodiscus",
+   "binomial": "Craspedodiscus rhombicus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 51,
+   "item_no": null,
+   "name": "Asteromphalus hungarica Pantocsek",
+   "genus": "Asteromphalus",
+   "binomial": "Asteromphalus hungarica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 52,
+   "item_no": null,
+   "name": "Thalassiosira nordenskioeldii Cleve",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira nordenskioeldii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 53,
+   "item_no": null,
+   "name": "Rhaphoneis amphiceros (Ehr.) Ehrenberg",
+   "genus": "Rhaphoneis",
+   "binomial": "Rhaphoneis amphiceros",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 54,
+   "item_no": null,
+   "name": "Mediaria splendida Sheshukova-Poretskaya",
+   "genus": "Mediaria",
+   "binomial": "Mediaria splendida",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 55,
+   "item_no": null,
+   "name": "Biddulphia areolata Hajos",
+   "genus": "Biddulphia",
+   "binomial": "Biddulphia areolata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 56,
+   "item_no": null,
+   "name": "Diploneis major Cleve",
+   "genus": "Diploneis",
+   "binomial": "Diploneis major",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig09.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 57,
+   "item_no": null,
+   "name": "Diploneis crabro Ehrenberg",
+   "genus": "Diploneis",
+   "binomial": "Diploneis crabro",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 58,
+   "item_no": null,
+   "name": "Endictya oceanica Ehrenberg",
+   "genus": "Endictya",
+   "binomial": "Endictya oceanica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig13.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 59,
+   "item_no": null,
+   "name": "Rhizosolenia miocenica Schrader",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia miocenica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig14.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 60,
+   "item_no": null,
+   "name": "Nitzschia evenscene Schrader",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia evenscene",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig15.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 61,
+   "item_no": null,
+   "name": "Synedra jouseana Sheshukova-Poretzkaya",
+   "genus": "Synedra",
+   "binomial": "Synedra jouseana",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig16.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 62,
+   "item_no": null,
+   "name": "Grammatophora marina (Lynabye) Kutzing",
+   "genus": "Grammatophora",
+   "binomial": "Grammatophora marina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig17.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 63,
+   "item_no": null,
+   "name": "Entopya australis var. gigantea Greville",
+   "genus": "Entopya",
+   "binomial": "Entopya australis",
+   "rank": "infraspecies",
+   "infra": "var. gigantea Greville",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 19,
+     "pdf_page": 18,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1986-lee-sekorea/crops/pl3_fig18.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  }
+ ]
+}

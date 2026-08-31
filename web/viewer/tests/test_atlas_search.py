@@ -50,7 +50,8 @@ class AtlasSearchTests(DiaRUGATestCase):
             binomial="Navicula abrupta", rank="species", genus_guess=True)
         AtlasPlacement.objects.create(entry=e2, seq=0, plate=3, figures="1",
                                       volume="Band1", pdf_page=22,
-                                      pdf_plate_page=23)
+                                      pdf_plate_page=23,
+                                      crop_image="atlas/schmidt/crops/pl3_fig1.png")
         # 주석이 plate 를 뒤집는 자리 (21건)
         AtlasPlacement.objects.create(
             entry=e2, seq=1, plate=240, volume="Band2", pdf_page=99,
@@ -168,11 +169,17 @@ class AtlasSearchTests(DiaRUGATestCase):
         korean = data.atlas_search(q="Sceletonema")["rows"][0]["places"][0]
         self.assertEqual(korean["text_rel"], "")
         self.assertEqual(korean["plate_rel"], "")
+        # 개체 크롭이 있는 자리만 채운다 (P23 · 논문 도판) — 도감 셋은 도판
+        # 쪽 단위로만 있어 여기도 빈 문자열이다
+        self.assertEqual(pl["crop_rel"], "atlas/schmidt/crops/pl3_fig1.png")
+        self.assertEqual(korean["crop_rel"], "")
 
     # 12) 그 자리가 화면에 붙어 있다
     def test_preview_attribute_on_chip(self):
         html = self.get(q="Navicula abrupta")
         self.assertIn('data-prev="atlas/schmidt/band1/p0023.png"', html)
+        # 크롭 칩도 같은 `data-prev` 미리보기를 탄다 (141 의 JS 를 그대로 쓴다)
+        self.assertIn('data-prev="atlas/schmidt/crops/pl3_fig1.png"', html)
 
     # --- P20·164 — 출현 기록 -------------------------------------------------
 

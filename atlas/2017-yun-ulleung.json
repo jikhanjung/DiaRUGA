@@ -1,0 +1,427 @@
+{
+ "atlas": {
+  "key": "2017-yun-ulleung",
+  "title": "Yun, S.M. 외 (2017) 울릉분지 코어 규조 (Ocean Sci. J. 52(3):345–357)",
+  "short": "2017 Yun 울릉분지",
+  "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",
+  "source_sha256": "bad5e245b779cc816843ff05e6f71142cdba98a23bc83496ea24c956ebcd27ff",
+  "note": "도판 1장 · 그림 20개 · 종 항목 13개"
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Coscinodiscus asteromphalus",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus asteromphalus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "A",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figA.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "B",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figB.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "C",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figC.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "C. centralis",
+   "genus": "C.",
+   "binomial": "C. centralis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "D",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figD.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "E",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figE.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Actinoptychus senarius",
+   "genus": "Actinoptychus",
+   "binomial": "Actinoptychus senarius",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "F",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figF.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "G",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figG.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Actinocyclus curvatulus",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus curvatulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "H",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figH.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "A. octonarius",
+   "genus": "A.",
+   "binomial": "A. octonarius",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "I",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figI.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "J",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figJ.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Cyclotella sp.",
+   "genus": "Cyclotella",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "K",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figK.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Thalassiosira curviseriata",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira curviseriata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "L",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figL.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "T. eccentrica",
+   "genus": "T.",
+   "binomial": "T. eccentrica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "M",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figM.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "T. mala",
+   "genus": "T.",
+   "binomial": "T. mala",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "N",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figN.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Paralia sulcata",
+   "genus": "Paralia",
+   "binomial": "Paralia sulcata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "O",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figO.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "P",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figP.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "Q",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figQ.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Navicula sp.",
+   "genus": "Navicula",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "R",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figR.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Thalassionema faruenfeldii",
+   "genus": "Thalassionema",
+   "binomial": "Thalassionema faruenfeldii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "S",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figS.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Th. Nitzschioides",
+   "genus": "Th.",
+   "binomial": "Th. nitzschioides",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "T",
+     "book_page": 13,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2017-yun-ulleung/crops/pl1_figT.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  }
+ ]
+}

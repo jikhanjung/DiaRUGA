@@ -1,0 +1,1951 @@
+{
+ "atlas": {
+  "key": "1996-lee-bransfield",
+  "title": "이영길 (1996) 브랜스필드해협 피스톤코어 규조 (J. Paleont. Soc. Korea 12(1):1–21)",
+  "short": "1996 Lee 브랜스필드",
+  "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",
+  "source_sha256": "ddae05d7f9b52483ee28c412f9a014fb739052a4621d2fd2ceecddbeed53b48c",
+  "note": "도판 5장 · 그림 89개 · 종 항목 64개"
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Thalassiosira lentiginosa (Janisch) Fryxell",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira lentiginosa",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig01.png"
+    },
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig02.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig08.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "Thalassiosira lineata Jouse",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira lineata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Actinocyclus curvatulus Jan. in A. Schmidt",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus curvatulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Actinocyclus actinochillus (Ehr.) Simonsen",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus actinochillus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig04.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "Schimperiella antarctica Karsten",
+   "genus": "Schimperiella",
+   "binomial": "Schimperiella antarctica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Eucampia balaustium Castracana",
+   "genus": "Eucampia",
+   "binomial": "Eucampia balaustium",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Thalassiosira antarctica Comber",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira antarctica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig07.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig08.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig09.png"
+    },
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "Rhizosolenia hebetata f. bidens Heiden",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia hebetata",
+   "rank": "infraspecies",
+   "infra": "f. bidens Heiden",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "Asteromphalus palvulus Karsten",
+   "genus": "Asteromphalus",
+   "binomial": "Asteromphalus palvulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig11.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Cocconeis fasciolata (Ehr.) Brown",
+   "genus": "Cocconeis",
+   "binomial": "Cocconeis fasciolata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig12.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Corethron criophilum Castracane",
+   "genus": "Corethron",
+   "binomial": "Corethron criophilum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig13.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Stellarima stellaris (Roper) Hasle",
+   "genus": "Stellarima",
+   "binomial": "Stellarima stellaris",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig14.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Cocconeis costata Gregory",
+   "genus": "Cocconeis",
+   "binomial": "Cocconeis costata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 10,
+     "pdf_page": 11,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl1_fig15.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig11.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 14,
+   "item_no": null,
+   "name": "Thalassiosira eccentrica (Ehr.) Cleve",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira eccentrica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig01.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 15,
+   "item_no": null,
+   "name": "Coscinodiscus tabularis ? Gran.",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus tabularis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 16,
+   "item_no": null,
+   "name": "Amphora sp. (A. egregia ?)",
+   "genus": "Amphora",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 17,
+   "item_no": null,
+   "name": "Nitzschia kerguelensis (O' Meara) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia kerguelensis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 18,
+   "item_no": null,
+   "name": "Nitzschia kerguelensis (O'Meara) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia kerguelensis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig06.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig09.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 19,
+   "item_no": null,
+   "name": "Nitzschia ritscheri (Hust.) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia ritscheri",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 20,
+   "item_no": null,
+   "name": "Nitzschia obliquecostata (Van Heurck) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia obliquecostata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig08.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig14.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 21,
+   "item_no": null,
+   "name": "Nitzschia lineata (Castracane) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia lineata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig09.png"
+    },
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig18.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 22,
+   "item_no": null,
+   "name": "Nitzschia sublineata Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia sublineata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig10.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig13.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig16.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 23,
+   "item_no": null,
+   "name": "Nitzschia angulata (O'Meara) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia angulata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 24,
+   "item_no": null,
+   "name": "Grammatophora serpentina (Ralfs) Ehrenberg",
+   "genus": "Grammatophora",
+   "binomial": "Grammatophora serpentina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig15.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 25,
+   "item_no": null,
+   "name": "Syndra sp.",
+   "genus": "Syndra",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig17.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 26,
+   "item_no": null,
+   "name": "Nitzschia separanda (Hust.) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia separanda",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig18.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig21.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 27,
+   "item_no": null,
+   "name": "Nitzschia curta (Van Heurck) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia curta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig19.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig22.png"
+    },
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig19.png"
+    },
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig22.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 28,
+   "item_no": null,
+   "name": "Nitzschia cylindrus (Grunow) Hasle",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia cylindrus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig20.png"
+    },
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig20.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 29,
+   "item_no": null,
+   "name": "Rhizosolenia styliformis Brightwell",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia styliformis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "23",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig23.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 30,
+   "item_no": null,
+   "name": "Thalassiothrix longissima Cleve and Grunow",
+   "genus": "Thalassiothrix",
+   "binomial": "Thalassiothrix longissima",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "24",
+     "book_page": 12,
+     "pdf_page": 13,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl2_fig24.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 31,
+   "item_no": null,
+   "name": "Coscinodiscus asteromphalus Ehrenberg",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus asteromphalus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig01.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 32,
+   "item_no": null,
+   "name": "Actinocyclus octonarius Ehrenberg",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus octonarius",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 33,
+   "item_no": null,
+   "name": "Actinocyclus octonarius var. tenella (Breb.) Hendey",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus octonarius",
+   "rank": "infraspecies",
+   "infra": "var. tenella (Breb.) Hendey",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 34,
+   "item_no": null,
+   "name": "Thalassiosira gracilis (Karsten) Hustedt",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira gracilis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 35,
+   "item_no": null,
+   "name": "Melosira sol (Ehr.) Kutzing",
+   "genus": "Melosira",
+   "binomial": "Melosira sol",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 36,
+   "item_no": null,
+   "name": "Fricker lewisiana ? (Grev.) Heiden in Schmidt",
+   "genus": "Fricker",
+   "binomial": "Fricker lewisiana",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 37,
+   "item_no": null,
+   "name": "Thalassiosira tumida (Janisch) Hasle",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira tumida",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 38,
+   "item_no": null,
+   "name": "Amphora ovalis (Kutz.) Kutzing",
+   "genus": "Amphora",
+   "binomial": "Amphora ovalis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig08.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 39,
+   "item_no": null,
+   "name": "Chaetoceros bulbosum (Ehr.) Heiden",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros bulbosum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig09.png"
+    },
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 40,
+   "item_no": null,
+   "name": "Actinocyclus ingens Rattray",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ingens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 41,
+   "item_no": null,
+   "name": "Navicula directa (Wm. Smith) Ralfs in Pritchard",
+   "genus": "Navicula",
+   "binomial": "Navicula directa",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 42,
+   "item_no": null,
+   "name": "Nitzschia sp.",
+   "genus": "Nitzschia",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 43,
+   "item_no": null,
+   "name": "Navicula praetexta (Ehr.) Gregory",
+   "genus": "Navicula",
+   "binomial": "Navicula praetexta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig13.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 44,
+   "item_no": null,
+   "name": "Rhizosolenia alata f. inermis (Castracane) Hustedt",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia alata",
+   "rank": "infraspecies",
+   "infra": "f. inermis (Castracane) Hustedt",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 3,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 14,
+     "pdf_page": 15,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl3_fig14.png"
+    }
+   ],
+   "extra": {},
+   "line": 3
+  },
+  {
+   "seq": 45,
+   "item_no": null,
+   "name": "Thalassiosira sp. A",
+   "genus": "Thalassiosira",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig01.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 46,
+   "item_no": null,
+   "name": "Roperia tesselata (Roper) Grunow",
+   "genus": "Roperia",
+   "binomial": "Roperia tesselata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 47,
+   "item_no": null,
+   "name": "Coscinodiscus stellaris var. symbolophorus (Grun.) Jorgensen",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus stellaris",
+   "rank": "infraspecies",
+   "infra": "var. symbolophorus (Grun.) Jorgensen",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 48,
+   "item_no": null,
+   "name": "Dactyliosolen antarctica Castracane",
+   "genus": "Dactyliosolen",
+   "binomial": "Dactyliosolen antarctica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 49,
+   "item_no": null,
+   "name": "Stephanopyxis turris (Grev. & Arnott) Ralfs",
+   "genus": "Stephanopyxis",
+   "binomial": "Stephanopyxis turris",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 50,
+   "item_no": null,
+   "name": "Actinocyclus karstenii Van Heurck",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus karstenii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig08.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 51,
+   "item_no": null,
+   "name": "Navicula peregrina (Ehr.) Kutzing",
+   "genus": "Navicula",
+   "binomial": "Navicula peregrina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig09.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 52,
+   "item_no": null,
+   "name": "Nitzschia barbieri M. Per.",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia barbieri",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 53,
+   "item_no": null,
+   "name": "Achnanthes brevipes var. angustata (Grev.) Cleve",
+   "genus": "Achnanthes",
+   "binomial": "Achnanthes brevipes",
+   "rank": "infraspecies",
+   "infra": "var. angustata (Grev.) Cleve",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 54,
+   "item_no": null,
+   "name": "Gomphonema intricatum Kutzing",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema intricatum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 55,
+   "item_no": null,
+   "name": "Licmophora decora Heiden and Kolbe",
+   "genus": "Licmophora",
+   "binomial": "Licmophora decora",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig13.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 56,
+   "item_no": null,
+   "name": "Denticulopsis hustedtii ? Simonsen and Kanaya",
+   "genus": "Denticulopsis",
+   "binomial": "Denticulopsis hustedtii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig14.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 57,
+   "item_no": null,
+   "name": "Achnanthes sp. ?",
+   "genus": "Achnanthes",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig15.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 58,
+   "item_no": null,
+   "name": "Grammatophora marina (Lyngbye) Kutzing",
+   "genus": "Grammatophora",
+   "binomial": "Grammatophora marina",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig16.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 59,
+   "item_no": null,
+   "name": "Thalassiosira elliptipora Donahue",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira elliptipora",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig17.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 60,
+   "item_no": null,
+   "name": "Denticulopsis sp.",
+   "genus": "Denticulopsis",
+   "binomial": null,
+   "rank": "genus_only",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig21.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 61,
+   "item_no": null,
+   "name": "Grammatophora arcuata Ehrenberg",
+   "genus": "Grammatophora",
+   "binomial": "Grammatophora arcuata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "23",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig23.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 62,
+   "item_no": null,
+   "name": "Nitzschia angularis Smith",
+   "genus": "Nitzschia",
+   "binomial": "Nitzschia angularis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 4,
+     "plate_label": null,
+     "figures": "24",
+     "book_page": 16,
+     "pdf_page": 17,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl4_fig24.png"
+    }
+   ],
+   "extra": {},
+   "line": 4
+  },
+  {
+   "seq": 63,
+   "item_no": null,
+   "name": "Asteromphalus parvulus Karsten",
+   "genus": "Asteromphalus",
+   "binomial": "Asteromphalus parvulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig01.png"
+    }
+   ],
+   "extra": {},
+   "line": 5
+  },
+  {
+   "seq": 64,
+   "item_no": null,
+   "name": "Eucampia balaustium Castracane",
+   "genus": "Eucampia",
+   "binomial": "Eucampia balaustium",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 5,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 18,
+     "pdf_page": 19,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/1996-lee-bransfield/crops/pl5_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 5
+  }
+ ]
+}

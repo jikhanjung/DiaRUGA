@@ -4768,6 +4768,10 @@ def _placement_dict(p) -> dict:
         # `atlas.rel_of` 하나뿐이라 화면이 다시 만들지 않는다.
         "text_rel": _atlas_rel(key, p.volume, p.pdf_page),
         "plate_rel": _atlas_rel(key, p.volume, p.pdf_plate_page),
+        # 개체 하나의 크롭 (P23 · 논문 도판). **`crop_image` 는 이미
+        # `DATA_ROOT` 기준 상대경로다** — `text_rel`·`plate_rel` 과 달리
+        # 여기서 새로 조립하지 않는다(`import_atlas.py` 가 그대로 옮긴 값).
+        "crop_rel": p.crop_image,
     }
 
 

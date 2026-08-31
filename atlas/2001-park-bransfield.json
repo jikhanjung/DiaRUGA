@@ -1,0 +1,1122 @@
+{
+ "atlas": {
+  "key": "2001-park-bransfield",
+  "title": "박영숙 외 (2001) 브랜스필드해협 고환경 규조 (J. Paleont. Soc. Korea 17(2):99–111)",
+  "short": "2001 Park 브랜스필드",
+  "source": "tools/plate_figs.py 의 CAPTIONS (손으로 짚었다)",
+  "source_sha256": "af17ce8fceb54eb63c73a595c2e599a2cd0f8892c222b83ffdc1f5d8e38b2f4c",
+  "note": "도판 2장 · 그림 45개 · 종 항목 41개"
+ },
+ "entries": [
+  {
+   "seq": 1,
+   "item_no": null,
+   "name": "Actinocyclus actinochilus (Ehrenberg) Simonsen",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus actinochilus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig01.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "20",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig20.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 2,
+   "item_no": null,
+   "name": "Asterompharus hookeri Ehrenberg",
+   "genus": "Asterompharus",
+   "binomial": "Asterompharus hookeri",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "2",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig02.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 3,
+   "item_no": null,
+   "name": "Chaetoceros resting spores",
+   "genus": "Chaetoceros",
+   "binomial": "Chaetoceros resting",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig03.png"
+    },
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 4,
+   "item_no": null,
+   "name": "Cocconeis costata Gregory",
+   "genus": "Cocconeis",
+   "binomial": "Cocconeis costata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 5,
+   "item_no": null,
+   "name": "C. fasciolata (Ehrenberg) Brown",
+   "genus": "C.",
+   "binomial": "C. fasciolata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 6,
+   "item_no": null,
+   "name": "Actinocyclus ingens Rattray",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus ingens",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 7,
+   "item_no": null,
+   "name": "Asterompharus palvulus Karsten",
+   "genus": "Asterompharus",
+   "binomial": "Asterompharus palvulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig08.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 8,
+   "item_no": null,
+   "name": "Coscinodiscus furcatus Karsten",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus furcatus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig09.png"
+    },
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "6",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig06.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 9,
+   "item_no": null,
+   "name": "Fragilariopsis seperanda Hustedt",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis seperanda",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 10,
+   "item_no": null,
+   "name": "Coscinodiscus asteromphalus Ehrenberg",
+   "genus": "Coscinodiscus",
+   "binomial": "Coscinodiscus asteromphalus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 11,
+   "item_no": null,
+   "name": "Melosira sol (Ehrenberg) Kutzing",
+   "genus": "Melosira",
+   "binomial": "Melosira sol",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 12,
+   "item_no": null,
+   "name": "Thalassiosira elliptipora Donahue",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira elliptipora",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig13.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 13,
+   "item_no": null,
+   "name": "Porosira gracilis (Grunow) Jorgensen",
+   "genus": "Porosira",
+   "binomial": "Porosira gracilis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "14",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig14.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 14,
+   "item_no": null,
+   "name": "Eucampia antarctica (Castracane) Mangin",
+   "genus": "Eucampia",
+   "binomial": "Eucampia antarctica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "15",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig15.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 15,
+   "item_no": null,
+   "name": "Thalassiosira lentignosa Karsten",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira lentignosa",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "16",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig16.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 16,
+   "item_no": null,
+   "name": "T. eccentrica (Ehrenberg) Cleve",
+   "genus": "T.",
+   "binomial": "T. eccentrica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "17",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig17.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 17,
+   "item_no": null,
+   "name": "T. gracilis (Karsten) Hustedt",
+   "genus": "T.",
+   "binomial": "T. gracilis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "18",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig18.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 18,
+   "item_no": null,
+   "name": "T. antarctica Comber",
+   "genus": "T.",
+   "binomial": "T. antarctica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "19",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig19.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 19,
+   "item_no": null,
+   "name": "Licomphora abbreviata Agardh",
+   "genus": "Licomphora",
+   "binomial": "Licomphora abbreviata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "21",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig21.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 20,
+   "item_no": null,
+   "name": "Odontella weissflogii (Janisch) Grunow",
+   "genus": "Odontella",
+   "binomial": "Odontella weissflogii",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "22",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig22.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 21,
+   "item_no": null,
+   "name": "Dactyliosolen antarcticus Castracane",
+   "genus": "Dactyliosolen",
+   "binomial": "Dactyliosolen antarcticus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "23",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig23.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 22,
+   "item_no": null,
+   "name": "Actinocyclus curvatulus Janisch",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus curvatulus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "24",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig24.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 23,
+   "item_no": null,
+   "name": "Fragilariopsis ritscheri Hustedt",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis ritscheri",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "25",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig25.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 24,
+   "item_no": null,
+   "name": "Rhizosolenia hebetata f. bidens Heiden",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia hebetata",
+   "rank": "infraspecies",
+   "infra": "f. bidens Heiden",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "26",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig26.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 25,
+   "item_no": null,
+   "name": "Fragilariopsis sublineata (Van Heurck) Hasle",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis sublineata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "27",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig27.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 26,
+   "item_no": null,
+   "name": "F. obliquecostata (Van Heurck) Hasle",
+   "genus": "F.",
+   "binomial": "F. obliquecostata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "28",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig28.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 27,
+   "item_no": null,
+   "name": "Thalassiothrix longissima Cleve and Grunow",
+   "genus": "Thalassiothrix",
+   "binomial": "Thalassiothrix longissima",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "29",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig29.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 28,
+   "item_no": null,
+   "name": "Acanthes brevipes var. angustata (Cleve) Grunow",
+   "genus": "Acanthes",
+   "binomial": "Acanthes brevipes",
+   "rank": "infraspecies",
+   "infra": "var. angustata (Cleve) Grunow",
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "30",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig30.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 29,
+   "item_no": null,
+   "name": "Gomphonema intricatum Kutzing",
+   "genus": "Gomphonema",
+   "binomial": "Gomphonema intricatum",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "31",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig31.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 30,
+   "item_no": null,
+   "name": "Cocconeis fasciolata (Ehrenberg) Brown",
+   "genus": "Cocconeis",
+   "binomial": "Cocconeis fasciolata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 1,
+     "plate_label": null,
+     "figures": "32",
+     "book_page": 11,
+     "pdf_page": 10,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl1_fig32.png"
+    }
+   ],
+   "extra": {},
+   "line": 1
+  },
+  {
+   "seq": 31,
+   "item_no": null,
+   "name": "Thalassiosira antarctica Comber",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira antarctica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "1",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig01.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 32,
+   "item_no": null,
+   "name": "Thalassiosira eccentrica (Ehr.) Cleve",
+   "genus": "Thalassiosira",
+   "binomial": "Thalassiosira eccentrica",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "3",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig03.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 33,
+   "item_no": null,
+   "name": "Actinocyclus octonarius",
+   "genus": "Actinocyclus",
+   "binomial": "Actinocyclus octonarius",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "4",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig04.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 34,
+   "item_no": null,
+   "name": "Porosira glacialis (Grunow) Jorgensen",
+   "genus": "Porosira",
+   "binomial": "Porosira glacialis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "5",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig05.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 35,
+   "item_no": null,
+   "name": "Fragilariopsis lineata Hasle",
+   "genus": "Fragilariopsis",
+   "binomial": "Fragilariopsis lineata",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "7",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig07.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 36,
+   "item_no": null,
+   "name": "F. kerguelensis (O'Meara) Hustedt",
+   "genus": "F.",
+   "binomial": "F. kerguelensis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "8",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig08.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 37,
+   "item_no": null,
+   "name": "F. cylindrus (Grunow) Krieger",
+   "genus": "F.",
+   "binomial": "F. cylindrus",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "9",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig09.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 38,
+   "item_no": null,
+   "name": "F. curta (V. Heurck) Hasle",
+   "genus": "F.",
+   "binomial": "F. curta",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "10",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig10.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 39,
+   "item_no": null,
+   "name": "F. ritscheri Hustedt",
+   "genus": "F.",
+   "binomial": "F. ritscheri",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "11",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig11.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 40,
+   "item_no": null,
+   "name": "Rhizosolenia styliformis Brightwell",
+   "genus": "Rhizosolenia",
+   "binomial": "Rhizosolenia styliformis",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "12",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig12.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  },
+  {
+   "seq": 41,
+   "item_no": null,
+   "name": "Navicula directa Smith",
+   "genus": "Navicula",
+   "binomial": "Navicula directa",
+   "rank": "species",
+   "infra": null,
+   "authority": null,
+   "genus_guess": false,
+   "placements": [
+    {
+     "plate": 2,
+     "plate_label": null,
+     "figures": "13",
+     "book_page": 13,
+     "pdf_page": 12,
+     "pdf_plate_page": null,
+     "volume": null,
+     "note": null,
+     "crop_image": "atlas/2001-park-bransfield/crops/pl2_fig13.png"
+    }
+   ],
+   "extra": {},
+   "line": 2
+  }
+ ]
+}

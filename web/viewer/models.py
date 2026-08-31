@@ -1444,6 +1444,12 @@ class AtlasPlacement(models.Model):
     # Verzeichnis(색인) 쪽에서 왔다` 가 여기 온다 — **`plate` 는 색인에 적힌
     # 그대로 두고 주석이 그것을 뒤집는다.** `pdf_page` 는 성하다
     note = models.TextField(blank=True, default="", db_default="")
+    # 개체 하나를 잘라낸 크롭 이미지 (P23 · 논문 도판). `DATA_ROOT` 기준
+    # 상대경로 — `text_rel`·`plate_rel` 과 같은 자리(`/data3/DiaRUGA/atlas/
+    # <도감>/crops/pl<N>_fig<NN>.png`). **도감 셋은 도판 쪽 단위로만 있어
+    # 빈 채로 둔다** — 여기 있는 것이 "이 항목이 도판 위 어디 있나" 를
+    # 그림 하나 단위로 짚을 수 있는 논문만이다.
+    crop_image = models.CharField(max_length=200, blank=True, default="", db_default="")
 
     class Meta:
         ordering = ["entry", "seq"]

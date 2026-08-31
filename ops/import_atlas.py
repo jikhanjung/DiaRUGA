@@ -60,7 +60,7 @@ SRC = APP / "atlas"
 ENTRY_FIELDS = ("seq", "item_no", "name", "genus", "binomial", "rank",
                 "infra", "authority", "genus_guess", "extra", "line")
 PLACE_FIELDS = ("plate", "plate_label", "figures", "book_page",
-                "pdf_page", "pdf_plate_page", "volume", "note")
+                "pdf_page", "pdf_plate_page", "volume", "note", "crop_image")
 
 
 def blank(v):

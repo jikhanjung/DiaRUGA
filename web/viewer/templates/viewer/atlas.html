@@ -147,6 +147,13 @@
                data-prev="{{ pl.text_rel }}" data-prevlabel="해설 p.{{ pl.pdf_page }}">해설 p.{{ pl.pdf_page }}</a>{% endif %}
             {% if pl.plate_url %}<a class="chip" href="{{ pl.plate_url }}"
                data-prev="{{ pl.plate_rel }}" data-prevlabel="도판 p.{{ pl.pdf_plate_page }}">도판 p.{{ pl.pdf_plate_page }}</a>{% endif %}
+            {% comment %}
+              **개체 하나의 크롭** (P23 · 논문 도판). 도판 쪽 전체가 아니라
+              이 그림 하나만 미리 보여준다 — `data-prev` 가 이미 범용이라
+              JS 는 그대로다. 누르면 도판 쪽으로 간다(크롭 자체는 쪽이 아니다).
+            {% endcomment %}
+            {% if pl.crop_rel %}<a class="chip" href="{{ pl.plate_url }}"
+               data-prev="{{ pl.crop_rel }}" data-prevlabel="fig.{{ pl.figures }}">그림 보기</a>{% endif %}
             {% if pl.note %}
               {% comment %}
                 **주석이 `plate` 를 뒤집는 자리가 21건이다** (`Tafel 아님 · 권 뒤

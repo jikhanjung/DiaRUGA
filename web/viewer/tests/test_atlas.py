@@ -55,7 +55,8 @@ def entry(seq, name, genus, placements=None, **kw):
 
 def place(**kw):
     p = {"plate": None, "plate_label": "", "figures": "", "book_page": None,
-         "pdf_page": None, "pdf_plate_page": None, "volume": "", "note": ""}
+         "pdf_page": None, "pdf_plate_page": None, "volume": "", "note": "",
+         "crop_image": None}
     p.update(kw)
     return p
 
@@ -143,9 +144,10 @@ class AtlasImportTest(DiaRUGATestCase):
             total_p += np_
         self.assertEqual(AtlasEntry.objects.count(), total_e)
         self.assertEqual(AtlasPlacement.objects.count(), total_p)
-        # 도감 셋(P15 2절 · 2,059) + 도판 있는 논문 넷(P20 3단계 · 218) = 일곱
-        self.assertEqual(Atlas.objects.count(), 7)
-        self.assertEqual(total_e, 2277)
+        # 도감 셋(P15 2절 · 2,059) + 도판 있는 논문 넷(P20 3단계 · 218) +
+        # 크롭까지 있는 논문 여덟(P23 · 372) = 열다섯
+        self.assertEqual(Atlas.objects.count(), 15)
+        self.assertEqual(total_e, 2649)
 
 
 class CheckAtlasTest(DiaRUGATestCase):

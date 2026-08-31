@@ -27,7 +27,8 @@
      "pdf_page": 20,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -52,7 +53,8 @@
      "pdf_page": 20,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 3,
@@ -62,7 +64,8 @@
      "pdf_page": 22,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -87,7 +90,8 @@
      "pdf_page": 20,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 2,
@@ -97,7 +101,8 @@
      "pdf_page": 21,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 3,
@@ -107,7 +112,8 @@
      "pdf_page": 22,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 5,
@@ -117,7 +123,8 @@
      "pdf_page": 24,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -142,7 +149,8 @@
      "pdf_page": 20,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 3,
@@ -152,7 +160,8 @@
      "pdf_page": 22,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 4,
@@ -162,7 +171,8 @@
      "pdf_page": 23,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -187,7 +197,8 @@
      "pdf_page": 21,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -212,7 +223,8 @@
      "pdf_page": 21,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 6,
@@ -222,7 +234,8 @@
      "pdf_page": 25,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -247,7 +260,8 @@
      "pdf_page": 26,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 8,
@@ -257,7 +271,8 @@
      "pdf_page": 27,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -282,7 +297,8 @@
      "pdf_page": 26,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 9,
@@ -292,7 +308,8 @@
      "pdf_page": 28,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -317,7 +334,8 @@
      "pdf_page": 29,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -342,7 +360,8 @@
      "pdf_page": 29,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -367,7 +386,8 @@
      "pdf_page": 30,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 12,
@@ -377,7 +397,8 @@
      "pdf_page": 31,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -402,7 +423,8 @@
      "pdf_page": 31,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -427,7 +449,8 @@
      "pdf_page": 32,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 14,
@@ -437,7 +460,8 @@
      "pdf_page": 33,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -462,7 +486,8 @@
      "pdf_page": 34,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 16,
@@ -472,7 +497,8 @@
      "pdf_page": 35,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -497,7 +523,8 @@
      "pdf_page": 36,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 19,
@@ -507,7 +534,8 @@
      "pdf_page": 38,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 20,
@@ -517,7 +545,8 @@
      "pdf_page": 39,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -542,7 +571,8 @@
      "pdf_page": 36,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 18,
@@ -552,7 +582,8 @@
      "pdf_page": 37,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 19,
@@ -562,7 +593,8 @@
      "pdf_page": 38,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -587,7 +619,8 @@
      "pdf_page": 40,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -612,7 +645,8 @@
      "pdf_page": 40,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -637,7 +671,8 @@
      "pdf_page": 40,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -662,7 +697,8 @@
      "pdf_page": 40,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 24,
@@ -672,7 +708,8 @@
      "pdf_page": 43,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 25,
@@ -682,7 +719,8 @@
      "pdf_page": 44,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -707,7 +745,8 @@
      "pdf_page": 41,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -732,7 +771,8 @@
      "pdf_page": 42,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -757,7 +797,8 @@
      "pdf_page": 43,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 26,
@@ -767,7 +808,8 @@
      "pdf_page": 45,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -792,7 +834,8 @@
      "pdf_page": 43,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -817,7 +860,8 @@
      "pdf_page": 46,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 28,
@@ -827,7 +871,8 @@
      "pdf_page": 47,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -852,7 +897,8 @@
      "pdf_page": 46,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -877,7 +923,8 @@
      "pdf_page": 46,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 29,
@@ -887,7 +934,8 @@
      "pdf_page": 48,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -912,7 +960,8 @@
      "pdf_page": 49,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -937,7 +986,8 @@
      "pdf_page": 50,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -962,7 +1012,8 @@
      "pdf_page": 50,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -987,7 +1038,8 @@
      "pdf_page": 51,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 33,
@@ -997,7 +1049,8 @@
      "pdf_page": 52,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1022,7 +1075,8 @@
      "pdf_page": 53,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 35,
@@ -1032,7 +1086,8 @@
      "pdf_page": 54,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1057,7 +1112,8 @@
      "pdf_page": 53,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1082,7 +1138,8 @@
      "pdf_page": 55,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1107,7 +1164,8 @@
      "pdf_page": 56,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1132,7 +1190,8 @@
      "pdf_page": 57,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1157,7 +1216,8 @@
      "pdf_page": 57,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1182,7 +1242,8 @@
      "pdf_page": 58,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1207,7 +1268,8 @@
      "pdf_page": 58,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1232,7 +1294,8 @@
      "pdf_page": 59,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1257,7 +1320,8 @@
      "pdf_page": 59,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1282,7 +1346,8 @@
      "pdf_page": 60,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1307,7 +1372,8 @@
      "pdf_page": 60,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1332,7 +1398,8 @@
      "pdf_page": 60,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1357,7 +1424,8 @@
      "pdf_page": 61,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 45,
@@ -1367,7 +1435,8 @@
      "pdf_page": 64,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1392,7 +1461,8 @@
      "pdf_page": 61,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1417,7 +1487,8 @@
      "pdf_page": 61,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1442,7 +1513,8 @@
      "pdf_page": 61,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 43,
@@ -1452,7 +1524,8 @@
      "pdf_page": 62,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1477,7 +1550,8 @@
      "pdf_page": 63,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1502,7 +1576,8 @@
      "pdf_page": 65,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 47,
@@ -1512,7 +1587,8 @@
      "pdf_page": 66,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1537,7 +1613,8 @@
      "pdf_page": 65,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1562,7 +1639,8 @@
      "pdf_page": 65,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1587,7 +1665,8 @@
      "pdf_page": 65,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1612,7 +1691,8 @@
      "pdf_page": 65,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1637,7 +1717,8 @@
      "pdf_page": 67,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 50,
@@ -1647,7 +1728,8 @@
      "pdf_page": 69,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1672,7 +1754,8 @@
      "pdf_page": 67,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 49,
@@ -1682,7 +1765,8 @@
      "pdf_page": 68,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1707,7 +1791,8 @@
      "pdf_page": 67,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1732,7 +1817,8 @@
      "pdf_page": 70,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1757,7 +1843,8 @@
      "pdf_page": 70,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1782,7 +1869,8 @@
      "pdf_page": 70,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     },
     {
      "plate": 53,
@@ -1792,7 +1880,8 @@
      "pdf_page": 72,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
@@ -1817,7 +1906,8 @@
      "pdf_page": 71,
      "pdf_plate_page": null,
      "volume": null,
-     "note": null
+     "note": null,
+     "crop_image": null
     }
    ],
    "extra": {},
