@@ -1532,6 +1532,15 @@ def _crop_thumb(path, box, width, pad=None):
     return out
 
 
+# 정식 다권 도감. 나머지는 전부 논문·보고서에서 도판만 뗀 발췌본이다 —
+# **파일이나 DB 어디에도 이 구분을 담을 자리가 없다**(`atlas.py` 는 "파일이
+# 자료" 원칙이라 사람의 판단을 안 담고, `Atlas` 모델도 분류 칼럼이 없다).
+# 어느 파서가 만들었는지도 못 믿는다 — `east-antarctic` 은 `parse_atlas.py`
+# 의 `ATLASES` 목록에 있지만 title 자체가 "도판집" 이고 논문류다. 그래서
+# 사람이 정한 값을 화면 표시용으로만 여기 못 박는다.
+_BOOK_ATLAS_CODES = {"korean", "schmidt"}
+
+
 def atlas_index(request):
     """도감 — **검색이 먼저고 도판이 그다음이다** (P15 §6 · 129 · 131).
 
@@ -1555,6 +1564,10 @@ def atlas_index(request):
     searched = bool(q or atlas_key or genus)
     ctx = {
         "atlases": plates,
+        # 목록이 늘면서(15) 다권 도감과 논문 도판집이 한 줄 무게로 섞여
+        # 지저분해졌다 — 화면에서만 둘로 가른다(위 `_BOOK_ATLAS_CODES`).
+        "book_atlases": [a for a in plates if a["code"] in _BOOK_ATLAS_CODES],
+        "paper_atlases": [a for a in plates if a["code"] not in _BOOK_ATLAS_CODES],
         # 굽는 중일 수 있다. **몇 쪽 중 몇 쪽인지 화면이 말한다** — 안 말하면
         # 덜 구운 상태를 "원본이 그만큼" 으로 읽는다.
         "partial": [a for a in plates if a["partial"]],
