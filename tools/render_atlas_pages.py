@@ -94,6 +94,15 @@ LEFT_PARITY = {
     "1992-lee-galmal": "odd",
     "1993-lee-chaetoceros": "odd",
     "1985-akiba-yanagisawa": "odd",
+    # P22·P23 의 8편도 같은 사정(저널 낱장 스캔, 펼침 근거 없음) — "odd" 그대로
+    "2017-yun-ulleung": "odd",
+    "1994-lee-namyangman": "odd",
+    "1993-bae-southsea": "odd",
+    "2001-park-bransfield": "odd",
+    "1975-lee-pohang": "odd",
+    "1986-lee-sekorea": "odd",
+    "1996-lee-bransfield": "odd",
+    "1991-lee-yeonil": "odd",
 }
 
 SOURCES = [
@@ -121,6 +130,26 @@ SOURCES = [
      PAPERS_NAS, "1993_lee_chaetoceros_yeonil.pdf"),
     ("1985-akiba-yanagisawa", "1985 Akiba & Yanagisawa", "main", "본문",
      PAPERS_NAS, "1985_akiba_yanagisawa_dsdp87_zonal_markers.pdf"),
+    # 논문 여덟 (P22·P23, 169~177 · 178). `atlas` 코드는
+    # `parse_paper_atlas.py` 의 `PAPER_META[...]["atlas_key"]` 와 같다 —
+    # 크롭 이미지(`AtlasPlacement.crop_image`)는 이미 반입돼 있고, 여기서
+    # 뜨는 것은 도판 **쪽 전체**(해설 p.·도판 p. 링크가 여는 자리)다
+    ("2017-yun-ulleung", "2017 Yun 울릉분지", "main", "본문",
+     PAPERS_NAS, "2017_yun_ulleung_basin.pdf"),
+    ("1994-lee-namyangman", "1994 Lee 남양만", "main", "본문",
+     PAPERS_NAS, "1994_lee_namyangman_tidal_flat.pdf"),
+    ("1993-bae-southsea", "1993 Bae 남해", "main", "본문",
+     PAPERS_NAS, "1993_bae_lee_south_sea_surface.pdf"),
+    ("2001-park-bransfield", "2001 Park 브랜스필드", "main", "본문",
+     PAPERS_NAS, "2001_park_bransfield_paleoenv.pdf"),
+    ("1975-lee-pohang", "1975 Lee 포항·감포", "main", "본문",
+     PAPERS_NAS, "1975_lee_pohang_gampo_neogene.pdf"),
+    ("1986-lee-sekorea", "1986 Lee 남한 신제3기", "main", "본문",
+     PAPERS_NAS, "1986_lee_se_korea_neogene.pdf"),
+    ("1996-lee-bransfield", "1996 Lee 브랜스필드", "main", "본문",
+     PAPERS_NAS, "1996_lee_bransfield_cores.pdf"),
+    ("1991-lee-yeonil", "1991 Lee 연일층군", "main", "본문",
+     PAPERS_NAS, "1991_lee_yeonil_biostratigraphy.pdf"),
 ]
 
 OUT = Path(os.environ.get("DIARUGA_ATLAS_ROOT", "/data3/DiaRUGA/atlas"))
