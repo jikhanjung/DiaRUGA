@@ -489,11 +489,11 @@
  },
  {
   "binomial": "Actincyclus ehrenbergii",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Actinocyclus octonarius",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Actincyclus ehrenbergii → Actinocyclus ehrenbergii, 그 뒤 이명 · 갱신 2023 · Coscinodiscophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Actinella brasiliensis",
@@ -532,7 +532,7 @@
   "status": "synonym",
   "valid_name": "Actinocyclus octonarius",
   "source": "worms-master-20260814",
-  "note": "이명 → 갈아탄다 · algaebase_day2_0051-0100.md · ⚠ WoRMS는 accepted로 표시 — 불일치",
+  "note": "이명 → 갈아탄다 · algaebase_day2_0051-0100.md · ⚠ WoRMS는 accepted로 표시 — 불일치 · ⚠ 논문 도판 조회는 다른 판정(synonym → Actinocyclus octonarius var. tenellus)",
   "checked": "2005-03-30"
  },
  {
@@ -555,9 +555,9 @@
   "binomial": "Actinocyclus karstenii",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "14 April 2021"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2021 · Coscinodiscophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Actinocyclus moniliformis",
@@ -579,17 +579,17 @@
   "binomial": "Actinocyclus octonarius",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "31 January 2026"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Coscinodiscophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Actinocyclus splendens",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "21 September 2018"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2018 · Coscinodiscophyceae",
+  "checked": "2018"
  },
  {
   "binomial": "Actinocyclus stictodiscus",
@@ -602,18 +602,18 @@
  {
   "binomial": "Actinocyclus tenellus",
   "status": "synonym",
-  "valid_name": "Actinocyclus octonarius var. tenellus (Brébisson) Hendey",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Actinocyclus octonarius var. tenellus (Brébisson) Hendey.",
-  "checked": "24 July 2023"
+  "valid_name": "Actinocyclus octonarius var. tenellus",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Coscinodiscophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Actinocylus curvatulus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Actinocyclus curvatulus",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Actinocylus curvatulus → Actinocyclus curvatulus · 그대로 유효 · 갱신 2023 · Coscinodiscophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Actinoptychus antistrophus",
@@ -803,9 +803,9 @@
   "binomial": "Actinoptychus senarius",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "21 December 2025"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2025 · Coscinodiscophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Actinoptychus socius",
@@ -873,11 +873,11 @@
  },
  {
   "binomial": "Ammodchium rectagulare",
-  "status": "absent",
+  "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 에브리아류(Thecofilosea)** · 철자 교정 Ammodchium rectagulare → Ammodochium rectangulare · AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2024",
+  "checked": "2024"
  },
  {
   "binomial": "Amphicampa eruca",
@@ -1697,19 +1697,19 @@
  },
  {
   "binomial": "Asteromphalus hungarica",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Asteromphalus loczyi",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Asteromphalus hungarica → Asteromphalus hungaricus, 그 뒤 이명 · 갱신 2023 · Coscinodiscophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Asteromphalus hungaricus",
   "status": "synonym",
-  "valid_name": "Asteromphalus loczyi Pantocsek",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Asteromphalus loczyi Pantocsek.",
-  "checked": "27 June 2023"
+  "valid_name": "Asteromphalus loczyi",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Coscinodiscophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Asteromphalus kennettii",
@@ -2105,11 +2105,11 @@
  },
  {
   "binomial": "Aulidiscus caelatus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Auliscus sculptus",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Aulidiscus caelatus → Auliscus caelatus, 그 뒤 이명 · 갱신 2025 · Thalassiosirophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Auliscus accedens",
@@ -2529,19 +2529,19 @@
  },
  {
   "binomial": "Bidduliphia areolata",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Biddulphia areolata",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Bidduliphia areolata → Biddulphia areolata · 그대로 유효 · 갱신 2018 · Biddulphiophyceae",
+  "checked": "2018"
  },
  {
   "binomial": "Biddulphia areolata",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "22 September 2018"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2018 · Biddulphiophyceae",
+  "checked": "2018"
  },
  {
   "binomial": "Biddulphia aurita",
@@ -2769,11 +2769,11 @@
  },
  {
   "binomial": "Biddulphia tumoeyi",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Biddulphiella tridens",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Biddulphia tumoeyi → Biddulphia tuomeyi, 그 뒤 이명 · 갱신 2025 · Biddulphiophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Brightwellia hyperborea",
@@ -2793,11 +2793,11 @@
  },
  {
   "binomial": "Caldogramma california",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Cladogramma californicum",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Caldogramma california → Cladogramma californicum · 그대로 유효 · 갱신 2017 · Bacillariophyta classis incertae sedis",
+  "checked": "2017"
  },
  {
   "binomial": "Caloneis bivittata",
@@ -2955,9 +2955,9 @@
   "binomial": "Campylodiscus clypeus",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "27 August 2020"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2020 · Bacillariophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Campylodiscus concinnus",
@@ -3233,42 +3233,42 @@
  },
  {
   "binomial": "Cannopilus hemisphaericus",
-  "status": "unassessed",
+  "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 2건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
   "binomial": "Cannopilus ichikawai",
-  "status": "unassessed",
+  "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 1건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
   "binomial": "Cannopilus quintus",
   "status": "synonym",
-  "valid_name": "Stephanocha quinta (Bukry & J.H.Foster) K.McCartney & R.W.Jordan",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Stephanocha quinta (Bukry & J.H.Foster) K.McCartney & R.W.Jordan.",
-  "checked": "22 April 2021"
+  "valid_name": "Stephanocha quinta",
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2021",
+  "checked": "2021"
  },
  {
   "binomial": "Cannopilus schulzii",
   "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "The taxonomic or nomenclatural status (or both) of this entity is in some way unresolved and requires further investigation.",
-  "checked": "05 February 2021"
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2021",
+  "checked": "2021"
  },
  {
   "binomial": "Cannoplus ichikawai",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "제안 철자 Cannopilus ichikawai 도 없음",
   "checked": ""
  },
  {
@@ -3377,11 +3377,11 @@
  },
  {
   "binomial": "Chaetoceros bulbosum",
-  "status": "unassessed",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 5건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Chaetoceros bulbosus",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Chaetoceros bulbosum → Chaetoceros bulbosus · 그대로 유효 · 갱신 2023 · Thalassiosirophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Chaetoceros coarctatum",
@@ -3793,19 +3793,19 @@
  },
  {
   "binomial": "Cladogramma californica",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Cladogramma californicum",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Cladogramma californica → Cladogramma californicum · 그대로 유효 · 갱신 2017 · Bacillariophyta classis incertae sedis",
+  "checked": "2017"
  },
  {
   "binomial": "Cladogramma californicum",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "29 October 2017"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2017 · Bacillariophyta classis incertae sedis",
+  "checked": "2017"
  },
  {
   "binomial": "Climacodium biconcavum",
@@ -4171,9 +4171,9 @@
   "binomial": "Cocconeis fasciolata",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "23 August 2025"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2025 · Bacillariophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Cocconeis formosa",
@@ -4595,17 +4595,17 @@
   "binomial": "Corbisema triacantha",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "29 January 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2023",
+  "checked": "2023"
  },
  {
   "binomial": "Corethron criophilum",
   "status": "synonym",
-  "valid_name": "Corethron pennatum (Grunow) Ostenfeld",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Corethron pennatum (Grunow) Ostenfeld.",
-  "checked": "12 October 2022"
+  "valid_name": "Corethron pennatum",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Corethrophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Corethron hystrix",
@@ -4633,11 +4633,11 @@
  },
  {
   "binomial": "Coscindiscus vetustissima",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Azpeitia vetustissima",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Coscindiscus vetustissima → Coscinodiscus vetustissimus, 그 뒤 이명 · 갱신 2017 · Coscinodiscophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Coscinodiscus agapetos",
@@ -4810,10 +4810,10 @@
  {
   "binomial": "Coscinodiscus endoi",
   "status": "synonym",
-  "valid_name": "Azpeitia endoi (Kanaya) Sims & Fryxell",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Azpeitia endoi (Kanaya) Sims & Fryxell.",
-  "checked": "29 December 2025"
+  "valid_name": "Azpeitia endoi",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2025 · Coscinodiscophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Coscinodiscus excavatus",
@@ -4834,10 +4834,10 @@
  {
   "binomial": "Coscinodiscus furcatus",
   "status": "synonym",
-  "valid_name": "Stellarima microtrias (Ehrenberg) G.R.Hasle & P.A.Sims",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Stellarima microtrias (Ehrenberg) G.R.Hasle & P.A.Sims.",
-  "checked": "22 June 2005"
+  "valid_name": "Stellarima microtrias",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2005 · Coscinodiscophyceae",
+  "checked": "2005"
  },
  {
   "binomial": "Coscinodiscus gigas",
@@ -4906,10 +4906,10 @@
  {
   "binomial": "Coscinodiscus lewisianus",
   "status": "synonym",
-  "valid_name": "Araniscus lewisianus (Greville) Komura",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Araniscus lewisianus (Greville) Komura.",
-  "checked": "12 July 2022"
+  "valid_name": "Araniscus lewisianus",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Coscinodiscophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Coscinodiscus lineatus",
@@ -4987,25 +4987,25 @@
   "binomial": "Coscinodiscus oculus-iridis",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "14 August 2026"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Coscinodiscophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Coscinodiscus papillosus",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "23 September 2018"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2018 · Coscinodiscophyceae",
+  "checked": "2018"
  },
  {
   "binomial": "Coscinodiscus perferatus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Coscinodiscus perforatus",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Coscinodiscus perferatus → Coscinodiscus perforatus · 그대로 유효 · 갱신 2019 · Coscinodiscophyceae",
+  "checked": "2019"
  },
  {
   "binomial": "Coscinodiscus perforatues",
@@ -5025,11 +5025,11 @@
  },
  {
   "binomial": "Coscinodiscus pilicatus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Thalassiosira grunowii",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Coscinodiscus pilicatus → Coscinodiscus plicatus, 그 뒤 이명 · 갱신 2023 · Coscinodiscophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Coscinodiscus pilosus",
@@ -5169,11 +5169,11 @@
  },
  {
   "binomial": "Coscinodiscus svetustissimus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Azpeitia vetustissima",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Coscinodiscus svetustissimus → Coscinodiscus vetustissimus, 그 뒤 이명 · 갱신 2017 · Coscinodiscophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Coscinodiscus symbolophorus",
@@ -5186,10 +5186,10 @@
  {
   "binomial": "Coscinodiscus tabularis",
   "status": "synonym",
-  "valid_name": "Azpeitia tabularis (Grunow) G.Fryxell & P.A.Sims",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Azpeitia tabularis (Grunow) G.Fryxell & P.A.Sims.",
-  "checked": "22 September 2018"
+  "valid_name": "Azpeitia tabularis",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2018 · Coscinodiscophyceae",
+  "checked": "2018"
  },
  {
   "binomial": "Coscinodiscus tabulatus",
@@ -5201,18 +5201,18 @@
  },
  {
   "binomial": "Coscinodiscus vetustissima",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Azpeitia vetustissima",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Coscinodiscus vetustissima → Coscinodiscus vetustissimus, 그 뒤 이명 · 갱신 2017 · Coscinodiscophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Coscinodiscus vetustissimus",
   "status": "synonym",
   "valid_name": "Azpeitia vetustissima",
   "source": "worms-master-20260814",
-  "note": "이명 → 갈아탄다 · algaebase_day13_0601-0650.md · ⚠ 논문 도판 조회는 다른 판정(synonym → Azpeitia vetustissima (Pantocsek) Sims)",
+  "note": "이명 → 갈아탄다 · algaebase_day13_0601-0650.md · 논문 도판 조회도 같은 판정",
   "checked": "2018-01-31"
  },
  {
@@ -5225,11 +5225,11 @@
  },
  {
   "binomial": "Coscinodisous nodulifer",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Azpeitia nodulifera",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Coscinodisous nodulifer → Coscinodiscus nodulifer, 그 뒤 이명 · 갱신 2021 · (불명)",
+  "checked": "2021"
  },
  {
   "binomial": "Coscinosira oestrupii",
@@ -5355,9 +5355,9 @@
   "binomial": "Craspedodiscus rhombicus",
   "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "The taxonomic or nomenclatural status (or both) of this entity is in some way unresolved and requires further investigation.",
-  "checked": "16 November 2017"
+  "source": "paper-plates-filled-20260831",
+  "note": "AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2017 · Coscinodiscophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Cyclotella americana",
@@ -5555,9 +5555,9 @@
   "binomial": "Cymatotheca weissflogii",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "02 August 2024"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2024 · Thalassiosirophyceae",
+  "checked": "2024"
  },
  {
   "binomial": "Cymbella acuta",
@@ -6163,9 +6163,9 @@
   "binomial": "Delphineis surirella",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "20 January 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Plagiogrammaphyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Denticula gebracht",
@@ -6178,18 +6178,18 @@
  {
   "binomial": "Denticula hustedtii",
   "status": "synonym",
-  "valid_name": "Denticulopsis hustedtii (Simonsen ex T.Kanaya) Simonsen",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Denticulopsis hustedtii (Simonsen ex T.Kanaya) Simonsen.",
-  "checked": "27 February 2023"
+  "valid_name": "Denticulopsis hustedtii",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Denticula lauta",
   "status": "synonym",
-  "valid_name": "Denticulopsis lauta (Bailey) Simonsen",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Denticulopsis lauta (Bailey) Simonsen.",
-  "checked": "14 August 2023"
+  "valid_name": "Denticulopsis lauta",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Denticulopsis dimorpha",
@@ -6209,19 +6209,19 @@
  },
  {
   "binomial": "Denticulopsis hyaline",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Denticulopsis hyalina",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Denticulopsis hyaline → Denticulopsis hyalina · 그대로 유효 · 갱신 2025 · Bacillariophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Denticulopsis kamtschatica",
   "status": "synonym",
-  "valid_name": "Neodenticula kamtschatica (Zabelina) Akiba & Yanagisawa",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Neodenticula kamtschatica (Zabelina) Akiba & Yanagisawa.",
-  "checked": "08 April 2025"
+  "valid_name": "Neodenticula kamtschatica",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2025 · Bacillariophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Denticulopsis lauta",
@@ -6235,9 +6235,9 @@
   "binomial": "Denticulopsis praedimorpha",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "23 October 2022"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Bacillariophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Desmogonium rabenhorstianum",
@@ -6306,34 +6306,34 @@
  {
   "binomial": "Dictyocha ausonia",
   "status": "synonym",
-  "valid_name": "Dictyocha fibula subsp. ausonia (Deflandre) K.McCartney, Sh.Churchill & Woestendiek",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Dictyocha fibula subsp. ausonia (Deflandre) K.McCartney, Sh.Churchill & Woestendiek.",
-  "checked": "22 March 2017"
+  "valid_name": "Dictyocha fibula subsp. ausonia",
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2017",
+  "checked": "2017"
  },
  {
   "binomial": "Dictyocha crux",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "26 June 2015"
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2015",
+  "checked": "2015"
  },
  {
   "binomial": "Dictyocha fibula",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "16 October 2024"
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2024",
+  "checked": "2024"
  },
  {
   "binomial": "Dictyocha mutabilis",
   "status": "synonym",
-  "valid_name": "Dictyocha fibula subsp. mutabilis (Deflandre) K.McCartney, Sh.Churchill & Woestendiek",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Dictyocha fibula subsp. mutabilis (Deflandre) K.McCartney, Sh.Churchill & Woestendiek.",
-  "checked": "22 March 2017"
+  "valid_name": "Dictyocha fibula subsp. mutabilis",
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2017",
+  "checked": "2017"
  },
  {
   "binomial": "Dictyoneis marginata",
@@ -6371,9 +6371,9 @@
   "binomial": "Diploneis crabro",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "05 February 2024"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2024 · Bacillariophyceae",
+  "checked": "2024"
  },
  {
   "binomial": "Diploneis geminata",
@@ -6394,10 +6394,10 @@
  {
   "binomial": "Diploneis major",
   "status": "synonym",
-  "valid_name": "Diploneis smithii var. major (Cleve) Tempère & Peragallo",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Diploneis smithii var. major (Cleve) Tempère & Peragallo.",
-  "checked": "08 May 2023"
+  "valid_name": "Diploneis smithii var. major",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Diploneis microt",
@@ -6459,41 +6459,41 @@
   "binomial": "Diploneis weissflogii",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "03 March 2020"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2020 · Bacillariophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Distephanus crux",
   "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "The taxonomic or nomenclatural status (or both) of this entity is in some way unresolved and requires further investigation.",
-  "checked": "18 October 2012"
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2012",
+  "checked": "2012"
  },
  {
   "binomial": "Distephanus longispinus",
   "status": "synonym",
-  "valid_name": "Distephanopsis longispina (P.Schulz) Desikachary & Prema",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Distephanopsis longispina (P.Schulz) Desikachary & Prema.",
-  "checked": "17 November 2020"
+  "valid_name": "Distephanopsis longispina",
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2020",
+  "checked": "2020"
  },
  {
   "binomial": "Distephanus quinquangellus",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "23 October 2024"
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2024",
+  "checked": "2024"
  },
  {
   "binomial": "Distephanus speculum",
   "status": "synonym",
-  "valid_name": "Octactis speculum (Ehrenberg) F.H.Chang, J.M.Grieve & J.E.Sutherland",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Octactis speculum (Ehrenberg) F.H.Chang, J.M.Grieve & J.E.Sutherland.",
-  "checked": "04 February 2021"
+  "valid_name": "Octactis speculum",
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2021",
+  "checked": "2021"
  },
  {
   "binomial": "Ditylium brightwellii",
@@ -6515,16 +6515,16 @@
   "binomial": "Ebria tripatia",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
   "binomial": "Ebriopsis antiqua",
-  "status": "unassessed",
+  "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 1건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -6601,11 +6601,11 @@
  },
  {
   "binomial": "Entopya australis",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Entopyla australis",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Entopya australis → Entopyla australis · 그대로 유효 · 갱신 2020 · Fragilariophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Entopyla australis",
@@ -6674,10 +6674,10 @@
  {
   "binomial": "Eucampia balaustium",
   "status": "synonym",
-  "valid_name": "Eucampia antarctica (Castracane) Mangin",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Eucampia antarctica (Castracane) Mangin.",
-  "checked": "24 July 2024"
+  "valid_name": "Eucampia antarctica",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2024 · Thalassiosirophyceae",
+  "checked": "2024"
  },
  {
   "binomial": "Eucampia biconcava",
@@ -7202,10 +7202,10 @@
  {
   "binomial": "Fragilaria bituminosa",
   "status": "synonym",
-  "valid_name": "Opephora bituminosa (Pantocsek) A.Cleve",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Opephora bituminosa (Pantocsek) A.Cleve.",
-  "checked": "02 July 2021"
+  "valid_name": "Opephora bituminosa",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2021 · Fragilariophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Fragilaria brevistriata",
@@ -7331,9 +7331,9 @@
   "binomial": "Fragilariopsis cylindrus",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "30 March 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Fragilariopsis kerguelensis",
@@ -7347,8 +7347,8 @@
   "binomial": "Fragilariopsis lineata",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -7385,18 +7385,18 @@
  },
  {
   "binomial": "Fragilariopsis seperanda",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Fragilariopsis separanda",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Fragilariopsis seperanda → Fragilariopsis separanda · 그대로 유효 · 갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Fragilariopsis sublineata",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -7690,26 +7690,26 @@
  {
   "binomial": "Goniothecium odontella",
   "status": "synonym",
-  "valid_name": "Goniothecium rogersii Ehrenberg",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Goniothecium rogersii Ehrenberg.",
-  "checked": "24 February 2025"
+  "valid_name": "Goniothecium rogersii",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2025 · Thalassiosirophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Goniothecium tenue",
   "status": "synonym",
-  "valid_name": "Ikebea tenuis (Brun) Akiba",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Ikebea tenuis (Brun) Akiba.",
-  "checked": "08 June 2023"
+  "valid_name": "Ikebea tenuis",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Thalassiosirophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Goniothecium tenus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Ikebea tenuis",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Goniothecium tenus → Goniothecium tenue, 그 뒤 이명 · 갱신 2023 · Thalassiosirophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Gossleriella tropica",
@@ -7739,41 +7739,41 @@
   "binomial": "Grammatophora arcuata",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "08 January 2020"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2020 · Fragilariophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Grammatophora marina",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "23 March 2026"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Fragilariophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Grammatophora robusta",
   "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "The taxonomic or nomenclatural status (or both) of this entity is in some way unresolved and requires further investigation.",
-  "checked": "27 November 2020"
+  "source": "paper-plates-filled-20260831",
+  "note": "AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2020 · Fragilariophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Grammatophora serpentina",
   "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "The taxonomic or nomenclatural status (or both) of this entity is in some way unresolved and requires further investigation.",
-  "checked": "27 April 2026"
+  "source": "paper-plates-filled-20260831",
+  "note": "AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2026 · Fragilariophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Grammatophora stricta",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "27 November 2020"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2020 · Fragilariophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Grammonema striatulum",
@@ -7954,34 +7954,34 @@
  {
   "binomial": "Hemidiscus simplicissimus",
   "status": "synonym",
-  "valid_name": "Actinocyclus cuneiformis (Wallich) F.Gómez, Lu Wang & Senjie Lin",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Actinocyclus cuneiformis (Wallich) F.Gómez, Lu Wang & Senjie Lin.",
-  "checked": "25 October 2021"
+  "valid_name": "Actinocyclus cuneiformis",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2021 · Coscinodiscophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Hermesium schulzii",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
   "binomial": "Hermialus hungaricus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Zygoceros hungaricus",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Hermialus hungaricus → Hemiaulus hungaricus, 그 뒤 이명 · 갱신 2026 · Thalassiosirophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Hermialus polymorphus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Hemiaulus polymorphus",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Hermialus polymorphus → Hemiaulus polymorphus · 그대로 유효 · 갱신 2025 · Thalassiosirophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Hyalodiscus punctatus",
@@ -8147,49 +8147,49 @@
   "binomial": "Licmophora decora",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "07 October 2024"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2024 · Fragilariophyceae",
+  "checked": "2024"
  },
  {
   "binomial": "Licomphora abbreviata",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Licmophora abbreviata",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Licomphora abbreviata → Licmophora abbreviata · 그대로 유효 · 갱신 2022 · Fragilariophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Liradiscus asperalus",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Liradiscus asperulus",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Liradiscus asperalus → Liradiscus asperulus · 그대로 유효 · 갱신 2023 · Bacillariophyta classis incertae sedis",
+  "checked": "2023"
  },
  {
   "binomial": "Liradiscus asperulus",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "24 July 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyta classis incertae sedis",
+  "checked": "2023"
  },
  {
   "binomial": "Liradiscus biopolaris",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
   "binomial": "Liradiscus bipolaris",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "07 February 2017"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2017 · Bacillariophyta classis incertae sedis",
+  "checked": "2017"
  },
  {
   "binomial": "Liradiscus erinnere",
@@ -8539,9 +8539,9 @@
   "binomial": "Mastogloia splendida",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "04 February 2020"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2020 · Bacillariophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Mastogloia squamosa",
@@ -8593,19 +8593,19 @@
  },
  {
   "binomial": "Mastogloria splendia",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Mastogloia splendida",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Mastogloria splendia → Mastogloia splendida · 그대로 유효 · 갱신 2020 · Bacillariophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Mediaria splendida",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "22 April 2021"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2021 · Bacillariophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Melosira ambigua",
@@ -8962,10 +8962,10 @@
  {
   "binomial": "Melosira sol",
   "status": "synonym",
-  "valid_name": "Ellerbeckia sol (Ehrenberg) R.M.Crawford & P.A.Sims",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Ellerbeckia sol (Ehrenberg) R.M.Crawford & P.A.Sims.",
-  "checked": "17 June 2022"
+  "valid_name": "Ellerbeckia sol",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Melosirophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Melosira solida",
@@ -9042,10 +9042,10 @@
  {
   "binomial": "Mesocena apiculata",
   "status": "synonym",
-  "valid_name": "Bachmannocena apiculata (P.Schulz) Bukry",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Bachmannocena apiculata (P.Schulz) Bukry.",
-  "checked": "03 March 2026"
+  "valid_name": "Bachmannocena apiculata",
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 규질편모조류(Dictyochophyceae)** · 갱신 2026",
+  "checked": "2026"
  },
  {
   "binomial": "Monopsia mammosa",
@@ -10274,10 +10274,10 @@
  {
   "binomial": "Navicula hennedyi",
   "status": "synonym",
-  "valid_name": "Lyrella hennedyi (W.Smith) Stickle & D.G.Mann",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Lyrella hennedyi (W.Smith) Stickle & D.G.Mann.",
-  "checked": "30 January 2026"
+  "valid_name": "Lyrella hennedyi",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Bacillariophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Navicula hexapla",
@@ -12098,18 +12098,18 @@
  {
   "binomial": "Nitzschia angularis",
   "status": "synonym",
-  "valid_name": "Homoeocladia angularis (W.Smith) Kuntze",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Homoeocladia angularis (W.Smith) Kuntze.",
-  "checked": "13 December 2023"
+  "valid_name": "Homoeocladia angularis",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Nitzschia angulata",
   "status": "synonym",
-  "valid_name": "Fragilariopsis rhombica (O'Meara) Hustedt",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis rhombica (O'Meara) Hustedt.",
-  "checked": "02 July 2005"
+  "valid_name": "Fragilariopsis rhombica",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2005 · Bacillariophyceae",
+  "checked": "2005"
  },
  {
   "binomial": "Nitzschia bacillariaeformis",
@@ -12122,10 +12122,10 @@
  {
   "binomial": "Nitzschia barbieri",
   "status": "synonym",
-  "valid_name": "Fragilariopsis barbieri (M.Peragallo) Cefarelli, Ferrario & Lundholm",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis barbieri (M.Peragallo) Cefarelli, Ferrario & Lundholm.",
-  "checked": "02 May 2021"
+  "valid_name": "Fragilariopsis barbieri",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2021 · Bacillariophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Nitzschia cireumsuta",
@@ -12162,18 +12162,18 @@
  {
   "binomial": "Nitzschia curta",
   "status": "synonym",
-  "valid_name": "Fragilariopsis curta (Van Heurck) Hustedt",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis curta (Van Heurck) Hustedt.",
-  "checked": "01 July 2005"
+  "valid_name": "Fragilariopsis curta",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2005 · Bacillariophyceae",
+  "checked": "2005"
  },
  {
   "binomial": "Nitzschia cylindrus",
   "status": "synonym",
-  "valid_name": "Fragilariopsis cylindrus (Grunow ex Cleve) Helmcke & Willi Krieger",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis cylindrus (Grunow ex Cleve) Helmcke & Willi Krieger.",
-  "checked": "20 October 2017"
+  "valid_name": "Fragilariopsis cylindrus",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2017 · Bacillariophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Nitzschia denticuloides",
@@ -12250,18 +12250,18 @@
  {
   "binomial": "Nitzschia granulata",
   "status": "synonym",
-  "valid_name": "Tryblionella granulata (Grunow) D.G.Mann",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Tryblionella granulata (Grunow) D.G.Mann.",
-  "checked": "12 May 2026"
+  "valid_name": "Tryblionella granulata",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Bacillariophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Nitzschia kerguelensis",
   "status": "synonym",
-  "valid_name": "Fragilariopsis kerguelensis (O'Meara) Hustedt",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis kerguelensis (O'Meara) Hustedt.",
-  "checked": "02 February 2023"
+  "valid_name": "Fragilariopsis kerguelensis",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Nitzschia kützingiana",
@@ -12298,10 +12298,10 @@
  {
   "binomial": "Nitzschia lineata",
   "status": "synonym",
-  "valid_name": "Fragilariopsis linearis (Castracane) Frenguelli",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis linearis (Castracane) Frenguelli.",
-  "checked": "02 October 2015"
+  "valid_name": "Fragilariopsis linearis",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2015 · Bacillariophyceae",
+  "checked": "2015"
  },
  {
   "binomial": "Nitzschia longissima",
@@ -12338,10 +12338,10 @@
  {
   "binomial": "Nitzschia obliquecostata",
   "status": "synonym",
-  "valid_name": "Fragilariopsis obliquecostata (Van Heurck) Heiden",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis obliquecostata (Van Heurck) Heiden.",
-  "checked": "09 June 2022"
+  "valid_name": "Fragilariopsis obliquecostata",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Bacillariophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Nitzschia palea",
@@ -12361,19 +12361,19 @@
  },
  {
   "binomial": "Nitzschia porterei",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Nitzschia porteri",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Nitzschia porterei → Nitzschia porteri · 그대로 유효 · 갱신 2017 · Bacillariophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Nitzschia porteri",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "07 September 2017"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2017 · Bacillariophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Nitzschia ricta",
@@ -12386,10 +12386,10 @@
  {
   "binomial": "Nitzschia ritscheri",
   "status": "synonym",
-  "valid_name": "Fragilariopsis ritscheri Hustedt",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis ritscheri Hustedt.",
-  "checked": "02 July 2005"
+  "valid_name": "Fragilariopsis ritscheri",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2005 · Bacillariophyceae",
+  "checked": "2005"
  },
  {
   "binomial": "Nitzschia scalaris",
@@ -12402,10 +12402,10 @@
  {
   "binomial": "Nitzschia separanda",
   "status": "synonym",
-  "valid_name": "Fragilariopsis separanda Hustedt",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Fragilariopsis separanda Hustedt.",
-  "checked": "15 February 2023"
+  "valid_name": "Fragilariopsis separanda",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Nitzschia seriata",
@@ -12427,9 +12427,9 @@
   "binomial": "Nitzschia sigmaformis",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "16 February 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Bacillariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Nitzschia sigmoidea",
@@ -12451,8 +12451,8 @@
   "binomial": "Nitzschia sublineata",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -12515,9 +12515,9 @@
   "binomial": "Odontella weissflogii",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "24 February 2018"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2018 · Thalassiosirophyceae",
+  "checked": "2018"
  },
  {
   "binomial": "Omphalopelta areolata",
@@ -12579,17 +12579,17 @@
   "binomial": "Parathranium californicus",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
   "binomial": "Parathranium tenuipes",
   "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "The taxonomic status of this entity requires further investigation.",
-  "checked": "13 March 2006"
+  "source": "paper-plates-filled-20260831",
+  "note": "**규조 아님 — 에브리아류(Thecofilosea)** · AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2006",
+  "checked": "2006"
  },
  {
   "binomial": "Peronia erinacea",
@@ -13321,10 +13321,10 @@
  },
  {
   "binomial": "Podosira stelliger",
-  "status": "unassessed",
+  "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 1건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -13363,16 +13363,16 @@
   "binomial": "Porosira glacialis",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "15 June 2022"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Thalassiosirophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Porosira gracilis",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -13435,8 +13435,8 @@
   "binomial": "Pseudoporosira westii",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -13505,35 +13505,35 @@
  },
  {
   "binomial": "Rhaponeis amphiceros",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Rhaphoneis amphiceros",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Rhaponeis amphiceros → Rhaphoneis amphiceros · 그대로 유효 · 갱신 2023 · Plagiogrammaphyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Rhitzosolenia hebetata",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Rhizosolenia hebetata",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Rhitzosolenia hebetata → Rhizosolenia hebetata · 그대로 유효 · 갱신 2021 · Coscinodiscophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Rhitzosolenia stiliformis",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Rhizosolenia styliformis",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Rhitzosolenia stiliformis → Rhizosolenia styliformis · 그대로 유효 · 갱신 2022 · Coscinodiscophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Rhizooslenia miocenica",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Rhizosolenia miocenica",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Rhizooslenia miocenica → Rhizosolenia miocenica · 그대로 유효 · 갱신 2022 · Coscinodiscophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Rhizosolenia acuminata",
@@ -13561,10 +13561,10 @@
  },
  {
   "binomial": "Rhizosolenia barboi",
-  "status": "unassessed",
+  "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 1건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -13659,17 +13659,17 @@
   "binomial": "Rhizosolenia miocenica",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "28 December 2022"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Coscinodiscophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Rhizosolenia praebarboi",
   "status": "synonym",
-  "valid_name": "Proboscia praebarboi (H.-J.Schrader) R.W.Jordan & J.Priddle",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Proboscia praebarboi (H.-J.Schrader) R.W.Jordan & J.Priddle.",
-  "checked": "09 July 2026"
+  "valid_name": "Proboscia praebarboi",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Coscinodiscophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Rhizosolenia robusta",
@@ -13763,9 +13763,9 @@
   "binomial": "Roperia tesselata",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "02 June 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Coscinodiscophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Rouxia constricta",
@@ -13795,9 +13795,9 @@
   "binomial": "Rutilaria epsilon",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "22 February 2021"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2021 · Thalassiosirophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Rutilaria hexagona",
@@ -13818,10 +13818,10 @@
  {
   "binomial": "Schimperiella antarctica",
   "status": "synonym",
-  "valid_name": "Thalassiosira oliveriana (O'Meara) Makarova & Nikolajev",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Thalassiosira oliveriana (O'Meara) Makarova & Nikolajev.",
-  "checked": "15 June 2022"
+  "valid_name": "Thalassiosira oliveriana",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Bacillariophyta classis incertae sedis",
+  "checked": "2022"
  },
  {
   "binomial": "Schizonema lacustre",
@@ -13995,9 +13995,9 @@
   "binomial": "Stellarima stellaris",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "21 August 2020"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2020 · Coscinodiscophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Stephanodiscus astraea",
@@ -14027,48 +14027,48 @@
   "binomial": "Stephanogonia actinoptychus",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "01 February 2026"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Coscinodiscophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Stephanogonia hanzawae",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "13 November 2024"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2024 · Coscinodiscophyceae",
+  "checked": "2024"
  },
  {
   "binomial": "Stephanopyxis corona",
   "status": "synonym",
-  "valid_name": "Stephanonycites corona (Ehrenberg) Komura",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Stephanonycites corona (Ehrenberg) Komura.",
-  "checked": "12 May 2020"
+  "valid_name": "Stephanonycites corona",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2020 · Melosirophyceae",
+  "checked": "2020"
  },
  {
   "binomial": "Stephanopyxis horridus",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "04 February 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Melosirophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Stephanopyxis lineata",
   "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "The taxonomic status of this entity requires further investigation.",
-  "checked": "13 March 2006"
+  "source": "paper-plates-filled-20260831",
+  "note": "AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2006 · Melosirophyceae",
+  "checked": "2006"
  },
  {
   "binomial": "Stephanopyxis lineatus",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -14091,17 +14091,17 @@
   "binomial": "Stephanopyxis schenckii",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "04 February 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Melosirophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Stephanopyxis schenkii",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Stephanopyxis schenckii",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Stephanopyxis schenkii → Stephanopyxis schenckii · 그대로 유효 · 갱신 2023 · Melosirophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Stephanopyxis turris",
@@ -14211,9 +14211,9 @@
   "binomial": "Stictodiscus kittonianus",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "28 October 2017"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2017 · Coscinodiscophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Stictodiscus margaritiferus",
@@ -15058,10 +15058,10 @@
  {
   "binomial": "Synedra jouseana",
   "status": "synonym",
-  "valid_name": "Cavitatus jouseanus (Sheshukova-Poretskaya) D.M.Williams",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Cavitatus jouseanus (Sheshukova-Poretskaya) D.M.Williams.",
-  "checked": "22 April 2021"
+  "valid_name": "Cavitatus jouseanus",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2021 · Fragilariophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Synedra koreana",
@@ -15195,17 +15195,17 @@
   "binomial": "Thalassionema frauenfeldii",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "20 January 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Fragilariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Thalassionema nitzschiodes",
-  "status": "unassessed",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 1건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Thalassionema nitzschioides",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Thalassionema nitzschiodes → Thalassionema nitzschioides · 그대로 유효 · 갱신 2023 · Fragilariophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Thalassionema nitzschioides",
@@ -15219,17 +15219,17 @@
   "binomial": "Thalassiosira antarctica",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "26 November 2021"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2021 · Thalassiosirophyceae",
+  "checked": "2021"
  },
  {
   "binomial": "Thalassiosira antiqua",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "23 July 2023"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2023 · Thalassiosirophyceae",
+  "checked": "2023"
  },
  {
   "binomial": "Thalassiosira baltica",
@@ -15251,17 +15251,17 @@
   "binomial": "Thalassiosira convexa",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "09 July 2026"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Thalassiosirophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Thalassiosira curviseriata",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "25 May 2026"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2026 · Thalassiosirophyceae",
+  "checked": "2026"
  },
  {
   "binomial": "Thalassiosira decipiens",
@@ -15275,25 +15275,25 @@
   "binomial": "Thalassiosira eccentrica",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "24 February 2025"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2025 · Thalassiosirophyceae",
+  "checked": "2025"
  },
  {
   "binomial": "Thalassiosira eccentricus",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
   "binomial": "Thalassiosira elliptipora",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "19 August 2018"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2018 · Thalassiosirophyceae",
+  "checked": "2018"
  },
  {
   "binomial": "Thalassiosira gracilis",
@@ -15329,35 +15329,35 @@
  },
  {
   "binomial": "Thalassiosira lentignosa",
-  "status": "absent",
-  "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
-  "checked": ""
+  "status": "synonym",
+  "valid_name": "Thalassiosira lentiginosa",
+  "source": "paper-plates-filled-20260831",
+  "note": "철자 교정 Thalassiosira lentignosa → Thalassiosira lentiginosa · 그대로 유효 · 갱신 2013 · Thalassiosirophyceae",
+  "checked": "2013"
  },
  {
   "binomial": "Thalassiosira lineata",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "19 July 2017"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2017 · Thalassiosirophyceae",
+  "checked": "2017"
  },
  {
   "binomial": "Thalassiosira mala",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "28 May 2024"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2024 · Thalassiosirophyceae",
+  "checked": "2024"
  },
  {
   "binomial": "Thalassiosira nordenskioeldii",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "13 June 2022"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2022 · Thalassiosirophyceae",
+  "checked": "2022"
  },
  {
   "binomial": "Thalassiosira nordenskiöldii",
@@ -15395,9 +15395,9 @@
   "binomial": "Thalassiosira plicata",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "10 January 2019"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2019 · Thalassiosirophyceae",
+  "checked": "2019"
  },
  {
   "binomial": "Thalassiosira rotula",
@@ -15419,9 +15419,9 @@
   "binomial": "Thalassiosira tumida",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "09 December 2016"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2016 · Thalassiosirophyceae",
+  "checked": "2016"
  },
  {
   "binomial": "Thalassiothrix antarctica",
@@ -15571,8 +15571,8 @@
   "binomial": "Triceratium condercorum",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "검색 결과 0건",
   "checked": ""
  },
  {
@@ -15915,8 +15915,8 @@
   "binomial": "Triceratum condercorum",
   "status": "absent",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "AlgaeBase 후보 0건, 정확 일치 없음 (NO_EXACT)",
+  "source": "paper-plates-filled-20260831",
+  "note": "제안 철자 Triceratium condercorum 도 없음",
   "checked": ""
  },
  {
@@ -15971,24 +15971,24 @@
   "binomial": "Tryblioptychus cocconeiformis",
   "status": "accepted",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "This name is of an entity that is currently accepted taxonomically.",
-  "checked": "09 August 2024"
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2024 · Thalassiosirophyceae",
+  "checked": "2024"
  },
  {
   "binomial": "Xanthiopyxis oblonga",
   "status": "synonym",
-  "valid_name": "Pyxidicula oblonga (Ehrenberg) Kützing",
-  "source": "paper-plates-20260831",
-  "note": "This name is currently regarded as a synonym of Pyxidicula oblonga (Ehrenberg) Kützing.",
-  "checked": "31 January 2025"
+  "valid_name": "Pyxidicula oblonga",
+  "source": "paper-plates-filled-20260831",
+  "note": "갱신 2025 · Bacillariophyta classis incertae sedis",
+  "checked": "2025"
  },
  {
   "binomial": "Xanthiopyxis ovalis",
   "status": "unassessed",
   "valid_name": "",
-  "source": "paper-plates-20260831",
-  "note": "The taxonomic status of this entity requires further investigation.",
-  "checked": "13 March 2006"
+  "source": "paper-plates-filled-20260831",
+  "note": "AlgaeBase가 \"추가 조사 필요\"로 둠 · 갱신 2006 · Bacillariophyta classis incertae sedis",
+  "checked": "2006"
  }
 ]

@@ -9,9 +9,20 @@
   쓴다. 그 칼럼 값이 상태 문구 여섯 개(`그대로 유효`·`AlgaeBase 에
   없다`·`확인 필요`·`아직 안 찾았다`·`안 적혀 있다`·`미확인`) 중
   하나가 아니면, **그 값 자체가 새 학명이다**(이명 → 갈아탄다)
-- `Diadiction/temp/paper_plates_156_result.json` — 논문 도판(P22·P23)
-  캡션 학명 156종의 AlgaeBase 조회 결과(2026-08-31). API 응답 그대로라
-  `status` 문장을 읽어 판정을 가른다
+- `Diadiction/temp/filled.json` — 논문 도판(P22·P23) 캡션 학명 156종을
+  **사람이 철자를 먼저 교정하고** AlgaeBase 상세 페이지의 `Status of
+  Name` 을 읽어 채운 표(2026-08-31, `algaebase_todo_paper_plates_
+  ANSWERED.md` 와 같은 자료 · `공부노트_논문도판156종.md` 가 읽는 법과
+  결과를 정리해 뒀다). 열쇠는 **교정 전** 표기(`row[0]`) 그대로 쓴다 —
+  `AtlasEntry.binomial` 도 캡션 원문을 그대로 정규화한 것이라 맞아야
+  한다. `row[2]` 가 굵게 적힌 새 이름이면(철자 교정만이든 진짜 이명이든)
+  `synonym` 으로 통일한다 — 검색 기능이 보기엔 "조회한 표기로는 안
+  걸리고 이 이름으로 걸린다" 는 같은 동작이라 둘을 가를 필요가 없다.
+  **1991 연일층군 논문에 규조가 아닌 것(규질편모조류·에브리아류) 14~20건이
+  섞여 있다** — `공부노트` 가 찾아 둔 것이라 `비고` 에 그대로 남아 화면에
+  보인다("규조 아님" 문구), 걸러내지는 않는다(캡션에 있는 이름이라
+  `AtlasEntry` 에도 이미 들어가 있다 — TaxonName 이 그것까지 가릴 자리는
+  아니다)
 
 열쇠는 `tools/harvest_worms.binomial()` 로 정규화한다 — `var.`·`sp.`
 꼬리는 종 단위로 뭉뚱그려진다(예: `Actinocyclus ehrenbergii var.
@@ -39,7 +50,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harvest_worms import DIADICTION, binomial  # noqa: E402
 
 WORMS_MASTER = DIADICTION / "names/worms/worms_master_20260814.tsv"
-PAPER_RESULT = DIADICTION / "temp/paper_plates_156_result.json"
+PAPER_FILLED = DIADICTION / "temp/filled.json"
 OUT = Path(__file__).resolve().parent.parent / "taxon_names.json"
 
 # worms_master 의 `AlgaeBase` 칼럼이 이 문구 중 하나면 그게 상태다.
@@ -52,9 +63,6 @@ STATUS_WORDS = {
     "안 적혀 있다": "unassessed",
     "미확인": "unassessed",
 }
-
-SYNONYM_OF = re.compile(r"^This name is currently regarded as a synonym of (.+?)\.?$")
-ACCEPTED_RE = re.compile(r"is of an entity that is currently accepted taxonomically")
 
 RESOLVED = {"accepted", "synonym"}
 
@@ -83,36 +91,42 @@ def from_worms_master() -> dict[str, dict]:
     return out
 
 
+CHECKED_RE = re.compile(r"갱신\s*(\d{4})")
+
+
 def from_paper_plates() -> dict[str, dict]:
-    """논문 도판 156종 AlgaeBase 조회 결과를 읽는다."""
-    data = json.loads(PAPER_RESULT.read_text(encoding="utf-8"))
+    """논문 도판 156종, 사람이 철자 교정 뒤 AlgaeBase 로 채운 표를 읽는다.
+
+    `filled.json` 은 `[캡션 원문 표기, 논문(들), 판정, 비고]` 네 칸짜리
+    행 156개다. **열쇠는 캡션 원문 표기**(교정 전) — `AtlasEntry.binomial`
+    이 그 표기를 정규화한 것과 같아야 찾아진다.
+    """
+    rows = json.loads(PAPER_FILLED.read_text(encoding="utf-8"))
     out: dict[str, dict] = {}
-    for name, rec in data["records"].items():
-        b = binomial(name)
+    for orig, _papers, verdict, note in rows:
+        b = binomial(orig)
         if b is None:
             continue
-        if rec.get("ok"):
-            status_text = rec.get("status") or ""
-            m = SYNONYM_OF.match(status_text)
-            if m:
-                status, valid_name = "synonym", m.group(1)
-            elif ACCEPTED_RE.search(status_text):
-                status, valid_name = "accepted", ""
-            else:
-                status, valid_name = "unassessed", ""
-            note = status_text
-        else:
-            total = (rec.get("total") or "0").strip()
-            status = "absent" if total == "0" else "unassessed"
-            valid_name = ""
-            note = f"AlgaeBase 후보 {total}건, 정확 일치 없음 ({rec.get('err','')})"
+        v = verdict.strip()
+        if v.startswith("**") and v.endswith("**"):
+            # 굵은 이름 — 철자 교정만이든 진짜 이명이든 "이 표기로는 안
+            # 걸리고 이 이름으로 걸린다" 는 검색 쪽에선 같은 동작이라
+            # 가르지 않는다(머리말 참고)
+            status, valid_name = "synonym", v.strip("*")
+        elif "그대로 유효" in v:
+            status, valid_name = "accepted", ""
+        elif "없음" in v:  # `AlgaeBase에 없음`
+            status, valid_name = "absent", ""
+        else:  # `확인 필요`
+            status, valid_name = "unassessed", ""
+        m = CHECKED_RE.search(note)
         out[b] = {
             "binomial": b,
             "status": status,
             "valid_name": valid_name,
-            "source": "paper-plates-20260831",
+            "source": "paper-plates-filled-20260831",
             "note": note,
-            "checked": rec.get("updated") or "",
+            "checked": m.group(1) if m else "",
         }
     return out
 
