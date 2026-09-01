@@ -2,6 +2,7 @@
 {% load viewer_extras %}
 {% block title %}도감 — DiaRUGA{% endblock %}
 {% block subtitle %}<b>도감</b> · {{ atlases|length }}종{% endblock %}
+{% block nav %}{% include "viewer/_atlaslang.html" %}{% endblock %}
 
 {% block content %}
 {% comment %}
@@ -77,10 +78,11 @@
 {% endcomment %}
 <form class="atlasq" method="get" action="{% url 'atlas' %}">
   <input name="q" value="{{ q }}" placeholder="학명·속으로 찾는다 (예: Melosira ambigua · Navicula)"
-         autofocus aria-label="학명 검색">
+         data-en-placeholder="Search by name or genus (e.g. Melosira ambigua · Navicula)"
+         autofocus aria-label="학명 검색" data-en-aria-label="Search by scientific name">
   {% if atlas_key %}<input type="hidden" name="atlas" value="{{ atlas_key }}">{% endif %}
-  <button type="submit">찾는다</button>
-  {% if searched %}<a class="chip" href="{% url 'atlas' %}">지운다</a>{% endif %}
+  <button type="submit" data-en="Search">찾는다</button>
+  {% if searched %}<a class="chip" href="{% url 'atlas' %}" data-en="Clear">지운다</a>{% endif %}
 </form>
 
 {% comment %}
@@ -89,8 +91,8 @@
   실제로 도감 칩이 속을 떨어뜨리고 있었다.
 {% endcomment %}
 <div class="atlaschips">
-  <span class="dim">도감</span>
-  <a class="chip{% if not atlas_key %} on{% endif %}" href="{{ atlas_all_url }}">전체</a>
+  <span class="dim" data-en="Atlas">도감</span>
+  <a class="chip{% if not atlas_key %} on{% endif %}" href="{{ atlas_all_url }}" data-en="All">전체</a>
   {% for b in book_chips %}
     <a class="chip{% if b.on %} on{% endif %}" href="{{ b.url }}"
        title="{{ b.title }}">{{ b.short }} <span class="dim">{{ b.count }}</span></a>
@@ -104,9 +106,10 @@
     다시 친다.
   {% endcomment %}
   <div class="atlaschips">
-    <span class="dim">속</span>
+    <span class="dim" data-en="Genus">속</span>
     <span class="chip on">{{ genus }}</span>
-    <a class="chip" href="{{ genus_clear_url }}" title="속으로 거르는 것만 뺀다">속 거르개를 뺀다</a>
+    <a class="chip" href="{{ genus_clear_url }}" title="속으로 거르는 것만 뺀다"
+       data-en-title="Clear genus filter only" data-en="Clear genus filter">속 거르개를 뺀다</a>
   </div>
 {% endif %}
 
@@ -122,8 +125,8 @@
   <div class="pager">
     <span class="dim">{{ total }}건{% if total %} 중 {{ shown_from }}~{{ shown_to }}{% endif %}
       {% if genus %} · 속 <b>{{ genus }}</b>{% endif %}</span>
-    {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 앞</a>{% endif %}
-    {% if next_url %}<a class="chip" href="{{ next_url }}">뒤 →</a>{% endif %}
+    {% if prev_url %}<a class="chip" href="{{ prev_url }}" data-en="← Prev">← 앞</a>{% endif %}
+    {% if next_url %}<a class="chip" href="{{ next_url }}" data-en="Next →">뒤 →</a>{% endif %}
   </div>
 
   {% for r in rows %}
@@ -135,12 +138,18 @@
             **"확정" 이라는 말을 안 쓴다.** 표시가 없는데 잘못 펴진 것이 있다는
             것이 119 의 요점이라, 표시가 있는 쪽만 말한다 (`models.py` 머리말).
           {% endcomment %}
-          <span class="chip warnchip" title="색인이 속명을 문맥에서 복원했다고 표시한 항목">속명 추정</span>
+          <span class="chip warnchip" title="색인이 속명을 문맥에서 복원했다고 표시한 항목"
+                data-en-title="Index marked this genus as inferred from context"
+                data-en="Genus inferred">속명 추정</span>
         {% endif %}
         {% if r.rank == 'genus_only' %}
-          <span class="chip" title="도감이 속까지만 내려간 항목 (sp. · group)">속까지</span>
+          <span class="chip" title="도감이 속까지만 내려간 항목 (sp. · group)"
+                data-en-title="Atlas identifies only to genus (sp. · group)"
+                data-en="Genus only">속까지</span>
         {% elif r.rank == 'unreadable' %}
-          <span class="chip warnchip" title="색인의 표기를 우리가 못 읽는다 — 도감이 속까지만 적은 것과 다른 말이다">못 읽음</span>
+          <span class="chip warnchip" title="색인의 표기를 우리가 못 읽는다 — 도감이 속까지만 적은 것과 다른 말이다"
+                data-en-title="We cannot read the index entry — different from the atlas stopping at genus"
+                data-en="Unreadable">못 읽음</span>
         {% endif %}
         <span class="dim">{{ r.atlas.short }}{% if r.item_no %} #{{ r.item_no }}{% endif %}</span>
       </div>
@@ -169,7 +178,8 @@
               JS 는 그대로다. 누르면 도판 쪽으로 간다(크롭 자체는 쪽이 아니다).
             {% endcomment %}
             {% if pl.crop_rel %}<a class="chip" href="{{ pl.plate_url }}"
-               data-prev="{{ pl.crop_rel }}" data-prevlabel="fig.{{ pl.figures }}">그림 보기</a>{% endif %}
+               data-prev="{{ pl.crop_rel }}" data-prevlabel="fig.{{ pl.figures }}"
+               data-en="View figure">그림 보기</a>{% endif %}
             {% if pl.note %}
               {% comment %}
                 **주석이 `plate` 를 뒤집는 자리가 21건이다** (`Tafel 아님 · 권 뒤
@@ -178,12 +188,12 @@
               <span class="pnote">{{ pl.note }}</span>
             {% endif %}
           </span>
-        {% empty %}<span class="dim">자리가 안 적혀 있다</span>{% endfor %}
+        {% empty %}<span class="dim" data-en="No location recorded">자리가 안 적혀 있다</span>{% endfor %}
       </div>
       {% if r.extra.ecology or r.extra.distribution %}
         <div class="entryextra">
-          {% if r.extra.ecology %}<div><span class="dim">생태</span> {{ r.extra.ecology }}</div>{% endif %}
-          {% if r.extra.distribution %}<div><span class="dim">분포</span> {{ r.extra.distribution }}</div>{% endif %}
+          {% if r.extra.ecology %}<div><span class="dim" data-en="Ecology">생태</span> {{ r.extra.ecology }}</div>{% endif %}
+          {% if r.extra.distribution %}<div><span class="dim" data-en="Distribution">분포</span> {{ r.extra.distribution }}</div>{% endif %}
         </div>
       {% endif %}
       {% if r.taxon %}
@@ -194,8 +204,10 @@
           없어(`data.atlas_search` 가 이미 걸렀다) 여기 오지 않는다.
         {% endcomment %}
         <div class="entryextra taxon">
-          <span class="chip warnchip" title="AlgaeBase 확인 — 이 표기는 이명이다">이명</span>
-          현재 통용 학명 <i>{{ r.taxon.valid_name }}</i>
+          <span class="chip warnchip" title="AlgaeBase 확인 — 이 표기는 이명이다"
+                data-en-title="AlgaeBase-verified — this name is a synonym"
+                data-en="Synonym">이명</span>
+          <span data-en="Currently accepted name">현재 통용 학명</span> <i>{{ r.taxon.valid_name }}</i>
           {% if r.taxon.note %}<span class="pnote">{{ r.taxon.note }}</span>{% endif %}
         </div>
       {% endif %}
@@ -207,7 +219,7 @@
           둘 다 있으면 원문과 맞춰 읽을 수 있어 나란히 낸다.
         {% endcomment %}
         <div class="entryextra occurrences">
-          <span class="dim">출현</span>
+          <span class="dim" data-en="Occurrence">출현</span>
           {% for o in r.occurrences %}
             <span class="occ">{{ o.region }}
               <span class="dim">({{ o.authors }}, {{ o.year }})</span
@@ -222,15 +234,23 @@
       **"도감에 없다" 와 "이름이 달라 못 찾았다" 는 다른 말이다** (P15 §8.4).
       조용히 빈 결과를 내면 사람이 앞엣것으로 읽는다.
     {% endcomment %}
-    <p class="warn">찾은 것이 없습니다. <b>도감에 없는 것</b>일 수도,
-      <b>표기가 달라 안 걸린 것</b>일 수도 있습니다 — 도감은 옛 표기를 쓰고
-      (<i>Actinocyclus Ehrenbergii</i>) Schmidt 는 전량 OCR 입니다.
-      속만으로 다시 찾아 보세요.</p>
+    {% comment %}
+      **혼합 서식이 있는 문장은 잎(leaf)마다 나눈다.** `data-en` 은 `textContent`
+      를 통째로 갈아 끼워 자식 요소를 지운다 — `<b>`·`<i>` 를 감싼 요소에 바로
+      달면 한 번 영문으로 넘어간 뒤 되돌릴 때 굵게·기울임이 사라진다.
+    {% endcomment %}
+    <p class="warn"><span data-en="No matches. ">찾은 것이 없습니다. </span><b><span
+      data-en="not in the atlas">도감에 없는 것</span></b><span data-en=", or ">일 수도,
+      </span><b><span data-en="not matched because the spelling differs">표기가 달라 안 걸린 것</span></b><span
+      data-en=". Atlases use old spellings (">일 수도 있습니다 — 도감은 옛 표기를 쓰고
+      (</span><i>Actinocyclus Ehrenbergii</i><span
+      data-en="), and Schmidt is fully OCR'd. Try searching by genus alone.">) Schmidt 는 전량 OCR 입니다.
+      속만으로 다시 찾아 보세요.</span></p>
   {% endfor %}
 
   <div class="pager">
-    {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 앞</a>{% endif %}
-    {% if next_url %}<a class="chip" href="{{ next_url }}">뒤 →</a>{% endif %}
+    {% if prev_url %}<a class="chip" href="{{ prev_url }}" data-en="← Prev">← 앞</a>{% endif %}
+    {% if next_url %}<a class="chip" href="{{ next_url }}" data-en="Next →">뒤 →</a>{% endif %}
   </div>
 
   {% comment %}
@@ -325,14 +345,14 @@
   </script>
 {% else %}
   <div class="atlaschips">
-    <span class="dim">속</span>
+    <span class="dim" data-en="Genus">속</span>
     {% for g in genus_chips|slice:":24" %}
       <a class="chip{% if g.on %} on{% endif %}" href="{{ g.url }}">{{ g.genus }}
         <span class="dim">{{ g.n }}</span></a>
     {% endfor %}
   </div>
 
-  <h2 class="platehead">도판</h2>
+  <h2 class="platehead" data-en="Plates">도판</h2>
 {% endif %}
 
 {% if partial %}
@@ -340,9 +360,9 @@
     **덜 구운 상태를 감추지 않는다.** 안 말하면 사람이 "원본이 그만큼" 으로
     읽는다. 굽는 중일 수 있다 — `tools/render_atlas_pages.py`.
   {% endcomment %}
-  <p class="warn">아직 다 뜨지 않은 도감이 있습니다 —
+  <p class="warn"><span data-en="Not fully rendered yet —">아직 다 뜨지 않은 도감이 있습니다 —</span>
     {% for a in partial %}{{ a.label }} {{ a.rendered }}/{{ a.pages }}쪽{% if not forloop.last %} · {% endif %}{% endfor %}.
-    굽는 중이면 잠시 뒤 새로고침하세요.</p>
+    <span data-en="Refresh in a bit if it's still rendering.">굽는 중이면 잠시 뒤 새로고침하세요.</span></p>
 {% endif %}
 
 {% if not searched %}
@@ -360,7 +380,7 @@
           <a href="{% url 'atlas_volume' a.code a.volumes.0.code %}">
             <img loading="lazy" src="{% thumb a.cover_rel 300 %}" alt="{{ a.label }} 표지">
           </a>
-        {% else %}<div class="nocover">아직 안 떴다</div>{% endif %}
+        {% else %}<div class="nocover" data-en="Not rendered yet">아직 안 떴다</div>{% endif %}
       </div>
       <div class="body">
         <h2>{{ a.label }}</h2>
@@ -378,20 +398,21 @@
       **"없다" 와 "아직 안 구웠다" 는 다른 말이다** (P15 §8.4 와 같은 줄).
       빈 화면을 내면 사람이 도감이 없다고 읽는다.
     {% endcomment %}
-    <p class="warn">도판이 아직 하나도 안 떠 있습니다.
-      호스트에서 <code>python tools/render_atlas_pages.py</code> 를 돌리면 생깁니다
-      (원본 PDF 는 NAS 공유에 있고 컨테이너는 그것을 못 봅니다).</p>
+    <p class="warn"><span data-en="No plates have been rendered yet.">도판이 아직 하나도 안 떠 있습니다.</span>
+      <span data-en="Run ">호스트에서 </span><code>python tools/render_atlas_pages.py</code><span
+      data-en=" on the host to generate them (the container can't see the original PDFs on the NAS share).">를 돌리면 생깁니다
+      (원본 PDF 는 NAS 공유에 있고 컨테이너는 그것을 못 봅니다).</span></p>
   {% endfor %}
 
   {% if paper_atlases %}
-    <h2 class="paperhead">논문 도판집</h2>
+    <h2 class="paperhead" data-en="Paper plate collections">논문 도판집</h2>
     <div class="papergrid">
       {% for a in paper_atlases %}
         <a class="papercard" href="{% url 'atlas_volume' a.code a.volumes.0.code %}">
           <div class="cover">
             {% if a.cover_rel %}
               <img loading="lazy" src="{% thumb a.cover_rel 200 %}" alt="{{ a.label }} 표지">
-            {% else %}<div class="nocover">아직 안 떴다</div>{% endif %}
+            {% else %}<div class="nocover" data-en="Not rendered yet">아직 안 떴다</div>{% endif %}
           </div>
           <div class="label">{{ a.label }}</div>
           <div class="dim">{{ a.rendered }}쪽{% if a.partial %} / 원본 {{ a.pages }}쪽{% endif %}</div>

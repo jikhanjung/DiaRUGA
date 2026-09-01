@@ -1,15 +1,16 @@
 {% extends "viewer/base.html" %}
 {% load viewer_extras %}
 {% block title %}{{ atlas.label }} {{ volume.label }} p.{{ n }} — DiaRUGA{% endblock %}
-{% block subtitle %}<a href="{% url 'atlas' %}">도감</a> /
+{% block subtitle %}<a href="{% url 'atlas' %}" data-en="Atlas">도감</a> /
   {{ atlas.label }} /
   <a href="{{ grid_url }}">{{ volume.label }}</a> /
   <b>PDF p.{{ n }}</b> · {{ pos }}/{{ total }}{% endblock %}
 {% block nav %}
   {% if prev_url %}<a href="{{ prev_url }}">← p.{{ prev }}</a>{% endif %}
-  <a href="{{ grid_url }}">격자</a>
-  <a href="{{ two_url }}">두 쪽</a>
+  <a href="{{ grid_url }}" data-en="Grid">격자</a>
+  <a href="{{ two_url }}" data-en="Two-page">두 쪽</a>
   {% if next_url %}<a href="{{ next_url }}">p.{{ next }} →</a>{% endif %}
+  {% include "viewer/_atlaslang.html" %}
 {% endblock %}
 
 {% block content %}
@@ -44,8 +45,8 @@
 
 <div class="sheetbar">
   <span class="dim">{{ atlas.label }} · {{ volume.label }} · PDF p.{{ n }}</span>
-  <a class="chip" href="{% rawimg rel %}">원본 PNG</a>
-  <a class="chip" href="{{ two_url }}">두 쪽으로</a>
-  <a class="chip" href="{{ grid_url }}">격자로</a>
+  <a class="chip" href="{% rawimg rel %}" data-en="Original PNG">원본 PNG</a>
+  <a class="chip" href="{{ two_url }}" data-en="Two-page view">두 쪽으로</a>
+  <a class="chip" href="{{ grid_url }}" data-en="Grid view">격자로</a>
 </div>
 {% endblock %}

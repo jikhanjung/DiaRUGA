@@ -1,12 +1,13 @@
 {% extends "viewer/base.html" %}
 {% load viewer_extras %}
 {% block title %}{{ atlas.label }} {{ volume.label }} — DiaRUGA{% endblock %}
-{% block subtitle %}<a href="{% url 'atlas' %}">도감</a> /
+{% block subtitle %}<a href="{% url 'atlas' %}" data-en="Atlas">도감</a> /
   {{ atlas.label }} / <b>{{ volume.label }}</b> · {{ total }}쪽{% endblock %}
 {% block nav %}
   {% for v in atlas.volumes %}
     <a href="{% url 'atlas_volume' atlas.code v.code %}">{{ v.label }}</a>
   {% endfor %}
+  {% include "viewer/_atlaslang.html" %}
 {% endblock %}
 
 {% block content %}
@@ -32,21 +33,22 @@
     **못 갔다는 것을 말한다.** 조용히 격자 첫 판을 내면 사람이 갔다고 믿고
     엉뚱한 쪽을 본다. "아직 안 떴다" 와 "원본에 없다" 도 다른 말이라 둘 다 적는다.
   {% endcomment %}
-  <p class="warn">p.{{ missing_n }} 은 이 권에 없습니다 —
-    아직 안 떴거나 원본에 없는 쪽입니다.</p>
+  <p class="warn">p.{{ missing_n }}<span
+    data-en=" is not in this volume — it hasn't been rendered yet, or doesn't exist in the original."> 은 이 권에 없습니다 —
+    아직 안 떴거나 원본에 없는 쪽입니다.</span></p>
 {% endif %}
 <div class="pager">
-  {% if prev_url %}<a class="chip" href="{{ prev_url }}">← 앞</a>{% endif %}
+  {% if prev_url %}<a class="chip" href="{{ prev_url }}" data-en="← Prev">← 앞</a>{% endif %}
   <span class="dim">{{ offset|add:1 }}~{{ pages|length|add:offset }} / {{ total }}쪽</span>
-  {% if next_url %}<a class="chip" href="{{ next_url }}">뒤 →</a>{% endif %}
+  {% if next_url %}<a class="chip" href="{{ next_url }}" data-en="Next →">뒤 →</a>{% endif %}
   {% comment %}
     **쪽 번호로 곧장 간다.** 색인이 `PDF p.174` 라고 알려 주는데 격자를 넘겨
     가며 찾게 하면 그 번호를 들고 온 뜻이 없다.
   {% endcomment %}
   <form class="jump" method="get" action=".">
-    <label for="jump-n" class="dim">쪽으로</label>
+    <label for="jump-n" class="dim" data-en="Go to page">쪽으로</label>
     <input id="jump-n" name="n" type="number" min="1" style="width: 6em">
-    <button type="submit">간다</button>
+    <button type="submit" data-en="Go">간다</button>
   </form>
 </div>
 
@@ -57,7 +59,7 @@
       <div class="no">p.{{ p.n }}</div>
     </a>
   {% empty %}
-    <p class="warn">이 권은 아직 안 떴습니다.</p>
+    <p class="warn" data-en="This volume hasn't been rendered yet.">이 권은 아직 안 떴습니다.</p>
   {% endfor %}
 </div>
 {% endblock %}

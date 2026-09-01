@@ -1,0 +1,65 @@
+{% comment %}
+  도감 화면의 영문 토글 — **화면 UI 문구만** 바꾼다(사용자 2026-09-01).
+  도판 이미지·색인 원문(캡션·생태·분포·이명 등)은 그대로 둔다 — 그 자리는
+  DB 에 영문 대응 자료가 없고, 논문 도판은 원문이 이미 영어라 바꿀 것도 없다.
+
+  **네 화면(`atlas`·`atlas_volume`·`atlas_page`·`atlas_spread`)이 같이 쓴다.**
+  각자 스크립트를 적으면 한 화면만 고치는 날이 온다 — `_atlasview.html` 과
+  같은 이유다. `{% block nav %}` 안에 넣는다: 도감·도판마다 있는 화면 상단
+  자리라 늘 같은 데서 눌린다.
+
+  ## 마크업 규칙
+
+  바꿀 문구가 있는 요소에 `data-en="English text"` 를 단다 — 지금 들어 있는
+  한국어 텍스트가 그대로 원문이 되어 두 벌을 마크업에 다 적지 않는다.
+  `placeholder`·`title`·`aria-label` 은 `data-en-placeholder`·`data-en-title`·
+  `data-en-aria-label` 로 따로 단다(속성은 `textContent` 로 못 바꾼다).
+
+  **동적인 값(종명·건수·쪽 번호)이 섞인 문구는 안 건드린다** — 절반만 영어가
+  되면 오히려 읽기 어렵고, DB·색인 원문을 옮기는 일은 이 토글의 범위 밖이다
+  (CLAUDE.md "그 밖에 정해 둔 말" 과 같은 경계 — 이 화면의 말은 화면 것만).
+{% endcomment %}
+<button type="button" class="chip atlaslangbtn" id="atlaslangbtn"
+        data-ko-label="EN" data-en-label="한">EN</button>
+<script>
+(function () {
+  var KEY = 'diaruga.atlas.lang';
+  var lang = 'ko';
+  try { lang = localStorage.getItem(KEY) === 'en' ? 'en' : 'ko'; } catch (err) { /* 사생활 모드 */ }
+
+  var ATTRS = ['placeholder', 'title', 'aria-label'];
+
+  function attrDataKey(attr, l) {
+    // 'aria-label' -> 'enAriaLabel' / 'koAriaLabel'
+    return l + attr.replace(/(^|-)([a-z])/g, function (_, __, c) { return c.toUpperCase(); });
+  }
+
+  function apply() {
+    document.querySelectorAll('[data-en]').forEach(function (el) {
+      if (el.dataset.ko === undefined) el.dataset.ko = el.textContent;
+      el.textContent = lang === 'en' ? el.dataset.en : el.dataset.ko;
+    });
+    ATTRS.forEach(function (attr) {
+      var enKey = attrDataKey(attr, 'en'), koKey = attrDataKey(attr, 'ko');
+      document.querySelectorAll('[data-' + enKey.replace(/([A-Z])/g, '-$1').toLowerCase() + ']')
+        .forEach(function (el) {
+          if (el.dataset[koKey] === undefined) el.dataset[koKey] = el.getAttribute(attr) || '';
+          el.setAttribute(attr, lang === 'en' ? el.dataset[enKey] : el.dataset[koKey]);
+        });
+    });
+    document.querySelectorAll('.atlaslangbtn').forEach(function (b) {
+      b.textContent = lang === 'en' ? b.dataset.enLabel : b.dataset.koLabel;
+      b.title = lang === 'en' ? 'Switch screen text to Korean' : '화면 문구를 영어로 (도판·색인 원문은 그대로)';
+    });
+  }
+
+  document.querySelectorAll('.atlaslangbtn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      lang = lang === 'en' ? 'ko' : 'en';
+      try { localStorage.setItem(KEY, lang); } catch (err) { /* 사생활 모드 */ }
+      apply();
+    });
+  });
+  apply();
+})();
+</script>

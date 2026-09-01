@@ -196,6 +196,15 @@
      **`margin-left:auto` 를 여기 두지 않는다.** 앞의 `nav`·`.envlink` 가 이미
      그것을 갖고 있어 둘 다 auto 면 가운데 빈틈이 갈라진다. 이 링크는 늘
      마지막이라 앞엣것에 붙어 오른쪽 끝에 놓인다. */
+  /* **도감으로 가는 단추.** 예전에는 꾸미지 않은 `<a>` 라 글자만 떠 있었다
+     (사용자 2026-09-01) — 옆의 `.todo`·`.gearlink` 처럼 테두리를 줘 버튼으로
+     읽히게 한다. */
+  .atlaslink {
+    align-self: center; margin-left: 12px; padding: 3px 11px;
+    border-radius: 999px; border: 1px solid var(--line); color: var(--dim);
+    font-size: 12px; text-decoration: none; white-space: nowrap;
+  }
+  .atlaslink:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
   .gearlink {
     align-self: center; display: inline-flex; margin-left: 12px;
     padding: 4px; border-radius: 7px; color: var(--dim);
@@ -1833,7 +1842,7 @@
     그래서 머리줄에 두고 **모든 화면에서 같은 자리**에 있다. 톱니 왼쪽이다 —
     설정은 늘 오른쪽 끝이라는 자리를 안 뺏는다.
   {% endcomment %}
-  <a class="atlaslink" href="{% url 'atlas' %}" title="도감 도판">도감</a>
+  <a class="atlaslink" href="{% url 'atlas' %}" title="Atlas">Atlas</a>
   <a class="gearlink" href="{% url 'system_settings' %}" title="시스템 설정" aria-label="시스템 설정">
     {% comment %}
       톱니 — **로고와 닮으면 안 된다.** 이 앱의 로고가 동심원 + 방사 눈금이라

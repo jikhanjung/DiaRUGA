@@ -62,21 +62,23 @@
 
 <div class="abar">
   {% if prev_url %}<a class="chip" href="{{ prev_url }}">← {% if spread %}앞{% else %}p.{{ prev }}{% endif %}</a>{% endif %}
-  <a class="chip" href="{{ grid_url }}">격자</a>
+  <a class="chip" href="{{ grid_url }}" data-en="Grid">격자</a>
   {% if spread %}
-    <a class="chip" href="{{ one_url }}">한 장</a>
+    <a class="chip" href="{{ one_url }}" data-en="Single page">한 장</a>
   {% else %}
-    <a class="chip" href="{{ two_url }}">두 쪽</a>
+    <a class="chip" href="{{ two_url }}" data-en="Two-page">두 쪽</a>
   {% endif %}
   {% if next_url %}<a class="chip" href="{{ next_url }}">{% if spread %}뒤{% else %}p.{{ next }}{% endif %} →</a>{% endif %}
 
   <span class="azoom">
-    <button type="button" id="azoom-out" title="작게 (-)">−</button>
+    <button type="button" id="azoom-out" title="작게 (-)" data-en-title="Zoom out (-)">−</button>
     <span class="lv" id="azoom-lv">×1.0</span>
-    <button type="button" id="azoom-in" title="크게 (+)">+</button>
-    <button type="button" id="azoom-fit" title="화면에 맞춘다 (0)">맞춤</button>
+    <button type="button" id="azoom-in" title="크게 (+)" data-en-title="Zoom in (+)">+</button>
+    <button type="button" id="azoom-fit" title="화면에 맞춘다 (0)" data-en-title="Fit to screen (0)"
+            data-en="Fit">맞춤</button>
   </span>
-  <span class="akeys">← → 넘긴다 · <b>g</b> 격자 · <b>s</b> 보기 · 휠 확대</span>
+  <span class="akeys"><span data-en="← → to flip · ">← → 넘긴다 · </span><b>g</b><span
+    data-en=" grid · "> 격자 · </span><b>s</b><span data-en=" view · wheel to zoom"> 보기 · 휠 확대</span></span>
 
   {% comment %}
     **쪽 번호는 `PDF p.N` 이다** — Tafel 번호가 아니다. 색인의 Tafel 은 OCR 값이라
@@ -85,12 +87,12 @@
   {% endcomment %}
   <form class="ajump" method="get"
         action="{% url 'atlas_volume' atlas.code volume.code %}">
-    <label class="dim" for="ajump-n">쪽으로</label>
+    <label class="dim" for="ajump-n" data-en="Go to page">쪽으로</label>
     <input id="ajump-n" name="n" type="number" min="1" inputmode="numeric"
-           placeholder="{{ n }}" aria-label="PDF 쪽 번호로 간다">
+           placeholder="{{ n }}" aria-label="PDF 쪽 번호로 간다" data-en-aria-label="Go to PDF page number">
     <span class="dim">/ {{ total }}</span>
     {% if spread %}<input type="hidden" name="spread" value="1">{% endif %}
-    <button type="submit">간다</button>
+    <button type="submit" data-en="Go">간다</button>
   </form>
 </div>
 
