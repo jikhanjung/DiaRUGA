@@ -189,6 +189,35 @@ class EditGeomTest(DiaRUGATestCase):
         self.assertTrue(
             ObjectReview.objects.filter(mask_key=k1, geom_edited=True).exists())
 
+    def test_판이_줄어도_그_판을_계속_저장할_수_있다(self):
+        """**안 바뀐 값을 매번 다시 재면 지난 판단이 인질이 된다** (180 A2).
+
+        화면은 고친 기하를 매번 전부 싣고 서버는 그 전부를 다시 검사했다.
+        저장될 때는 통과한 값이라도 **`--scale` 을 빠뜨린 재검출**로 검출의
+        크기가 절반이 되면 전부 밖이 되고, 그때부터 그 판은 **새로고침해도**
+        아무것도 저장할 수 없다 — 값이 DB 에서 다시 오기 때문이다.
+
+        검사가 막으려는 것은 새로 들어오는 나쁜 값이다.
+        """
+        k0, k1 = self.w.keys()[0], self.w.keys()[1]
+        self.post(edits={k0: TIGHT})
+
+        # `--scale` 을 빠뜨린 재검출의 모양 — 검출의 크기가 절반이 된다.
+        # 고쳐 둔 기하(`TIGHT`)가 그 크기 밖으로 나가게 잡는다.
+        det = self.w.detection()
+        det.width, det.height = 60, 70
+        det.save(update_fields=["width", "height"])
+
+        # 화면이 아는 전부를 그대로 다시 보낸다 — 안 바뀐 값이다
+        self.post(edits={k0: TIGHT})
+        self.assertTrue(
+            ObjectReview.objects.filter(mask_key=k0, geom_edited=True).exists(),
+            "안 바뀐 기하 때문에 그 판이 통째로 막혔다")
+
+        # **새로 고치는 것은 여전히 검사한다** — 막으려던 것은 이쪽이다
+        far = [9000, 9000, 9060, 9000, 9060, 9040, 9000, 9040]
+        self.post(expect=409, edits={k0: TIGHT, k1: far})
+
     def test_edits_가_없으면_고친_것을_안_지운다(self):
         """**고치기를 모르는 옛 화면**이다 — 배포 중에 열려 있던 탭이 그렇고,
         그 저장 한 번이 사람이 고친 기하를 전부 지우면 안 된다.

@@ -61,6 +61,25 @@ class CatalogRemoveTest(DiaRUGATestCase):
         self.assertTrue(ObjectReview.objects.get(
             image=self.det.image_id, mask_key=self.key).removed)
 
+    def test_처음_생기는_줄도_기하를_들고_앉는다(self):
+        """**모든 교정 행이 `geom` 을 스스로 들고 있어야 한다** (P02 §2.7 ·
+        180 C1).
+
+        `_catalog_target` 이 후보의 기하를 얹어 주는데 지우기 쪽만
+        `update_fields=["removed"]` 로 저장해서 그 값이 안 써졌다 — 같은 함수가
+        만든 행이 **부르는 쪽에 따라** 기하를 갖거나 못 갖는 상태였다. 기하 없는
+        교정은 재검출로 후보를 잃는 순간 **폴리곤 없는 음성 표본**이 된다.
+        """
+        ObjectReview.objects.filter(image=self.det.image_id,
+                                    mask_key=self.key).delete()
+        self.post("remove")
+
+        o = ObjectReview.objects.get(image=self.det.image_id,
+                                     mask_key=self.key)
+        self.assertTrue(o.geom, "지우기로 생긴 줄이 기하 없이 앉았다")
+        self.assertTrue(o.geom.get("polygon"))
+        self.assertEqual(len(o.geom.get("bbox") or []), 4)
+
     def test_지운_것은_gone_에서만_난다(self):
         self.post("remove")
         self.assertEqual(self.keys_shown(gone=True), [self.key])

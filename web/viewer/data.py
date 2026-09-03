@@ -1450,7 +1450,16 @@ def set_catalog_removed(vp: Viewpoint, image, key: str, removed: bool) -> dict:
                 f"묶음 {n}장에 들어 있는 개체다 — 먼저 묶음을 푸세요")
 
     obj.removed = bool(removed)
-    obj.save(update_fields=["removed"])
+    # **`geom` 도 함께 쓴다** (180 C1 · 2026-09-03). `_catalog_target` 이 새 줄을
+    # 세울 때 후보의 기하를 얹어 주는데, `update_fields=["removed"]` 로 저장하면
+    # 그 값이 안 써져 **기하 없는 줄**이 앉는다. 같은 문을 쓰는
+    # `save_catalog_entry` 는 전체 `save()` 라 남으므로, **부르는 쪽에 따라 행이
+    # 기하를 갖거나 못 갖는** 상태였다.
+    #
+    # 기하 없는 교정은 재검출로 후보를 잃는 순간 **폴리곤 없는 음성 표본**이
+    # 된다 — 모든 교정 행이 `geom` 을 스스로 들고 있어야 검출기가 바뀌어도
+    # 읽힌다(P02 §2.7).
+    obj.save(update_fields=["removed", "geom", "updated_at"])
     kept = _catalog_prune(obj)
     return {"removed": bool(removed), "kept": kept}
 
@@ -3475,10 +3484,40 @@ def save_done(vp: Viewpoint, done: bool) -> dict:
             "않았다. batch_runs.py 로 묶은 뒤 다시 시도할 것")
     ViewpointReview.objects.update_or_create(
         viewpoint=vp, batch=cur.batch, defaults={"done": done})
-    return {"done": done}
+    # **확인 표시를 여기서 단다** (180 B2 · 2026-09-03). 예전에는 `save_review`
+    # 가 `done` 을 함께 받아 그 자리에서 달았는데, 완료를 판 payload 에서 떼면서
+    # (그래야 다른 탭의 마스크 저장이 이 표시를 되돌리지 않는다) 그 자리가
+    # 없어졌다. **완료를 누르는 순간이 곧 "남는 것을 확인했다" 는 순간**이라
+    # 여기가 제자리다.
+    signed = confirm_kept(vp, cur.batch) if done else {}
+    out = {"done": done}
+    if signed:
+        out["auto_confirmed"] = sum(len(v) for v in signed.values())
+    return out
 
 
-def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
+def save_note(vp: Viewpoint, note: str) -> dict:
+    """**시야 코멘트 하나만 쓴다** (180 B2 · 2026-09-03).
+
+    코멘트도 완료와 같은 층이다 — `(시야, batch=NULL)` 한 줄이고 판마다 다르지
+    않다. 그런데 판 payload 에 함께 실려 다녔고, 서버는 그것으로 그 줄을 덮으며
+    **비면 지웠다.** 같은 시야를 두 탭으로 열면 한쪽에서 적은 글을 다른 탭의
+    마스크 저장 한 번이 지운다 — 어느 화면도 아무 말을 안 한다.
+
+    **코멘트는 사람이 쓴 글이라 재생성 불가다** (073 이 묶음에서 뗀 것과 같은
+    이유). 완료(`save_done`)와 같은 자리에 둔다.
+    """
+    if note:
+        ViewpointReview.objects.update_or_create(
+            viewpoint=vp, batch=None, defaults={"note": note})
+    else:
+        # 비웠으면 지운다 — 빈 줄을 남겨 두면 "코멘트가 있는 시야" 를 세는
+        # 자리가 어긋난다. 완료 줄(`batch` 가 있는 줄)은 안 건드린다.
+        ViewpointReview.objects.filter(viewpoint=vp, batch=None).delete()
+    return {"note": bool(note)}
+
+
+def save_review(vp: Viewpoint, done, note, removed, accepted,
                 labels: dict, notes: dict | None = None, image=None,
                 drawn=None, edits=None) -> dict | None:
     """뷰어가 보낸 교정을 DB 에 쓴다. 예전에는 review/<stem>_review.json 이었다.
@@ -3577,9 +3616,33 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     # 걸린다(화면은 이미 갈라 보내지만 옛 탭이 있다).
     edits = {str(k): list(v or []) for k, v in (edits or {}).items()
              if not MANUAL_KEY.match(str(k))}
+    # **이미 그 값으로 앉아 있는 것은 다시 검사하지 않는다** (180 A2 · 2026-09-03).
+    #
+    # 화면은 고친 기하를 **매번 전부** 싣고(뷰어는 늘 전체를 보낸다) 서버는 그
+    # 전부를 다시 검사했다. 하나라도 지금 검출의 크기 밖이면 저장 전체가
+    # 거절되는데, **저장될 때는 통과한 값**이 나중에 밖이 되는 길이 있다 —
+    # `--scale` 을 빠뜨린 재검출로 `Detection.width/height` 가 절반이 되면
+    # 고쳐 둔 기하가 전부 밖이 된다. 그러면 그 판은 **새로고침해도** 아무것도
+    # 저장할 수 없다: 값이 DB 에서 다시 오므로 화면을 고쳐도 안 풀린다.
+    #
+    # 검사가 막으려는 것은 **새로 들어오는 나쁜 값**이다. 안 바뀐 값을 매번 다시
+    # 재는 것은 지난 판단을 인질로 잡는 일이다.
+    stored = {o.mask_key: ((o.geom or {}).get("polygon") or [])
+              for o in ObjectReview.objects.filter(
+                  image=image, batch=batch, mask_key__in=list(edits))}
+    def same_as_stored(k, poly):
+        try:
+            return ([float(v) for v in stored.get(k) or []]
+                    == [float(v) for v in poly])
+        except (TypeError, ValueError):
+            return False               # 숫자가 아니면 검사 쪽이 말하게 둔다
+
     for k, poly in edits.items():
-        if poly:                       # 빈 것은 "엔진 것으로 되돌린다" 는 말이다
-            check_polygon(poly, (cur.width, cur.height), k)
+        if not poly:                   # 빈 것은 "엔진 것으로 되돌린다" 는 말이다
+            continue
+        if same_as_stored(k, poly):
+            continue                   # 안 바뀌었다 — 그때 통과한 값이다
+        check_polygon(poly, (cur.width, cur.height), k)
     # **고친 기하도 표시다.** `keys` 에 안 넣으면 같은 저장의 마지막 줄이
     # "표시가 사라진 행" 으로 보고 지운다.
     keys |= set(edits)
@@ -3673,15 +3736,26 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     #
     # 코멘트는 묶음을 갈아도 참이고 **사람이 쓴 글이라 재생성 불가**다. 완료와
     # 함께 묶음에 매달면 묶음을 갈 때마다 사라진다.
-    ViewpointReview.objects.update_or_create(
-        viewpoint=vp, batch=batch, defaults={"done": done})
-    if note:
+    #
+    # **`None` 이면 안 건드린다** (180 B2 · 2026-09-03). 지금 화면은 이 둘을 판
+    # payload 에 안 싣고 자기 문(`save_done`·`save_note`)으로 보낸다 — 시야에
+    # 붙는 것을 판 저장이 나르면 **같은 시야를 두 탭으로 열었을 때 한쪽이 켠
+    # 완료와 적은 글을 다른 탭의 마스크 저장 한 번이 되돌린다.** 116 이 완료를
+    # 떼어 낸 것의 나머지 절반이다.
+    #
+    # 값이 오면 그때는 쓴다 — **배포 중에 열려 있던 옛 탭**이 그렇고, 그쪽의
+    # 완료·코멘트를 무시하면 그 탭에서 한 일이 조용히 사라진다.
+    if done is not None:
         ViewpointReview.objects.update_or_create(
-            viewpoint=vp, batch=None, defaults={"note": note})
-    else:
-        # 비웠으면 지운다 — 빈 줄을 남겨 두면 "코멘트가 있는 시야" 를 세는 자리가
-        # 어긋난다. 완료 줄은 건드리지 않는다.
-        ViewpointReview.objects.filter(viewpoint=vp, batch=None).delete()
+            viewpoint=vp, batch=batch, defaults={"done": bool(done)})
+    if note is not None:
+        if note:
+            ViewpointReview.objects.update_or_create(
+                viewpoint=vp, batch=None, defaults={"note": note})
+        else:
+            # 비웠으면 지운다 — 빈 줄을 남겨 두면 "코멘트가 있는 시야" 를 세는
+            # 자리가 어긋난다. 완료 줄은 건드리지 않는다.
+            ViewpointReview.objects.filter(viewpoint=vp, batch=None).delete()
     for key in keys:
         cand = by_key.get(key)
         obj = judgement_for(vp, image, batch, key, cand)

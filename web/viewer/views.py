@@ -48,6 +48,18 @@ SAFE_STEM = re.compile(r"^[A-Za-z0-9._-]+$")
 # 메모 길이 상한. 사람이 손으로 적는 것이라 넉넉하면 충분하다.
 NOTE_MAX = 500
 
+
+def _note(v) -> str:
+    """시야 코멘트를 정리한다. **문이 둘이라 여기 한 벌만 둔다** (180 B2).
+
+    `{"only": "note"}` 와 옛 탭의 판 payload 가 같은 값을 보내는데, 규칙이
+    갈라지면 어느 문으로 들어왔느냐에 따라 저장되는 글이 달라진다.
+    """
+    if not isinstance(v, str):
+        return ""
+    # 줄바꿈은 남기고 앞뒤 공백만 정리한다. 빈 메모는 저장하지 않는다.
+    return v.replace("\r\n", "\n").strip()[:NOTE_MAX]
+
 # 문턱 조정 화면에 보여줄 순서와 이름. 판정에서 먼저 걸리는 것을 위에 둔다.
 THRESHOLD_FIELDS = [
     ("texture_min", "텍스처", "1차 관문 — 규조각인가", 0, 8000, 50),
@@ -2503,7 +2515,14 @@ def save_review(request):
 
     # 검토 완료 표시. 교정이 하나도 없어도(고칠 것이 없어서) 켜질 수 있으므로
     # 삭제·복구 목록과 독립적으로 저장한다.
-    done = bool(payload.get("done"))
+    #
+    # **없는 것과 빈 것이 다르다** (180 B2 · `drawn`·`edits` 와 같은 규칙).
+    # 지금 화면은 완료를 판 payload 에 안 싣는다 — 안 실린 것을 `False` 로 읽으면
+    # **마스크 저장 한 번이 다른 탭에서 켠 완료를 끈다.** 옛 탭은 계속 싣고,
+    # 그때는 그 값을 쓴다.
+    done = payload.get("done")
+    if done is not None:
+        done = bool(done)
 
     # **완료만 보내는 요청** (116 덧). `{"only": "done"}` 이면 교정을 안 싣고
     # `(시야, 묶음)` 한 줄만 쓴다 — 표시 하나를 켜자고 그 판의 교정을
@@ -2513,10 +2532,18 @@ def save_review(request):
     # (053), 자동 처리가 끝났는지도 봤다. 여기서 줄이는 것은 payload 뿐이다.
     if payload.get("only") == "done":
         try:
-            saved = data.save_done(vp, done)
+            saved = data.save_done(vp, bool(done))
         except ValueError as e:
             return JsonResponse({"ok": False, "error": str(e)}, status=409)
         return JsonResponse({"ok": True, **saved})
+
+    # **코멘트만 보내는 요청** (180 B2). 완료와 같은 층이라 같은 모양의 문을
+    # 둔다 — 시야 코멘트는 `(시야, batch=NULL)` 한 줄이고 판마다 다르지 않다.
+    if payload.get("only") == "note":
+        raw = payload.get("note", "")
+        if not isinstance(raw, (str, type(None))):
+            return HttpResponseBadRequest("bad note")
+        return JsonResponse({"ok": True, **data.save_note(vp, _note(raw))})
 
     def mapping(name, clean):
         v = payload.get(name) or {}
@@ -2543,13 +2570,6 @@ def save_review(request):
     def as_label(v):
         return str(v) if v in data.CLASSES else None
 
-    def as_note(v):
-        if not isinstance(v, str):
-            return None
-        # 줄바꿈은 남기고 앞뒤 공백만 정리한다. 빈 메모는 저장하지 않는다.
-        text = v.replace("\r\n", "\n").strip()[:NOTE_MAX]
-        return text or None
-
     # **개체 코멘트는 안 받는다** (0036). 적는 자리를 개체 카탈로그 하나로
     # 모았다 — 이 화면은 읽기만 한다. 옛 탭이 `notes` 를 실어 보내면 **조용히
     # 흘린다**: 오류로 물리면 그 저장에 함께 실린 삭제·되살림까지 잃는다
@@ -2561,7 +2581,10 @@ def save_review(request):
 
     # 시야 전체에 대한 메모. 개체에 붙지 않는 이야기(촬영 상태, 판정이 애매한
     # 이유 등)를 적을 곳이 있어야 한다.
-    note = as_note(payload.get("note")) or ""
+    #
+    # **안 실렸으면 `None` 이다** — 완료와 같은 규칙(180 B2). 지금 화면은 이것을
+    # `{"only": "note"}` 로 따로 보내고, 옛 탭만 여기 싣는다.
+    note = _note(payload["note"]) if "note" in payload else None
     if not isinstance(payload.get("note", ""), (str, type(None))):
         return HttpResponseBadRequest("bad note")
 

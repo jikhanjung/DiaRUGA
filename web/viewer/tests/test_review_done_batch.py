@@ -279,3 +279,82 @@ class ReviewDoneOnlyTest(DiaRUGATestCase):
         """`stem` 검증은 이 길에서도 지난다 (053)."""
         self.post_done(True, expect=409, stem="Snap-99999")
         self.assertFalse(self.row().done, "거절해 놓고 찍었다")
+
+    # --- 나머지 절반: 판 저장이 이 둘을 안 나른다 (180 B2) --------------------
+    #
+    # 116 이 완료를 **자기 문으로 보내게** 했지만, 판 payload 에는 그대로 실려
+    # 다녔다. 그래서 같은 시야를 두 탭으로 열면 **한쪽에서 켠 완료와 적은 글을
+    # 다른 탭의 마스크 저장 한 번이 되돌린다** — 어느 화면도 아무 말을 안 한다.
+
+    def post_plate(self, expect=200, **over):
+        """지금 화면이 보내는 판 payload — `done`·`note` 가 없다."""
+        p = {"stem": self.stem, "slug": self.w.slug, "gid": self.w.vp.idx,
+             "removed": list(self.keys), "accepted": [], "labels": {},
+             "image": self.image.pk}
+        p.update(over)
+        r = self.c.post(reverse("save_review"), data=json.dumps(p),
+                        content_type="application/json")
+        self.assertEqual(r.status_code, expect, r.content[:300])
+        return json.loads(r.content)
+
+    def test_판_저장이_완료를_안_끈다(self):
+        self.post_done(True)
+        self.post_plate()
+        self.assertTrue(self.row().done,
+                        "다른 탭의 마스크 저장이 검토 완료를 껐다")
+
+    def test_판_저장이_시야_코멘트를_안_지운다(self):
+        self.c.post(reverse("save_review"), data=json.dumps(
+            {"stem": self.stem, "slug": self.w.slug, "gid": self.w.vp.idx,
+             "only": "note", "note": "가장자리가 깨졌다"}),
+            content_type="application/json")
+        self.post_plate()
+        self.assertEqual(
+            ViewpointReview.objects.get(viewpoint=self.w.vp,
+                                        batch__isnull=True).note,
+            "가장자리가 깨졌다", "다른 탭의 마스크 저장이 코멘트를 지웠다")
+
+    def test_코멘트만_보내면_교정을_안_건드린다(self):
+        """완료와 같은 규칙이다 — 층이 다른 것을 한 요청에 안 싣는다."""
+        self.c.post(reverse("save_review"), data=json.dumps(
+            {"stem": self.stem, "slug": self.w.slug, "gid": self.w.vp.idx,
+             "only": "note", "note": "여기 적는다"}),
+            content_type="application/json")
+        self.assertEqual(self.marks(), 2,
+                         "코멘트만 보냈는데 그 판의 교정이 지워졌다")
+        self.assertEqual(
+            ViewpointReview.objects.get(viewpoint=self.w.vp,
+                                        batch__isnull=True).note, "여기 적는다")
+
+    def test_코멘트를_비우면_줄이_사라진다_문이_달라져도(self):
+        for note in ("적었다", ""):
+            self.c.post(reverse("save_review"), data=json.dumps(
+                {"stem": self.stem, "slug": self.w.slug, "gid": self.w.vp.idx,
+                 "only": "note", "note": note}),
+                content_type="application/json")
+        self.assertFalse(
+            ViewpointReview.objects.filter(viewpoint=self.w.vp,
+                                           batch__isnull=True).exists())
+
+    def test_옛_탭이_보낸_완료_코멘트는_그대로_쓴다(self):
+        """**배포 중에 열려 있던 탭**을 무시하면 그 탭에서 한 일이 사라진다."""
+        self.post_plate(done=True, note="옛 탭이 적었다")
+        self.assertTrue(self.row().done)
+        self.assertEqual(
+            ViewpointReview.objects.get(viewpoint=self.w.vp,
+                                        batch__isnull=True).note,
+            "옛 탭이 적었다")
+
+    def test_완료를_켜면_확인_표시가_붙는다(self):
+        """**`confirm_kept` 가 `save_done` 으로 옮겨 왔다** (180 B2).
+
+        예전에는 판 payload 의 `done` 이 그 자리를 맡았는데, 완료를 payload 에서
+        떼면 그 표시를 달 자리가 없어진다 — **완료를 누르는 순간이 곧 "남는 것을
+        확인했다" 는 순간**이라 거기가 제자리다.
+        """
+        self.assertFalse(ObjectReview.objects.filter(auto_confirmed=True)
+                         .exists())
+        self.post_done(True)
+        self.assertTrue(
+            ObjectReview.objects.filter(auto_confirmed=True).exists(),
+            "완료를 켰는데 확인 표시가 안 붙었다")
