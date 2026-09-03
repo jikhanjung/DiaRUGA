@@ -2121,8 +2121,13 @@ def save_object_link(request, slug, gid):
                 image=img, batch_id=rb, mask_key=key, removed=True).exists()
             if gone:
                 return bad(f"{key} 는 오검출로 지운 마스크다")
-            geom = {"bbox_xywh": [cand.bbox_x, cand.bbox_y,
-                                  cand.bbox_w, cand.bbox_h],
+            # **칸 이름은 `bbox` 다** (`ObjectReview.geom` · 2026-09-03). 여기서
+            # `bbox_xywh` 로 적으면 그 행을 읽는 쪽이 전부 못 읽는다 —
+            # `_orphan_dict` 는 그리지 않고(그러면 다음 저장이 그 행을 지운다),
+            # 화면의 `addDrawn` 은 상자를 `[0,0,1,1]` 로 놓는다. 실제로 앉힌
+            # 마스크 하나가 그렇게 앉았다(rs23 g11 · 2026-09-03).
+            geom = {"bbox": [cand.bbox_x, cand.bbox_y,
+                             cand.bbox_w, cand.bbox_h],
                     "polygon": cand.polygon}
             # **문턱에서 떨어진 후보도 묶을 수 있다** (102). 그 프레임에서 가장
             # 좋은 마스크가 탈락해 있는 일이 실제로 있다 — 초점이 흐려 텍스처가
@@ -2327,7 +2332,8 @@ def spread_detection(request, slug, gid):
 
     # 기하는 **서버가 스스로 뜬다** — 화면이 보낸 것을 믿지 않는다(`/link` 와
     # 같은 줄).
-    geom = {"bbox_xywh": [cand.bbox_x, cand.bbox_y, cand.bbox_w, cand.bbox_h],
+    # 칸 이름은 `bbox` 다 — `/link` 쪽과 같은 줄이다(그 주석에 왜가 있다).
+    geom = {"bbox": [cand.bbox_x, cand.bbox_y, cand.bbox_w, cand.bbox_h],
             "polygon": cand.polygon}
 
     try:
@@ -2519,6 +2525,14 @@ def save_review(request):
         out = {}
         for k, raw in v.items():
             k = str(k)
+            # **그린 개체의 키는 흘린다** (2026-09-03). 그 분류는 `drawn` 이
+            # 나르고, `save_review` 도 세 목록(`removed`·`accepted`·`labels`)에서
+            # 같은 키를 같은 규칙으로 흘린다 — 여기서 400 으로 물리면 **그 방어에
+            # 닿지도 못한 채** 저장 전체가 거절되고, 화면은 같은 payload 를 계속
+            # 다시 보낸다(`postReview` 가 실패를 다시 저장할 것으로 남긴다).
+            # 배포 중에 열려 있던 옛 탭이 그 키를 실어 보낸다.
+            if data.MANUAL_KEY.match(k):
+                continue
             if not data.CAND_KEY.match(k):
                 raise ValueError(name)
             val = clean(raw)

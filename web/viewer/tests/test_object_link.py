@@ -180,8 +180,10 @@ class SaveLinkEndpointTest(DiaRUGATestCase):
         link = fx.links().get()
         self.assertEqual(link.viewpoint, self.w.vp)
         m = link.members.get(is_rep=True)
-        # **기하는 서버가 뜬다** — 화면이 보낸 것을 믿지 않는다
-        self.assertEqual(m.geom["bbox_xywh"], [40, 50, 60, 40])
+        # **기하는 서버가 뜬다** — 화면이 보낸 것을 믿지 않는다.
+        # 칸 이름은 `bbox` 다 (`ObjectReview.geom` 의 표준 · 2026-09-03) —
+        # `bbox_xywh` 로 적으면 그 행을 읽는 쪽이 전부 못 읽는다.
+        self.assertEqual(m.geom["bbox"], [40, 50, 60, 40])
         self.assertTrue(m.geom["polygon"])
 
     def test_고치면_갈아끼운다(self):

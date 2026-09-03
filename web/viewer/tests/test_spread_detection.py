@@ -107,7 +107,12 @@ class SpreadDetectionTest(DiaRUGATestCase):
             self.assertTrue(items[0]["geom"])
 
     def test_기하는_서버가_뜬다(self):
-        """화면이 보낸 것을 안 믿는다 — 후보의 bbox 로 앉는다."""
+        """화면이 보낸 것을 안 믿는다 — 후보의 bbox 로 앉는다.
+
+        **칸 이름은 `bbox` 다** (2026-09-03). `ObjectReview.geom` 의 표준이
+        그것이고, `bbox_xywh` 로 적으면 읽는 쪽이 전부 못 읽는다 — 아래 시험이
+        그 결과를 잰다.
+        """
         src = self.frames[0]
         key = self.a_key(src)
         cand = Candidate.objects.get(detection__image=src,
@@ -116,8 +121,37 @@ class SpreadDetectionTest(DiaRUGATestCase):
                                      mask_key=key)
         out = self.post(src, key)
         got = next(iter(out["spread"].values()))[0]["geom"]
-        self.assertEqual(got["bbox_xywh"],
+        self.assertEqual(got["bbox"],
                          [cand.bbox_x, cand.bbox_y, cand.bbox_w, cand.bbox_h])
+
+    def test_앉힌_마스크가_그_판의_화면에_나온다(self):
+        """**모양이 어긋나면 조용히 없어진다** (실사용 rs23 g11 · 2026-09-03).
+
+        `_orphan_dict` 가 기하를 못 읽으면 `None` 을 돌려주어 그 개체가 화면에
+        안 그려지고, 화면은 자기가 아는 키만 보내므로 **다음 저장의 청소 줄이
+        그 행을 지운다.** 예외도 경고도 없다 — 앉힌 마스크가 사라질 뿐이다.
+
+        상자 넷을 함께 본다: `[0, 0, 1, 1]` 로 앉으면 화면에는 나오지만 왼쪽 위
+        구석의 점 하나가 된다(`addDrawn` 의 되돌림 값이 그것이다).
+        """
+        src = self.frames[0]
+        key = self.a_key(src)
+        cand = Candidate.objects.get(detection__image=src,
+                                     detection__is_current=True,
+                                     detection__run__batch_id=self.rb,
+                                     mask_key=key)
+        out = self.post(src, key)
+        new_key = out["key"]
+
+        for img_id in out["spread"]:
+            with self.subTest(image=img_id):
+                d = data.detection_for_viewpoint(self.w.vp, int(img_id))
+                me = next((c for c in d["candidates"]
+                           if data.cand_key(c) == new_key), None)
+                self.assertIsNotNone(me, "앉힌 마스크가 그 판에 안 나온다")
+                self.assertEqual(me["bbox_xywh"],
+                                 [cand.bbox_x, cand.bbox_y,
+                                  cand.bbox_w, cand.bbox_h])
 
     # --- 3. 이미 멤버가 있는 판 --------------------------------------------
 

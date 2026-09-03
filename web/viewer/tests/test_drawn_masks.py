@@ -252,3 +252,64 @@ class DrawnMaskTest(DiaRUGATestCase):
         # 화면이 받은 그대로 되돌려 보낸다 — 막히면 안 된다
         self.post(labels=d["labels"], drawn=[self.draw(cls="rod")])
         self.assertEqual(ObjectReview.objects.get(mask_key=KEY).label, "rod")
+
+    # --- 그린 개체의 키가 엔진 목록에 섞여 와도 ------------------------------
+    #
+    # **실사용에서 하루에 101건이 이렇게 날아갔다** (2026-09-03 · wap13 g26 51건 ·
+    # rs23 g11 39건 외). 화면은 지운 개체를 `cands` 에 남겨 흔적을 보이므로 그
+    # 키가 `removed` 에 실렸고, 서버는 `(image, batch)` 로만 아는 키를 세어
+    # **저장 전체를 거절했다.** 한 번 그 상태가 되면 그 시야의 이후 저장이 계속
+    # 실패해서, 사람은 같은 검토를 몇 번이고 다시 했다.
+
+    def test_removed_에_그린_키가_와도_저장이_안_막힌다(self):
+        """**거절하면 함께 실린 것까지 잃는다** — 옛 탭의 `notes` 와 같은 갈래다.
+
+        배포 중에 열려 있던 탭은 여전히 이 키를 실어 보낸다.
+        """
+        self.post(drawn=[self.draw()])
+        key0 = self.w.keys()[0]
+        self.post(removed=[KEY, key0], drawn=[self.draw()])
+
+        self.assertTrue(
+            ObjectReview.objects.filter(mask_key=key0, removed=True).exists(),
+            "그린 키 하나 때문에 엔진 개체의 삭제까지 안 남았다")
+
+    def test_labels_에_그린_키가_와도_저장이_안_막힌다(self):
+        """**세 목록이 같은 규칙이어야 한다.** `removed`·`accepted` 만 흘리고
+        `labels` 를 400 으로 물리면 옛 탭 하나가 같은 자리에 다시 선다 — 그쪽은
+        형식 검사가 뷰에 있어 `save_review` 의 방어에 닿지도 않는다.
+        """
+        self.post(drawn=[self.draw()])
+        key0 = self.w.keys()[0]
+        self.post(labels={KEY: "round", key0: "rod"}, drawn=[self.draw()])
+
+        o = ObjectReview.objects.get(mask_key=key0)
+        self.assertEqual(o.label, "rod",
+                         "그린 키 하나 때문에 엔진 개체의 분류가 안 남았다")
+        # 그린 개체의 분류는 `drawn` 이 나른다 — 지도 쪽 값은 안 먹는다
+        self.assertEqual(ObjectReview.objects.get(mask_key=KEY).label, "rod")
+
+    def test_accepted_에_그린_키가_와도_저장이_안_막힌다(self):
+        self.post(drawn=[self.draw()])
+        self.post(accepted=[KEY], drawn=[self.draw()])
+        self.assertTrue(ObjectReview.objects.filter(mask_key=KEY).exists())
+
+    def test_그린_키를_엔진_행으로_안_앉힌다(self):
+        """받아 주되 **`batch` 가 붙은 행이 생기면 안 된다.** 같은 키로 행이
+        둘이 되면 화면에 두 번 나오고, 청소 줄이 어느 쪽을 지울지가 갈린다
+        (`_catalog_target` 이 경계한 그 자리다)."""
+        self.post(drawn=[self.draw()])
+        self.post(removed=[KEY], drawn=[self.draw()])
+
+        rows = ObjectReview.objects.filter(mask_key=KEY)
+        self.assertEqual(rows.count(), 1, "그린 개체가 두 행이 됐다")
+        self.assertIsNone(rows.first().batch_id)
+
+    def test_지우기는_drawn_에서_빠지는_것으로_말한다(self):
+        """`removed` 로는 안 지워진다 — 지우는 문은 하나뿐이다 (P09 5.10)."""
+        self.post(drawn=[self.draw()])
+        self.post(removed=[KEY], drawn=[self.draw()])
+        self.assertTrue(ObjectReview.objects.filter(mask_key=KEY).exists(),
+                        "`removed` 가 그린 개체를 지웠다")
+        self.post(drawn=[])                       # 이것이 지우는 문이다
+        self.assertFalse(ObjectReview.objects.filter(mask_key=KEY).exists())

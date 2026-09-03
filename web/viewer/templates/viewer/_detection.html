@@ -1148,6 +1148,20 @@
     return { x: fx * W, y: fy * H, fx: fx, fy: fy };
   }
 
+  // 폴리곤의 점 하나를 이미지 안으로 들인다.
+  //
+  // **밖으로 나간 점은 만들지 않는다** (2026-09-03). 서버는 이미지 밖 폴리곤을
+  // 거절하는데(`check_polygon` — 밖에 있는 개체는 그릴 수도 잴 수도 없고 학습
+  // 자료로 나가면 좌표가 뒤집힌 라벨이 된다), 그 거절이 **그 저장 전체를
+  // 버린다.** 경계에 걸친 규조각을 그리다 한 점이 넘어가면 그 시야의 판단이
+  // 통째로 안 남는다 — 실사용에서 그렇게 다섯 번 거절됐다. **그릴 때 막는다.**
+  //
+  // 경계에 딱 붙는 것은 받는다 — 서버의 검사도 `> W` 다.
+  function inImage(p) {
+    return [Math.max(0, Math.min(W, Math.round(p.x))),
+            Math.max(0, Math.min(H, Math.round(p.y)))];
+  }
+
   // --- 박스 렌더 -----------------------------------------------------------
   function boxStyle(el, b) {
     el.style.left = (100 * b[0] / W) + '%';
@@ -1469,12 +1483,28 @@
         });
         return out;
       })(),
-      drawn: S.cands.filter(isManual).map(function (c) {
+      //
+      // **지운 것은 목록에서 빠진다** (P09 5.10 · 2026-09-03). 그린 개체를
+      // 지우는 것은 행을 지우는 것이고, 그 말은 `drawn` 에 없다는 것이다 —
+      // 화면은 지운 것도 `cands` 에 남겨 흔적을 보이고 Ctrl+Z 를 받지만,
+      // 그것을 그대로 실어 보내면 서버는 "안 지웠다" 로 읽는다.
+      drawn: S.cands.filter(function (c) {
+        return isManual(c) && !S.removed.has(keyOf(c));
+      }).map(function (c) {
         return { key: keyOf(c), polygon: c.polygon, cls: c.cls || '' };
       }),
       done: reviewDone,
-      removed: Array.from(S.removed),
-      accepted: Array.from(S.accepted),
+      // **그린 개체의 키는 여기 안 싣는다** (2026-09-03). 이 둘은 엔진 개체의
+      // 목록이라 서버가 `(image, batch)` 로 아는 키와 맞춰 보는데, 그린 개체는
+      // `batch=NULL` 이라 거기 없다 — "현재 검출에 없는 개체" 로 **저장 전체가
+      // 거절되고**, 한 번 그러면 그 시야의 이후 저장이 계속 실패한다. 실사용에서
+      // 하루에 101건이 그렇게 날아갔다. 지우기는 위 `drawn` 이 나른다.
+      removed: Array.from(S.removed).filter(function (k) {
+        return !isManualKey(S.cands, k);
+      }),
+      accepted: Array.from(S.accepted).filter(function (k) {
+        return !isManualKey(S.cands, k);
+      }),
       labels: S.labels,
       // **개체 코멘트는 안 보낸다** (0036) — 카탈로그에서만 적는다.
       // 아래 `note` 는 시야 코멘트이고 다른 것이다.
@@ -3213,7 +3243,7 @@
       var d = Math.hypot(p.x - pts[0][0], p.y - pts[0][1]) * scale;
       if (d <= CLOSE_PX) { drawFinish(); return; }
     }
-    pts.push([Math.round(p.x), Math.round(p.y)]);
+    pts.push(inImage(p));
     drawRender(); drawStatus();
   }
 
@@ -3374,7 +3404,7 @@
       if (editing.grab < 0) {
         var edge = editEdge(pt);
         if (edge >= 0) {                 // 선분을 누르면 점이 는다
-          editing.pts.splice(edge + 1, 0, [pt.x, pt.y]);
+          editing.pts.splice(edge + 1, 0, inImage(pt));
           editing.grab = edge + 1;
         }
       }
@@ -3395,7 +3425,7 @@
   window.addEventListener('mousemove', function (e) {
     if (editing && editing.grab >= 0) {
       var p = toImage(e);
-      editing.pts[editing.grab] = [p.x, p.y];
+      editing.pts[editing.grab] = inImage(p);      // 밖으로 못 끈다 (위 주석)
       editRender();
       return;
     }

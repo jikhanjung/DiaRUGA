@@ -99,7 +99,14 @@ class SpreadDetectionBrowserTest(BrowserTestCase):
     def test_판을_넘어가도_복제본이_남는다(self):
         """**반쪽으로 넣으면 자료를 잃는다** (P19 4.2). 화면이 복제본을 자기
         상태에 안 얹으면 그 판의 다음 저장이 `/review` 에서 지운다 — 111 이
-        이미 당한 자리다."""
+        이미 당한 자리다.
+
+        **저장은 엔진 마스크를 지워서 일으킨다** (2026-09-03). 복제본은 (70,70)
+        에 앉으므로 거기서 지우면 **복제본 자체를 지우는 것**이라 이 시험이 재려는
+        것과 다른 일이 된다 — 그렇게 짚고 있었고, 그때는 그 저장이 409 로
+        거절되던 때라 "안 지워졌다" 가 참이 됐다. 고장이 시험을 통과시키고
+        있었다. 둘째 후보는 (195,155) 다(`factories`).
+        """
         page = self.open_group()
         self.menu_item(self.context_menu_at(70, 70),
                        "다른 판에도 앉히기").click()
@@ -113,7 +120,7 @@ class SpreadDetectionBrowserTest(BrowserTestCase):
         # **uid 는 그대로 `stack` 이다** — 캐러셀은 svg 를 새로 만들지 않고
         # `swapDet` 이 그 안의 검출을 갈아 끼운다. 판 이름을 uid 로 주면
         # `#masks-<이름>` 을 기다리다 10초 뒤에 죽는다 (실제로 그랬다).
-        menu = self.context_menu_at(70, 70)
+        menu = self.context_menu_at(195, 155)
         self.assertIsNotNone(menu, "프레임에서 우클릭 메뉴가 안 열렸다")
         item = self.menu_item(menu, "오검출로 삭제")
         self.assertIsNotNone(item, "삭제 항목이 없다 — 판이 안 바뀐 것이다")
@@ -122,3 +129,30 @@ class SpreadDetectionBrowserTest(BrowserTestCase):
 
         self.assertEqual(self.drawn_rows().count(), n_before,
                          "판을 넘어간 저장이 복제본을 지웠다")
+
+    def test_앉힌_마스크를_지우면_저장이_안_막힌다(self):
+        """**실사용에서 하루에 101건이 여기서 날아갔다** (2026-09-03).
+
+        앉힌 마스크는 `batch=NULL` 이라 그 키가 `removed` 에 실려 나가면 서버가
+        "현재 검출에 없는 개체" 로 보고 **저장 전체를 거절했다** — 한 번 그러면
+        그 시야의 이후 저장이 계속 실패해서 사람이 같은 검토를 몇 번이고 다시
+        했다. 지우기는 `drawn` 에서 빠지는 것으로 말한다 (P09 5.10).
+        """
+        page = self.open_group()
+        self.menu_item(self.context_menu_at(70, 70),
+                       "다른 판에도 앉히기").click()
+        page.wait_for_selector(".errbar.spreadok", state="visible",
+                               timeout=4000)
+        n_before = self.drawn_rows().count()
+
+        frame = self.w.vp.frames.order_by("pk").first()
+        self.click_shot(frame.name)
+        self.menu_item(self.context_menu_at(70, 70), "오검출로 삭제").click()
+        self.page.wait_for_timeout(1200)
+
+        # **실패 띠가 뜨면 안 된다** — 사람이 보는 것은 이것이다
+        bar = page.query_selector(".errbar.savefail")
+        self.assertTrue(bar is None or not bar.is_visible(),
+                        "앉힌 마스크를 지웠더니 저장이 거절됐다")
+        self.assertEqual(self.drawn_rows().count(), n_before - 1,
+                         "지운 복제본의 행이 안 없어졌다")

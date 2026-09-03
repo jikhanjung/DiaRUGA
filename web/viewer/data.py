@@ -285,7 +285,10 @@ def _orphan_dict(key: str, o, um_per_px=None) -> dict | None:
     `check_db.py` 의 "교정이 기하를 갖고 있다" 가 따로 센다.
     """
     geom = o.geom or {}
-    bbox = geom.get("bbox") or _key_bbox(key)
+    # **옛 모양도 읽는다** (`_member_row` 와 같은 줄 · 2026-09-03). 앉히기·묶기가
+    # 한동안 `bbox_xywh` 로 적었는데, 못 읽으면 여기서 `None` 이 되어 **화면에
+    # 안 그려지고 다음 저장이 그 행을 지운다** — 조용한 유실이다.
+    bbox = geom.get("bbox") or geom.get("bbox_xywh") or _key_bbox(key)
     if not bbox or len(bbox) != 4:
         return None
     x, y, w, h = (int(v) for v in bbox)
@@ -3538,6 +3541,26 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
     removed, accepted = set(removed), set(accepted)
     keys = removed | accepted | set(labels)
 
+    # **그린 개체의 키는 이 목록들이 나르지 않는다** (P09 5.2·5.10 · 2026-09-03).
+    #
+    # 그린 개체는 `batch=NULL` 에 살고 **지우는 것은 `drawn` 에서 빠지는 것**이다.
+    # 그런데 화면은 지운 것을 `cands` 에 남겨 흔적을 보이므로 그 키가 `removed`
+    # 에 실려 왔고, 아래 `known` 은 `(image, batch)` 만 보니 **"현재 검출에 없는
+    # 개체" 로 저장 전체가 거절됐다.** 한 번 그 상태가 되면 그 시야의 이후 저장이
+    # 계속 실패한다 — 실사용에서 하루에 101건이 그렇게 날아갔다(2026-09-03 ·
+    # wap13 g26 51건 · rs23 g11 39건 외). 사람은 같은 검토를 몇 번이고 다시 했다.
+    #
+    # **오류로 물리지 않고 흘린다** — 옛 탭의 `notes` 와 같은 갈래다(머리말).
+    # 배포 중에 열려 있던 탭은 여전히 이 키를 실어 보내는데, 거절하면 그 저장에
+    # 함께 실린 삭제·되살림까지 잃는다. 흘리면 **그 지우기 하나만 안 되고**
+    # 나머지는 남는다 — 새로고침하면 화면이 서버와 다시 맞는다.
+    manual_keys = {k for k in keys if MANUAL_KEY.match(k)}
+    if manual_keys:
+        keys -= manual_keys
+        removed -= manual_keys
+        accepted -= manual_keys
+        labels = {k: v for k, v in labels.items() if k not in manual_keys}
+
     # **없는 것과 빈 것이 다르다** (`_save_drawn` 과 같은 규칙). `edits` 가 아예
     # 없으면 **고치기를 모르는 옛 화면**이다 — 배포 중에 열려 있던 탭이 그렇고,
     # 그 저장 한 번이 사람이 고친 기하를 전부 지우면 안 된다. 그때는 이미 고쳐
@@ -3550,7 +3573,10 @@ def save_review(vp: Viewpoint, done: bool, note: str, removed, accepted,
         keys |= set(ObjectReview.objects
                     .filter(image=image, batch=batch, geom_edited=True)
                     .values_list("mask_key", flat=True))
-    edits = {str(k): list(v or []) for k, v in (edits or {}).items()}
+    # 그린 개체의 기하도 `drawn` 이 나른다 — 여기로 오면 위와 같은 자리에서
+    # 걸린다(화면은 이미 갈라 보내지만 옛 탭이 있다).
+    edits = {str(k): list(v or []) for k, v in (edits or {}).items()
+             if not MANUAL_KEY.match(str(k))}
     for k, poly in edits.items():
         if poly:                       # 빈 것은 "엔진 것으로 되돌린다" 는 말이다
             check_polygon(poly, (cur.width, cur.height), k)
