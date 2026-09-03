@@ -38,9 +38,9 @@ NAS 의 `DiatomPhotos/`).
 더 얹고 개체 크롭을 화면에 낸다** · 마이그레이션 `0042`
 (`AtlasPlacement.crop_image`) ·
 [P22](devlog/20260827_P22_paper-plates-remaining.md)·
-[P23](devlog/20260831_P23_paper-plates-db.md) · 도판 그림 447개를
+[P23](devlog/20260831_P23_paper-plates-db.md) · 도판 그림 440개를
 `tools/parse_paper_atlas.py`/`ops/import_atlas.py` 기존 문으로 반입,
-크롭 447장은 `/data3/DiaRUGA/atlas/<key>/crops/` 에 미리 옮겨 뒀다.
+크롭 440장은 `/data3/DiaRUGA/atlas/<key>/crops/` 에 미리 옮겨 뒀다.
 도감 검색에 출현 기록도 붙였다(168)). 08-27 에 `v0.20.0` 을 내보냈다(**논문 도감 넷을 도감 표에
 얹는다** · 마이그레이션 `0041`(`Reference`·`Occurrence`) ·
 [163](devlog/20260826_163_paper-atlas-converter.md)~
@@ -103,7 +103,8 @@ NAS 의 `DiatomPhotos/`).
 | 검토 대상 묶음 | **`yolo-3차`** (`RunBatch.for_review`) — 08-13 에 옮겼다 |
 
 **사람이 하는 일은 `yolo-3차` 검토다** — 08-13 에 검토 대상을 그리로 옮겼고
-**37/570** 이다. 그 앞의 `sam2-전수` 는 2차까지 **309/570**(092 부터)이고, 1차는
+**292/570** 이다(09-03 18:20 백업 사본에서 셌다 — 08-13 의 37 에서 늘었다).
+그 앞의 `sam2-전수` 는 2차까지 **309/570**(092 부터)이고, 1차는
 08-06 에 전수 완료됐다(508/508). 2차에서 `Chaetoceros` 동정이 처음으로 대거
 들어왔다(093). **다음 판의 학습 자료가 여기서 나온다.**
 
@@ -698,7 +699,7 @@ WAL 이라 읽기는 여럿이 되지만 **쓰기는 한 번에 하나**다. 파
   2,746 → **3,186** 이 됐다. **판을 먼저 내야 하는 이유가 여기 있다**
   (`atlas/*.json` 은 `COPY . .` 로 이미지에 실려 간다, 위 147 항목과 같은
   사정) — `deploy.sh` 가 배포하며 `import_atlas.py` 스크립트도 자동으로
-  `/srv` 에 맞췄다(`crop_image` 칸이 바뀌어 있었다). 크롭 PNG 447장은
+  `/srv` 에 맞췄다(`crop_image` 칸이 바뀌어 있었다). 크롭 PNG 440장은
   **배포 전에 이미** `/data3/DiaRUGA/atlas/<key>/crops/` 로 옮겨 뒀다
   (`tools/sync_paper_plate_images.py`, 08-31 확인). `/atlas/?q=` 에서
   "그림 보기" 칩·`/img?p=` 크롭 이미지 둘 다 200 으로 직접 확인했다.
