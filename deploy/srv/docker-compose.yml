@@ -54,6 +54,22 @@ services:
       # (/etc/nginx/sites-enabled/DiaRUGA 이 :9090 을 받아 여기로 넘긴다).
       - "127.0.0.1:8090:9090"
     restart: unless-stopped
+    # 로그에 상한을 둔다 (2026-09-03). 기본값은 **크기 제한이 없어서**
+    # `/data3/docker` 아래로 무한히 큰다 — 지금은 하루 몇 백 줄이라 티가 안
+    # 나지만, 아무도 안 정해 둔 상태였을 뿐이다.
+    #
+    # **오래 남기려는 것이 아니다.** 컨테이너 로그는 몇 시간짜리 진단 도구이고
+    # (`guides/web/operations.md` 의 장애 대응 절), 남아야 하는 것은 DB·백업·
+    # `review/` 로 간다. 게다가 이 로그는 **컨테이너에 붙어 있어 `deploy.sh` 가
+    # 갈아 끼우면 새 파일로 시작한다** — 배포를 건너 살아남지 않는다. 오래
+    # 거슬러 볼 일은 nginx 쪽 access log 가 맡는다(2주쯤 돌아간다).
+    #
+    # 50 MB × 5 면 이 트래픽으로 몇 달치라, 상한이 진단을 방해하지 않는다.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   pipeline:
     <<: *common
