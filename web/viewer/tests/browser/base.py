@@ -220,3 +220,17 @@ class BrowserTestCase(StaticLiveServerTestCase):
         self.click_image(img_x, img_y, uid, button="right")
         self.page.wait_for_timeout(200)
         return self.page.query_selector(".ctxmenu")
+
+    def menu_click(self, text, exact=False):
+        """우클릭 메뉴의 **그 항목**을 누른다 — 화면 전체에서 찾지 않는다.
+
+        `page.get_by_text("봉상").first` 로 찾던 자리들이 183 에서 깨졌다.
+        오른쪽 칸의 카탈로그에 **유형 셀렉트**가 생기면서 `<option>봉상</option>`
+        이 문서 앞쪽에 놓였고, `.first` 가 그것을 집어 클릭이 타임아웃 났다.
+
+        **메뉴 안으로 범위를 좁히는 것이 맞다** — 시험이 누르려던 것은 늘
+        메뉴 항목이었고, 같은 낱말이 화면 어딘가에 또 생기는 일은 앞으로도
+        있다(분류 이름은 화면 여러 곳에 나온다).
+        """
+        self.page.locator(".ctxmenu").get_by_text(
+            text, exact=exact).first.click()

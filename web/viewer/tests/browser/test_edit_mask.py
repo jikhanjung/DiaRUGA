@@ -64,7 +64,7 @@ class EditMaskTest(BrowserTestCase):
         page = self.open_review()
         # 분류를 먼저 준다 — 키가 바뀌면 이 판단이 끊긴다
         self.context_menu_at(*CENTER)
-        page.get_by_text("봉상", exact=True).first.click()
+        self.menu_click("봉상", exact=True)
         page.wait_for_timeout(900)
 
         self.start_edit()

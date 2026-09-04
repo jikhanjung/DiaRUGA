@@ -105,7 +105,7 @@ class FoldedClsNotSavedTest(BrowserTestCase):
         self.click_shot(self.frame.name)
         menu = self.context_menu_at(BOX[0] + BOX[2] // 2, BOX[1] + BOX[3] // 2)
         self.assertIsNotNone(menu, "손그림 우클릭 메뉴가 안 떴다")
-        page.get_by_text("Chaetoceros", exact=False).first.click()
+        self.menu_click("Chaetoceros")
         page.wait_for_timeout(900)
 
         self.assertEqual(self.label_now(), "chaetoceros")

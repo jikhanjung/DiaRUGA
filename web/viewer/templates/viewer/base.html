@@ -1175,6 +1175,10 @@
   }
   .notes .catsay { font-size: 11.5px; color: var(--dim); line-height: 1.6; }
   .notes .catbox { display: grid; gap: 6px; align-content: start; }
+  /* **`display` 를 잡았으니 `[hidden]` 을 명시한다.** 브라우저 기본
+     `[hidden] { display: none }` 은 특이도 (0,0,1) 이라 위 규칙(0,2,0)에 진다 —
+     감추라고 해 놓고 그대로 보인다. `.tile`·`.hlflag` 에 이어 세 번째다. */
+  .notes .catbox[hidden] { display: none; }
   /* 번호는 옮겨 적는 것이라 **글자가 안 붙는 폭**으로 둔다. 좁아서 줄바꿈
      대신 가로로 구르게 한다 — 끊어 적으면 다른 번호로 읽힌다. */
   .notes .catno {
@@ -1196,6 +1200,9 @@
     line-height: 1.5;
   }
   .notes .crow { display: flex; gap: 6px; align-items: center; }
+  /* 등급·자세 줄은 파편일 때 감춘다 — `display: flex` 가 `[hidden]` 을 이기므로
+     여기서 명시한다 (`.catbox[hidden]` 과 같은 줄). */
+  .notes .crow[hidden] { display: none; }
   .notes .crow > label {
     flex: none; width: 3.2em; font-size: 11.5px; color: var(--dim);
   }

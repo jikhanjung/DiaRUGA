@@ -1462,6 +1462,10 @@
     saveState.textContent = (n || m)
       ? '검토: 삭제 ' + n + ' · 복구 ' + m + (history.length ? ' · Ctrl+Z 로 취소' : '')
       : '';
+    // 오른쪽 칸의 카탈로그도 고른 것을 따라간다 (183). **여기서 부른다** —
+    // 선택이 바뀌는 길이 여럿이라(클릭·범위·단축키·묶음 따라가기) 그 자리마다
+    // 부르면 한 곳을 빠뜨리고, 그러면 그 길로 고른 개체만 옛 카드를 본다.
+    catFill();
   }
 
   // --- 저장 ----------------------------------------------------------------
@@ -2395,13 +2399,17 @@
     catMetaEl.appendChild(a);
   }
 
+  // **적는 중인 칸만 비켜 간다.** 화면 전체를 안 그리면 저장 응답이 온 뒤에도
+  // 옛 번호가 남고(카드가 방금 생겼는데 "없습니다" 라고 적는다), 통째로 그리면
+  // 방금 친 글자가 사라진다 — 갈래는 칸 하나 단위다.
+  function catSet(el, value) {
+    if (el && el !== document.activeElement) el.value = value;
+  }
+
   function catFill() {
     if (!catBox) return;
     var c = catPick();
     var key = c ? keyOf(c) : null;
-    // 같은 개체를 그대로 보고 있고 사람이 그 칸에 적는 중이면 손대지 않는다.
-    if (key !== null && key === catKey &&
-        catBox.contains(document.activeElement)) return;
     if (key !== catKey) catSay('');
     catKey = key;
     if (!c) {
@@ -2418,11 +2426,11 @@
     if (catHintEl) catHintEl.hidden = true;
 
     catPaintNo(c);
-    if (catSpEl) catSpEl.value = c.species || '';
-    if (catClsEl) catClsEl.value = c.cls || '';
-    if (catGradeEl) catGradeEl.value = c.grade || '';
-    if (catPoseEl) catPoseEl.value = c.pose || '';
-    if (catNoteEl) catNoteEl.value = c.note || '';
+    catSet(catSpEl, c.species || '');
+    catSet(catClsEl, c.cls || '');
+    catSet(catGradeEl, c.grade || '');
+    catSet(catPoseEl, c.pose || '');
+    catSet(catNoteEl, c.note || '');
     // **등급·자세는 완형에만 매긴다** — 파편이면 두 칸이 아예 없다.
     var def = catDef(c.cls);
     if (catGpEl) catGpEl.hidden = !!(c.cls && def && !def.counted);

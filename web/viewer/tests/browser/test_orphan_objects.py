@@ -125,7 +125,7 @@ class OrphanOnScreenTest(BrowserTestCase):
         x, y, w, h = ORPHAN_BOX
         menu = self.context_menu_at(x + w // 2, y + h // 2)
         self.assertIsNotNone(menu, "고아 개체 위에서 우클릭 메뉴가 안 떴다")
-        page.get_by_text("봉상", exact=True).first.click()
+        self.menu_click("봉상", exact=True)
         page.wait_for_timeout(900)
 
         o = ObjectReview.objects.get(pk=self.orphan.pk)

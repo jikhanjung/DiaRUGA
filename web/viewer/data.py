@@ -3430,6 +3430,12 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
         ctx["review_blocked"] = review_blocked(slide)
         ctx["readonly"] = True
         ctx["batch_run_id"] = run_id
+        # 오른쪽 칸의 카탈로그는 여기서도 놓인다 — **읽기 전용이지만 목록은
+        # 있어야 한다** (183). 빈 셀렉트를 내밀면 잠긴 것이 아니라 고장 난
+        # 것으로 읽힌다.
+        ctx["species_seen"] = species_seen()
+        ctx["grades"] = DiatomObject.GRADE
+        ctx["poses"] = DiatomObject.POSE
         return ctx
 
     slide = Slide.objects.filter(slug=slug).first()
