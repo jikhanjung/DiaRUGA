@@ -167,7 +167,11 @@ class BrowserTestCase(StaticLiveServerTestCase):
         v0.8.0 CI 를 그것으로 한 번 멈췄다.
         """
         last = None
-        for wait in (0, 0.2, 0.5, 1.0, 2.0):
+        # **기다리는 시간을 늘렸다** (183). 시험이 늘면서 `test_catalog_atlas`
+        # 의 뒷정리가 CI 에서 세 번 연달아 여기서 졌다 — 3.7초로는 모자랐다.
+        # 상대는 곧 끝나는 읽기라 **기다리면 반드시 풀린다**: 늘려서 잃는 것은
+        # 진짜로 막혔을 때의 12초뿐이고, 안 늘리면 **없는 고장을 쫓게 된다.**
+        for wait in (0, 0.2, 0.5, 1.0, 2.0, 4.0, 8.0):
             if wait:
                 time.sleep(wait)
             try:
