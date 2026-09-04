@@ -357,6 +357,95 @@ def mask_points(c: dict) -> str | None:
 
 
 # --- 검출 + 교정 ------------------------------------------------------------
+def _class_counts(kept: list[dict]) -> tuple[dict, list]:
+    """통과분의 분류를 센다. **`fold_object_cls` 가 접은 뒤에 다시 부른다.**
+
+    검출 화면 머리의 "(봉상 12, 원형 3, …)". 분류 이름이 템플릿에 박혀 있었다 —
+    그래서 Chaetoceros 를 테이블에 넣어도 이 줄에만 안 나왔다. 테이블이 정하게 바꾼다.
+    0 인 분류는 뺀다. 여기는 표가 아니라 한 줄이라 자리를 맞출 것이 없고,
+    짧을수록 읽힌다.
+    """
+    counts = {r["key"]: 0 for r in _class_rows()}
+    for d in kept:
+        if d.get("cls") in counts:
+            counts[d["cls"]] += 1
+    counts["manual"] = sum(1 for d in kept if d.get("manual"))
+    counts["labeled"] = sum(1 for d in kept if d.get("cls_user"))
+
+    order = ([(r["key"], r["short"]) for r in _class_rows()]
+             + [("manual", "수동"), ("labeled", "사람지정")])
+    counts_list = [{"key": k, "label": lb, "n": counts[k]}
+                   for k, lb in order if counts.get(k)]
+    return counts, counts_list
+
+
+def fold_object_cls(dets: list[dict]) -> None:
+    """한 시야의 판들에 걸쳐 **개체의 유형을 하나로 접는다.**
+
+    유형(`DiatomObject.label`)은 개체에 살아서 사람이 지정한 것은 묶인 판들이
+    이미 한 값을 본다 — 어긋날 수가 없다. **어긋나는 것은 아직 지정하지 않은
+    개체다**: 그때 화면은 판마다 *엔진이 그 판에서 본 값*으로 떨어지는데, 그
+    값이 판마다 다르다.
+
+    - 같은 규조각인데 초점면마다 `elongation` 이 문턱을 넘나든다. 되살린 판은
+      `_guess_cls` 가 다시 재고 그쪽은 1.4~2.0 이 무분류라, 옆 판이 봉상인데
+      혼자 무분류가 된다
+    - 번지기(106)가 앉힌 손그림 판은 `Candidate` 가 없어 유형이 아예 없다.
+      한 판만 엔진 후보에 붙어 있으면 **그 판만** 색이 있다
+
+    사람은 한 규조각을 판을 넘겨 가며 보므로, 넘길 때마다 색이 바뀌면 같은 것을
+    보고 있는지 자체가 흔들린다. **아는 판이 있으면 그 값을 개체 전부가 쓴다** —
+    아는 값이 여럿이면 많은 쪽, 그래도 같으면 면적이 가장 큰 판의 것이다(가장
+    잘 보이는 판이다).
+
+    **접은 값은 사람의 지정이 아니다.** `cls_user` 를 안 붙이므로 색의 우선순위
+    (`addPolygon`)에서 사람 지정 아래에 있고, `cls_folded` 로 표시해 **화면이
+    저장에 안 싣게** 한다 — 손그림의 `drawn` payload 는 `cls` 를 그대로
+    `DiatomObject.label` 에 적으므로(`_save_drawn`), 접은 값이 실려 가면
+    **엔진의 추측이 사람이 지정한 유형 자리에 눌러앉는다.**
+
+    **판 전부가 있는 자리에서만 부른다** — 시야 하나의 판들을 함께 물어 온
+    `group_detail`·`candidate_rows` 가 그 자리다. 낱개로 여는
+    `detection_for_viewpoint` 는 옆 판의 후보를 안 물어 와서 접을 근거가 없고,
+    물어 오게 하면 개수를 세려고 자료를 물질화하는 그 실수가 된다.
+
+    dets 를 제자리에서 고친다 — 분류가 바뀌면 그 판의 집계도 함께 바뀐다.
+    """
+    keys = {r["key"] for r in _class_rows()}
+    members: dict[int, list] = {}
+    for det in dets:
+        for d in det.get("candidates") or []:
+            if d.get("obj_id"):
+                members.setdefault(d["obj_id"], []).append((det, d))
+
+    touched = set()
+    for group in members.values():
+        if len(group) < 2:
+            continue
+        # 사람이 지정한 개체는 진실이 하나다 — 접을 것이 없다.
+        if any(d.get("cls_user") for _, d in group):
+            continue
+        votes: dict[str, list[int]] = {}
+        for _, d in group:
+            if d.get("cls") in keys:
+                votes.setdefault(d["cls"], []).append(d.get("area_px") or 0)
+        if not votes:
+            continue
+        if len(votes) == 1 and len(next(iter(votes.values()))) == len(group):
+            continue                      # 이미 판 전부가 같은 값이다
+        win = max(votes, key=lambda k: (len(votes[k]), max(votes[k])))
+        for det, d in group:
+            if d.get("cls") == win:
+                continue
+            d["cls"] = win
+            d["cls_folded"] = True
+            touched.add(id(det))
+
+    for det in dets:
+        if id(det) in touched:
+            det["counts"], det["counts_list"] = _class_counts(det["candidates"])
+
+
 def _apply_review(det: Detection, reviews: dict, state) -> dict:
     """검출 결과에 교정을 얹어 예전 detection_for() 와 같은 dict 를 만든다.
 
@@ -461,21 +550,7 @@ def _apply_review(det: Detection, reviews: dict, state) -> dict:
     for d in gone:
         d["removed"] = True
 
-    counts = {r["key"]: 0 for r in _class_rows()}
-    for d in kept:
-        if d.get("cls") in counts:
-            counts[d["cls"]] += 1
-    counts["manual"] = sum(1 for d in kept if d.get("manual"))
-    counts["labeled"] = sum(1 for d in kept if d.get("cls_user"))
-
-    # 검출 화면 머리의 "(봉상 12, 원형 3, …)". 분류 이름이 템플릿에 박혀 있었다 —
-    # 그래서 Chaetoceros 를 테이블에 넣어도 이 줄에만 안 나왔다. 테이블이 정하게 바꾼다.
-    # 0 인 분류는 뺀다. 여기는 표가 아니라 한 줄이라 자리를 맞출 것이 없고,
-    # 짧을수록 읽힌다.
-    order = ([(r["key"], r["short"]) for r in _class_rows()]
-             + [("manual", "수동"), ("labeled", "사람지정")])
-    counts_list = [{"key": k, "label": lb, "n": counts[k]}
-                   for k, lb in order if counts.get(k)]
+    counts, counts_list = _class_counts(kept)
 
     stem = Path(det.image_path).stem
     return {
@@ -726,6 +801,10 @@ def candidate_rows(slug: str, batch_id=None, gone: bool = False,
         bmap = batch_ids_of(dets)
         by_path = {d.image.path: (d.image_id, _with_reviews(vp, d, bmap[d.pk]))
                    for d in dets if d.image_id}
+        # **개체의 유형을 판들에 걸쳐 접는다.** 판을 여기서 전부 물어 왔으므로
+        # 접을 근거가 있다 — 카드는 개체 단위인데 유형이 판마다 다르면 어느
+        # 줄을 집었느냐가 카드의 유형을 정하게 된다.
+        fold_object_cls([d for _, d in by_path.values()])
         st = getattr(vp, "stack", None)
         # 합성본 검출이 있으면 그쪽을, 없으면 각 프레임 검출을 훑는다.
         stacked = by_path.get(st.focused_path) if st else None
@@ -3311,6 +3390,9 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
     bmap = batch_ids_of(dets)
     by_path = {d.image.path: (d.image_id, _with_reviews(vp, d, bmap[d.pk]))
                for d in dets if d.image_id}
+    # **개체의 유형을 판들에 걸쳐 접는다.** 캐러셀이 판을 넘길 때 같은 규조각의
+    # 색이 바뀌면 안 된다 — 근거는 `fold_object_cls` 머리말.
+    fold_object_cls([d for _, d in by_path.values()])
 
     st = getattr(vp, "stack", None)
 

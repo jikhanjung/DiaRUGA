@@ -1346,6 +1346,7 @@
         if (!c) return;
         c.cls = it.cls;
         c.cls_user = it.user;
+        if (it.folded) c.cls_folded = true; else delete c.cls_folded;
         if (it.auto === undefined) delete c.cls_auto; else c.cls_auto = it.auto;
         if (it.manual) return;             // 그린 개체는 drawn 이 나른다
         if (it.user) labels[it.key] = it.cls; else delete labels[it.key];
@@ -1511,10 +1512,16 @@
       // 지우는 것은 행을 지우는 것이고, 그 말은 `drawn` 에 없다는 것이다 —
       // 화면은 지운 것도 `cands` 에 남겨 흔적을 보이고 Ctrl+Z 를 받지만,
       // 그것을 그대로 실어 보내면 서버는 "안 지웠다" 로 읽는다.
+      // **접어 온 유형은 안 싣는다** (`data.fold_object_cls`). 손그림 판은
+      // 후보가 없어 유형이 없고, 옆 판의 엔진 값을 개체째 접어 색만 맞춰
+      // 놓은 것이다 — 그것을 실어 보내면 `_save_drawn` 이 그대로
+      // `DiatomObject.label` 에 적어 **엔진의 추측이 사람이 지정한 유형
+      // 자리에 눌러앉는다.** 사람이 실제로 지정하면 `cls_folded` 가 걷힌다.
       drawn: S.cands.filter(function (c) {
         return isManual(c) && !S.removed.has(keyOf(c));
       }).map(function (c) {
-        return { key: keyOf(c), polygon: c.polygon, cls: c.cls || '' };
+        return { key: keyOf(c), polygon: c.polygon,
+                 cls: (c.cls_folded ? '' : (c.cls || '')) };
       }),
       // **완료와 시야 코멘트는 여기 안 싣는다** (180 B2 · 2026-09-03).
       //
@@ -1943,6 +1950,9 @@
     if (!manual) { if (cls) labelMap[mk] = cls; else delete labelMap[mk]; }
     list.forEach(function (c) {
       if (keyOf(c) !== mk) return;
+      // **접은 표시를 걷는다** — 여기서 앉는 값은 개체의 유형이라 저장에
+      // 실려야 한다(`fold_object_cls` 가 붙인 것은 화면 색일 뿐이다).
+      delete c.cls_folded;
       if (isManual(c)) { c.cls = cls || null; return; }
       if (cls) {
         if (c.cls_auto === undefined) c.cls_auto = c.cls || null;
@@ -2002,7 +2012,10 @@
       if (!c) return;
       var key = keyOf(c);
       touched.push({ i: i, key: key, cls: c.cls, manual: isManual(c),
-                     user: !!c.cls_user, auto: c.cls_auto });
+                     user: !!c.cls_user, auto: c.cls_auto,
+                     folded: !!c.cls_folded });
+      // 사람이 지정하는 자리다 — 접은 표시를 걷는다(`applyCls` 와 같은 규칙).
+      delete c.cls_folded;
       if (cls) {
         if (c.cls_auto === undefined) c.cls_auto = c.cls || null;
         if (!isManual(c)) labels[key] = cls;
