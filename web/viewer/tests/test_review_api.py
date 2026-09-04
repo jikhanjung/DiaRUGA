@@ -266,5 +266,9 @@ class NoteIsCatalogOnlyTest(DiaRUGATestCase):
         for mark in ('id="nlist-', "noteEdit.className", "openNoteEdit(",
                      "📝 코멘트 달기"):
             self.assertNotIn(mark, html, f"걷어낸 자리가 남아 있다: {mark}")
-        # 시야 코멘트는 그대로다 — 개체에 붙지 않는 이야기를 적는 칸이다
-        self.assertIn('id="gnote-', html, "시야 코멘트까지 걷었다")
+        # **시야 코멘트 상자는 183 에서 걷었다** (사용자 2026-09-04). 570 시야에
+        # 6건이었고, 그 자리는 개체 카탈로그 칸이 쓴다 — **DB 의 기록과 서버의
+        # 문(`{"only": "note"}`)은 그대로 둔다.** 지운 것은 화면뿐이다.
+        self.assertNotIn('id="gnote-', html, "걷어낸 시야 메모 상자가 남아 있다")
+        # 그 자리에 무엇이 들어왔는가 — 없으면 오른쪽 칸이 그냥 빈 것이다
+        self.assertIn('id="catbox-', html, "개체 카탈로그 칸이 안 놓였다")

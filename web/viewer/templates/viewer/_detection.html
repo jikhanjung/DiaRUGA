@@ -184,9 +184,68 @@
       <input type="range" id="con-{{ uid }}" min="20" max="250" step="5" value="100"></label>
   </div>
 
-  <div class="ghead">이 시야</div>
-  <textarea class="gnote" id="gnote-{{ uid }}" maxlength="500"
-            placeholder="이 시야 전체에 대한 메모 (초점 상태, 판정을 보류한 이유…)"></textarea>
+  {% comment %}
+    **개체 카탈로그** (183 · 사용자 2026-09-04). 여기 있던 「이 시야」 메모 상자를
+    걷고 그 자리를 쓴다 — 570 시야에 6건 적힌 칸이었고, 검토하며 정작 손이 가는
+    것은 **고른 개체의 카드**다. 지금까지 그것을 보려면 카탈로그 화면으로 나가야
+    했고(우클릭 「📇 이 개체 카드로」), 나가면 보던 자리를 잃었다.
+
+    **저장은 카탈로그의 좁은 문으로 간다** (`/catalog/save`) — 개체 하나만 고치는
+    문이라 `/review` 처럼 범위를 갈아치우지 않는다(017·027·053 계열이 구조적으로
+    안 난다).
+
+    **유형만은 이 화면의 문으로 간다.** `labels` 는 판 payload 가 **늘 통째로**
+    보내는 것이라, 같은 칸을 다른 문으로 적으면 화면이 모르는 값이 되어 **다음
+    저장이 방금 적은 것을 지운다** — 104 가 그 자리다. 그래서 유형은 단축키가
+    쓰는 `setLabel` 을 그대로 부른다(실행취소도 그 길로 이어진다).
+  {% endcomment %}
+  <div class="ghead">개체 카탈로그</div>
+  <div class="catpane" id="catpane-{{ uid }}">
+    <div class="catsay" id="catsay-{{ uid }}">개체를 하나 고르면 카드가 뜹니다</div>
+    <div class="catbox" id="catbox-{{ uid }}" hidden>
+      <div class="catno" id="catno-{{ uid }}"></div>
+      <div class="crow"><label for="catsp-{{ uid }}">종명</label>
+        <input type="text" id="catsp-{{ uid }}" list="catspecies-{{ uid }}"
+               maxlength="120" placeholder="Eucampia antarctica"></div>
+      <div class="crow"><label for="catcls-{{ uid }}">유형</label>
+        {% comment %}
+          목록은 **JS 가 `cls-{{ uid }}` 로 짠다** — 화면이 이미 그것으로 메뉴와
+          단축키를 만든다. 템플릿에서 한 번 더 돌면 분류를 더할 때 고칠 자리가
+          둘이 되고, 038 이 그렇게 한 곳만 옛 목록으로 남은 자리다.
+        {% endcomment %}
+        <select id="catcls-{{ uid }}"><option value="">—</option></select></div>
+      {% comment %}
+        **등급·자세는 완형에만 매긴다** — 파편으로 지정된 개체에는 이 줄이 아예
+        안 뜬다(카탈로그 카드와 같은 규칙). 서버가 `check_grade_pose` 로 다시
+        검사한다 — 화면에서 막는 것은 막는 것이 아니다(063).
+      {% endcomment %}
+      <div class="crow gp" id="catgp-{{ uid }}">
+        <label for="catgrade-{{ uid }}">등급</label>
+        <select id="catgrade-{{ uid }}"
+                title="A 동정키도 완형도 잘 드러난다 · B 완형이나 형태가 덜 드러난다(또는 상태가 나쁘나 동정키가 남았다) · C 완형도 동정키도 잘 안 드러난다">
+          <option value="">—</option>
+          {% for k, text in grades %}<option value="{{ k }}" title="{{ text }}">{{ k }}</option>{% endfor %}
+        </select>
+        <label class="l2" for="catpose-{{ uid }}">자세</label>
+        <select id="catpose-{{ uid }}"
+                title="묶인 판들이 이 값을 나눠 갖습니다 — 초점을 옮겨도 자세는 그대로입니다">
+          <option value="">—</option>
+          {% for k, text in poses %}<option value="{{ k }}">{{ text }}</option>{% endfor %}
+        </select></div>
+      <div class="crow"><label for="catnote-{{ uid }}">코멘트</label>
+        <textarea id="catnote-{{ uid }}" rows="2" maxlength="500"
+                  placeholder="이 규조각을 두고 하는 말"></textarea></div>
+      <div class="catmeta" id="catmeta-{{ uid }}"></div>
+      <div class="catstate" id="catstate-{{ uid }}"></div>
+    </div>
+  </div>
+  {% comment %}
+    이미 쓴 종명 — 카탈로그 카드와 **같은 목록**이다(`data.species_seen`). 가두는
+    것이 아니라 같은 종을 두 가지로 적는 것을 막는 자리다.
+  {% endcomment %}
+  <datalist id="catspecies-{{ uid }}">
+    {% for s in species_seen %}<option value="{{ s }}">{% endfor %}
+  </datalist>
 </aside>
 </div>
 
@@ -268,7 +327,6 @@
 <script type="application/json" id="gone-{{ uid }}">{{ det.removed_candidates|json_dumps }}</script>
 <script type="application/json" id="acc-{{ uid }}">{{ det.accepted_keys|json_dumps }}</script>
 <script type="application/json" id="lab-{{ uid }}">{{ det.labels|json_dumps }}</script>
-<script type="application/json" id="gn-{{ uid }}">{{ det.review_note|json_dumps }}</script>
 <script type="application/json" id="cls-{{ uid }}">{% class_json %}</script>
 <script type="application/json" id="umpp-{{ uid }}">{{ det.um_per_pixel|json_dumps }}</script>
 
@@ -293,6 +351,9 @@
   // 개체 카드로 가는 길 (149). **주소는 서버가 만든다** — 절대경로를 박지
   // 않는다(서브경로 `/DiaRUGA/` 아래에서 돈다).
   var CATALOG_URL = "{% url 'catalog' slug %}";
+  // 카탈로그 칸의 저장 문 (183). **개체 하나만 고치는 좁은 문이다** — `/review`
+  // 와 달리 범위를 갈아치우지 않는다(`views.save_catalog` 머리말).
+  var CAT_SAVE_URL = "{% url 'save_catalog' slug %}";
   // **어느 이미지로 갈지** (P09 1단계). 캐러셀이 판을 바꾸면 swapDet 이 바꾼다.
   // 비어 있으면 payload 에 안 실어 서버가 대표 이미지로 받는다 — 옛 화면과
   // 같은 동작이라 배포 중에 열려 있던 탭이 안 깨진다.
@@ -385,11 +446,10 @@
   var accepted = new Set(JSON.parse(document.getElementById('acc-' + uid).textContent || '[]'));
   // 사람이 지정한 분류. 자동 판정을 덮어쓴다.
   //
-  // **개체 코멘트 지도는 없다** (0036). 이 화면은 코멘트를 안 적는다 — 개체를
-  // 두고 하는 말은 개체 카탈로그에서 적고, 여기서는 말풍선·표가 읽기만 한다
-  // (`c.note`). 아래 `gnote`(이 시야에 대한 메모)와는 다른 것이다.
+  // **개체 코멘트 지도는 없다** (0036). 분류만 이 지도로 가고, 개체를 두고 하는
+  // 말(`c.note`)은 오른쪽 칸의 카탈로그가 `/catalog/save` 로 적는다 — 이 화면의
+  // payload 는 코멘트를 안 나른다(서버도 `notes` 를 흘린다).
   var labels = JSON.parse(document.getElementById('lab-' + uid).textContent || '{}');
-  var groupNote = JSON.parse(document.getElementById('gn-' + uid).textContent || '""') || '';
   // 검토 완료 표시 — 서버가 렌더해 둔 버튼 상태에서 그대로 이어받는다.
   var doneBtn = document.getElementById('done-' + uid);
   var reviewDone = !!(doneBtn && doneBtn.classList.contains('on'));
@@ -1010,13 +1070,14 @@
     // **떠났는가를 돌려준다** (116 덧) — 안 떠났으면 부르는 쪽이 자기 화면을
     // 되돌려야 한다(엔진 라디오가 그렇다).
     function go() {
-      // **코멘트도 못 나갔으면 안 떠난다** (180 B2) — 판 교정과 같은 이유다.
-      if (savePending || notePending) return false;
+      // **카탈로그도 못 나갔으면 안 떠난다** (183) — 판 교정과 같은 이유다.
+      // 종명·코멘트는 사람이 현미경을 보며 적은 것이라 재생성 불가다.
+      if (savePending || catPending) return false;
       location.href = url;
       return true;
     }
-    // 둘 다 밀어낸다. 코멘트는 자기 문으로 가므로 약속도 따로다.
-    return Promise.all([flushSave(true), flushNote(true)]).then(go, go);
+    // 둘 다 밀어낸다. 카탈로그는 자기 문으로 가므로 약속도 따로다.
+    return Promise.all([flushSave(true), flushCat(true)]).then(go, go);
   }
 
   function flashNote(msg) {
@@ -1351,13 +1412,6 @@
         if (it.manual) return;             // 그린 개체는 drawn 이 나른다
         if (it.user) labels[it.key] = it.cls; else delete labels[it.key];
       });
-    } else if (last.type === 'gnote') {
-      groupNote = last.text || '';
-      syncGroupNote();
-      // 코멘트는 자기 문으로 간다 (180 B2) — 아래 `save()` 는 판의 것이다.
-      build();
-      saveNote();
-      return;
     } else if (last.type === 'accept') {
       accepted.delete(last.key);
       var idx = cands.findIndex(function (x) { return keyOf(x) === last.key; });
@@ -1423,14 +1477,6 @@
   var roFlag = document.getElementById('roflag-' + uid);
   if (roFlag && readOnly) roFlag.hidden = false;
   // 시야 코멘트도 잠근다. 적을 수는 있는데 저장이 안 되면 적은 것을 잃는다.
-  if (readOnly) {
-    var gnoteRO = document.getElementById('gnote-' + uid);
-    if (gnoteRO) {
-      gnoteRO.readOnly = true;
-      gnoteRO.placeholder = '읽기 전용입니다 — 검토는 현재 검출에서 하십시오';
-    }
-  }
-
   // 규격의 keepalive 상한은 64 KiB 다. 헤더·인코딩 여유를 두고 잡는다.
   var KEEPALIVE_MAX = 60000;
 
@@ -1661,64 +1707,122 @@
     });
   }
 
-  // **시야 코멘트도 혼자 간다** (180 B2 · 2026-09-03).
+  // **개체 카탈로그는 자기 문으로 간다** (183 · `/catalog/save`).
   //
-  // 완료와 같은 층이다 — `(시야, batch=NULL)` 한 줄이고 판마다 다르지 않은데
-  // 판 payload 에 실려 다녔다. 서버는 그 값으로 줄을 덮고 **비면 지우므로**,
-  // 같은 시야를 두 탭으로 열면 한쪽에서 적은 글을 다른 탭의 마스크 저장 한
-  // 번이 지웠다. 코멘트는 **사람이 쓴 글이라 재생성 불가**다.
+  // 개체 하나만 고치는 좁은 문이라 `/review` 처럼 그 판의 교정 전체를
+  // 갈아치우지 않는다 — 017·027·053 계열의 사고가 구조적으로 안 생긴다
+  // (`views.save_catalog` 머리말).
+  //
+  // **유형은 여기로 안 보낸다.** 그 칸은 판 payload 가 `labels` 로 **늘 통째로**
+  // 보내는 것이라, 다른 문으로 적으면 화면이 모르는 값이 되어 **다음 저장이
+  // 방금 적은 것을 지운다**(104 가 그 자리다). 유형만 `setLabel` 로 간다.
   //
   // **실패는 다시 보낼 것으로 남긴다** — 판 교정의 `savePending` 과 같은
-  // 이유이고 서로 안 섞이게 깃발을 따로 둔다.
-  var notePending = false, noteTimer = null;
+  // 규칙이고, 서로 안 섞이게 깃발을 따로 둔다.
+  var catPending = false, catTimer = null, catQueue = null;
 
-  function saveNote() {
+  // **마지막 화면 상태 하나만 보낸다.** 칸이 넷이라 하나씩 큐에 쌓으면 응답이
+  // 뒤집힐 때 옛 값이 나중에 앉는다 — 카탈로그 카드가 카드 한 장을 통째로
+  // 보내는 것과 같은 규칙이다.
+  function saveCat(key, fields) {
     if (readOnly) return;
-    notePending = true;
-    clearTimeout(noteTimer);
-    noteTimer = setTimeout(function () { postNote(); }, 400);
+    catQueue = { key: key, fields: fields };
+    catPending = true;
+    clearTimeout(catTimer);
+    catTimer = setTimeout(function () { postCat(); }, 400);
   }
 
-  function flushNote(leaving) {
-    if (!notePending) return Promise.resolve();
-    clearTimeout(noteTimer);
-    return postNote(!!leaving);
+  function flushCat(leaving) {
+    if (!catPending) return Promise.resolve();
+    clearTimeout(catTimer);
+    return postCat(!!leaving);
   }
 
-  function postNote(keepalive) {
-    notePending = false;
-    if (readOnly) return Promise.resolve();
-    return fetch(ROOT + '/review', {
+  function postCat(keepalive) {
+    var q = catQueue;
+    catPending = false;
+    if (readOnly || !q) return Promise.resolve();
+    // **검출이 없는 판에는 저장할 곳이 없다** (`postReview` 와 같은 규칙 · 180 B1).
+    // 서버도 그 이미지에 현재 검출이 없으면 409 로 물린다.
+    if (curImage === '') {
+      catPending = true;
+      catSay('이 판에는 검출이 없어 저장할 곳이 없습니다', true);
+      return Promise.resolve();
+    }
+    return fetch(CAT_SAVE_URL, {
       method: 'POST',
-      // 본문이 코멘트 한 줄이라 64 KiB 문턱과 무관하다.
+      // 본문이 칸 넷이라 64 KiB 문턱과 무관하다 (`flushSave` 머리말).
       keepalive: !!keepalive,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        only: 'note',
-        stem: stem,
-        slug: vpSlug,
+        act: 'save',
         gid: vpGid === '' ? null : Number(vpGid),
-        note: groupNote
+        image: Number(curImage),
+        key: q.key,
+        species: q.fields.species,
+        grade: q.fields.grade,
+        pose: q.fields.pose,
+        note: q.fields.note
       })
     }).then(function (r) {
-      if (r.ok) {
-        saveState.textContent = groupNote ? '시야 코멘트를 저장했습니다'
-                                          : '시야 코멘트를 비웠습니다';
-        saveFailed(false);
-        return;
-      }
-      notePending = true;
-      return r.json().then(function (j) { return j && j.error; },
-                          function () { return ''; })
-        .then(function (why) {
-          saveState.textContent = '시야 코멘트를 저장하지 못했습니다';
-          saveFailed(true, why || ('서버 오류 ' + r.status));
+      return r.json().then(function (j) { return [r.ok, j]; },
+                           function () { return [r.ok, null]; });
+    }, function () { return [false, null]; })
+      .then(function (p) {
+        if (!(p[0] && p[1] && p[1].ok)) {
+          // 서버가 말한 이유를 그대로 옮긴다 (`postReview` 와 같은 규칙).
+          catPending = true;
+          catSay('저장하지 못했습니다 — ' +
+                 ((p[1] && p[1].error) || '서버에 닿지 못했습니다'), true);
+          return;
+        }
+        catApply(q.key, p[1]);
+        catSay('저장했습니다' + (p[1].spread
+          ? ' · 같은 개체의 다른 판 ' + p[1].spread + '장도 같은 값입니다' : ''));
+      });
+  }
+
+  // **응답으로 화면을 맞춘다 — 보낸 값이 아니다.** 서버가 다듬고(공백·길이),
+  // 표시가 하나도 안 남으면 **그 줄을 지운다**(`_catalog_prune`) — 그때는
+  // 카드가 없어진 것이라 화면도 그렇게 말해야 한다.
+  //
+  // **같은 개체의 다른 판까지 맞춘다** (183). 종명·코멘트·등급·자세는 개체에
+  // 살아서 서버는 이미 한 값인데, 화면은 열릴 때 받은 옛 값을 판마다 들고
+  // 있다 — 판을 넘기면 방금 적은 것이 안 보이고, 사람이 같은 것을 두 번 적는다.
+  function catApply(key, j) {
+    var rows = [];
+    cands.forEach(function (c) { if (keyOf(c) === key) rows.push(c); });
+    var lk = (typeof linkOf === 'function') ? linkOf(curImage, key) : null;
+    if (lk && shotDets) {
+      lk.members.forEach(function (m) {
+        Object.keys(shotDets).forEach(function (k) {
+          if (Number(shotDets[k].image) !== Number(m.image)) return;
+          stateOf(k).cands.forEach(function (c) {
+            if (keyOf(c) === m.mask_key && rows.indexOf(c) < 0) rows.push(c);
+          });
         });
-    }, function () {
-      notePending = true;
-      saveState.textContent = '시야 코멘트를 저장하지 못했습니다 (연결 확인)';
-      saveFailed(true, '서버에 닿지 못했습니다 — 연결을 확인할 것');
+      });
+    }
+    rows.forEach(function (c) {
+      c.species = j.species || '';
+      c.note = j.note || '';
+      c.grade = j.grade || '';
+      c.pose = j.pose || '';
+      if (j.kept === false) {
+        // 표시가 안 남아 판정 줄이 지워졌다 — 개체도 카드도 없다.
+        c.obj_id = null;
+        c.catalog_no = '';
+        c.linked_n = 0;
+      } else {
+        // 처음 적으면 이 순간 개체가 생긴다 (`_catalog_target`) — 서버가 준
+        // 것으로 채운다. 화면이 스스로 지어내면 카드가 있는지를 화면과 DB 가
+        // 다르게 말하게 된다.
+        if (!c.obj_id) { c.no_here = true; c.linked_n = 1; }
+        c.obj_id = j.obj_id;
+        c.catalog_no = j.catalog_no || '';
+      }
     });
+    catFill();
   }
 
   // **저장 실패는 크게 말한다** (실사용 2026-08-10).
@@ -2163,54 +2267,214 @@
     saveState.textContent = '되살림 — ' + keys.length + '개';
   });
 
-  // --- 이 시야에 대한 코멘트 -------------------------------------------------
+  // --- 개체 카탈로그 칸 (183) -----------------------------------------------
   //
-  // **개체 코멘트는 여기 없다** (0036, 사용자 2026-08-12). 개체를 두고 하는
-  // 말은 개체 카탈로그에서 적는다 — 적는 자리가 둘이면 사람이 *어디에 적었는지*
-  // 를 기억해야 하고, 번지기(106) 뒤로는 한 규조각이 판 넷에 있어 더 그렇다.
-  // 이 화면은 **읽기만 한다**: 말풍선과 개체 표가 `c.note` 를 보여준다.
+  // **고른 개체 하나의 카드**를 오른쪽 칸에 그린다. 여기 있던 「이 시야」 메모
+  // 상자는 걷었다(사용자 2026-09-04) — 570 시야에 6건이었고, 검토하며 손이 가는
+  // 것은 지금 보는 개체의 동정이다. **DB 의 기록과 서버의 문은 그대로 둔다** —
+  // 지우는 것은 화면뿐이다.
   //
-  // 걷어낸 것 — 오른쪽 목록(`.nlist`) · 팝업 편집기(`.noteedit`) ·
-  // 우클릭의 "📝 코멘트" · payload 의 `notes`. **화면이 되는 것처럼 보이면
-  // 안 되므로 반응하는 자리를 전부 셌다**(051 의 그 규칙).
-  var gnote = document.getElementById('gnote-' + uid);
-  if (gnote) {
-    // 시야 코멘트는 팝업을 열지 않고 이 자리에서 고친다. 입력하는 동안 저장이
-    // 흐르고(지연 저장), 칸을 벗어날 때 실행취소 한 칸으로 묶는다 — 글자마다
-    // 이력을 쌓으면 Ctrl+Z 가 쓸모없어진다.
-    var gnoteWas = null;
-    gnote.addEventListener('focus', function () { gnoteWas = groupNote; });
-    // **코멘트는 코멘트의 문으로 간다** (180 B2) — 판 교정과 섞지 않는다.
-    gnote.addEventListener('input', function () {
-      groupNote = gnote.value;
-      saveNote();
-    });
-    gnote.addEventListener('blur', function () {
-      groupNote = gnote.value.trim();
-      gnote.value = groupNote;
-      if (gnoteWas !== null && gnoteWas !== groupNote) {
-        history.push({ type: 'gnote', text: gnoteWas });
-        redraw();
-      }
-      gnoteWas = null;
-      saveNote();
-    });
-    gnote.addEventListener('keydown', function (ev) {
-      // Esc·Ctrl+Enter 로 칸에서 빠져나온다(저장은 이미 흐르고 있다).
-      if (ev.key === 'Escape' || (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey))) {
-        ev.preventDefault();
-        gnote.blur();
-      }
-    });
-    // 캔버스가 이 안의 클릭·휠을 확대·선택으로 받으면 안 된다.
-    ['wheel', 'mousedown', 'contextmenu'].forEach(function (ev) {
-      gnote.addEventListener(ev, function (x) { x.stopPropagation(); });
+  // **하나만 골랐을 때만 뜬다.** 여럿을 골라 놓고 적으면 어느 개체에 적히는지가
+  // 화면에서 안 갈린다 — 여럿에 같은 값을 넣는 일은 카탈로그 화면의 일괄 편집이
+  // 한다(P16 5.2).
+  //
+  // **읽기 전용에서는 칸이 잠긴다** (051). 저장만 막으면 사람이 적어 놓고
+  // 저장된 줄 안다 — 반응하는 자리를 전부 잠근다.
+  var catBox = document.getElementById('catbox-' + uid);
+  var catHintEl = document.getElementById('catsay-' + uid);
+  var catNoEl = document.getElementById('catno-' + uid);
+  var catSpEl = document.getElementById('catsp-' + uid);
+  var catClsEl = document.getElementById('catcls-' + uid);
+  var catGpEl = document.getElementById('catgp-' + uid);
+  var catGradeEl = document.getElementById('catgrade-' + uid);
+  var catPoseEl = document.getElementById('catpose-' + uid);
+  var catNoteEl = document.getElementById('catnote-' + uid);
+  var catMetaEl = document.getElementById('catmeta-' + uid);
+  var catStateEl = document.getElementById('catstate-' + uid);
+  // 지금 칸이 그린 개체의 키. **적는 중에 다시 그리면 방금 친 글자가 사라진다**
+  // — 같은 개체를 그대로 보고 있고 칸에 초점이 있으면 손대지 않는다.
+  var catKey = null;
+
+  function catSay(msg, warn) {
+    if (!catStateEl) return;
+    catStateEl.textContent = msg || '';
+    catStateEl.className = 'catstate' + (warn ? ' warn' : '');
+  }
+
+  // 유형 목록은 **화면이 이미 아는 것**으로 짠다 (`CLASS_DEFS`). 템플릿에서 한
+  // 번 더 돌면 분류를 더할 때 고칠 자리가 둘이 되고, 038 이 그렇게 한 곳만 옛
+  // 목록으로 남은 자리다.
+  if (catClsEl) {
+    CLASS_DEFS.forEach(function (d) {
+      var o = document.createElement('option');
+      o.value = d.key;
+      o.textContent = d.label;
+      catClsEl.appendChild(o);
     });
   }
-  // 시야 코멘트 칸을 지금 값으로 맞춘다 — 되돌리기(Ctrl+Z)와 첫 그리기가 쓴다.
-  // **입력 중에는 건드리지 않는다**: 타이핑을 덮어쓰면 방금 친 글자가 사라진다.
-  function syncGroupNote() {
-    if (gnote && document.activeElement !== gnote) gnote.value = groupNote;
+
+  function catDef(key) {
+    for (var i = 0; i < CLASS_DEFS.length; i++)
+      if (CLASS_DEFS[i].key === key) return CLASS_DEFS[i];
+    return null;
+  }
+
+  // 지금 칸이 볼 개체 — 하나만 골랐을 때만이다.
+  function catPick() {
+    if (sel.size !== 1) return null;
+    var i = Array.from(sel)[0];
+    return cands[i] || null;
+  }
+
+  function catFields() {
+    return {
+      species: catSpEl ? catSpEl.value.trim() : '',
+      grade: catGradeEl && !catGpEl.hidden ? catGradeEl.value : '',
+      pose: catPoseEl && !catGpEl.hidden ? catPoseEl.value : '',
+      note: catNoteEl ? catNoteEl.value.trim() : ''
+    };
+  }
+
+  // 번호 줄. **번호는 판정 하나의 이름이라** 이 개체의 다른 판 것일 수 있다 —
+  // 그때는 어느 판 기준인지 함께 적는다(카탈로그 카드와 같은 규칙 · P18).
+  function catPaintNo(c) {
+    if (!catNoEl) return;
+    catNoEl.textContent = '';
+    if (!c.obj_id) {
+      catNoEl.className = 'catno none';
+      catNoEl.textContent = '아직 카드가 없습니다 — 여기 적으면 생깁니다';
+      return;
+    }
+    if (!c.catalog_no) {
+      catNoEl.className = 'catno none';
+      catNoEl.textContent = '번호 없음 — ' + (c.catalog_why || '재료가 모자랍니다');
+      return;
+    }
+    catNoEl.className = 'catno';
+    var v = document.createElement('span');
+    v.className = 'v';
+    v.textContent = c.catalog_no;
+    catNoEl.appendChild(v);
+    if (c.no_here === false) {
+      var from = document.createElement('span');
+      from.className = 'nofrom';
+      from.title = '번호는 판정 하나의 이름입니다 — 이 개체의 다른 판 번호로도 찾을 수 있습니다';
+      from.textContent = (c.no_from === null || c.no_from === undefined)
+        ? '합성본 기준' : ('프레임 ' + c.no_from + ' 기준');
+      catNoEl.appendChild(from);
+    }
+  }
+
+  // 아래 줄 — 크기·판·묶음, 그리고 카드로 가는 길.
+  function catPaintMeta(c, key) {
+    if (!catMetaEl) return;
+    catMetaEl.textContent = '';
+    function chip(text, title) {
+      var e = document.createElement('span');
+      e.textContent = text;
+      if (title) e.title = title;
+      catMetaEl.appendChild(e);
+    }
+    if (c.major_um) chip((+c.major_um).toFixed(1) + ' µm');
+    if (c.linked_n > 1) chip('묶음 ' + c.linked_n,
+                             '같은 개체로 묶인 판 ' + c.linked_n + '장이 이 값을 나눠 갖습니다');
+    if (c.is_rep) chip('대표', '이 개체를 가장 잘 보여주는 판입니다 (카탈로그의 그림)');
+    if (removed.has(key)) chip('지운 개체', 'Space 로 되살립니다');
+    // **떠나기 전에 밀어낸다** — 적다 말고 누르는 일이 잦은 자리다(카탈로그
+    // 카드의 그 주석과 같은 이야기). `leave` 가 못 나간 저장을 마저 보낸다.
+    var a = document.createElement('a');
+    a.className = 'tocard';
+    a.href = CATALOG_URL + '?obj=' + encodeURIComponent(key) +
+             '&img=' + encodeURIComponent(curImage || '');
+    a.textContent = '카드로 →';
+    a.title = '이 개체의 카탈로그 카드를 엽니다 (화면을 떠납니다)';
+    a.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      leave(a.getAttribute('href'));
+    });
+    catMetaEl.appendChild(a);
+  }
+
+  function catFill() {
+    if (!catBox) return;
+    var c = catPick();
+    var key = c ? keyOf(c) : null;
+    // 같은 개체를 그대로 보고 있고 사람이 그 칸에 적는 중이면 손대지 않는다.
+    if (key !== null && key === catKey &&
+        catBox.contains(document.activeElement)) return;
+    if (key !== catKey) catSay('');
+    catKey = key;
+    if (!c) {
+      catBox.hidden = true;
+      if (catHintEl) {
+        catHintEl.hidden = false;
+        catHintEl.textContent = sel.size > 1
+          ? '개체를 하나만 골라야 카드가 뜹니다'
+          : '개체를 하나 고르면 카드가 뜹니다';
+      }
+      return;
+    }
+    catBox.hidden = false;
+    if (catHintEl) catHintEl.hidden = true;
+
+    catPaintNo(c);
+    if (catSpEl) catSpEl.value = c.species || '';
+    if (catClsEl) catClsEl.value = c.cls || '';
+    if (catGradeEl) catGradeEl.value = c.grade || '';
+    if (catPoseEl) catPoseEl.value = c.pose || '';
+    if (catNoteEl) catNoteEl.value = c.note || '';
+    // **등급·자세는 완형에만 매긴다** — 파편이면 두 칸이 아예 없다.
+    var def = catDef(c.cls);
+    if (catGpEl) catGpEl.hidden = !!(c.cls && def && !def.counted);
+    catPaintMeta(c, key);
+
+    // 지운 개체는 읽기만 한다 — 되살리기 전에 동정하는 것은 순서가 뒤집힌 일이다.
+    var lock = readOnly || removed.has(key);
+    [catSpEl, catClsEl, catGradeEl, catPoseEl, catNoteEl].forEach(function (el) {
+      if (el) el.disabled = lock;
+    });
+    if (readOnly) catSay('읽기 전용입니다 — 동정은 현재 검출에서 적습니다');
+    else if (removed.has(key)) catSay('지운 개체입니다 — Space 로 되살린 뒤 적습니다');
+  }
+
+  // 칸을 만졌다 — 유형만 이 화면의 문으로, 나머지는 카탈로그의 문으로 간다.
+  function catTouched(fromCls) {
+    var c = catPick();
+    if (!c || readOnly || removed.has(keyOf(c))) return;
+    if (fromCls) {
+      // **유형은 `setLabel` 이다** (104). `labels` 는 판 payload 가 통째로
+      // 보내는 것이라 다른 문으로 적으면 다음 저장이 그것을 지운다. 실행취소도
+      // 단축키와 같은 길로 이어진다.
+      var i = Array.from(sel)[0];
+      setLabel([i], catClsEl.value || '');
+      catFill();
+      catSay(catClsEl.value ? '유형을 지정했습니다' : '유형을 비웠습니다');
+      return;
+    }
+    saveCat(keyOf(c), catFields());
+  }
+
+  if (catBox) {
+    [catSpEl, catNoteEl].forEach(function (el) {
+      if (el) el.addEventListener('input', function () { catTouched(false); });
+    });
+    [catGradeEl, catPoseEl].forEach(function (el) {
+      if (el) el.addEventListener('change', function () { catTouched(false); });
+    });
+    if (catClsEl) catClsEl.addEventListener('change', function () { catTouched(true); });
+    if (catNoteEl) {
+      catNoteEl.addEventListener('keydown', function (ev) {
+        // Esc·Ctrl+Enter 로 칸에서 빠져나온다 (저장은 이미 흐르고 있다).
+        if (ev.key === 'Escape' || (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey))) {
+          ev.preventDefault();
+          catNoteEl.blur();
+        }
+      });
+    }
+    // 캔버스가 이 안의 클릭·휠을 확대·선택으로 받으면 안 된다.
+    ['wheel', 'mousedown', 'contextmenu'].forEach(function (ev) {
+      catBox.addEventListener(ev, function (x) { x.stopPropagation(); });
+    });
   }
 
   // --- 탈락 후보 펼쳐 보기 (누락 복구) --------------------------------------
@@ -3009,15 +3273,6 @@
       items.push({ label: '이 자리의 탈락 후보 보기' + (near ? ' (' + near + ')' : ''),
                    disabled: !near,
                    run: function () { openSpread(e, pt); } });
-      items.push({ sep: true });
-      // 개체에 붙지 않는 이야기 — 촬영 상태, 판정이 애매한 이유 같은 것.
-      items.push({ label: groupNote ? '📝 이 시야 코멘트 고치기' : '📝 이 시야에 코멘트 적기',
-                   disabled: !gnote,
-                   run: function () {
-                     if (!gnote) return;
-                     gnote.focus();
-                     gnote.setSelectionRange(gnote.value.length, gnote.value.length);
-                   } });
     }
     if (!readOnly && sel.size) items.push({ label: '선택 해제', run: function () { sel.clear(); redraw(); } });
     if (!readOnly && history.length) items.push({ label: '↶ 실행취소', run: undo });
@@ -3942,7 +4197,7 @@
 
   applyTransform();
   build();
-  syncGroupNote();
+  catFill();
 
   // --- 이전 시야로 거슬러 왔으면 그 시야의 마지막 사진에서 시작한다 ----------
   // **반드시 여기여야 한다 — 초기화가 다 끝난 뒤다.**

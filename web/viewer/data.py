@@ -56,10 +56,16 @@ def invalidate_classes():
 
 
 def class_list() -> list[dict]:
-    """분류 목록. 템플릿·클라이언트가 메뉴를 만들 때 쓴다."""
+    """분류 목록. 템플릿·클라이언트가 메뉴를 만들 때 쓴다.
+
+    **`counted` 가 함께 간다** (183). 등급·자세는 완형에만 매기는데(`check_grade_pose`),
+    검토 화면의 카탈로그 칸이 그 두 줄을 감추려면 어느 분류가 완형인지 알아야
+    한다 — 카탈로그 화면은 `counted_keys` 를 따로 받아 쓰지만, 이쪽은 분류를
+    **화면에서 바꿔 가며** 보므로 목록에 같이 실려야 한다.
+    """
     return [{"key": r["key"], "label": r["label"], "short": r["short"],
              "badge": r["badge"], "color": r["color"], "taxon": r["is_taxon"],
-             "hotkey": r["hotkey"]}
+             "hotkey": r["hotkey"], "counted": bool(r["counted"])}
             for r in _class_rows()]
 
 
@@ -1336,7 +1342,7 @@ def _member_view(m):
             "polygon": list(geom["polygon"])}
 
 
-def object_facts(slide) -> dict:
+def object_facts(slide, viewpoint=None) -> dict:
     """개체마다 **대표·앵커·멤버 수** (P18). 열쇠는 개체 id.
 
     카탈로그가 카드를 개체 단위로 모을 때 쓴다. **한 번만 묻는다**(105) —
@@ -1345,18 +1351,25 @@ def object_facts(slide) -> dict:
     `rep`·`anchor` 는 `(이미지 id, mask_key)` 다. 카드의 줄을 고르는 데 쓰고,
     `anchor_row` 는 번호를 만드는 재료다 — 앵커가 **다른 판**일 수 있으므로
     그 판의 `frame_seq` 가 함께 필요하다.
+
+    **`viewpoint` 를 주면 그 시야만 본다** (183). 검토 화면은 시야 하나를 여는
+    자리라 슬라이드 전체를 훑으면 안 쓸 개체를 수천 개 물어 온다 — 카탈로그는
+    한 판이 슬라이드 전체라 안 주고, 검토 화면은 준다. **규칙은 한 함수다** —
+    갈라 두면 두 화면이 앵커를 다르게 고르는 날이 온다.
     """
     out = {}
     # **경로로 맞춘다** — `Frame` 에는 `Image` 로 가는 FK 가 없고 `path` 가 유일
     # 열쇠다 (`_frames` 와 같은 규칙). 프레임마다 되짚으면 시야 하나에 질의가
     # 프레임 수만큼 는다.
     fseq = dict(Frame.objects.filter(slide=slide).values_list("path", "seq"))
-    seqs = {pk: fseq.get(path) for pk, path in
-            Image.objects.filter(viewpoint__slide=slide)
-            .values_list("pk", "path")}
+    imgs = Image.objects.filter(viewpoint__slide=slide)
     objs = (DiatomObject.objects.filter(viewpoint__slide=slide)
             .select_related("anchor", "viewpoint")
             .prefetch_related("members__image"))
+    if viewpoint is not None:
+        imgs = imgs.filter(viewpoint=viewpoint)
+        objs = objs.filter(viewpoint=viewpoint)
+    seqs = {pk: fseq.get(path) for pk, path in imgs.values_list("pk", "path")}
     for obj in objs:
         members = list(obj.members.all())
         if not members:
@@ -1385,6 +1398,64 @@ def object_facts(slide) -> dict:
                            "frame_seq": seqs.get(anchor.image_id)},
         }
     return out
+
+
+def attach_catalog(vp: Viewpoint, slide: Slide, by_image: dict) -> None:
+    """검토 화면의 후보에 **개체 카탈로그 정보**를 얹는다 (183).
+
+    `by_image` 는 `{이미지 id: 검출 dict}`. 후보 dict 를 **그 자리에서** 고친다 —
+    캐러셀이 갈아 끼울 판들(`_review_shot`)이 같은 리스트를 그대로 물고 가므로
+    한 번 얹으면 판 전부가 본다.
+
+    **번호는 앵커에서 뽑는다** (P18 · `catalog_rows` 와 같은 규칙). 규칙이 갈라지면
+    같은 개체가 검토 화면과 카탈로그 화면에서 다른 번호를 받고, **번호는 논문·표에
+    적히는 것이라 그때는 이미 되돌릴 수 없다**(`catalog.py` 머리말).
+
+    **개체가 없는 후보에는 아무것도 안 얹는다.** 아직 아무도 안 본 마스크라
+    카드가 없는 것이 맞고(사용자 방침 2026-08-25), 여기서 "번호가 될 값" 을
+    미리 적으면 화면이 **없는 카드를 있는 것처럼** 말하게 된다.
+    """
+    facts = object_facts(slide, viewpoint=vp)
+    if not facts:
+        return
+    layer = layer_codes(slide)
+    codes = batch_codes()
+    # 개체마다 한 번만 만든다 — 후보마다 만들면 한 시야에서 같은 값을 백 번 짠다
+    nos = {oid: catalog_no_for(f["anchor_row"], layer, codes)
+           for oid, f in facts.items()}
+    for image_id, det in by_image.items():
+        for d in (det.get("candidates") or []) + (det.get("removed_candidates") or []):
+            f = facts.get(d.get("obj_id"))
+            if f is None:
+                continue
+            no, why = nos[d["obj_id"]]
+            d["catalog_no"] = no
+            d["catalog_why"] = why
+            # **번호가 어느 판의 것인지 적는다** (카드의 `no_from` 과 같은 자리).
+            # 개체가 판 여럿에 걸쳐 있어 안 적으면 `f03` 이 이 판을 가리키는
+            # 것처럼 읽힌다.
+            d["no_from"] = f["anchor_row"]["frame_seq"]
+            d["no_here"] = f["anchor"] == (image_id, d["key"])
+            d["linked_n"] = f["n"]
+            d["is_rep"] = f["rep"] == (image_id, d["key"])
+
+
+def catalog_no_of(vp: Viewpoint, obj_id: int) -> str:
+    """개체 하나의 카탈로그 번호. 못 만들면 빈 문자열 (183).
+
+    **저장 응답이 쓴다.** 검토 화면의 카탈로그 칸에서 처음 적는 순간 개체가
+    생기는데(`_catalog_target`), 그때 번호가 안 오면 칸은 "아직 카드가 없습니다"
+    인 채로 남는다 — **방금 만든 카드를 없는 것처럼** 말하는 화면이 된다.
+
+    **규칙은 `catalog_rows` 와 같다** — 앵커에서 뽑는다(P18). 한 자리만 고치면
+    같은 개체가 두 화면에서 다른 번호를 받는다.
+    """
+    slide = vp.slide
+    f = object_facts(slide, viewpoint=vp).get(obj_id)
+    if f is None:
+        return ""
+    no, _why = catalog_no_for(f["anchor_row"], layer_codes(slide), batch_codes())
+    return no or ""
 
 
 SPECIES_MAX = 120
@@ -1624,9 +1695,17 @@ def save_catalog_entry(vp: Viewpoint, image, key: str, *, species=None,
     n_spread = sum(len(v) for v in spread.values())
     if not _catalog_prune(obj):
         return {"species": "", "cls": "", "note": "", "grade": "", "pose": "",
+                # 줄이 지워졌으면 카드도 없다 — 번호도 개체도 있을 자리가 아니다
+                "catalog_no": "", "obj_id": None,
                 "kept": False, "spread": n_spread}
     return {"species": dobj.species, "cls": dobj.label, "note": dobj.note,
             "grade": dobj.grade, "pose": dobj.pose,
+            # **번호와 개체 id 를 함께 낸다** (183). 검토 화면의 카탈로그 칸은
+            # 처음 적는 순간 개체가 생기는 자리라, 안 주면 방금 만든 카드가
+            # 화면에서 "없는 것" 으로 남는다 — 그 화면은 `obj_id` 로 카드가
+            # 있는지를 가른다.
+            "catalog_no": catalog_no_of(vp, dobj.pk),
+            "obj_id": dobj.pk,
             "kept": True, "spread": n_spread}
 
 
@@ -3393,6 +3472,10 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
     # **개체의 유형을 판들에 걸쳐 접는다.** 캐러셀이 판을 넘길 때 같은 규조각의
     # 색이 바뀌면 안 된다 — 근거는 `fold_object_cls` 머리말.
     fold_object_cls([d for _, d in by_path.values()])
+    # 후보에 카탈로그 정보를 얹는다 (183) — 오른쪽 칸이 고른 개체의 카드를 그린다.
+    # **여기서 한 번만 한다.** 캐러셀이 갈아 끼울 판들이 이 후보 리스트를 그대로
+    # 물고 가므로(`_review_shot`), 판마다 다시 물으면 105 의 그 실수가 된다.
+    attach_catalog(vp, slide, dict(by_path.values()))
 
     st = getattr(vp, "stack", None)
 
@@ -3481,6 +3564,12 @@ def group_detail(slug: str, gid: int, run_id: int | None = None) -> dict | None:
         # 사람이 돌리러 간다. 조용히 다른 묶음으로 물러나지도 않는다(P10 3.6).
         "review_batch": review_batch_label(),
         "elsewhere": batches_elsewhere(vp=vp).get(vp.id, []),
+        # 오른쪽 칸의 카탈로그 칸이 쓰는 것들 (183). 카탈로그 화면과 **같은
+        # 목록을 같은 자리에서** 받는다 — 두 화면이 다른 값을 내밀면 같은 개체를
+        # 두 번 다르게 적게 된다.
+        "species_seen": species_seen(),
+        "grades": DiatomObject.GRADE,
+        "poses": DiatomObject.POSE,
     }
 
 
