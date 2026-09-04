@@ -10,6 +10,7 @@ JSON 은 내보내기 형식으로 남는다 — 특히 `review/*.json` 은 사�
 감사 기록이라 계속 git 에 둔다(DB 파일은 gitignore).
 """
 import os
+import tempfile
 from pathlib import Path
 
 # web/diarugaweb/settings.py -> web/ -> 프로젝트 루트
@@ -117,6 +118,26 @@ DATABASES = {
                 "PRAGMA synchronous=NORMAL;"
                 "PRAGMA foreign_keys=ON;"
             ),
+        },
+        # **시험 DB 는 파일로 만든다** (183). Django 의 sqlite 시험 DB 기본값은
+        # **공유 캐시 인메모리**(`file:memorydb_default?mode=memory&cache=shared`)
+        # 인데, 그 모드의 잠금은 **테이블 단위**라(`SQLITE_LOCKED`) busy 핸들러가
+        # 물러섰다 다시 잡는 길이 없다 — **기다려도 안 풀린다.**
+        #
+        # 브라우저 겹이 CI 에서 그 자리에 걸렸다. `LiveServerTestCase` 는 서버
+        # 스레드가 따로 있어 뒷정리(`flush`)와 요청이 겹치는데, 시험이 늘자
+        # `database table is locked: viewer_objectreview` 로 죽기 시작했고
+        # 재시도를 15.7초로 늘려도 그대로였다(로컬 파일 DB 에서는 안 났다).
+        # 파일이면 잠금이 DB 단위이고 `timeout` 이 실제로 듣는다.
+        #
+        # 이름에 `test` 와 pid 가 들어간다 — 앞엣것은 `tests/base.assert_test_db`
+        # 가 운영 DB 와 가르는 표식이고, 뒤엣것은 두 벌이 동시에 돌 때 서로
+        # 안 밟게 한다. Django 가 끝나면 지운다.
+        "TEST": {
+            "NAME": os.environ.get(
+                "DIARUGA_TEST_DB",
+                str(Path(tempfile.gettempdir())
+                    / f"DiaRUGA_test_{os.getpid()}.db")),
         },
     }
 }
