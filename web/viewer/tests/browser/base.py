@@ -141,12 +141,24 @@ class BrowserTestCase(StaticLiveServerTestCase):
         expected = getattr(self, "_expect_http", set())
         errors = [e for e in self.errors
                   if not any(f"status of {s} " in e for s in expected)]
-        # **떠나기 전에 빈 쪽으로 옮긴다.** 페이지가 아직 썸네일을 받는 중이면
+        # **떠나기 전에 요청을 비운다.** 페이지가 아직 썸네일을 받는 중이면
         # 그 요청을 처리하는 서버 스레드가 **읽기 트랜잭션을 쥔 채** 남고,
         # 곧바로 도는 `flush` 가 그것과 부딪힌다 (아래 `_fixture_teardown`).
-        # 창을 닫는 것만으로는 이미 서버에 들어간 요청이 안 끊긴다.
+        # 창을 닫는 것만으로는 이미 서버에 들어간 요청이 안 끊긴다 —
+        # **끊는 것이 아니라 끝나기를 기다리는 것이 맞다**(183): 핸들러는 이미
+        # DB 를 잡고 있고, 브라우저가 손을 떼도 서버는 그것을 끝까지 돈다.
+        #
+        # 그래서 순서가 셋이다 — **조용해질 때까지 기다리고**, 빈 쪽으로 옮기고,
+        # 닫는다. 기다리는 것을 안 하면 뒷정리가 잠기는데, 그 빨간불은 시험이
+        # 아니라 뒷정리가 낸 것이라 **없는 고장을 쫓게 만든다**(CI 에서 실제로
+        # `test_catalog_atlas` 셋이 그렇게 섰다).
+        try:
+            self.page.wait_for_load_state("networkidle", timeout=5000)
+        except Exception:                       # 5초 안에 안 조용해지면 그냥 간다
+            pass
         try:
             self.page.goto("about:blank")
+            self.page.wait_for_load_state("networkidle", timeout=3000)
         except Exception:                       # 이미 닫혔으면 그만이다
             pass
         self.ctx.close()
